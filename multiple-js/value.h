@@ -130,7 +130,7 @@ public:
 
 public:
 	uint32_t index;
-	FunctionBodyValue* funcProto;
+	FunctionBodyValue* func_proto;
 };
 
 } // namespace mjs

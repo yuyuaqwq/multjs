@@ -251,10 +251,10 @@ ValueType UpValue::GetType() const noexcept {
 }
 
 std::unique_ptr<Value> UpValue::UpValue::Copy() const {
-	return std::make_unique<UpValue>(index, funcProto);
+	return std::make_unique<UpValue>(index, func_proto);
 }
 
-UpValue::UpValue(uint32_t index, FunctionBodyValue* funcProto) noexcept
-	: index(index), funcProto(funcProto) {}
+UpValue::UpValue(uint32_t index, FunctionBodyValue* func_proto) noexcept
+	: index(index), func_proto(func_proto) {}
 
 } // namespace mjs

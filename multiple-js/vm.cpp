@@ -17,11 +17,11 @@ Value* VM::GetVar(uint32_t idx) {
 		// 有时间可以从代码生成那边优化，也是做循环向上找，直到不再指向upvalue
 		auto func = cur_func_;
 		auto upvalue = func->var_sect.Get(idx)->GetUp();
-		while (upvalue->funcProto->var_sect.Get(upvalue->index)->GetType() == ValueType::kUp) {
-			func = upvalue->funcProto;
+		while (upvalue->func_proto->var_sect.Get(upvalue->index)->GetType() == ValueType::kUp) {
+			func = upvalue->func_proto;
 			upvalue = func->var_sect.Get(upvalue->index)->GetUp();
 		}
-		return upvalue->funcProto->var_sect.Get(upvalue->index).get();
+		return upvalue->func_proto->var_sect.Get(upvalue->index).get();
 	}
 	return cur_func_->var_sect.Get(idx).get();
 }
@@ -38,11 +38,11 @@ void VM::SetVar(uint32_t idx, std::unique_ptr<Value> var) {
 	else if (cur_func_->var_sect.Get(idx).get() && cur_func_->var_sect.Get(idx)->GetType() == ValueType::kUp) {
 		auto func = cur_func_;
 		auto upvalue = func->var_sect.Get(idx)->GetUp();
-		while (upvalue->funcProto->var_sect.Get(upvalue->index)->GetType() == ValueType::kUp) {
-			func = upvalue->funcProto;
+		while (upvalue->func_proto->var_sect.Get(upvalue->index)->GetType() == ValueType::kUp) {
+			func = upvalue->func_proto;
 			upvalue = func->var_sect.Get(upvalue->index)->GetUp();
 		}
-		upvalue->funcProto->var_sect.Set(upvalue->index, std::move(var));
+		upvalue->func_proto->var_sect.Set(upvalue->index, std::move(var));
 		return;
 	}
 

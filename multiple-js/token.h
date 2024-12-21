@@ -58,7 +58,7 @@ enum class TokenType {
 };
 
 struct Token {
-	bool Is(TokenType t_type) const noexcept;
+	bool Is(TokenType type) const noexcept;
 
 	int32_t line;		// ––∫≈
 	TokenType type;		// token¿‡–Õ
