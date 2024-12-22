@@ -41,8 +41,6 @@ private:
 	FunctionBodyValue* cur_func_;
 	ValueSection* const_sect_;
 	ValueSection stack_sect_;
-	// std::vector<std::unique_ptr<Value>> stack_sect_;
-	
 };
 
 } // namespace mjs

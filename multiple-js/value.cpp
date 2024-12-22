@@ -182,9 +182,8 @@ std::unique_ptr<Value> StringValue::Copy() const {
 	return std::make_unique<StringValue>(val);
 }
 
-StringValue::StringValue(const std::string& t_val) : val(t_val) {
-
-}
+StringValue::StringValue(const std::string& t_val)
+	: val(t_val) {}
 
 
 ValueType FunctionBridgeValue::GetType() const noexcept {
@@ -255,6 +254,7 @@ std::unique_ptr<Value> UpValue::UpValue::Copy() const {
 }
 
 UpValue::UpValue(uint32_t index, FunctionBodyValue* func_proto) noexcept
-	: index(index), func_proto(func_proto) {}
+	: index(index)
+	, func_proto(func_proto) {}
 
 } // namespace mjs

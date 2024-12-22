@@ -18,7 +18,8 @@ public:
 	Lexer(const char* src);
 	~Lexer() noexcept;
 
-	Token LookAHead();
+	Token PeekToken();
+	Token PeekTokenN(uint32_t n);
 	Token NextToken();
 	Token MatchToken(TokenType type);
 
@@ -28,10 +29,12 @@ private:
 	bool TestStr(const std::string& str);
 	bool TestChar(char c);
 
+	Token ReadNextToken();
+
 private:
 	std::string src_;
 	size_t idx_ = 0;
-	Token look_;
+	Token peek_;
 	int32_t line_ = 0;
 };
 

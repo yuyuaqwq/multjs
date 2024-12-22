@@ -26,7 +26,7 @@ public:
 
 	std::unique_ptr<ExpStat> ParseExpStat();
 
-	std::unique_ptr<FuncDefStat> ParseFuncDefStat();
+	std::unique_ptr<FuncDeclStat> ParseFunctionDeclStat();
 	std::vector<std::string> ParseParNameList();
 	std::unique_ptr<IfStat> ParseIfStat();
 	std::unique_ptr<ElseIfStat> ParseElseIfStat();

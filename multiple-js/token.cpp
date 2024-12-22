@@ -3,7 +3,7 @@
 namespace mjs {
 
 bool Token::Is(TokenType type) const noexcept {
-	return type == type;
+	return type_ == type;
 }
 
 std::map<std::string, TokenType> g_keywords = {

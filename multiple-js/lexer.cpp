@@ -5,8 +5,7 @@
 namespace mjs {
 
 Lexer::Lexer(const char* src)
-    : src_(src)
-    , look_{ 0, TokenType::kNil } {}
+    : src_(src) {}
 
 Lexer::~Lexer() noexcept = default;
 
@@ -32,14 +31,38 @@ bool Lexer::TestChar(char c) {
 }
 
 
-// 前瞻下一Token
-Token Lexer::LookAHead() {
-    if (look_.type == TokenType::kNil) {        // 如果没有前瞻过
-        look_ = NextToken();       // 获取
+// 前瞻Token
+Token Lexer::PeekToken() {
+    // 如果没有前瞻过
+    if (peek_.Is(TokenType::kNil)) {
+        peek_ = NextToken();
     }
-    return look_;
+    return peek_;
 }
 
+// 前瞻自此往后第N个Token
+Token Lexer::PeekTokenN(uint32_t n) {
+    auto idx = idx_;
+    auto line = line_;
+
+    if (n == 1) {
+        return PeekToken();
+    }
+    else if (n > 1 && !peek_.Is(TokenType::kNil)) {
+        n -= 1;
+    }
+    
+    for (uint32_t i = 0; i < n; ++i) {
+        if (i + 1 == n) {
+            auto token = ReadNextToken();
+            idx_ = idx;
+            line_ = line;
+            return token;
+        }
+        ReadNextToken();
+    }
+    throw std::invalid_argument("n error.");
+}
 
 inline static bool IsDigit(char c) {
     return c >= '0' && c <= '9';
@@ -50,14 +73,26 @@ inline static bool IsAlpha(char c) {
 
 // 获取下一Token
 Token Lexer::NextToken() {
-    Token token;
-    if (!look_.Is(TokenType::kNil)) {        // 如果有前瞻保存的token
-        // 返回前瞻的结果
-        token = look_;
-        look_.type = TokenType::kNil;
+    if (!peek_.Is(TokenType::kNil)) {
+        // 如果有前瞻保存的token，返回前瞻的结果
+        Token token = std::move(peek_);
+        peek_.set_type(TokenType::kNil);
         return token;
     }
+    return ReadNextToken();
+}
 
+// 匹配下一Token
+Token Lexer::MatchToken(TokenType type) {
+    auto token = NextToken();
+    if (token.Is(type)) {
+        return token;
+    }
+    throw LexerException("cannot match token");
+}
+
+Token Lexer::ReadNextToken() {
+    Token token;
     char c;
     do {
         // 跳过空格和换行
@@ -83,118 +118,109 @@ Token Lexer::NextToken() {
 
     } while (true);
 
-    
-
-    token.line = line_;
+    token.set_line(line_);
 
     if (c == 0) {
-        token.type = TokenType::kEof;
+        token.set_type(TokenType::kEof);
         return token;
     }
 
     // 根据字符返回对应类型的Token
     switch (c) {
     case ';':
-        token.type = TokenType::kSepSemi;
-        return token;
-    case ',':
-        token.type = TokenType::kSepComma;
+        token.set_type(TokenType::kSepSemi);
         return token;
     case ':':
-        if (TestChar('=')) {
-            SkipChar(1);
-            token.type = TokenType::kOpNewVar;
-            return token;
-        }
-        token.type = TokenType::kSepColon;
+        token.set_type(TokenType::kSepColon);
+        return token;
+    case ',':
+        token.set_type(TokenType::kSepComma);
         return token;
     case '(':
-        token.type = TokenType::kSepLParen;
+        token.set_type(TokenType::kSepLParen);
         return token;
     case ')':
-        token.type = TokenType::kSepRParen;
+        token.set_type(TokenType::kSepRParen);
         return token;
     case '[':
-        token.type = TokenType::kSepLBrack;
+        token.set_type(TokenType::kSepLBrack);
         return token;
     case ']':
-        token.type = TokenType::kSepRBrack;
+        token.set_type(TokenType::kSepRBrack);
         return token;
     case '{':
-        token.type = TokenType::kSepLCurly;
+        token.set_type(TokenType::kSepLCurly);
         return token;
     case '}':
-        token.type = TokenType::kSepRCurly;
+        token.set_type(TokenType::kSepRCurly);
         return token;
 
     case '+':
-        token.type = TokenType::kOpAdd;
+        token.set_type(TokenType::kOpAdd);
         return token;
     case '-':
-        token.type = TokenType::kOpSub;
+        token.set_type(TokenType::kOpSub);
         return token;
     case '*':
-        token.type = TokenType::kOpMul;
+        token.set_type(TokenType::kOpMul);
         return token;
     case '/':
-        token.type = TokenType::kOpDiv;
+        token.set_type(TokenType::kOpDiv);
         return token;
     case '!':
         if (TestChar('=')) {
             SkipChar(1);
-            token.type = TokenType::kOpNe;
+            token.set_type(TokenType::kOpNe);
             return token;
         }
         break;
     case '=':
         if (TestChar('=')) {
             SkipChar(1);
-            token.type = TokenType::kOpEq;
+            token.set_type(TokenType::kOpEq);
             return token;
         }
-        token.type = TokenType::kOpAssign;
+        token.set_type(TokenType::kOpAssign);
         return token;
     case '<':
         if (TestChar('=')) {
             SkipChar(1);
-            token.type = TokenType::kOpLe;
+            token.set_type(TokenType::kOpLe);
             return token;
         }
-        token.type = TokenType::kOpLt;
+        token.set_type(TokenType::kOpLt);
         return token;
 
     case '>':
         if (TestChar('=')) {
             SkipChar(1);
-            token.type = TokenType::kOpGe;
+            token.set_type(TokenType::kOpGe);
             return token;
         }
-        token.type = TokenType::kOpGt;
+        token.set_type(TokenType::kOpGt);
         return token;
-
     }
 
-    
     if (c == 'n' && TestStr("ull")) {
         SkipChar(3);
-        token.type = TokenType::kNull;
+        token.set_type(TokenType::kNull);
     }
     if (c == 'f' && TestStr("alse")) {
         SkipChar(4);
-        token.type = TokenType::kFalse;
+        token.set_type(TokenType::kFalse);
     }
     if (c == 't' && TestStr("rue")) {
         SkipChar(3);
-        token.type = TokenType::kFalse;
+        token.set_type(TokenType::kFalse);
     }
 
     // Number
     if (IsDigit(c)) {
-        token.type = TokenType::kNumber;
-        token.str.push_back(c);
+        token.set_type(TokenType::kNumber);
+        token.mutable_str()->push_back(c);
         while (c = NextChar()) {
             if (IsDigit(c)) {
-                token.str.push_back(c);
+                token.mutable_str()->push_back(c);
             }
             else {
                 SkipChar(-1);
@@ -221,14 +247,13 @@ Token Lexer::NextToken() {
 
         idx_ = endPos + 1;
 
-        token.str = src_.substr(beginPos, endPos - beginPos);
-        token.type = TokenType::kString;
+        token.set_str(src_.substr(beginPos, endPos - beginPos));
+        token.set_type(TokenType::kString);
         return token;
     }
 
     // 标识符或关键字
     if (c == '_' || IsAlpha(c)) {
-        
         std::string ident;
         size_t beginPos = idx_ - 1;
         char c = NextChar();
@@ -243,26 +268,15 @@ Token Lexer::NextToken() {
 
         auto keyword = g_keywords.find(ident);
         if (keyword != g_keywords.end()) {
-            token.type = keyword->second;
+            token.set_type(keyword->second);
         }
         else {
-            token.type = TokenType::kIdentifier;
-            token.str = ident;
+            token.set_type(TokenType::kIdentifier);
+            token.set_str(ident);
         }
         return token;
-
     }
     throw LexerException("cannot parse token");
-}
-
-
-// 匹配下一Token
-Token Lexer::MatchToken(TokenType type) {
-    auto token = NextToken();
-    if (token.Is(type)) {
-        return token;
-    }
-    throw LexerException("cannot match token");
 }
 
 } // namespace msj

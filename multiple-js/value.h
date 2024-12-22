@@ -45,7 +45,6 @@ public:
 	FunctionBodyValue* GetFunctionBody() noexcept;
 	FunctionBridgeValue* GetFunctionBirdge() noexcept;
 	UpValue* GetUp() noexcept;
-
 };
 
 class NullValue :public Value {

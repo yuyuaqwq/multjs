@@ -135,6 +135,7 @@
     <ClCompile Include="multiple-js.cpp" />
     <ClCompile Include="parser.cpp" />
     <ClCompile Include="section.cpp" />
+    <ClCompile Include="stack_frame.h" />
     <ClCompile Include="stat.cpp" />
     <ClCompile Include="token.cpp" />
     <ClCompile Include="value.cpp" />

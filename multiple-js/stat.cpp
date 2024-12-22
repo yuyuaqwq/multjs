@@ -18,11 +18,11 @@ ExpStat::ExpStat(std::unique_ptr<Exp> exp)
 	: exp(std::move(exp)){}
 
 
-StatType FuncDefStat::GetType() const noexcept {
-	return StatType::kFuncDef;
+StatType FuncDeclStat::GetType() const noexcept {
+	return StatType::kFunctionDecl;
 }
 
-FuncDefStat::FuncDefStat(const std::string& func_name, const std::vector<std::string>& par_list, std::unique_ptr<BlockStat> block)
+FuncDeclStat::FuncDeclStat(const std::string& func_name, const std::vector<std::string>& par_list, std::unique_ptr<BlockStat> block)
 	: func_name(func_name)
 	, par_list(par_list)
 	, block(std::move(block)) {}

@@ -1,20 +1,83 @@
-﻿// multiple-js.cpp : 此文件包含 "main" 函数。程序执行将在此处开始并结束。
-//
+﻿#include <Windows.h>
 
 #include <iostream>
+#include <fstream>
 
-int main()
-{
-    std::cout << "Hello World!\n";
+#include "lexer.h"
+#include "parser.h"
+#include "exp.h"
+#include "codegener.h"
+#include "vm.h"
+
+
+int main() {
+    using namespace mjs;
+
+    auto t = GetTickCount64();
+    int i = 0;
+    for (; i < 100000000; i++) {
+        ++i;
+    }
+    printf("%d, %lld", i, GetTickCount64() - t);
+
+
+    std::fstream srcFile;
+    srcFile.open(R"(test.js)");
+
+    srcFile.seekg(0, std::ios::end);
+    std::streampos length = srcFile.tellg();
+    srcFile.seekg(0, std::ios::beg);
+    std::vector<char> res(length);
+    srcFile.read((char*)res.data(), length);
+
+    Lexer lexer{ res.data() };
+    Parser parser(&lexer);
+
+    auto src = parser.ParseSource();
+
+    auto constSect = std::make_unique<ValueSection>();
+    CodeGener cg(constSect.get());
+
+    cg.RegistryFunctionBridge("println",
+        [](uint32_t parCount, ValueSection* stack) -> std::unique_ptr<Value> {       // Toy_Println
+            for (int i = 0; i < parCount; i++) {
+                auto val = stack->Pop();
+                if (val->GetType() == ValueType::kString) {
+                    printf("%s", val->GetString()->val.c_str());
+                }
+                else if (val->GetType() == ValueType::kNumber) {
+                    printf("%lld", val->GetNumber()->val);
+                }
+            }
+            printf("\n");
+            return std::make_unique<NullValue>();
+        }
+    );
+
+    cg.RegistryFunctionBridge("tick",
+        [](uint32_t parCount, ValueSection* stack)->std::unique_ptr<Value> {       // Toy_Tick
+            return std::make_unique<NumberValue>(GetTickCount64());
+        }
+    );
+
+
+    // printf("%s\n", vvm.Disassembly().c_str());
+
+    cg.Generate(src.get(), constSect.get());
+
+    VM vvm(constSect.get());
+
+    std::cout << vvm.Disassembly() << std::endl;
+
+    vvm.Run();
+
+
+
+
+
+    //auto exp = parser.ParseExp();
+
+    //int res = CalculationExp(exp.get());
+
+    // printf("%d", res);
 }
-
-// 运行程序: Ctrl + F5 或调试 >“开始执行(不调试)”菜单
-// 调试程序: F5 或调试 >“开始调试”菜单
-
-// 入门使用技巧: 
-//   1. 使用解决方案资源管理器窗口添加/管理文件
-//   2. 使用团队资源管理器窗口连接到源代码管理
-//   3. 使用输出窗口查看生成输出和其他消息
-//   4. 使用错误列表窗口查看错误
-//   5. 转到“项目”>“添加新项”以创建新的代码文件，或转到“项目”>“添加现有项”以将现有代码文件添加到项目
-//   6. 将来，若要再次打开此项目，请转到“文件”>“打开”>“项目”并选择 .sln 文件

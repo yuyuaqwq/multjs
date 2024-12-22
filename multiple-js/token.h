@@ -31,7 +31,6 @@ enum class TokenType {
 	kSepLCurly,		// {
 	kSepRCurly,		// }
 
-	kOpNewVar,		// :=
 	kOpAssign,		// =
 	kOpAdd,			// +
 	kOpSub,			// -
@@ -55,14 +54,28 @@ enum class TokenType {
 	kKwReturn,		// return
 	kKwVar,			// var
 	kKwLet,			// let
+	kKwImport,		// import
+	kKwClass,		// class
 };
 
-struct Token {
+class Token {
+public:
 	bool Is(TokenType type) const noexcept;
 
-	int32_t line;		// 行号
-	TokenType type;		// token类型
-	std::string str;	// 保存必要的信息
+	TokenType type() const { return type_; }
+	void set_type(TokenType type) { type_ = type; }
+
+	int32_t line() const { return line_; }
+	void set_line(int32_t line) { line_ = line; }
+
+	std::string* mutable_str() { return &str_; }
+	const std::string& str() const { return str_; }
+	void set_str(std::string str) { str_ = std::move(str); }
+
+private:
+	int32_t line_ = 0;		// 行号
+	TokenType type_ = TokenType::kNil;		// token类型
+	std::string str_;	// 保存必要的信息
 };
 
 extern std::map<std::string, TokenType> g_keywords;

@@ -36,7 +36,7 @@ struct NumberExp : public Exp {
 	virtual ExpType GetType() const noexcept;
 	NumberExp(int t_value) noexcept;
 
-	int value;
+	int64_t value;
 };
 
 struct StringExp : public Exp {
