@@ -141,7 +141,6 @@ std::unique_ptr<IfStat> Parser::ParseIfStat() {
 		}
 		else_stat = ParseElseStat();
 	}
-
 	return std::make_unique<IfStat>(std::move(exp), std::move(block), std::move(else_if_stat_list), std::move(else_stat));
 }
 

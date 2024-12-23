@@ -129,12 +129,13 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="codegener.cpp" />
+    <ClCompile Include="const_pool.cpp" />
     <ClCompile Include="exp.cpp" />
     <ClCompile Include="instr.cpp" />
     <ClCompile Include="lexer.cpp" />
     <ClCompile Include="multiple-js.cpp" />
     <ClCompile Include="parser.cpp" />
-    <ClCompile Include="section.cpp" />
+    <ClCompile Include="stack_frame.cpp" />
     <ClCompile Include="stack_frame.h" />
     <ClCompile Include="stat.cpp" />
     <ClCompile Include="token.cpp" />
@@ -143,11 +144,11 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="codegener.h" />
+    <ClInclude Include="const_pool.h" />
     <ClInclude Include="exp.h" />
     <ClInclude Include="instr.h" />
     <ClInclude Include="lexer.h" />
     <ClInclude Include="parser.h" />
-    <ClInclude Include="section.h" />
     <ClInclude Include="stat.h" />
     <ClInclude Include="token.h" />
     <ClInclude Include="value.h" />

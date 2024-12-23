@@ -34,9 +34,9 @@ struct BoolExp : public Exp {
 
 struct NumberExp : public Exp {
 	virtual ExpType GetType() const noexcept;
-	NumberExp(int t_value) noexcept;
+	NumberExp(double value) noexcept;
 
-	int64_t value;
+	double value;
 };
 
 struct StringExp : public Exp {

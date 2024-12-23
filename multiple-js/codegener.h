@@ -8,7 +8,8 @@
 #include "vm.h"
 
 #include "value.h"
-#include "section.h"
+#include "stack_frame.h"
+#include "const_pool.h"
 
 #include "stat.h"
 #include "exp.h"
@@ -16,7 +17,7 @@
 namespace mjs {
 
 struct Scope {
-	FunctionBodyValue* func;						// 作用域所属函数
+	FunctionBodyObject* func;						// 作用域所属函数
 	uint32_t var_count;								// 当前函数在当前作用域中的有效变量计数
 	std::unordered_map<std::string, uint32_t> var_table;		// 变量表，key为变量索引
 };
@@ -31,16 +32,16 @@ public:
 
 class CodeGener {
 public:
-	CodeGener(ValueSection* const_sect);
+	CodeGener(ConstPool* const_pool);
 
-	void EntryScope(FunctionBodyValue* sub_func = nullptr);
+	void EntryScope(FunctionBodyObject* sub_func = nullptr);
 	void ExitScope();
-	uint32_t AllocConst(std::unique_ptr<Value> value);
+	uint32_t AllocConst(Value&& value);
 	uint32_t AllocVar(std::string varName);
 	uint32_t GetVar(std::string varName);
 	void RegistryFunctionBridge(std::string func_name, FunctionBridgeCall func_addr);
 
-	void Generate(BlockStat* block, ValueSection* const_sect);
+	void Generate(BlockStat* block);
 	void GenerateBlock(BlockStat* block);
 	void GenerateStat(Stat* stat);
 	void GenerateFunctionDeclStat(FuncDeclStat* stat);
@@ -52,14 +53,15 @@ public:
 	void GenerateContinueStat(ContinueStat* stat);
 	void GenerateBreakStat(BreakStat* stat);
 	void GenerateExp(Exp* exp);
+	void GenerateIfICmp(Exp* exp);
 
 private:
 	// 函数
-	FunctionBodyValue* cur_func_ = nullptr;				// 当前生成函数
+	FunctionBodyObject* cur_func_ = nullptr;				// 当前生成函数
 
 	// 常量
-	std::unordered_map<Value*, uint32_t> const_map_;		// 暂时有问题，指针就没办法找重载<了
-	ValueSection* const_sect_;					// 全局常量区
+	std::map<Value, uint32_t> const_map_;
+	ConstPool* const_pool_;
 
 	// 作用域
 	std::vector<Scope> scope_;

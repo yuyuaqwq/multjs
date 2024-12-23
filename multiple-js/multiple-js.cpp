@@ -18,7 +18,7 @@ int main() {
     for (; i < 100000000; i++) {
         ++i;
     }
-    printf("%d, %lld", i, GetTickCount64() - t);
+    printf("%d, %lld\n", i, GetTickCount64() - t);
 
 
     std::fstream srcFile;
@@ -35,37 +35,39 @@ int main() {
 
     auto src = parser.ParseSource();
 
-    auto constSect = std::make_unique<ValueSection>();
-    CodeGener cg(constSect.get());
+    auto const_pool = std::make_unique<ConstPool>();
+    CodeGener cg(const_pool.get());
 
     cg.RegistryFunctionBridge("println",
-        [](uint32_t parCount, ValueSection* stack) -> std::unique_ptr<Value> {       // Toy_Println
-            for (int i = 0; i < parCount; i++) {
-                auto val = stack->Pop();
-                if (val->GetType() == ValueType::kString) {
-                    printf("%s", val->GetString()->val.c_str());
-                }
-                else if (val->GetType() == ValueType::kNumber) {
-                    printf("%lld", val->GetNumber()->val);
-                }
-            }
-            printf("\n");
-            return std::make_unique<NullValue>();
+        [](uint32_t parCount, StackFrame* stack) -> Value {
+            //for (int i = 0; i < parCount; i++) {
+            //    auto val = stack->Pop();
+            //    if (val->GetType() == ValueType::kString) {
+            //        printf("%s", val->GetString()->val.c_str());
+            //    }
+            //    else if (val->GetType() == ValueType::kNumber) {
+            //        printf("%lld", val->GetNumber()->val);
+            //    }
+            //}
+            //printf("\n");
+            //return std::make_unique<NullValue>();
+            return Value();
         }
     );
 
     cg.RegistryFunctionBridge("tick",
-        [](uint32_t parCount, ValueSection* stack)->std::unique_ptr<Value> {       // Toy_Tick
-            return std::make_unique<NumberValue>(GetTickCount64());
+        [](uint32_t par_count, StackFrame* stack) -> Value {
+            // return std::make_unique<NumberValue>(GetTickCount64());
+            return Value();
         }
     );
 
 
     // printf("%s\n", vvm.Disassembly().c_str());
 
-    cg.Generate(src.get(), constSect.get());
+    cg.Generate(src.get());
 
-    VM vvm(constSect.get());
+    VM vvm(const_pool.get());
 
     std::cout << vvm.Disassembly() << std::endl;
 

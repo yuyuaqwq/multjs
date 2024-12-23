@@ -39,9 +39,6 @@
     <ClCompile Include="value.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="section.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
     <ClCompile Include="instr.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
@@ -50,6 +47,12 @@
     </ClCompile>
     <ClCompile Include="stack_frame.h">
       <Filter>头文件</Filter>
+    </ClCompile>
+    <ClCompile Include="stack_frame.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="const_pool.cpp">
+      <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -74,13 +77,13 @@
     <ClInclude Include="value.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="section.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
     <ClInclude Include="instr.h">
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="vm.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="const_pool.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>
