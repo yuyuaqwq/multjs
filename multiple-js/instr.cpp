@@ -161,12 +161,36 @@ void ByteCode::EmitVarLoad(uint32_t idx) {
 
 void ByteCode::RepairPc(uint32_t pc_from, uint32_t pc_to) {
 	// skip opcode
-	*reinterpret_cast<uint16_t*>(GetPtr(pc_from) + 1) = pc_to - pc_from;
+	*reinterpret_cast<int16_t*>(GetPtr(pc_from) + 1) = int64_t(pc_to) - int64_t(pc_from);
 }
 
 uint32_t ByteCode::CalcPc(uint32_t cur_pc) {
     // skip opcode
-    return cur_pc + *reinterpret_cast<uint16_t*>(GetPtr(cur_pc) + 1);
+    return cur_pc + *reinterpret_cast<int16_t*>(GetPtr(cur_pc) + 1);
+}
+
+std::string ByteCode::Disassembly(uint32_t& pc) {
+    std::string str;
+    char buf[16] = { 0 };
+    sprintf_s(buf, "%04d\t", pc);
+    const auto& info = g_instr_symbol.find(GetOpcode(pc++));
+    str += buf + info->second.str + "\t";
+    for (const auto& par_size : info->second.par_size_list) {
+        if (par_size == 1) {
+            auto ki = GetU8(pc);
+            str += std::to_string(ki) + " ";
+        }
+        else if (par_size == 2) {
+            auto ki = GetU16(pc);
+            str += std::to_string(ki) + " ";
+        }
+        else if (par_size == 4) {
+            auto ki = GetU32(pc);
+            str += std::to_string(ki) + " ";
+        }
+        pc += par_size;
+    }
+    return str;
 }
 
 } // namespace mjs

@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include <fstream>
+#include <chrono>
 
 #include "lexer.h"
 #include "parser.h"
@@ -48,9 +49,9 @@ int main() {
                 else if (val.type() == ValueType::kNumber) {
                     std::cout << val.number();
                 }
-                else if (val.type() == ValueType::kU64) {
-                    std::cout << val.u64();
-                }
+                //else if (val.type() == ValueType::kU64) {
+                //    std::cout << val.u64();
+                //}
             }
             printf("\n");
             return Value();
@@ -59,7 +60,7 @@ int main() {
 
     cg.RegistryFunctionBridge("tick",
         [](uint32_t par_count, StackFrame* stack) -> Value {
-            return Value(GetTickCount64());
+            return Value(double(GetTickCount64()));
         }
     );
 
@@ -72,8 +73,15 @@ int main() {
 
     std::cout << vvm.Disassembly() << std::endl;
 
+
+    auto start = std::chrono::high_resolution_clock::now();
+
     vvm.Run();
 
+    auto end = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double, std::milli> elapsed = end - start;
+
+    std::cout << "Elapsed time: " << elapsed.count() << " ms\n";
 
 
 
@@ -82,5 +90,5 @@ int main() {
 
     //int res = CalculationExp(exp.get());
 
-    // printf("%d", res);
+    printf("%d", 100);
 }

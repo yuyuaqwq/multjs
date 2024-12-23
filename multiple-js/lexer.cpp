@@ -1,6 +1,7 @@
 #include "lexer.h"
 
 #include <format>
+#include <stdexcept>
 
 namespace mjs {
 

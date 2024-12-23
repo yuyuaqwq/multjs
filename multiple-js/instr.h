@@ -108,6 +108,8 @@ public:
 
 	size_t Size() { return bytes_.size(); }
 
+	std::string Disassembly(uint32_t& pc);
+
 private:
 	std::vector<uint8_t> bytes_;
 };

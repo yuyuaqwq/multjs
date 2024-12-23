@@ -1,5 +1,7 @@
 #include "vm.h"
 
+#include <iostream>
+
 namespace mjs {
 
 VM::VM(ConstPool* const_pool)
@@ -53,6 +55,8 @@ void VM::SetVar(uint32_t idx, Value* var) {
 
 void VM::Run() {
 	do {
+		// auto pc = pc_;
+		// std::cout << cur_func_->byte_code.Disassembly(pc) << std::endl;
 		auto opcode = cur_func_->byte_code.GetOpcode(pc_++);
 		switch (opcode) {
 		case OpcodeType::kCLoad_0: {
@@ -112,25 +116,25 @@ void VM::Run() {
 		case OpcodeType::kAdd: {
 			auto a = stack_frame_.Pop();
 			auto& b = stack_frame_.Get(-1);
-			b = a + b;
+			b = b + a;
 			break;
 		}
 		case OpcodeType::kSub: {
 			auto a = stack_frame_.Pop();
 			auto& b = stack_frame_.Get(-1);
-			b = a - b;
+			b = b - a;
 			break;
 		}
 		case OpcodeType::kMul: {
 			auto a = stack_frame_.Pop();
 			auto& b = stack_frame_.Get(-1);
-			b = a * b;
+			b = b * a;
 			break;
 		}
 		case OpcodeType::kDiv: {
 			auto a = stack_frame_.Pop();
 			auto& b = stack_frame_.Get(-1);
-			b = a / b;
+			b = b / a;
 			break;
 		}
 		case OpcodeType::kInvokeStatic: {
@@ -221,23 +225,23 @@ void VM::Run() {
 			break;
 		}
 		case OpcodeType::kIfEq: {
-			auto offset = cur_func_->byte_code.GetU16(pc_);
-			pc_ += 2;
 			auto boolean = stack_frame_.Pop().boolean();
 			if (boolean == false) {
-				pc_ = cur_func_->byte_code.CalcPc(offset);
+				pc_ = cur_func_->byte_code.CalcPc(--pc_);
+			}
+			else {
+				pc_ += 2;
 			}
 			break;
 		}
 		case OpcodeType::kGoto: {
-			auto offset = cur_func_->byte_code.GetU16(pc_);
-			pc_ = cur_func_->byte_code.CalcPc(offset);
+			pc_ = cur_func_->byte_code.CalcPc(--pc_);
 			break;
 		}
 		default:
 			throw VMException("Unknown instruction");
 		}
-	} while (pc_ < cur_func_->byte_code.Size());
+	} while (pc_ > 0 && pc_ < cur_func_->byte_code.Size());
 }
 
 } // namespace mjs

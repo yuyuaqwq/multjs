@@ -227,7 +227,7 @@ void CodeGener::GenerateAssignStat(AssignStat* stat) {
 	// 表达式压栈
 	GenerateExp(stat->exp.get());
 	// 弹出到变量中
-	cur_func_->byte_code.EmitVarLoad(var_idx);
+	cur_func_->byte_code.EmitVarStore(var_idx);
 }
 
 // 2字节指的是基于当前指令的offset
@@ -364,7 +364,8 @@ void CodeGener::GenerateWhileStat(WhileStat* stat) {
 
 	// 重新回去看是否需要循环
 	cur_func_->byte_code.EmitOpcode(OpcodeType::kGoto);
-	cur_func_->byte_code.EmitU16(loop_start_pc);
+	cur_func_->byte_code.EmitI16(0);
+	cur_func_->byte_code.RepairPc(cur_func_->byte_code.GetPc() - 3, loop_start_pc);
 
 	for (auto repair_end_pc : loop_repair_end_pc_list) {
 		// 修复跳出循环的指令的pc
@@ -381,7 +382,8 @@ void CodeGener::GenerateContinueStat(ContinueStat* stat) {
 	}
 	// 跳回当前循环的起始pc
 	cur_func_->byte_code.EmitOpcode(OpcodeType::kGoto);
-	cur_func_->byte_code.EmitU16(cur_loop_start_pc_);
+	cur_func_->byte_code.EmitI16(0);
+	cur_func_->byte_code.RepairPc(cur_func_->byte_code.GetPc() - 3, cur_loop_start_pc_);
 }
 
 void CodeGener::GenerateBreakStat(BreakStat* stat) {
