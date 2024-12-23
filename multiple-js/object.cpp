@@ -1,4 +1,4 @@
-#include "value.h"
+#include "object.h"
 
 namespace mjs {
 
@@ -11,7 +11,7 @@ FunctionBodyObject::FunctionBodyObject(uint32_t par_count) noexcept
 
 std::string FunctionBodyObject::Disassembly() {
 	std::string str;
-	for (int pc = 0; pc < byte_code.container.size(); ) {
+	for (int pc = 0; pc < byte_code.Size(); ) {
 		char buf[16] = { 0 };
 		sprintf_s(buf, "%04d\t", pc);
 		const auto& info = g_instr_symbol.find(byte_code.GetOpcode(pc++));

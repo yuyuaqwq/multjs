@@ -11,6 +11,7 @@
 #include "value.h"
 #include "const_pool.h"
 #include "stack_frame.h"
+#include "object.h"
 
 namespace mjs {
 

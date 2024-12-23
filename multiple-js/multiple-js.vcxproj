@@ -134,12 +134,12 @@
     <ClCompile Include="instr.cpp" />
     <ClCompile Include="lexer.cpp" />
     <ClCompile Include="multiple-js.cpp" />
+    <ClCompile Include="object.cpp" />
     <ClCompile Include="parser.cpp" />
     <ClCompile Include="stack_frame.cpp" />
     <ClCompile Include="stack_frame.h" />
     <ClCompile Include="stat.cpp" />
     <ClCompile Include="token.cpp" />
-    <ClCompile Include="value.cpp" />
     <ClCompile Include="vm.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -148,6 +148,7 @@
     <ClInclude Include="exp.h" />
     <ClInclude Include="instr.h" />
     <ClInclude Include="lexer.h" />
+    <ClInclude Include="object.h" />
     <ClInclude Include="parser.h" />
     <ClInclude Include="stat.h" />
     <ClInclude Include="token.h" />

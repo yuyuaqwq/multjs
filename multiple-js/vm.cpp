@@ -225,7 +225,7 @@ void VM::Run() {
 	//	default:
 	//		throw VMException("Unknown instruction");
 	//	}
-	//} while (true);
+	//} while (pc_ < cur_func_->byte_code.Size());
 }
 
 } // namespace mjs

@@ -7,8 +7,6 @@
 
 #include "instr.h"
 
-#include "stack_frame.h"
-
 namespace mjs {
 
 enum class ValueType : uint64_t {
@@ -76,18 +74,31 @@ public:
 	}
 
 	Value(const Value& r) {
+		operator=(r);
+	}
+
+	Value(Value&& r) noexcept {
+		operator=(std::move(r));
+	}
+
+	void operator=(const Value& r) {
 		tag_.full_ = r.tag_.full_;
-		std::memcpy(&value_, &r.value_, sizeof(value_));
 		if (type() == ValueType::kString) {
 			if (tag_.string_length_ >= sizeof(value_.string_u8_inline_)) {
 				set_string_u8_copy(r.value_.string_u8_, r.tag_.string_length_);
 			}
+			else {
+				value_ = r.value_;
+			}
+		}
+		else {
+			value_ = r.value_;
 		}
 	}
 
-	Value(Value&& r) noexcept {
+	void operator=(Value&& r) noexcept {
 		tag_.full_ = r.tag_.full_;
-		std::memcpy(&value_, &r.value_, sizeof(value_));
+		value_ = r.value_;
 		r.tag_.type_ = ValueType::kUndefined;
 	}
 
@@ -178,53 +189,5 @@ private:
 	} value_;
 };
 
-
-
-class ObjectHeader {
-
-};
-
-// 关于函数的设计
-// 函数体就是指令流的封装，只会存放在常量里，定义函数会在常量池创建函数
-// 并且会在局部变量表中创建并函数原型，指向函数体，类似语法糖的想法
-class FunctionBodyObject : public ObjectHeader {
-public:
-	explicit FunctionBodyObject(uint32_t t_parCount) noexcept;
-	std::string Disassembly();
-
-public:
-	uint32_t par_count;
-	ByteCode byte_code;
-	StackFrame stack_frame;
-};
-
-
-typedef Value(*FunctionBridgeCall)(uint32_t par_count, StackFrame* stack);
-class FunctionBridgeObject : public ObjectHeader {
-public:
-	explicit FunctionBridgeObject(FunctionBridgeCall func_addr) noexcept;
-
-	FunctionBridgeCall func_addr;
-};
-
-class FunctionProtoObject : public ObjectHeader {
-public:
-	explicit FunctionProtoObject(FunctionBodyObject* value) noexcept;
-	explicit FunctionProtoObject(FunctionBridgeObject* value) noexcept;
-
-	union {
-		FunctionBodyObject* body_val;
-		FunctionBridgeObject* bridge_val;
-	};
-};
-
-class UpObject : public ObjectHeader {
-public:
-	UpObject(uint32_t t_index, FunctionBodyObject* func_proto) noexcept;
-
-public:
-	uint32_t index;
-	FunctionBodyObject* func_proto;
-};
 
 } // namespace mjs

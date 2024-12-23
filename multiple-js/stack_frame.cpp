@@ -4,41 +4,38 @@
 
 namespace mjs {
 
-//void StackFrame::Push(std::unique_ptr<Value>&& value) {
-//	container_.push_back(std::move(value));
-//}
-//
-//std::unique_ptr<Value> StackFrame::Pop() {
-//	auto value = std::move(container_[container_.size() - 1]);
-//	container_.pop_back();
-//	return value;
-//}
-//
-//// 负数表示从尾部索引起
-//std::unique_ptr<Value>& StackFrame::Get(int32_t index) {
-//	if (index >= 0) {
-//		return container_[index];
-//	}
-//	else {
-//		return container_[container_.size() + index];
-//	}
-//}
-//
-//void StackFrame::Set(int32_t index, std::unique_ptr<Value> value) {
-//	Get(index) = std::move(value);
-//}
-//
-//size_t StackFrame::Size() const noexcept {
-//	return container_.size();
-//}
-//
-//void StackFrame::ReSize(size_t size) {
-//	return container_.resize(size);
-//}
-//
-//void StackFrame::Clear() noexcept {
-//	container_.clear();
-//}
+void StackFrame::Push(const Value& value) {
+	stack_.emplace_back(value);
+}
+
+Value StackFrame::Pop() {
+	auto value = std::move(stack_.back());
+	stack_.pop_back();
+	return value;
+}
+
+// 负数表示从尾部索引起
+Value& StackFrame::Get(int32_t index) {
+	if (index >= 0) {
+		return stack_[index];
+	}
+	else {
+		return stack_[stack_.size() + index];
+	}
+}
+
+void StackFrame::Set(int32_t index, const Value& value) {
+	if (index >= 0) {
+		stack_[index] = value;
+	}
+	else {
+		stack_[stack_.size() + index] = value;
+	}
+}
+
+size_t StackFrame::Size() const noexcept {
+	return stack_.size();
+}
 
 
 } // namespace mjs

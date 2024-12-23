@@ -62,9 +62,9 @@ uint32_t CodeGener::GetVar(std::string var_name) {
 			else {
 				// 引用外部函数的变量，需要捕获，为当前函数加载upvalue变量
 				auto const_idx = AllocConst(Value(new UpObject(it->second, scope_[i].func)));
-				cur_func_->byte_code.EmitLdc(const_idx);
+				cur_func_->byte_code.EmitConstLoad(const_idx);
 				var_idx = AllocVar(var_name);
-				cur_func_->byte_code.EmitIStore(var_idx);
+				cur_func_->byte_code.EmitVarStore(var_idx);
 			}
 			break;
 		}
@@ -79,8 +79,8 @@ void CodeGener::RegistryFunctionBridge(std::string func_name, FunctionBridgeCall
 
 	// 生成将函数放到变量表中的代码
 	// 交给虚拟机执行时去加载，虚拟机发现加载的常量是函数体，就会将函数原型赋给局部变量
-	cur_func_->byte_code.EmitLdc(const_idx);
-	cur_func_->byte_code.EmitIStore(var_idx);
+	cur_func_->byte_code.EmitConstLoad(const_idx);
+	cur_func_->byte_code.EmitVarStore(var_idx);
 }
 
 
@@ -157,8 +157,8 @@ void CodeGener::GenerateFunctionDeclStat(FuncDeclStat* stat) {
 
 	// 生成将函数放到变量表中的代码
 	// 交给虚拟机执行时去加载，虚拟机发现加载的常量是函数体，就会将函数原型赋给局部变量
-	cur_func_->byte_code.EmitLdc(const_idx);
-	cur_func_->byte_code.EmitILoad(var_idx);
+	cur_func_->byte_code.EmitConstLoad(const_idx);
+	cur_func_->byte_code.EmitVarLoad(var_idx);
 
 	// 保存环境，以生成新指令流
 	auto savefunc = cur_func_;
@@ -191,11 +191,11 @@ void CodeGener::GenerateFunctionDeclStat(FuncDeclStat* stat) {
 void CodeGener::GenerateReturnStat(ReturnStat* stat) {
 	if (stat->exp.get()) {
 		GenerateExp(stat->exp.get());
-		cur_func_->byte_code.EmitOpcode(OpcodeType::kIReturn);
 	}
 	else {
-		cur_func_->byte_code.EmitOpcode(OpcodeType::kReturn);
+		cur_func_->byte_code.EmitConstLoad(AllocConst(Value()));
 	}
+	cur_func_->byte_code.EmitOpcode(OpcodeType::kReturn);
 }
 
 // 为了简单起见，不提前计算/最后修复局部变量的总数，因此不能分配到栈上
@@ -219,12 +219,12 @@ void CodeGener::GenerateNewVarStat(NewVarStat* stat) {
 	// todo: 比较运算
 
 	// 弹出到变量中
-	cur_func_->byte_code.EmitIStore(var_idx);
+	cur_func_->byte_code.EmitVarStore(var_idx);
 }
 
 void CodeGener::GenerateAssignStat(AssignStat* stat) {
-	auto varIdx = GetVar(stat->var_name);
-	if (varIdx == -1) {
+	auto var_idx = GetVar(stat->var_name);
+	if (var_idx == -1) {
 		throw CodeGenerException("var not defined");
 	}
 	// 表达式压栈
@@ -233,7 +233,7 @@ void CodeGener::GenerateAssignStat(AssignStat* stat) {
 	// todo: 比较运算
 
 	// 弹出到变量中
-	cur_func_->byte_code.EmitILoad(varIdx);
+	cur_func_->byte_code.EmitVarLoad(var_idx);
 }
 
 // 2字节指的是基于当前指令的offset
@@ -405,39 +405,25 @@ void CodeGener::GenerateExp(Exp* exp) {
 	switch (exp->GetType()) {
 	case ExpType::kNull: {
 		auto const_idx = AllocConst(Value(nullptr));
-		cur_func_->byte_code.EmitLdc(const_idx);
+		cur_func_->byte_code.EmitConstLoad(const_idx);
 		break;
 	}
 	case ExpType::kBool: {
 		auto bool_exp = static_cast<BoolExp*>(exp);
 		auto const_idx = AllocConst(Value(bool_exp->value));
-		cur_func_->byte_code.EmitLdc(const_idx);
+		cur_func_->byte_code.EmitConstLoad(const_idx);
 		break;
 	}
 	case ExpType::kNumber: {
 		auto num_exp = static_cast<NumberExp*>(exp);
-		auto value = num_exp->value;
-		if (value >= 0 && value <= 5) {
-			cur_func_->byte_code.EmitOpcode(OpcodeType::kIConst_0 + value);
-		}
-		else if (value >= -128 && value < 128) {
-			cur_func_->byte_code.EmitOpcode(OpcodeType::kBIPush);
-			cur_func_->byte_code.EmitU8(value);
-		}
-		else if (value >= -32768 && value < 32768) {
-			cur_func_->byte_code.EmitOpcode(OpcodeType::kSIPush);
-			cur_func_->byte_code.EmitU16(value);
-		}
-		else {
-			auto const_idx = AllocConst(Value(value));
-			cur_func_->byte_code.EmitLdc(const_idx);
-		}
+		auto const_idx = AllocConst(Value(num_exp->value));
+		cur_func_->byte_code.EmitConstLoad(const_idx);
 		break;
 	}
 	case ExpType::kString: {
 		auto str_exp = static_cast<StringExp*>(exp);
 		auto const_idx = AllocConst(Value(str_exp->value));
-		cur_func_->byte_code.EmitLdc(const_idx);
+		cur_func_->byte_code.EmitConstLoad(const_idx);
 		break;
 	}
 	case ExpType::kName: {
@@ -447,7 +433,7 @@ void CodeGener::GenerateExp(Exp* exp) {
 		if (var_idx == -1) {
 			throw CodeGenerException("var not defined");
 		}
-		cur_func_->byte_code.EmitILoad(var_idx);	// 从变量中获取
+		cur_func_->byte_code.EmitVarLoad(var_idx);	// 从变量中获取
 		break;
 	}
 	case ExpType::kBinaOp: {
@@ -460,35 +446,34 @@ void CodeGener::GenerateExp(Exp* exp) {
 		// 生成运算指令
 		switch (bina_op_exp->oper) {
 		case TokenType::kOpAdd:
-			cur_func_->byte_code.EmitOpcode(OpcodeType::kIAdd);
+			cur_func_->byte_code.EmitOpcode(OpcodeType::kAdd);
 			break;
 		case TokenType::kOpSub:
-			cur_func_->byte_code.EmitOpcode(OpcodeType::kISub);
+			cur_func_->byte_code.EmitOpcode(OpcodeType::kSub);
 			break;
 		case TokenType::kOpMul:
-			cur_func_->byte_code.EmitOpcode(OpcodeType::kIMul);
+			cur_func_->byte_code.EmitOpcode(OpcodeType::kMul);
 			break;
 		case TokenType::kOpDiv:
-			cur_func_->byte_code.EmitOpcode(OpcodeType::kIDiv);
+			cur_func_->byte_code.EmitOpcode(OpcodeType::kDiv);
 			break;
-		// Jvm中没有这样做比较的指令，交给外层处理
 		case TokenType::kOpNe:
-			// cur_func_->byte_code.EmitNe();
+			cur_func_->byte_code.EmitOpcode(OpcodeType::kNe);
 			break;
 		case TokenType::kOpEq:
-			// cur_func_->byte_code.EmitEq();
+			cur_func_->byte_code.EmitOpcode(OpcodeType::kEq);
 			break;
 		case TokenType::kOpLt:
-			// cur_func_->byte_code.EmitLt();
+			cur_func_->byte_code.EmitOpcode(OpcodeType::kLt);
 			break;
 		case TokenType::kOpLe:
-			// cur_func_->byte_code.EmitLe();
+			cur_func_->byte_code.EmitOpcode(OpcodeType::kLe);
 			break;
 		case TokenType::kOpGt:
-			// cur_func_->byte_code.EmitGt();
+			cur_func_->byte_code.EmitOpcode(OpcodeType::kGt);
 			break;
 		case TokenType::kOpGe:
-			// cur_func_->byte_code.EmitGe();
+			cur_func_->byte_code.EmitOpcode(OpcodeType::kGe);
 			break;
 		default:
 			throw CodeGenerException("Unrecognized binary operator");
@@ -513,9 +498,8 @@ void CodeGener::GenerateExp(Exp* exp) {
 		}
 
 		auto const_idx = AllocConst(Value(func_call_exp->par_list.size()));
-		cur_func_->byte_code.EmitLdc(const_idx);
+		cur_func_->byte_code.EmitConstLoad(const_idx);
 
-		// 字节码应该是传入常量索引，这里给的是变量，因为函数原型存放在变量表中
 		cur_func_->byte_code.EmitOpcode(OpcodeType::kInvokeStatic);
 		cur_func_->byte_code.EmitU16(var_idx);
 
@@ -528,37 +512,7 @@ void CodeGener::GenerateExp(Exp* exp) {
 }
 
 void CodeGener::GenerateIfICmp(Exp* exp) {
-	switch (exp->GetType()) {
-	case ExpType::kBinaOp: {
-		auto bina_op_exp = static_cast<BinaOpExp*>(exp);
-		switch (bina_op_exp->oper) {
-		case TokenType::kOpNe:
-			cur_func_->byte_code.EmitOpcode(OpcodeType::kIfICmpEq);
-			break;
-		case TokenType::kOpEq:
-			cur_func_->byte_code.EmitOpcode(OpcodeType::kIfICmpNe);
-			break;
-		case TokenType::kOpLt:
-			cur_func_->byte_code.EmitOpcode(OpcodeType::kIfICmpGe);
-			break;
-		case TokenType::kOpLe:
-			cur_func_->byte_code.EmitOpcode(OpcodeType::kIfICmpGt);
-			break;
-		case TokenType::kOpGt:
-			cur_func_->byte_code.EmitOpcode(OpcodeType::kIfICmpLe);
-			break;
-		case TokenType::kOpGe:
-			cur_func_->byte_code.EmitOpcode(OpcodeType::kIfICmpLt);
-			break;
-		default:
-			throw CodeGenerException("Unrecognized binary operator");
-		}
-		break;
-	}
-	default:
-		throw CodeGenerException("Unrecognized exp");
-		break;
-	}
+	cur_func_->byte_code.EmitOpcode(OpcodeType::kIfEq);
 	cur_func_->byte_code.EmitU16(0);
 }
 
