@@ -338,6 +338,7 @@ private:
 		uint64_t full_ = 0;
 		struct {
 			ValueType type_ : 4;
+			uint64_t only_read_ : 1;	// 用于常量池中的Value，在复制时不会触发引用计数的增加，析构时不会减少引用计数
 			uint64_t string_length_ : 32;
 		};
 	} tag_;
