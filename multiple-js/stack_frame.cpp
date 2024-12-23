@@ -37,5 +37,8 @@ size_t StackFrame::Size() const noexcept {
 	return stack_.size();
 }
 
+void StackFrame::ReSize(size_t s) {
+	return stack_.resize(s);
+}
 
 } // namespace mjs

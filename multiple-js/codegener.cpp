@@ -6,7 +6,7 @@ CodeGener::CodeGener(ConstPool* const_pool)
 	: const_pool_(const_pool)
 {
 	const_pool_->Push(Value(new FunctionBodyObject(0)));
-	cur_func_ = const_pool_->Get(0).object<FunctionBodyObject>();
+	cur_func_ = const_pool_->Get(0).function_body();
 
 	scope_.push_back(Scope{ cur_func_ });
 }
@@ -61,7 +61,7 @@ uint32_t CodeGener::GetVar(std::string var_name) {
 			}
 			else {
 				// 引用外部函数的变量，需要捕获，为当前函数加载upvalue变量
-				auto const_idx = AllocConst(Value(new UpObject(it->second, scope_[i].func)));
+				auto const_idx = AllocConst(Value(new UpValueObject(it->second, scope_[i].func)));
 				cur_func_->byte_code.EmitConstLoad(const_idx);
 				var_idx = AllocVar(var_name);
 				cur_func_->byte_code.EmitVarStore(var_idx);
@@ -73,9 +73,9 @@ uint32_t CodeGener::GetVar(std::string var_name) {
 }
 
 
-void CodeGener::RegistryFunctionBridge(std::string func_name, FunctionBridgeCall func_addr) {
+void CodeGener::RegistryFunctionBridge(std::string func_name, FunctionBridge func_addr) {
 	auto var_idx = AllocVar(func_name);
-	auto const_idx = AllocConst(Value(new FunctionBridgeObject(func_addr)));
+	auto const_idx = AllocConst(Value(func_addr));
 
 	// 生成将函数放到变量表中的代码
 	// 交给虚拟机执行时去加载，虚拟机发现加载的常量是函数体，就会将函数原型赋给局部变量
@@ -164,8 +164,8 @@ void CodeGener::GenerateFunctionDeclStat(FuncDeclStat* stat) {
 	auto savefunc = cur_func_;
 
 	// 切换环境
-	EntryScope(const_pool_->Get(const_idx).object<FunctionBodyObject>());
-	cur_func_ = const_pool_->Get(const_idx).object<FunctionBodyObject>();
+	EntryScope(const_pool_->Get(const_idx).function_body());
+	cur_func_ = const_pool_->Get(const_idx).function_body();
 
 	for (int i = 0; i < cur_func_->par_count; i++) {
 		AllocVar(stat->par_list[i]);
@@ -215,9 +215,6 @@ void CodeGener::GenerateReturnStat(ReturnStat* stat) {
 void CodeGener::GenerateNewVarStat(NewVarStat* stat) {
 	auto var_idx = AllocVar(stat->var_name);
 	GenerateExp(stat->exp.get());
-
-	// todo: 比较运算
-
 	// 弹出到变量中
 	cur_func_->byte_code.EmitVarStore(var_idx);
 }
@@ -229,9 +226,6 @@ void CodeGener::GenerateAssignStat(AssignStat* stat) {
 	}
 	// 表达式压栈
 	GenerateExp(stat->exp.get());
-
-	// todo: 比较运算
-
 	// 弹出到变量中
 	cur_func_->byte_code.EmitVarLoad(var_idx);
 }

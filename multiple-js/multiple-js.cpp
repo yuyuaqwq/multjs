@@ -40,25 +40,26 @@ int main() {
 
     cg.RegistryFunctionBridge("println",
         [](uint32_t parCount, StackFrame* stack) -> Value {
-            //for (int i = 0; i < parCount; i++) {
-            //    auto val = stack->Pop();
-            //    if (val->GetType() == ValueType::kString) {
-            //        printf("%s", val->GetString()->val.c_str());
-            //    }
-            //    else if (val->GetType() == ValueType::kNumber) {
-            //        printf("%lld", val->GetNumber()->val);
-            //    }
-            //}
-            //printf("\n");
-            //return std::make_unique<NullValue>();
+            for (int i = 0; i < parCount; i++) {
+                auto val = stack->Pop();
+                if (val.type() == ValueType::kString) {
+                    std::cout << val.string_u8();
+                }
+                else if (val.type() == ValueType::kNumber) {
+                    std::cout << val.number();
+                }
+                else if (val.type() == ValueType::kU64) {
+                    std::cout << val.u64();
+                }
+            }
+            printf("\n");
             return Value();
         }
     );
 
     cg.RegistryFunctionBridge("tick",
         [](uint32_t par_count, StackFrame* stack) -> Value {
-            // return std::make_unique<NumberValue>(GetTickCount64());
-            return Value();
+            return Value(GetTickCount64());
         }
     );
 

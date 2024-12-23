@@ -33,8 +33,7 @@ public:
 	void Run();
 
 private:
-	Value* GetVar(uint32_t idx);
-	Value GetVarCopy(uint32_t idx);
+	Value& GetVar(uint32_t idx);
 	void SetVar(uint32_t idx, Value&& var);
 	void SetVar(uint32_t idx, Value* var);
 
@@ -42,7 +41,7 @@ private:
 	uint32_t pc_ = 0;
 	FunctionBodyObject* cur_func_;
 	ConstPool* const_pool_;
-	StackFrame stack_sect_;
+	StackFrame stack_frame_;
 };
 
 } // namespace mjs

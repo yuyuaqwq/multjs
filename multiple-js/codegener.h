@@ -39,7 +39,7 @@ public:
 	uint32_t AllocConst(Value&& value);
 	uint32_t AllocVar(std::string varName);
 	uint32_t GetVar(std::string varName);
-	void RegistryFunctionBridge(std::string func_name, FunctionBridgeCall func_addr);
+	void RegistryFunctionBridge(std::string func_name, FunctionBridge func_addr);
 
 	void Generate(BlockStat* block);
 	void GenerateBlock(BlockStat* block);

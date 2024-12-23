@@ -72,6 +72,10 @@ inline static OpcodeType operator+(OpcodeType a, size_t b) {
 	return static_cast<OpcodeType>(static_cast<size_t>(a) + b);
 }
 
+inline static size_t operator-(OpcodeType a, OpcodeType b) {
+	return static_cast<size_t>(a) - static_cast<size_t>(b);
+}
+
 struct InstrInfo {
 	std::string str;
 	std::vector<char> par_size_list;
@@ -100,6 +104,7 @@ public:
 	void EmitVarLoad(uint32_t idx); 
 
 	void RepairPc(uint32_t pc_from, uint32_t pc_to);
+	uint32_t CalcPc(uint32_t cur_pc);
 
 	size_t Size() { return bytes_.size(); }
 

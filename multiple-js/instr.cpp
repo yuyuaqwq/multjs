@@ -164,5 +164,9 @@ void ByteCode::RepairPc(uint32_t pc_from, uint32_t pc_to) {
 	*reinterpret_cast<uint16_t*>(GetPtr(pc_from) + 1) = pc_to - pc_from;
 }
 
+uint32_t ByteCode::CalcPc(uint32_t cur_pc) {
+    // skip opcode
+    return cur_pc + *reinterpret_cast<uint16_t*>(GetPtr(cur_pc) + 1);
+}
 
 } // namespace mjs

@@ -19,6 +19,7 @@ public:
 	void Set(int32_t index, const Value& value);
 
 	size_t Size()  const noexcept;
+	void ReSize(size_t s);
 
 private:
 	std::vector<Value> stack_;

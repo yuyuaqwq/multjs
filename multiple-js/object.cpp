@@ -2,9 +2,6 @@
 
 namespace mjs {
 
-FunctionBridgeObject::FunctionBridgeObject(FunctionBridgeCall func_addr) noexcept
-	: func_addr(func_addr) {}
-
 
 FunctionBodyObject::FunctionBodyObject(uint32_t par_count) noexcept
 	: par_count(par_count) {}
@@ -37,15 +34,8 @@ std::string FunctionBodyObject::Disassembly() {
 }
 
 
-FunctionProtoObject::FunctionProtoObject(FunctionBodyObject* val) noexcept
-	: body_val(val) {}
-
-FunctionProtoObject::FunctionProtoObject(FunctionBridgeObject* val) noexcept
-	: bridge_val(val) {}
-
-
-UpObject::UpObject(uint32_t index, FunctionBodyObject* func_proto) noexcept
+UpValueObject::UpValueObject(uint32_t index, FunctionBodyObject* func_body) noexcept
 	: index(index)
-	, func_proto(func_proto) {}
+	, func_body(func_body) {}
 
 } // namespace mjs
