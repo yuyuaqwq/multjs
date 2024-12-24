@@ -11,6 +11,7 @@ namespace mjs {
 class ConstPool {
 public:
 	void Push(const Value& value);
+	void Push(Value&& value);
 
 	// 负数表示从尾部索引起
 	Value& Get(int32_t index);

@@ -6,6 +6,10 @@ void ConstPool::Push(const Value& value) {
 	pool_.emplace_back(value);
 }
 
+void ConstPool::Push(Value&& value) {
+	pool_.emplace_back(std::move(value));
+}
+
 // 负数表示从尾部索引起
 Value& ConstPool::Get(int32_t index) {
 	if (index >= 0) {
