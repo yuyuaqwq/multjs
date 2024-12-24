@@ -3,6 +3,8 @@
 namespace mjs {
 
 std::map<OpcodeType, InstrInfo> g_instr_symbol{
+    // {OpcodeType::kStop, {"stop", {}}},
+
     {OpcodeType::kCLoad_0, {"cload_0", {}}},
     {OpcodeType::kCLoad_1, {"cload_1", {}}},
     {OpcodeType::kCLoad_2, {"cload_2", {}}},

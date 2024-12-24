@@ -7,6 +7,8 @@
 namespace mjs {
 
 enum class OpcodeType {
+	// kStop = 0x00,
+
 	kCLoad_0 = 0x03,
 	kCLoad_1 = 0x04,
 	kCLoad_2 = 0x05,

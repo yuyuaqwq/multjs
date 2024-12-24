@@ -35,23 +35,23 @@ println("i:", i);
 
 
 if (a == 2) {
-    println("a æ˜¯ 2");
+    println("a ÊÇ 2");
 }
 else {
     if (a == 3) {
-        println("a æ˜¯ 3");
+        println("a ÊÇ 3");
     }
     else if (a == 9) {
-        println("a æ˜¯ 9");
+        println("a ÊÇ 9");
     }
     else if (a == 4800) {
-        println("a æ˜¯ 4800");
+        println("a ÊÇ 4800");
     }
     else {
-        println("a ä¸æ˜¯ 3å’Œ9å’Œ100");
+        println("a ²»ÊÇ 3ºÍ9ºÍ100");
     }
 
-    println("a ä¸æ˜¯ 2");
+    println("a ²»ÊÇ 2");
 }
 
 let qvqvq = 10000000;
@@ -62,18 +62,18 @@ let qvqvq = 10000000;
 
 function add(a, b) {
     a = a + b;
-    println("addå•¦");
+    println("addÀ²");
     println(a + qvqvq);
 
     function hanhanyufan() {
-        println("å•Šå•Šå•Šå•Š", "æ˜¯é›¨å‡¡", qvqvq);
+        println("°¡°¡°¡°¡", "ÊÇÓê·²", qvqvq);
         println(qvqvq);
         return 999;
     }
 
     a = hanhanyufan();
 
-    println("açš„ç»“æœæ˜¯ï¼š", a);
+    println("aµÄ½á¹ûÊÇ£º", a);
 }
 
 println("hello world!");

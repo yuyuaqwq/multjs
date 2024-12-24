@@ -73,10 +73,16 @@ int main() {
 
     std::cout << vvm.Disassembly() << std::endl;
 
-
+    //double n;
+    //std::cin >> n;
     auto start = std::chrono::high_resolution_clock::now();
 
     vvm.Run();
+
+    //double k = 0;
+    //while (k < 10000000) {
+    //    k = k + n;
+    //}
 
     auto end = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double, std::milli> elapsed = end - start;

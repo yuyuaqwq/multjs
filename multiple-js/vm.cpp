@@ -55,10 +55,11 @@ void VM::SetVar(uint32_t idx, Value* var) {
 
 void VM::Run() {
 	do {
-		// auto pc = pc_;
-		// std::cout << cur_func_->byte_code.Disassembly(pc) << std::endl;
+		// auto pc = pc_; std::cout << cur_func_->byte_code.Disassembly(pc) << std::endl;
 		auto opcode = cur_func_->byte_code.GetOpcode(pc_++);
 		switch (opcode) {
+		//case OpcodeType::kStop:
+		//	return;
 		case OpcodeType::kCLoad_0: {
 		case OpcodeType::kCLoad_1:
 		case OpcodeType::kCLoad_2:
@@ -144,10 +145,11 @@ void VM::Run() {
 			auto& func = GetVar(var_idx);
 			auto par_count = stack_frame_.Pop().u64();
 
-			if (func.type() == ValueType::kFunctionBody) {
+			switch (func.type()) {
+			case ValueType::kFunctionBody: {
 				auto call_func = func.function_body();
 
-				//printf("%s\n", callFunc->Disassembly().c_str());
+				// printf("%s\n", call_func->Disassembly().c_str());
 
 				if (par_count < call_func->par_count) {
 					throw VMException("Wrong number of parameters passed when calling the function");
@@ -160,32 +162,36 @@ void VM::Run() {
 				cur_func_ = call_func;
 				pc_ = 0;
 
-				// 移动栈上的参数到新函数的局部变量表
+				// 移动栈上的参数到新函数的栈帧
 				//m_varIdxBase = m_var_sect.size();
 				for (int i = cur_func_->par_count - 1; i >= 0; i--) {
 					SetVar(i, std::move(stack_frame_.Pop()));
 				}
 
 				// 保存当前环境
-				stack_frame_.Push(Value((uint64_t)save_func));
+				stack_frame_.Push(Value(save_func));
 				stack_frame_.Push(Value(save_pc));
+				break;
 			}
-			else if (func.type() == ValueType::kFunctionBridge) {
-				auto call_func = func.function_bridge();
-				stack_frame_.Push(call_func(par_count, &stack_frame_));
+			case ValueType::kFunctionBridge: {
+				stack_frame_.Push(func.function_bridge()(par_count, &stack_frame_));
+				break;
+			}
+			default:
+				throw VMException("Non callable types.");
 			}
 			break;
 		}
 		case OpcodeType::kReturn: {
 			auto ret_value = stack_frame_.Pop();
-			auto pc = stack_frame_.Pop();
-			auto& cur_func = stack_frame_.Get(-1);
+			auto save_pc = stack_frame_.Pop();
+			auto& save_func = stack_frame_.Get(-1);
 
 			// 恢复环境
-			cur_func_ = cur_func.object<FunctionBodyObject>();
-			pc_ = pc.u64();
+			cur_func_ = save_func.function_body();
+			pc_ = save_pc.u64();
 
-			cur_func = std::move(ret_value);
+			save_func = std::move(ret_value);
 			break;
 		}
 		case OpcodeType::kNe: {
@@ -241,7 +247,7 @@ void VM::Run() {
 		default:
 			throw VMException("Unknown instruction");
 		}
-	} while (pc_ > 0 && pc_ < cur_func_->byte_code.Size());
+	} while (pc_ >= 0 && pc_ < cur_func_->byte_code.Size());
 }
 
 } // namespace mjs

@@ -88,7 +88,7 @@ void CodeGener::Generate(BlockStat* block) {
 	for (auto& stat : block->stat_list) {
 		GenerateStat(stat.get());
 	}
-	// cur_func_->instr_sect.EmitStop();
+	// cur_func_->byte_code.EmitOpcode(OpcodeType::kStop);
 }
 
 void CodeGener::GenerateBlock(BlockStat* block) {
@@ -158,7 +158,7 @@ void CodeGener::GenerateFunctionDeclStat(FuncDeclStat* stat) {
 	// 生成将函数放到变量表中的代码
 	// 交给虚拟机执行时去加载，虚拟机发现加载的常量是函数体，就会将函数原型赋给局部变量
 	cur_func_->byte_code.EmitConstLoad(const_idx);
-	cur_func_->byte_code.EmitVarLoad(var_idx);
+	cur_func_->byte_code.EmitVarStore(var_idx);
 
 	// 保存环境，以生成新指令流
 	auto savefunc = cur_func_;
@@ -178,6 +178,7 @@ void CodeGener::GenerateFunctionDeclStat(FuncDeclStat* stat) {
 		if (i == block->stat_list.size() - 1) {
 			if (stat->GetType() != StatType::kReturn) {
 				// 补全末尾的return
+				cur_func_->byte_code.EmitConstLoad(AllocConst(Value()));
 				cur_func_->byte_code.EmitOpcode(OpcodeType::kReturn);
 			}
 		}
