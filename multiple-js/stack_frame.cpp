@@ -8,6 +8,10 @@ void StackFrame::Push(const Value& value) {
 	stack_.emplace_back(value);
 }
 
+void StackFrame::Push(Value&& value) {
+	stack_.emplace_back(std::move(value));
+}
+
 Value StackFrame::Pop() {
 	auto value = std::move(stack_.back());
 	stack_.pop_back();
@@ -30,6 +34,15 @@ void StackFrame::Set(int32_t index, const Value& value) {
 	}
 	else {
 		stack_[stack_.size() + index] = value;
+	}
+}
+
+void StackFrame::Set(int32_t index, Value&& value) {
+	if (index >= 0) {
+		stack_[index] = std::move(value);
+	}
+	else {
+		stack_[stack_.size() + index] = std::move(value);
 	}
 }
 

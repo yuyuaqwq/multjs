@@ -48,10 +48,6 @@ void VM::SetVar(uint32_t idx, Value&& var) {
 	cur_func_->stack_frame.Set(idx, std::move(var));
 }
 
-void VM::SetVar(uint32_t idx, Value* var) {
-	SetVar(idx, std::move(*var));
-}
-
 
 void VM::Run() {
 	do {

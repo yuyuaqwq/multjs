@@ -35,7 +35,6 @@ public:
 private:
 	Value& GetVar(uint32_t idx);
 	void SetVar(uint32_t idx, Value&& var);
-	void SetVar(uint32_t idx, Value* var);
 
 private:
 	uint32_t pc_ = 0;
