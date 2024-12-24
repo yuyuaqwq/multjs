@@ -12,6 +12,7 @@ enum class ExpType {
 	kBool,
 	kNumber,
 	kString,
+	kUnaryOp,
 	kBinaOp,
 	kName,
 	kFunctionCall,
@@ -45,6 +46,16 @@ struct StringExp : public Exp {
 
 	std::string value;
 };
+
+struct UnaryOpExp : public Exp {
+	UnaryOpExp(TokenType oper, std::unique_ptr<Exp> operand);
+
+	virtual ExpType GetType() const noexcept;
+
+	TokenType oper;
+	std::unique_ptr<Exp> operand;
+};
+
 
 struct BinaOpExp : public Exp {
 	virtual ExpType GetType() const noexcept;

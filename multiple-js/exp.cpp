@@ -25,6 +25,15 @@ StringExp::StringExp(const std::string& value)
 	: value(value) {}
 
 
+UnaryOpExp::UnaryOpExp(TokenType oper, std::unique_ptr<Exp> operand)
+	: oper(oper)
+	, operand(std::move(operand)) {}
+
+ExpType UnaryOpExp::GetType() const noexcept {
+	return ExpType::kUnaryOp;
+}
+
+
 ExpType BinaOpExp::GetType() const noexcept {
 	return ExpType::kBinaOp;
 }

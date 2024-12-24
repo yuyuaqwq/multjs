@@ -286,14 +286,7 @@ std::unique_ptr<Exp> Parser::ParseExp0() {
 	}
 	case TokenType::kOpSub: {
 		lexer_->NextToken();
-		token = lexer_->NextToken();
-		auto exp = ParseExp();
-		if (exp->GetType() == ExpType::kNumber) {
-			auto numexp = static_cast<NumberExp*>(exp.get());
-			numexp->value = -numexp->value;
-			return exp;
-		
-		throw ParserException("Unable to parse expression");
+		return std::make_unique<UnaryOpExp>(TokenType::kOpSub, ParseExp());
 	}
 	case TokenType::kNumber: {
 		lexer_->NextToken();
