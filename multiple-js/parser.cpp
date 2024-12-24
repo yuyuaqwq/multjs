@@ -1,13 +1,15 @@
 #include "parser.h"
 
 /* EBNF
-exp = addexp
-addexp = mulexp {oper2 mulexp}
+exp = exp3
+exp3 = exp2 {oper3 exp2}
+oper3 = '==' | '!='
+exp2 = exp1 {oper2 exp1}
 oper2 = '+' | '-'
-mulexp = parenexp {oper1 parenexp}
+exp1 = exp0 {oper1 exp0}
 oper1 = '*' | '/'
-parenexp = '(' addexp ')' | numexp
-numexp = number
+exp0 = '(' exp ')' | exp0
+exp0 = number
 */
 
 namespace mjs {
@@ -263,8 +265,13 @@ std::unique_ptr<Exp> Parser::ParseExp1() {
 
 std::unique_ptr<Exp> Parser::ParseExp0() {
 	auto token = lexer_->PeekToken();
-
 	switch (token.type()) {
+	case TokenType::kSepLParen: {
+		lexer_->NextToken();
+		auto exp = ParseExp();
+		lexer_->MatchToken(TokenType::kSepRParen);
+		return exp;
+	}
 	case TokenType::kNull: {
 		lexer_->NextToken();
 		return std::make_unique<NullExp>();
@@ -280,9 +287,12 @@ std::unique_ptr<Exp> Parser::ParseExp0() {
 	case TokenType::kOpSub: {
 		lexer_->NextToken();
 		token = lexer_->NextToken();
-		if (token.Is(TokenType::kNumber)) {
-			return std::make_unique<NumberExp>(-std::stod(token.str()));
-		}
+		auto exp = ParseExp();
+		if (exp->GetType() == ExpType::kNumber) {
+			auto numexp = static_cast<NumberExp*>(exp.get());
+			numexp->value = -numexp->value;
+			return exp;
+		
 		throw ParserException("Unable to parse expression");
 	}
 	case TokenType::kNumber: {

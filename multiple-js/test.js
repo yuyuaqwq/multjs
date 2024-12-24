@@ -2,7 +2,7 @@
 sbs
 b */
 
-println(-1.5864);
+println(-(1.5864 + 12));
 
 let a = 123;
 let b = 233;
