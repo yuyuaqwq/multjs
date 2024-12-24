@@ -277,9 +277,17 @@ std::unique_ptr<Exp> Parser::ParseExp0() {
 		lexer_->NextToken();
 		return std::make_unique<BoolExp>(false);
 	}
+	case TokenType::kOpSub: {
+		lexer_->NextToken();
+		token = lexer_->NextToken();
+		if (token.Is(TokenType::kNumber)) {
+			return std::make_unique<NumberExp>(-std::stod(token.str()));
+		}
+		throw ParserException("Unable to parse expression");
+	}
 	case TokenType::kNumber: {
 		lexer_->NextToken();
-		return std::make_unique<NumberExp>(atoi(token.str().c_str()));
+		return std::make_unique<NumberExp>(std::stod(token.str()));
 	}
 	case TokenType::kString: {
 		lexer_->NextToken();

@@ -25,6 +25,7 @@ public:
 
 private:
 	char NextChar() noexcept;
+	char PeekChar() noexcept;
 	void SkipChar(int count) noexcept;
 	bool TestStr(const std::string& str);
 	bool TestChar(char c);
@@ -35,7 +36,7 @@ private:
 	std::string src_;
 	size_t idx_ = 0;
 	Token peek_;
-	int32_t line_ = 0;
+	int32_t line_ = 1;
 };
 
 } // namespace mjs

@@ -18,6 +18,13 @@ char Lexer::NextChar() noexcept {
     return 0;
 }
 
+char Lexer::PeekChar() noexcept {
+    if (idx_ < src_.size()) {
+        return src_[idx_];
+    }
+    return 0;
+}
+
 // 跳过指定字符数
 void Lexer::SkipChar(int count) noexcept {
     idx_ += count;
@@ -113,10 +120,28 @@ Token Lexer::ReadNextToken() {
         if (c == '/' && TestChar('/')) {
             while ((c = NextChar()) && c != '\n');
         }
+        else if (c == '/' && TestChar('*')) {
+            // 多行注释
+            SkipChar(1);
+            bool end = false;
+            while (c = NextChar()) {
+                if (c == '\n') {
+                    line_++;
+                }
+                else if (c == '*' && TestChar('/')) {
+                    SkipChar(1);
+                    end = true;
+                    break;
+                }
+            }
+            if (!end) {
+                // 多行注释未闭合
+                throw LexerException("Unfinished multiline comments");
+            }
+        }
         else {
             break;
         }
-
     } while (true);
 
     token.set_line(line_);
@@ -157,27 +182,57 @@ Token Lexer::ReadNextToken() {
         return token;
 
     case '+':
+        if (TestChar('+')) {
+            SkipChar(1);
+            token.set_type(TokenType::kOpInc);
+            return token;
+        }
         token.set_type(TokenType::kOpAdd);
         return token;
     case '-':
+        if (TestChar('-')) {
+            SkipChar(1);
+            token.set_type(TokenType::kOpDec);
+            return token;
+        }
         token.set_type(TokenType::kOpSub);
         return token;
     case '*':
+        if (TestChar('*')) {
+            SkipChar(1);
+            token.set_type(TokenType::kOpPower);
+            return token;
+        }
         token.set_type(TokenType::kOpMul);
         return token;
     case '/':
         token.set_type(TokenType::kOpDiv);
         return token;
+    case '%':
+        token.set_type(TokenType::kOpMod);
+        return token;
     case '!':
         if (TestChar('=')) {
             SkipChar(1);
+            if (TestChar('=')) {
+                SkipChar(1);
+                token.set_type(TokenType::kOpStrictNe);
+                return token;
+            }
             token.set_type(TokenType::kOpNe);
             return token;
         }
+        token.set_type(TokenType::kOpNot);
+        return token;
         break;
     case '=':
         if (TestChar('=')) {
             SkipChar(1);
+            if (TestChar('=')) {
+                SkipChar(1);
+                token.set_type(TokenType::kOpStrictEq);
+                return token;
+            }
             token.set_type(TokenType::kOpEq);
             return token;
         }
@@ -216,39 +271,117 @@ Token Lexer::ReadNextToken() {
     }
 
     // Number
-    if (IsDigit(c)) {
+    if (c == 'N' && TestStr("aN")) {
+        token.set_type(TokenType::kNumber);
+        token.set_str("NaN");
+        return token;
+    }
+    else if (c == 'I' && TestStr("nfinity")) {
+        token.set_type(TokenType::kNumber);
+        token.set_str("Infinity");
+        return token;
+    }
+    else if (c == '0') {
+        token.set_type(TokenType::kNumber);
+        token.mutable_str()->push_back(c);
+        char next_char = PeekChar();
+        if (next_char == 'x' || next_char == 'X') {
+            // Hexadecimal
+            token.mutable_str()->push_back(NextChar());
+            while (std::isxdigit(c = NextChar())) {
+                token.mutable_str()->push_back(c);
+            }
+            SkipChar(-1);
+        }
+        else if (next_char == 'b' || next_char == 'B') {
+            // Binary
+            token.mutable_str()->push_back(NextChar());
+            while ((c = NextChar()) == '0' || c == '1') {
+                token.mutable_str()->push_back(c);
+            }
+            SkipChar(-1);
+        }
+        else if (next_char == 'o' || next_char == 'O') {
+            // Octal
+            token.mutable_str()->push_back(NextChar());
+            while ((c = NextChar()) >= '0' && c <= '7') {
+                token.mutable_str()->push_back(c);
+            }
+            SkipChar(-1);
+        }
+        else {
+            // Normal number starting with 0
+            while (IsDigit(c = NextChar()) || c == '.') {
+                token.mutable_str()->push_back(c);
+            }
+            SkipChar(-1);
+        }
+        return token;
+    }
+    else if (IsDigit(c)) {
+        // Float and integer parsing, including scientific notation
+        bool point = false, exp = false;
         token.set_type(TokenType::kNumber);
         token.mutable_str()->push_back(c);
         while (c = NextChar()) {
-            if (IsDigit(c)) {
-                token.mutable_str()->push_back(c);
+            if (c == '.' && !point && !exp) {
+                point = true;
             }
-            else {
+            else if ((c == 'e' || c == 'E') && !exp) {
+                exp = true;
+                point = true; // After 'e' no more decimal point allowed
+                token.mutable_str()->push_back(c);
+                char next_char = PeekChar();
+                if (next_char == '+' || next_char == '-') {
+                    token.mutable_str()->push_back(NextChar());
+                }
+                continue;
+            }
+            else if (!IsDigit(c)) {
                 SkipChar(-1);
                 break;
             }
+            token.mutable_str()->push_back(c);
         }
         return token;
     }
 
     // String
-    if (c == '\"') {
-        size_t beginPos = idx_;
-        size_t endPos = -1;
-        if (c == '\'') {
-            endPos = src_.find('\'', idx_);
-        }
-        else if (c == '\"') {
-            endPos = src_.find('\"', idx_);
+    if (c == '\'' || c == '\"') {
+        char quote_type = c; // 记录引号类型（单引号或双引号）
+        size_t begin_pos = idx_; // 记录字符串开始位置
+        std::string str_value;
+        while (true) {
+            c = NextChar();
+            if (c == '\\') {
+                // 处理转义字符
+                char escapedChar = NextChar();
+                switch (escapedChar) {
+                case 'n': str_value.push_back('\n'); break;
+                case 't': str_value.push_back('\t'); break;
+                case 'r': str_value.push_back('\r'); break;
+                case '\\': str_value.push_back('\\'); break;
+                case '\"': str_value.push_back('\"'); break;
+                case '\'': str_value.push_back('\''); break;
+                case '\n': continue; // 换行续行
+                default:
+                    throw LexerException("Invalid escape character");
+                }
+            }
+            else if (c == quote_type) {
+                // 遇到匹配的引号，字符串结束
+                break;
+            }
+            else if (c == '\0') {
+                // 字符串未闭合
+                throw LexerException("Unterminated string literal");
+            }
+            else {
+                str_value.push_back(c); // 普通字符
+            }
         }
 
-        if (endPos == -1) {
-            throw LexerException("incorrect short string");
-        }
-
-        idx_ = endPos + 1;
-
-        token.set_str(src_.substr(beginPos, endPos - beginPos));
+        token.set_str(str_value);
         token.set_type(TokenType::kString);
         return token;
     }
@@ -256,17 +389,18 @@ Token Lexer::ReadNextToken() {
     // 标识符或关键字
     if (c == '_' || IsAlpha(c)) {
         std::string ident;
-        size_t beginPos = idx_ - 1;
-        char c = NextChar();
-        while (c && (c == '_' || IsAlpha(c) || IsDigit(c))) {
-            c = NextChar();
+        ident.push_back(c);
+        while (true) {
+            char next_char = PeekChar();
+            if (next_char == '_' || IsAlpha(next_char) || IsDigit(next_char)) {
+                ident.push_back(NextChar());
+            }
+            else {
+                break;
+            }
         }
-        idx_--;
 
-        size_t endPos = idx_;
-
-        ident = src_.substr(beginPos, endPos - beginPos);
-
+        // 是否是关键字
         auto keyword = g_keywords.find(ident);
         if (keyword != g_keywords.end()) {
             token.set_type(keyword->second);
@@ -277,6 +411,7 @@ Token Lexer::ReadNextToken() {
         }
         return token;
     }
+
     throw LexerException("cannot parse token");
 }
 

@@ -1,3 +1,9 @@
+/* sb
+sbs
+b */
+
+println(-1.5864);
+
 let a = 123;
 let b = 233;
 a = a + b + 4444;
@@ -5,7 +11,7 @@ a = a + b + 4444;
 let t = tick();
 let i = 0;
 while (i < 10000000) {
-    i = i + 1;
+    i = i + 1.21;
 }
 println("i:", i, "    ", "tick:", tick() - t, "ms");
 
@@ -35,23 +41,23 @@ println("i:", i);
 
 
 if (a == 2) {
-    println("a ÊÇ 2");
+    println("a ï¿½ï¿½ 2");
 }
 else {
     if (a == 3) {
-        println("a ÊÇ 3");
+        println("a ï¿½ï¿½ 3");
     }
     else if (a == 9) {
-        println("a ÊÇ 9");
+        println("a ï¿½ï¿½ 9");
     }
     else if (a == 4800) {
-        println("a ÊÇ 4800");
+        println("a ï¿½ï¿½ 4800");
     }
     else {
-        println("a ²»ÊÇ 3ºÍ9ºÍ100");
+        println("a ï¿½ï¿½ï¿½ï¿½ 3ï¿½ï¿½9ï¿½ï¿½100");
     }
 
-    println("a ²»ÊÇ 2");
+    println("a ï¿½ï¿½ï¿½ï¿½ 2");
 }
 
 let qvqvq = 10000000;
@@ -62,18 +68,18 @@ let qvqvq = 10000000;
 
 function add(a, b) {
     a = a + b;
-    println("addÀ²");
+    println("addï¿½ï¿½");
     println(a + qvqvq);
 
     function hanhanyufan() {
-        println("°¡°¡°¡°¡", "ÊÇÓê·²", qvqvq);
+        println("ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½", "ï¿½ï¿½ï¿½ê·²", qvqvq);
         println(qvqvq);
         return 999;
     }
 
     a = hanhanyufan();
 
-    println("aµÄ½á¹ûÊÇ£º", a);
+    println("aï¿½Ä½ï¿½ï¿½ï¿½Ç£ï¿½", a);
 }
 
 println("hello world!");
