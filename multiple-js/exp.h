@@ -14,12 +14,18 @@ enum class ExpType {
 	kString,
 	kUnaryOp,
 	kBinaOp,
-	kName,
+	kVar,
 	kFunctionCall,
+};
+
+enum class ExpValueCategory {
+	kLeftValue,
+	kRightValue,
 };
 
 struct Exp {
 	virtual ExpType GetType() const noexcept = 0;
+	ExpValueCategory value_category = ExpValueCategory::kRightValue;
 };
 
 struct NullExp : public Exp {
@@ -66,9 +72,9 @@ struct BinaOpExp : public Exp {
 	std::unique_ptr<Exp> right_exp;
 };
 
-struct NameExp : public Exp {
+struct VarExp : public Exp {
 	virtual ExpType GetType() const noexcept;
-	NameExp(const std::string& t_name);
+	VarExp(const std::string& t_name);
 
 	std::string name;
 };

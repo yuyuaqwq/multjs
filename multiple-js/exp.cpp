@@ -43,12 +43,15 @@ BinaOpExp::BinaOpExp(std::unique_ptr<Exp> lefexp, TokenType oper, std::unique_pt
 	, oper(oper)
 	, right_exp(std::move(righexp)) {}
 
-ExpType NameExp::GetType() const noexcept {
-	return ExpType::kName;
+ExpType VarExp::GetType() const noexcept {
+	return ExpType::kVar;
 }
 
-NameExp::NameExp(const std::string& name) :
-	name(name) {}
+VarExp::VarExp(const std::string& name) :
+	name(name)
+{
+	value_category == ExpValueCategory::kLeftValue;
+}
 
 ExpType FunctionCallExp::GetType() const noexcept {
 	return ExpType::kFunctionCall;

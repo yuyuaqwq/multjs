@@ -288,6 +288,14 @@ std::unique_ptr<Exp> Parser::ParseExp0() {
 		lexer_->NextToken();
 		return std::make_unique<UnaryOpExp>(TokenType::kOpSub, ParseExp());
 	}
+	case TokenType::kOpInc: {
+		lexer_->NextToken();
+		auto exp = ParseExp();
+		if (exp->value_category != ExpValueCategory::kLeftValue) {
+			throw ParserException("Only use auto increment on lvalue.");
+		}
+		return std::make_unique<UnaryOpExp>(TokenType::kOpPrefixInc, exp);
+	}
 	case TokenType::kNumber: {
 		lexer_->NextToken();
 		return std::make_unique<NumberExp>(std::stod(token.str()));
@@ -302,8 +310,12 @@ std::unique_ptr<Exp> Parser::ParseExp0() {
 			auto func_name = token.str();
 			auto par_list = ParseParExpList();
 			return std::make_unique<FunctionCallExp>(func_name, std::move(par_list));
+		} 
+		else if (lexer_->PeekToken().Is(TokenType::kOpInc)) {
+			lexer_->NextToken();
+			return std::make_unique<UnaryOpExp>(TokenType::kOpSuffixInc, std::make_unique<VarExp>(token.str()));
 		}
-		return std::make_unique<NameExp>(token.str());
+		return std::make_unique<VarExp>(token.str());
 	}
 	default: {
 		throw ParserException("Unable to parse expression");

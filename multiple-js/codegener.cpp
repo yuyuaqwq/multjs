@@ -423,9 +423,9 @@ void CodeGener::GenerateExp(Exp* exp) {
 		cur_func_->byte_code.EmitConstLoad(const_idx);
 		break;
 	}
-	case ExpType::kName: {
+	case ExpType::kVar: {
 		// 是取变量值的话，查找到对应的变量编号，将其入栈
-		auto name_exp = static_cast<NameExp*>(exp);
+		auto name_exp = static_cast<VarExp*>(exp);
 		auto var_idx = GetVar(name_exp->name);
 		if (var_idx == -1) {
 			throw CodeGenerException("var not defined");
@@ -443,6 +443,14 @@ void CodeGener::GenerateExp(Exp* exp) {
 		case TokenType::kOpSub:
 			cur_func_->byte_code.EmitOpcode(OpcodeType::kNeg);
 			break;
+		case TokenType::kOpPrefixInc: {
+
+			break;
+		}
+		case TokenType::kOpSuffixInc: {
+
+			break;
+		}
 		default:
 			throw CodeGenerException("Unrecognized unary operator");
 		}

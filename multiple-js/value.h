@@ -290,6 +290,48 @@ public:
 		}
 	}
 
+	Value& operator++() {
+		if (type() == ValueType::kNumber) {
+			++value_.f64_;
+		}
+		else {
+			throw std::runtime_error("Neg not supported for these Value types.");
+		}
+		return *this;
+	}
+
+	Value& operator--() {
+		if (type() == ValueType::kNumber) {
+			--value_.f64_;
+		}
+		else {
+			throw std::runtime_error("Neg not supported for these Value types.");
+		}
+		return *this;
+	}
+
+	Value operator++(int) {
+		if (type() == ValueType::kNumber) {
+			Value old = *this;
+			++value_.f64_;
+			return old;
+		}
+		else {
+			throw std::runtime_error("Neg not supported for these Value types.");
+		}
+	}
+
+	Value operator--(int) {
+		if (type() == ValueType::kNumber) {
+			Value old = *this;
+			--value_.f64_;
+			return old;
+		}
+		else {
+			throw std::runtime_error("Neg not supported for these Value types.");
+		}
+	}
+
 	ValueType type() const { return tag_.type_; }
 
 	double number() const { assert(type() == ValueType::kNumber); return value_.f64_; }
