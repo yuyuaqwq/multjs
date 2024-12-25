@@ -2,6 +2,8 @@
 sbs
 b */
 
+let arr = [3123, 231, "dawd", ["sbsb", 666]];
+
 println(-(1.5864 + 12) * 666);
 
 let a = 123;
@@ -10,7 +12,7 @@ a = a + b + 4444;
 
 let t = tick();
 let i = 0;
-while (i < 1000000) {
+while (i < 10000000) {
     i = i + 1.21;
 }
 println("i:", i, "    ", "tick:", tick() - t, "ms");
@@ -24,7 +26,7 @@ while (i < 100) {
     if (i > 80) {
         let j = 0;
         while (j < 10) {
-            println("iii:", i);
+            println("j:", j);
             j = j + 1;
             if (j > 5) {
                 break;

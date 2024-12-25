@@ -46,7 +46,7 @@ public:
 	std::unique_ptr<Exp> ParseExp2();
 	std::unique_ptr<Exp> ParseExp1();
 	std::unique_ptr<Exp> ParseExp0();
-	std::vector<std::unique_ptr<Exp>> ParseParExpList();
+	std::vector<std::unique_ptr<Exp>> ParseExpList(TokenType begin, TokenType end, bool allow_comma_end);
 
 private:
 	Lexer* lexer_;

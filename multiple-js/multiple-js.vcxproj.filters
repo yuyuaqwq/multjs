@@ -30,9 +30,6 @@
     <ClCompile Include="stat.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="exp.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
     <ClCompile Include="codegener.cpp">
       <Filter>源文件</Filter>
     </ClCompile>

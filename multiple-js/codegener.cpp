@@ -452,8 +452,8 @@ void CodeGener::GenerateExp(Exp* exp) {
 		}
 		break;
 	}
-	case ExpType::kBinaOp: {
-		auto bina_op_exp = static_cast<BinaOpExp*>(exp);
+	case ExpType::kBinaryOp: {
+		auto bina_op_exp = static_cast<BinaryOpExp*>(exp);
 		if (bina_op_exp->oper == TokenType::kOpAssign) {
 			GenerateExp(bina_op_exp->right_exp.get());
 			if (bina_op_exp->left_exp->GetType() == ExpType::kVar) {

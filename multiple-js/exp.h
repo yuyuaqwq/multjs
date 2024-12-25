@@ -13,8 +13,10 @@ enum class ExpType {
 	kNumber,
 	kString,
 	kUnaryOp,
-	kBinaOp,
+	kBinaryOp,
 	kVar,
+	kArrayLiteralExp,
+	kIndexedExp,
 	kFunctionCall,
 };
 
@@ -29,43 +31,65 @@ struct Exp {
 };
 
 struct NullExp : public Exp {
-	virtual ExpType GetType() const noexcept;
+	virtual ExpType GetType() const noexcept {
+		return ExpType::kNull;
+	}
 };
 
 struct BoolExp : public Exp {
-	virtual ExpType GetType() const noexcept;
-	BoolExp(bool t_value) noexcept;
+	virtual ExpType GetType() const noexcept {
+		return ExpType::kBool;
+	}
+	BoolExp(bool value) noexcept
+		: value(value) {}
 
 	bool value;
 };
 
 struct NumberExp : public Exp {
-	virtual ExpType GetType() const noexcept;
-	NumberExp(double value) noexcept;
+	virtual ExpType GetType() const noexcept {
+		return ExpType::kNumber;
+	}
+	NumberExp(double value) noexcept
+		: value(value) {}
 
 	double value;
 };
 
 struct StringExp : public Exp {
-	virtual ExpType GetType() const noexcept;
-	StringExp(const std::string& t_value);
+	virtual ExpType GetType() const noexcept {
+		return ExpType::kString;
+	}
+	StringExp(const std::string& value)
+		: value(value) {}
+
 
 	std::string value;
 };
 
 struct UnaryOpExp : public Exp {
-	UnaryOpExp(TokenType oper, std::unique_ptr<Exp> operand);
+	UnaryOpExp(TokenType oper, std::unique_ptr<Exp> operand)
+		: oper(oper)
+		, operand(std::move(operand)) {}
 
-	virtual ExpType GetType() const noexcept;
+	virtual ExpType GetType() const noexcept {
+		return ExpType::kUnaryOp;
+	}
+
 
 	TokenType oper;
 	std::unique_ptr<Exp> operand;
 };
 
 
-struct BinaOpExp : public Exp {
-	virtual ExpType GetType() const noexcept;
-	BinaOpExp(std::unique_ptr<Exp> left_exp, TokenType oper, std::unique_ptr<Exp> right_exp);
+struct BinaryOpExp : public Exp {
+	virtual ExpType GetType() const noexcept {
+		return ExpType::kBinaryOp;
+	}
+	BinaryOpExp(std::unique_ptr<Exp> left_exp, TokenType oper, std::unique_ptr<Exp> right_exp)
+		: left_exp(std::move(left_exp))
+		, oper(oper)
+		, right_exp(std::move(right_exp)) {}
 
 	std::unique_ptr<Exp> left_exp;
 	TokenType oper;
@@ -73,16 +97,47 @@ struct BinaOpExp : public Exp {
 };
 
 struct VarExp : public Exp {
-	virtual ExpType GetType() const noexcept;
-	VarExp(const std::string& t_name);
+	virtual ExpType GetType() const noexcept {
+		return ExpType::kVar;
+	}
+	VarExp(const std::string& name) :
+		name(name)
+	{
+		value_category = ExpValueCategory::kLeftValue;
+	}
 
 	std::string name;
 };
 
+struct IndexedExp : public Exp {
+	virtual ExpType GetType() const noexcept {
+		return ExpType::kIndexedExp;
+	}
+	IndexedExp(std::unique_ptr<Exp> exp, std::unique_ptr<Exp> index_exp)
+		: exp(std::move(exp))
+		, index_exp(std::move(index_exp)) {}
+
+	std::unique_ptr<Exp> exp;
+	std::unique_ptr<Exp> index_exp;
+};
+
+struct ArrayLiteralExp : public Exp {
+	virtual ExpType GetType() const noexcept {
+		return ExpType::kArrayLiteralExp;
+	}
+	ArrayLiteralExp(std::vector<std::unique_ptr<Exp>>&& par_list)
+		:  par_list(std::move(par_list)) {}
+
+	std::vector<std::unique_ptr<Exp>> par_list;
+};
 
 struct FunctionCallExp : public Exp {
-	virtual ExpType GetType() const noexcept;
-	FunctionCallExp(const std::string& name, std::vector<std::unique_ptr<Exp>>&& par_list);
+	virtual ExpType GetType() const noexcept {
+		return ExpType::kFunctionCall;
+	}
+	FunctionCallExp(const std::string& name, std::vector<std::unique_ptr<Exp>>&& par_list)
+		: name(name)
+		, par_list(std::move(par_list)) {}
 
 	std::string name;
 	std::vector<std::unique_ptr<Exp>> par_list;
