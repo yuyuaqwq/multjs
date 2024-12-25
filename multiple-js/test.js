@@ -10,7 +10,7 @@ a = a + b + 4444;
 
 let t = tick();
 let i = 0;
-while (i < 10000000) {
+while (i < 1000000) {
     i = i + 1.21;
 }
 println("i:", i, "    ", "tick:", tick() - t, "ms");
@@ -41,23 +41,23 @@ println("i:", i);
 
 
 if (a == 2) {
-    println("a �� 2");
+    println("a is 2");
 }
 else {
     if (a == 3) {
-        println("a �� 3");
+        println("a is 3");
     }
     else if (a == 9) {
-        println("a �� 9");
+        println("a is 9");
     }
     else if (a == 4800) {
-        println("a �� 4800");
+        println("a is 4800");
     }
     else {
-        println("a ���� 3��9��100");
+        println("a is not 3, 9, or 100");
     }
 
-    println("a ���� 2");
+    println("a is not 2");
 }
 
 let qvqvq = 10000000;
@@ -68,18 +68,18 @@ let qvqvq = 10000000;
 
 function add(a, b) {
     a = a + b;
-    println("add��");
+    println("add call");
     println(a + qvqvq);
 
     function hanhanyufan() {
-        println("��������", "���귲", qvqvq);
+        println("hanhanyufan", "qvqvq", qvqvq);
         println(qvqvq);
         return 999;
     }
 
     a = hanhanyufan();
 
-    println("a�Ľ���ǣ�", a);
+    println("a:", a);
 }
 
 println("hello world!");
