@@ -433,6 +433,21 @@ void CodeGener::GenerateExp(Exp* exp) {
 		cur_func_->byte_code.EmitVarLoad(var_idx);	// 从变量中获取
 		break;
 	}
+	case ExpType::kUnaryOp: {
+		auto unary_op_exp = static_cast<UnaryOpExp*>(exp);
+		// 表达式的值入栈
+		GenerateExp(unary_op_exp->operand.get());
+
+		// 生成运算指令
+		switch (unary_op_exp->oper) {
+		case TokenType::kOpSub:
+			cur_func_->byte_code.EmitOpcode(OpcodeType::kNeg);
+			break;
+		default:
+			throw CodeGenerException("Unrecognized unary operator");
+		}
+		break;
+	}
 	case ExpType::kBinaOp: {
 		auto bina_op_exp = static_cast<BinaOpExp*>(exp);
 

@@ -134,6 +134,11 @@ void VM::Run() {
 			b = b / a;
 			break;
 		}
+		case OpcodeType::kNeg: {
+			auto& a = stack_frame_.Get(-1);
+			a = -a;
+			break;
+		}		 
 		case OpcodeType::kInvokeStatic: {
 			auto var_idx = cur_func_->byte_code.GetU16(pc_);
 			pc_ += 2;

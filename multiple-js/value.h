@@ -281,7 +281,14 @@ public:
 		}
 	}
 
-
+	Value operator-() const {
+		if (type() == ValueType::kNumber) {
+			return Value(-number());
+		}
+		else {
+			throw std::runtime_error("Neg not supported for these Value types.");
+		}
+	}
 
 	ValueType type() const { return tag_.type_; }
 
