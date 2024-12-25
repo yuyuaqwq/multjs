@@ -42,7 +42,6 @@ public:
 
 	std::unique_ptr<Exp> ParseExp();
 	std::unique_ptr<Exp> ParseExp4();
-	std::unique_ptr<Exp> ParseExp4_1();
 	std::unique_ptr<Exp> ParseExp3();
 	std::unique_ptr<Exp> ParseExp2();
 	std::unique_ptr<Exp> ParseExp1();

@@ -214,22 +214,17 @@ std::unique_ptr<Exp> Parser::ParseExp() {
 }
 
 std::unique_ptr<Exp> Parser::ParseExp4() {
-	// 赋值表达式是右结合，特殊处理
-	// assignexp ::= exp assignexp'
-	// assignexp' ::= = assignexp' | ε
+	// 赋值表达式是右结合，需要特殊处理
 	auto exp = ParseExp3();
-	auto exp2 = ParseExp4_1();
-	exp = std::make_unique<BinaryOpExp>(move(exp), TokenType::kOpAssign, ParseExp4_1());
+	do {
+		auto type = lexer_->PeekToken().type();
+		if (type != TokenType::kOpAssign) {
+			break;
+		}
+		lexer_->NextToken();
+		exp = std::make_unique<BinaryOpExp>(move(exp), type, ParseExp3());
+	} while (true);
 	return exp;
-}
-
-std::unique_ptr<Exp> Parser::ParseExp4_1() {
-	auto type = lexer_->PeekToken().type();
-	if (type != TokenType::kOpAssign) {
-		return ParseExp3();
-	}
-	lexer_->NextToken();
-	return ParseExp4_1();
 }
 
 std::unique_ptr<Exp> Parser::ParseExp3() {
