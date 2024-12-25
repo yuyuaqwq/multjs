@@ -2,14 +2,19 @@
 sbs
 b */
 
-let arr = [3123, 231, "dawd", ["sbsb", 666]];
-let index = arr[100];
+// let arr = [3123, 231, "dawd", ["sbsb", 666]];
+// let index = arr[100];
 
-println(-(1.5864 + 12) * 666);
+// let qq = 1 + 2 - 3 + 4 - 5;
+// println(qq);
+
+// println(-(1.5864 + 12) * 666);
 
 let a = 123;
 let b = 233;
-a = a + b + 4444;
+a = b = a + b + 4444;
+
+println(a, b);
 
 let t = tick();
 let i = 0;
