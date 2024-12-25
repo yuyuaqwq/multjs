@@ -98,13 +98,6 @@ NewVarStat::NewVarStat(const std::string& var_name, std::unique_ptr<Exp> exp)
 	, exp(std::move(exp)) {}
 
 
-StatType AssignStat::GetType() const noexcept {
-	return StatType::kAssign;
-}
-
-AssignStat::AssignStat(const std::string& var_name, std::unique_ptr<Exp> exp)
-	: var_name(var_name)
-	, exp(std::move(exp)) {}
 
 
 } // namespace mjs

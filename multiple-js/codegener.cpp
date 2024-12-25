@@ -122,10 +122,6 @@ void CodeGener::GenerateStat(Stat* stat) {
 		GenerateReturnStat(static_cast<ReturnStat*>(stat));
 		break;
 	}
-	case StatType::kAssign: {
-		GenerateAssignStat(static_cast<AssignStat*>(stat));
-		break;
-	}
 	case StatType::kNewVar: {
 		GenerateNewVarStat(static_cast<NewVarStat*>(stat));
 		break;
@@ -220,16 +216,16 @@ void CodeGener::GenerateNewVarStat(NewVarStat* stat) {
 	cur_func_->byte_code.EmitVarStore(var_idx);
 }
 
-void CodeGener::GenerateAssignStat(AssignStat* stat) {
-	auto var_idx = GetVar(stat->var_name);
-	if (var_idx == -1) {
-		throw CodeGenerException("var not defined");
-	}
-	// 表达式压栈
-	GenerateExp(stat->exp.get());
-	// 弹出到变量中
-	cur_func_->byte_code.EmitVarStore(var_idx);
-}
+//void CodeGener::GenerateAssignStat(AssignStat* stat) {
+//	auto var_idx = GetVar(stat->var_name);
+//	if (var_idx == -1) {
+//		throw CodeGenerException("var not defined");
+//	}
+//	// 表达式压栈
+//	GenerateExp(stat->exp.get());
+//	// 弹出到变量中
+//	cur_func_->byte_code.EmitVarStore(var_idx);
+//}
 
 // 2字节指的是基于当前指令的offset
 void CodeGener::GenerateIfStat(IfStat* stat) {
@@ -425,8 +421,8 @@ void CodeGener::GenerateExp(Exp* exp) {
 	}
 	case ExpType::kVar: {
 		// 是取变量值的话，查找到对应的变量编号，将其入栈
-		auto name_exp = static_cast<VarExp*>(exp);
-		auto var_idx = GetVar(name_exp->name);
+		auto var_exp = static_cast<VarExp*>(exp);
+		auto var_idx = GetVar(var_exp->name);
 		if (var_idx == -1) {
 			throw CodeGenerException("var not defined");
 		}
@@ -458,6 +454,23 @@ void CodeGener::GenerateExp(Exp* exp) {
 	}
 	case ExpType::kBinaOp: {
 		auto bina_op_exp = static_cast<BinaOpExp*>(exp);
+		if (bina_op_exp->oper == TokenType::kOpAssign) {
+			GenerateExp(bina_op_exp->right_exp.get());
+			if (bina_op_exp->left_exp->GetType() == ExpType::kVar) {
+				auto var_exp = static_cast<VarExp*>(bina_op_exp->left_exp.get());
+				auto var_idx = GetVar(var_exp->name);
+				if (var_idx == -1) {
+					throw CodeGenerException("var not defined");
+				}
+				cur_func_->byte_code.EmitVarStore(var_idx);
+			}
+			else {
+				throw CodeGenerException("Expression that cannot be assigned a value");
+			}
+			// 最后再把左值表达式入栈
+			GenerateExp(bina_op_exp->left_exp.get());
+			return;
+		}
 
 		// 左右表达式的值入栈
 		GenerateExp(bina_op_exp->left_exp.get());

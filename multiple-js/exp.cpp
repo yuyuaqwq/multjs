@@ -50,7 +50,7 @@ ExpType VarExp::GetType() const noexcept {
 VarExp::VarExp(const std::string& name) :
 	name(name)
 {
-	value_category == ExpValueCategory::kLeftValue;
+	value_category = ExpValueCategory::kLeftValue;
 }
 
 ExpType FunctionCallExp::GetType() const noexcept {

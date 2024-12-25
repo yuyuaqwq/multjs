@@ -47,7 +47,6 @@ public:
 	void GenerateFunctionDeclStat(FuncDeclStat* stat);
 	void GenerateReturnStat(ReturnStat* stat);
 	void GenerateNewVarStat(NewVarStat* stat);
-	void GenerateAssignStat(AssignStat* stat);
 	void GenerateIfStat(IfStat* stat);
 	void GenerateWhileStat(WhileStat* stat);
 	void GenerateContinueStat(ContinueStat* stat);

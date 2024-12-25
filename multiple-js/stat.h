@@ -21,7 +21,6 @@ enum class StatType {
 	kBreak,
 	kReturn,
 	kNewVar,
-	kAssign,
 	kBlock,
 };
 
@@ -42,7 +41,6 @@ struct ExpStat : public Stat {
 
 	std::unique_ptr<Exp> exp;
 };
-
 
 struct FuncDeclStat : public Stat {
 	virtual StatType GetType() const noexcept;
@@ -123,15 +121,6 @@ struct ReturnStat : public Stat {
 struct NewVarStat : public Stat {
 	virtual StatType GetType() const noexcept;
 	NewVarStat(const std::string& var_name, std::unique_ptr<Exp> t_exp);
-
-	std::string var_name;
-	std::unique_ptr<Exp> exp;
-};
-
-
-struct AssignStat : public Stat {
-	virtual StatType GetType() const noexcept;
-	AssignStat(const std::string& var_name, std::unique_ptr<Exp> t_exp);
 
 	std::string var_name;
 	std::unique_ptr<Exp> exp;

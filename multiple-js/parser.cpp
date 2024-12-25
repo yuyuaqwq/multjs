@@ -73,10 +73,7 @@ std::unique_ptr<Stat> Parser::ParseStat() {
 			return ParseReturnStat();
 		}
 		case TokenType::kIdentifier: {
-			auto token = lexer_->PeekTokenN(2);
-			if (token.Is(TokenType::kOpAssign)) {
-				return ParseAssignStat();
-			}
+			
 			// break;
 		}
 		default: {
@@ -211,24 +208,37 @@ std::unique_ptr<NewVarStat> Parser::ParseNewVarStat() {
 	return  std::make_unique<NewVarStat>(var_name, move(exp));
 }
 
-std::unique_ptr<AssignStat> Parser::ParseAssignStat() {
-	auto var_name = lexer_->MatchToken(TokenType::kIdentifier).str();
-	lexer_->MatchToken(TokenType::kOpAssign);
-	auto exp = ParseExp();
-	lexer_->MatchToken(TokenType::kSepSemi);
-	return  std::make_unique<AssignStat>(var_name, move(exp));
-}
-
 
 std::unique_ptr<Exp> Parser::ParseExp() {
-	return ParseExp3();
+	return ParseExp4();
+}
+
+std::unique_ptr<Exp> Parser::ParseExp4() {
+	auto exp = ParseExp3();
+	do {
+		auto type = lexer_->PeekToken().type();
+		if (type != TokenType::kOpAssign) {
+			break;
+		}
+		if (exp->value_category != ExpValueCategory::kLeftValue) {
+			throw ParserException("Only assignment operators can be used on lvalue values.");
+		}
+		lexer_->NextToken();
+		exp = std::make_unique<BinaOpExp>(move(exp), type, ParseExp3());
+	} while (true);
+	return exp;
 }
 
 std::unique_ptr<Exp> Parser::ParseExp3() {
 	auto exp = ParseExp2();
 	do {
 		auto type = lexer_->PeekToken().type();
-		if (type != TokenType::kOpNe && type != TokenType::kOpEq && type != TokenType::kOpLt && type != TokenType::kOpLe && type != TokenType::kOpGt && type != TokenType::kOpGe) {
+		if (type != TokenType::kOpNe
+			&& type != TokenType::kOpEq
+			&& type != TokenType::kOpLt
+			&& type != TokenType::kOpLe
+			&& type != TokenType::kOpGt
+			&& type != TokenType::kOpGe) {
 			break;
 		}
 		lexer_->NextToken();
@@ -241,7 +251,8 @@ std::unique_ptr<Exp> Parser::ParseExp2() {
 	auto exp = ParseExp1();
 	do {
 		auto type = lexer_->PeekToken().type();
-		if (type != TokenType::kOpAdd && type != TokenType::kOpSub) {
+		if (type != TokenType::kOpAdd
+			&& type != TokenType::kOpSub) {
 			break;
 		}
 		lexer_->NextToken();
@@ -254,7 +265,8 @@ std::unique_ptr<Exp> Parser::ParseExp1() {
 	auto exp = ParseExp0();
 	do {
 		auto type = lexer_->PeekToken().type();
-		if (type != TokenType::kOpMul && type != TokenType::kOpDiv) {
+		if (type != TokenType::kOpMul
+			&& type != TokenType::kOpDiv) {
 			break;
 		}
 		lexer_->NextToken();
@@ -294,7 +306,7 @@ std::unique_ptr<Exp> Parser::ParseExp0() {
 		if (exp->value_category != ExpValueCategory::kLeftValue) {
 			throw ParserException("Only use auto increment on lvalue.");
 		}
-		return std::make_unique<UnaryOpExp>(TokenType::kOpPrefixInc, exp);
+		return std::make_unique<UnaryOpExp>(TokenType::kOpPrefixInc, std::move(exp));
 	}
 	case TokenType::kNumber: {
 		lexer_->NextToken();

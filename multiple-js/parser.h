@@ -39,9 +39,9 @@ public:
 	std::unique_ptr<ReturnStat> ParseReturnStat();
 
 	std::unique_ptr<NewVarStat> ParseNewVarStat();
-	std::unique_ptr<AssignStat> ParseAssignStat();
 
 	std::unique_ptr<Exp> ParseExp();
+	std::unique_ptr<Exp> ParseExp4();
 	std::unique_ptr<Exp> ParseExp3();
 	std::unique_ptr<Exp> ParseExp2();
 	std::unique_ptr<Exp> ParseExp1();
