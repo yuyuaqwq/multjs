@@ -3,6 +3,7 @@ sbs
 b */
 
 let arr = [3123, 231, "dawd", ["sbsb", 666]];
+let index = arr[100];
 
 println(-(1.5864 + 12) * 666);
 

@@ -342,7 +342,7 @@ std::unique_ptr<Exp> Parser::ParseExp0() {
 	}
 	}
 
-	if (token.type() == TokenType::kSepLBrack) {
+	if (lexer_->PeekToken().Is(TokenType::kSepLBrack)) {
 		if (!exp) {
 			// 前面还没解析出表达式，那就应该是数组字面量
 			auto par_list = ParseExpList(TokenType::kSepLBrack, TokenType::kSepRBrack, true);
