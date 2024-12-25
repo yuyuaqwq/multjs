@@ -2,6 +2,8 @@
 
 #include <vector>
 #include <memory>
+#include <map>
+#include <unordered_map>
 
 #include "token.h"
 
@@ -16,6 +18,7 @@ enum class ExpType {
 	kBinaryOp,
 	kVar,
 	kArrayLiteralExp,
+	kObjectLiteralExp,
 	kIndexedExp,
 	kFunctionCall,
 };
@@ -125,11 +128,22 @@ struct ArrayLiteralExp : public Exp {
 	virtual ExpType GetType() const noexcept {
 		return ExpType::kArrayLiteralExp;
 	}
-	ArrayLiteralExp(std::vector<std::unique_ptr<Exp>>&& par_list)
-		:  par_list(std::move(par_list)) {}
+	ArrayLiteralExp(std::vector<std::unique_ptr<Exp>>&& arr_litera)
+		: arr_litera(std::move(arr_litera)) {}
 
-	std::vector<std::unique_ptr<Exp>> par_list;
+	std::vector<std::unique_ptr<Exp>> arr_litera;
 };
+
+struct ObjectLiteralExp : public Exp {
+	virtual ExpType GetType() const noexcept {
+		return ExpType::kObjectLiteralExp;
+	}
+	ObjectLiteralExp(std::unordered_map<std::string, std::unique_ptr<Exp>>&& obj_litera)
+		: obj_litera(std::move(obj_litera)) {}
+
+	std::unordered_map<std::string, std::unique_ptr<Exp>> obj_litera;
+};
+
 
 struct FunctionCallExp : public Exp {
 	virtual ExpType GetType() const noexcept {
