@@ -6,10 +6,16 @@ namespace mjs {
 
 class Object {
 public:
+	Object() {
+		tag_.full_ = 0;
+		tag_.ref_ = 1;
+	}
+
 
 private:
 	union {
 		uint64_t full_;
+		uint32_t ref_;
 	} tag_;
 };
 
