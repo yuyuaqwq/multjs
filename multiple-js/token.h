@@ -46,10 +46,10 @@ enum class TokenType {
     kOpInc,           // ++ 自增
     kOpDec,           // -- 自减
 
-    kOpPrefixInc,
-    kOpPrefixDec,
-    kOpSuffixInc,
-    kOpSuffixDec,
+    kOpPrefixInc,     // 前缀自增
+    kOpPrefixDec,     // 前缀自减
+    kOpSuffixInc,     // 后缀自增
+    kOpSuffixDec,     // 后缀自减
 
     // 位运算符
     kOpBitNot,        // ~ 按位取反

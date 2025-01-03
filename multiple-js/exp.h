@@ -16,7 +16,8 @@ enum class ExpType {
 	kString,
 	kUnaryOp,
 	kBinaryOp,
-	kVar,
+	kTernaryOp,
+	kIdentifier,
 	kArrayLiteralExp,
 	kObjectLiteralExp,
 	kIndexedExp,
@@ -34,13 +35,13 @@ struct Exp {
 };
 
 struct NullExp : public Exp {
-	virtual ExpType GetType() const noexcept {
+	virtual ExpType GetType() const noexcept override {
 		return ExpType::kNull;
 	}
 };
 
 struct BoolExp : public Exp {
-	virtual ExpType GetType() const noexcept {
+	virtual ExpType GetType() const noexcept override {
 		return ExpType::kBool;
 	}
 	BoolExp(bool value) noexcept
@@ -50,7 +51,7 @@ struct BoolExp : public Exp {
 };
 
 struct NumberExp : public Exp {
-	virtual ExpType GetType() const noexcept {
+	virtual ExpType GetType() const noexcept override {
 		return ExpType::kNumber;
 	}
 	NumberExp(double value) noexcept
@@ -60,7 +61,7 @@ struct NumberExp : public Exp {
 };
 
 struct StringExp : public Exp {
-	virtual ExpType GetType() const noexcept {
+	virtual ExpType GetType() const noexcept override {
 		return ExpType::kString;
 	}
 	StringExp(const std::string& value)
@@ -75,10 +76,9 @@ struct UnaryOpExp : public Exp {
 		: oper(oper)
 		, operand(std::move(operand)) {}
 
-	virtual ExpType GetType() const noexcept {
+	virtual ExpType GetType() const noexcept override {
 		return ExpType::kUnaryOp;
 	}
-
 
 	TokenType oper;
 	std::unique_ptr<Exp> operand;
@@ -86,7 +86,7 @@ struct UnaryOpExp : public Exp {
 
 
 struct BinaryOpExp : public Exp {
-	virtual ExpType GetType() const noexcept {
+	virtual ExpType GetType() const noexcept override {
 		return ExpType::kBinaryOp;
 	}
 	BinaryOpExp(std::unique_ptr<Exp> left_exp, TokenType oper, std::unique_ptr<Exp> right_exp)
@@ -99,11 +99,27 @@ struct BinaryOpExp : public Exp {
 	std::unique_ptr<Exp> right_exp;
 };
 
-struct VarExp : public Exp {
-	virtual ExpType GetType() const noexcept {
-		return ExpType::kVar;
+struct TernaryOpExp : public Exp {
+	virtual ExpType GetType() const noexcept override {
+		return ExpType::kTernaryOp;
 	}
-	VarExp(const std::string& name) :
+	TernaryOpExp(TokenType oper, std::unique_ptr<Exp> exp1, std::unique_ptr<Exp> exp2, std::unique_ptr<Exp> exp3)
+		: oper(oper)
+		, exp1(std::move(exp1))
+		, exp2(std::move(exp2))
+		, exp3(std::move(exp3)) {}
+
+	TokenType oper;
+	std::unique_ptr<Exp> exp1;
+	std::unique_ptr<Exp> exp2;
+	std::unique_ptr<Exp> exp3;
+};
+
+struct IdentifierExp : public Exp {
+	virtual ExpType GetType() const noexcept override {
+		return ExpType::kIdentifier;
+	}
+	IdentifierExp(const std::string& name) :
 		name(name)
 	{
 		value_category = ExpValueCategory::kLeftValue;
@@ -113,7 +129,7 @@ struct VarExp : public Exp {
 };
 
 struct IndexedExp : public Exp {
-	virtual ExpType GetType() const noexcept {
+	virtual ExpType GetType() const noexcept override {
 		return ExpType::kIndexedExp;
 	}
 	IndexedExp(std::unique_ptr<Exp> exp, std::unique_ptr<Exp> index_exp)
@@ -125,7 +141,7 @@ struct IndexedExp : public Exp {
 };
 
 struct ArrayLiteralExp : public Exp {
-	virtual ExpType GetType() const noexcept {
+	virtual ExpType GetType() const noexcept override {
 		return ExpType::kArrayLiteralExp;
 	}
 	ArrayLiteralExp(std::vector<std::unique_ptr<Exp>>&& arr_litera)
@@ -135,7 +151,7 @@ struct ArrayLiteralExp : public Exp {
 };
 
 struct ObjectLiteralExp : public Exp {
-	virtual ExpType GetType() const noexcept {
+	virtual ExpType GetType() const noexcept override {
 		return ExpType::kObjectLiteralExp;
 	}
 	ObjectLiteralExp(std::unordered_map<std::string, std::unique_ptr<Exp>>&& obj_litera)
@@ -146,14 +162,14 @@ struct ObjectLiteralExp : public Exp {
 
 
 struct FunctionCallExp : public Exp {
-	virtual ExpType GetType() const noexcept {
+	virtual ExpType GetType() const noexcept override {
 		return ExpType::kFunctionCall;
 	}
-	FunctionCallExp(const std::string& name, std::vector<std::unique_ptr<Exp>>&& par_list)
-		: name(name)
+	FunctionCallExp(std::unique_ptr<Exp> func, std::vector<std::unique_ptr<Exp>>&& par_list)
+		: func(std::move(func))
 		, par_list(std::move(par_list)) {}
 
-	std::string name;
+	std::unique_ptr<Exp> func;
 	std::vector<std::unique_ptr<Exp>> par_list;
 };
 

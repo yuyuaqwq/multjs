@@ -41,6 +41,19 @@ public:
 	std::unique_ptr<NewVarStat> ParseNewVarStat();
 
 	std::unique_ptr<Exp> ParseExp();
+	std::unique_ptr<Exp> ParseExp19();
+	std::unique_ptr<Exp> ParseExp18();
+	std::unique_ptr<Exp> ParseExp17();
+	std::unique_ptr<Exp> ParseExp16();
+	std::unique_ptr<Exp> ParseExp15();
+	std::unique_ptr<Exp> ParseExp14();
+	std::unique_ptr<Exp> ParseExp13();
+	std::unique_ptr<Exp> ParseExp12();
+	std::unique_ptr<Exp> ParseExp11();
+	std::unique_ptr<Exp> ParseExp10();
+	std::unique_ptr<Exp> ParseExp9();
+	std::unique_ptr<Exp> ParseExp8();
+	std::unique_ptr<Exp> ParseExp7();
 	std::unique_ptr<Exp> ParseExp6();
 	std::unique_ptr<Exp> ParseExp5();
 	std::unique_ptr<Exp> ParseExp4();

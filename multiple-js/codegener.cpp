@@ -419,9 +419,9 @@ void CodeGener::GenerateExp(Exp* exp) {
 		cur_func_->byte_code.EmitConstLoad(const_idx);
 		break;
 	}
-	case ExpType::kVar: {
+	case ExpType::kIdentifier: {
 		// 是取变量值的话，查找到对应的变量编号，将其入栈
-		auto var_exp = static_cast<VarExp*>(exp);
+		auto var_exp = static_cast<IdentifierExp*>(exp);
 		auto var_idx = GetVar(var_exp->name);
 		if (var_idx == -1) {
 			throw CodeGenerException("var not defined");
@@ -456,8 +456,8 @@ void CodeGener::GenerateExp(Exp* exp) {
 		auto bina_op_exp = static_cast<BinaryOpExp*>(exp);
 		if (bina_op_exp->oper == TokenType::kOpAssign) {
 			GenerateExp(bina_op_exp->right_exp.get());
-			if (bina_op_exp->left_exp->GetType() == ExpType::kVar) {
-				auto var_exp = static_cast<VarExp*>(bina_op_exp->left_exp.get());
+			if (bina_op_exp->left_exp->GetType() == ExpType::kIdentifier) {
+				auto var_exp = static_cast<IdentifierExp*>(bina_op_exp->left_exp.get());
 				auto var_idx = GetVar(var_exp->name);
 				if (var_idx == -1) {
 					throw CodeGenerException("var not defined");
@@ -516,7 +516,7 @@ void CodeGener::GenerateExp(Exp* exp) {
 	case ExpType::kFunctionCall: {
 		auto func_call_exp = static_cast<FunctionCallExp*>(exp);
 
-		auto var_idx = GetVar(func_call_exp->name);
+		auto var_idx = GetVar(static_cast<IdentifierExp*>(func_call_exp->func.get())->name);
 		if (var_idx == -1) {
 			throw CodeGenerException("Function not defined");
 		}
