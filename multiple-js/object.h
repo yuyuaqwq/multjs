@@ -11,7 +11,6 @@ public:
 		tag_.ref_ = 1;
 	}
 
-
 private:
 	union {
 		uint64_t full_;
