@@ -16,6 +16,10 @@
 int main() {
     using namespace mjs;
 
+    auto a = alloca(0x4096);
+
+
+
     std::fstream srcFile;
     srcFile.open(R"(test.js)");
 
