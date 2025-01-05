@@ -1,5 +1,8 @@
 #include "codegener.h"
 
+#include "func_obj.h"
+#include "up_obj.h"
+
 namespace mjs {
 
 CodeGener::CodeGener(ConstPool* const_pool)
@@ -73,9 +76,9 @@ uint32_t CodeGener::GetVar(std::string var_name) {
 }
 
 
-void CodeGener::RegistryFunctionBridge(std::string func_name, FunctionBridge func_addr) {
+void CodeGener::RegistryFunctionBridge(std::string func_name, FunctionBridgeObject func) {
 	auto var_idx = AllocVar(func_name);
-	auto const_idx = AllocConst(Value(func_addr));
+	auto const_idx = AllocConst(Value(func));
 
 	// 生成将函数放到变量表中的代码
 	// 交给虚拟机执行时去加载，虚拟机发现加载的常量是函数体，就会将函数原型赋给局部变量
@@ -235,7 +238,7 @@ void CodeGener::GenerateIfStat(IfStat* stat) {
 	// 留给下一个else if/else修复
 	uint32_t if_pc = cur_func_->byte_code.GetPc();
 	// 提前写入跳转的指令
-	GenerateIfICmp(stat->exp.get());
+	GenerateIfEq(stat->exp.get());
 
 	GenerateBlock(stat->block.get());
 
@@ -312,7 +315,7 @@ void CodeGener::GenerateIfStat(IfStat* stat) {
 		// 留给下一个else if/else修复
 		if_pc = cur_func_->byte_code.GetPc();
 		// 提前写入跳转的指令
-		GenerateIfICmp(else_if_stat->exp.get());
+		GenerateIfEq(else_if_stat->exp.get());
 
 		GenerateBlock(else_if_stat->block.get());
 	}
@@ -355,7 +358,7 @@ void CodeGener::GenerateWhileStat(WhileStat* stat) {
 	// 等待修复
 	loop_repair_end_pc_list.push_back(cur_func_->byte_code.GetPc());
 	// 提前写入跳转的指令
-	GenerateIfICmp(stat->exp.get());
+	GenerateIfEq(stat->exp.get());
 
 	GenerateBlock(stat->block.get());
 
@@ -544,7 +547,7 @@ void CodeGener::GenerateExp(Exp* exp) {
 	}
 }
 
-void CodeGener::GenerateIfICmp(Exp* exp) {
+void CodeGener::GenerateIfEq(Exp* exp) {
 	cur_func_->byte_code.EmitOpcode(OpcodeType::kIfEq);
 	cur_func_->byte_code.EmitU16(0);
 }

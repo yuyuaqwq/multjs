@@ -32,6 +32,8 @@ public:
 	std::string Disassembly();
 	void Run();
 
+	void Gc();
+
 private:
 	Value& GetVar(uint32_t idx);
 	void SetVar(uint32_t idx, Value&& var);

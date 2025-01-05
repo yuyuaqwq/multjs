@@ -3,6 +3,8 @@
 #include <iostream>
 #include <fstream>
 #include <chrono>
+#include <chrono>
+#include <random>
 
 #include "lexer.h"
 #include "parser.h"
@@ -13,14 +15,6 @@
 
 int main() {
     using namespace mjs;
-
-    auto t = GetTickCount64();
-    int i = 0;
-    for (; i < 100000000; i++) {
-        ++i;
-    }
-    printf("%d, %lld\n", i, GetTickCount64() - t);
-
 
     std::fstream srcFile;
     srcFile.open(R"(test.js)");
@@ -64,20 +58,17 @@ int main() {
         }
     );
 
-
-    // printf("%s\n", vvm.Disassembly().c_str());
-
     cg.Generate(src.get());
 
-    VM vvm(const_pool.get());
+    VM vm(const_pool.get());
 
-    std::cout << vvm.Disassembly() << std::endl;
+    std::cout << vm.Disassembly() << std::endl;
 
     //double n;
     //std::cin >> n;
     auto start = std::chrono::high_resolution_clock::now();
 
-    vvm.Run();
+    vm.Run();
 
     //double k = 0;
     //while (k < 10000000) {
@@ -88,11 +79,6 @@ int main() {
     std::chrono::duration<double, std::milli> elapsed = end - start;
 
     std::cout << "Elapsed time: " << elapsed.count() << " ms\n";
-
-
-    //auto exp = parser.ParseExp();
-
-    //int res = CalculationExp(exp.get());
 
     printf("%d", 100);
 }

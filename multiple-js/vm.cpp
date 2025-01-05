@@ -1,5 +1,8 @@
 #include "vm.h"
 
+#include "func_obj.h"
+#include "up_obj.h"
+
 #include <iostream>
 
 namespace mjs {
@@ -249,6 +252,14 @@ void VM::Run() {
 			throw VMException("Unknown instruction");
 		}
 	} while (pc_ >= 0 && pc_ < cur_func_->byte_code.Size());
+}
+
+void VM::Gc() {
+	// 第一趟将孩子解引用为0的挂入tmp，因为该孩子节点只被当前节点引用
+	// 如果当前节点可以被回收，那么该孩子就肯定也要被回收
+
+	// 第二趟扫的时候，再将当前链表中的节点指向的孩子挂回来，因为当前节点不是垃圾，其孩子自然也不是垃圾
+	// 如果没有被挂回链表的节点，那就是垃圾了，没有被根节点自下的路径引用
 }
 
 } // namespace mjs

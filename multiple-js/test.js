@@ -2,10 +2,10 @@
 sbs
 b */
 
-let arr = [3123, 231, "dawd", ["sbsb", 666]];
-let index = arr[100];
+// let arr = [3123, 231, "dawd", ["sbsb", 666]];
+// let index = arr[100];
 
-let obj = {fake:1243, sbsb:666};
+// let obj = {fake:1243, sbsb:666};
 
 let qq = 1 + 2 - 3 + 4 - 5;
 println(qq);

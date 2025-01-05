@@ -39,7 +39,7 @@ public:
 	uint32_t AllocConst(Value&& value);
 	uint32_t AllocVar(std::string varName);
 	uint32_t GetVar(std::string varName);
-	void RegistryFunctionBridge(std::string func_name, FunctionBridge func_addr);
+	void RegistryFunctionBridge(std::string func_name, FunctionBridgeObject func);
 
 	void Generate(BlockStat* block);
 	void GenerateBlock(BlockStat* block);
@@ -52,7 +52,7 @@ public:
 	void GenerateContinueStat(ContinueStat* stat);
 	void GenerateBreakStat(BreakStat* stat);
 	void GenerateExp(Exp* exp);
-	void GenerateIfICmp(Exp* exp);
+	void GenerateIfEq(Exp* exp);
 
 private:
 	// º¯Êý

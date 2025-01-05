@@ -119,17 +119,22 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <AdditionalIncludeDirectories>C:\Users\yuyu\Desktop\mimalloc-dev\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalLibraryDirectories>C:\Users\yuyu\Desktop\mimalloc-dev\build\Release</AdditionalLibraryDirectories>
+      <AdditionalDependencies>mimalloc-static.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="codegener.cpp" />
     <ClCompile Include="const_pool.cpp" />
+    <ClCompile Include="func_obj.cpp" />
     <ClCompile Include="instr.cpp" />
     <ClCompile Include="lexer.cpp" />
     <ClCompile Include="multiple-js.cpp" />
@@ -139,18 +144,21 @@
     <ClCompile Include="stack_frame.h" />
     <ClCompile Include="stat.cpp" />
     <ClCompile Include="token.cpp" />
+    <ClCompile Include="up_obj.cpp" />
     <ClCompile Include="vm.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="codegener.h" />
     <ClInclude Include="const_pool.h" />
     <ClInclude Include="exp.h" />
+    <ClInclude Include="func_obj.h" />
     <ClInclude Include="instr.h" />
     <ClInclude Include="lexer.h" />
     <ClInclude Include="object.h" />
     <ClInclude Include="parser.h" />
     <ClInclude Include="stat.h" />
     <ClInclude Include="token.h" />
+    <ClInclude Include="up_obj.h" />
     <ClInclude Include="value.h" />
     <ClInclude Include="vm.h" />
   </ItemGroup>
