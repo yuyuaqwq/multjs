@@ -432,6 +432,40 @@ void CodeGener::GenerateExp(Exp* exp) {
 		cur_func_->byte_code.EmitVarLoad(var_idx);	// 从变量中获取
 		break;
 	}
+	case ExpType::kArrayLiteralExp: {
+		auto arr_exp = static_cast<ArrayLiteralExp*>(exp);
+		// 创建一个数组对象
+		// 为该数组填充Value成员
+		// 将数组对象添加到常量池
+		ArrayObject* arr_obj = new ArrayObject();
+
+		for (auto& exp : arr_exp->arr_litera) {
+			arr_obj->mutale_values().emplace_back(MakeValue(exp.get()));
+		}
+
+		auto const_idx = AllocConst(Value(arr_obj));
+		cur_func_->byte_code.EmitConstLoad(const_idx);
+		break;
+	}
+	case ExpType::kObjectLiteralExp: {
+
+		break;
+	}
+	case ExpType::kIndexedExp: {
+		auto idx_exp = static_cast<IndexedExp*>(exp);
+
+		// 被访问的表达式，应该是一个数组，入栈这个表达式
+		idx_exp->exp;
+
+		// 用于访问的下标的表达式，是一个整数，入栈这个表达式
+		idx_exp->index_exp;
+
+		// 生成访问索引的指令
+
+		
+		break;
+	}
+
 	case ExpType::kUnaryOp: {
 		auto unary_op_exp = static_cast<UnaryOpExp*>(exp);
 		// 表达式的值入栈
@@ -550,6 +584,10 @@ void CodeGener::GenerateExp(Exp* exp) {
 void CodeGener::GenerateIfEq(Exp* exp) {
 	cur_func_->byte_code.EmitOpcode(OpcodeType::kIfEq);
 	cur_func_->byte_code.EmitU16(0);
+}
+
+Value CodeGener::MakeValue(Exp* exp) {
+	return Value();
 }
 
 } // namespace mjs

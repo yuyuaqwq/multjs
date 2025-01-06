@@ -54,6 +54,8 @@ public:
 	void GenerateExp(Exp* exp);
 	void GenerateIfEq(Exp* exp);
 
+	Value MakeValue(Exp* exp);
+
 private:
 	// 函数
 	FunctionBodyObject* cur_func_ = nullptr;				// 当前生成函数

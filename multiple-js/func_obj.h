@@ -1,4 +1,7 @@
+#pragma once
+
 #include "object.h"
+
 #include "stack_frame.h"
 
 namespace mjs {
@@ -8,7 +11,7 @@ namespace mjs {
 // 并且会在局部变量表中创建并函数原型，指向函数体，类似语法糖的想法
 class FunctionBodyObject : public Object {
 public:
-	explicit FunctionBodyObject(uint32_t t_parCount) noexcept;
+	explicit FunctionBodyObject(uint32_t par_count) noexcept;
 	std::string Disassembly();
 
 public:

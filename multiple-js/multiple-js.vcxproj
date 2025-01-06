@@ -145,9 +145,11 @@
     <ClCompile Include="stat.cpp" />
     <ClCompile Include="token.cpp" />
     <ClCompile Include="up_obj.cpp" />
+    <ClCompile Include="value.cpp" />
     <ClCompile Include="vm.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="arr_obj.h" />
     <ClInclude Include="codegener.h" />
     <ClInclude Include="const_pool.h" />
     <ClInclude Include="exp.h" />
@@ -157,6 +159,7 @@
     <ClInclude Include="object.h" />
     <ClInclude Include="parser.h" />
     <ClInclude Include="stat.h" />
+    <ClInclude Include="str_obj.h" />
     <ClInclude Include="token.h" />
     <ClInclude Include="up_obj.h" />
     <ClInclude Include="value.h" />

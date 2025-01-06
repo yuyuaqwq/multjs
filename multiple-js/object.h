@@ -2,14 +2,18 @@
 
 #include <cstdint>
 
+#include <unordered_map>
+
 namespace mjs {
 
+// using PropertieMap = std::unordered_map<std::string, Value>;
 class Value;
+class PropertieMap;
 class Object {
 public:
 	Object() {
 		tag_.full_ = 0;
-		tag_.ref_count_ = 1;
+		tag_.ref_count_ = 0;
 
 		properties_ = nullptr;
 	}
@@ -32,7 +36,7 @@ private:
 		uint64_t full_;
 		uint32_t ref_count_;
 	} tag_;
-
-	Value* properties_;
+	PropertieMap* properties_;
 };
+
 } // namespace mjs

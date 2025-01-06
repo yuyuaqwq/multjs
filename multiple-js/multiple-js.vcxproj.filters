@@ -57,6 +57,9 @@
     <ClCompile Include="up_obj.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="value.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="lexer.h">
@@ -96,6 +99,12 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="up_obj.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="str_obj.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="arr_obj.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

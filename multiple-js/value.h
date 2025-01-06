@@ -8,6 +8,12 @@
 
 #include "instr.h"
 #include "object.h"
+#include "arr_obj.h"
+#include "up_obj.h"
+#include "str_obj.h"
+
+// #include "func_obj.h"
+
 
 namespace mjs {
 
@@ -27,9 +33,8 @@ enum class ValueType : uint64_t {
 	kUpValue,
 };
 
-class FunctionBodyObject;
-class UpValueObject;
 class StackFrame;
+class FunctionBodyObject;
 class Value {
 public:
 	using FunctionBridgeObject = Value(*)(uint32_t par_count, StackFrame* stack);
@@ -77,18 +82,18 @@ public:
 
 	Value(const char* string_u8, size_t size) {
 		tag_.type_ = ValueType::kString;
-		set_string_u8_copy(string_u8, size);
-	}
-
-	Value(Object* object) {
-		tag_.type_ = ValueType::kObject;
-		value_.object_ = object;
-		value_.object_->ref();
+		set_string_u8(string_u8, size);
 	}
 
 	Value(const std::string string_u8) {
 		tag_.type_ = ValueType::kString;
-		set_string_u8_copy(string_u8.data(), string_u8.size());
+		set_string_u8(string_u8.data(), string_u8.size());
+	}
+
+	explicit Value(Object* object) {
+		tag_.type_ = ValueType::kObject;
+		value_.object_ = object;
+		value_.object_->ref();
 	}
 
 	Value(UpValueObject* up_value) {
@@ -108,12 +113,8 @@ public:
 
 
 	~Value() {
-		if (type() == ValueType::kString) {
-			if (tag_.string_length_ >= sizeof(value_.string_u8_inline_)) {
-				
-			}
-		}
-		if (type() == ValueType::kObject) {
+		if (type() == ValueType::kString && tag_.string_length_ >= sizeof(value_.string_u8_inline_)
+			|| type() == ValueType::kObject) {
 			object()->deref();
 			if (object()->ref_count() == 0) {
 				// ÊÍ·Å¶ÔÏó
@@ -133,12 +134,8 @@ public:
 
 	void operator=(const Value& r) {
 		tag_.full_ = r.tag_.full_;
-		if (type() == ValueType::kString) {
-			if (tag_.string_length_ >= sizeof(value_.string_u8_inline_)) {
-				// set_string_u8_copy(r.value_.string_u8_, r.tag_.string_length_);
-			}
-		}
-		else if (type() == ValueType::kObject) {
+		if (type() == ValueType::kString && tag_.string_length_ >= sizeof(value_.string_u8_inline_)
+			|| type() == ValueType::kObject) {
 			value_.object_ = r.value_.object_;
 			object()->ref();
 		}
@@ -237,8 +234,6 @@ public:
 		}
 		case ValueType::kObject:
 			return object() == rhs.object();
-		
-		
 		case ValueType::kI64:
 			return i64() == rhs.i64();
 		case ValueType::kFunctionBody:
@@ -346,16 +341,16 @@ public:
 	void set_number(double number) { assert(type() == ValueType::kNumber); value_.f64_ = number; }
 	int64_t boolean() const { assert(type() == ValueType::kBoolean); return value_.boolean_; }
 	void set_boolean(bool boolean) { assert(type() == ValueType::kBoolean); value_.boolean_ = boolean; }
-	const char* string_u8() const { 
-		assert(type() == ValueType::kString);
-		if (tag_.string_length_ < sizeof(value_.string_u8_inline_)) {
-			return value_.string_u8_inline_;
-		}
-		// return value_.string_u8_; 
+	const char* string_u8() const;
+	void set_string_u8(const char* string_u8, size_t size);
+	Object* object() const { 
+		assert(type() == ValueType::kString || type() == ValueType::kObject); 
+		return value_.object_;
 	}
-	Object* object() const { assert(type() == ValueType::kObject); return value_.object_; }
 	template<typename ObjectT>
-	ObjectT* object() const { return static_cast<ObjectT*>(object()); }
+	ObjectT* object() const {
+		return static_cast<ObjectT*>(object());
+	}
 
 	int64_t i64() const { assert(type() == ValueType::kI64); return value_.i64_; }
 	uint64_t u64() const { assert(type() == ValueType::kU64); return value_.u64_; }
@@ -363,32 +358,6 @@ public:
 	FunctionBodyObject* function_body() const { assert(type() == ValueType::kFunctionBody); return reinterpret_cast<FunctionBodyObject*>(value_.object_); }
 	FunctionBridgeObject function_bridge() const { assert(type() == ValueType::kFunctionBridge); return reinterpret_cast<FunctionBridgeObject>(value_.object_); }
 	UpValueObject* up_value() const { assert(type() == ValueType::kUpValue); return reinterpret_cast<UpValueObject*>(value_.object_); }
-
-private:
-	void set_string_u8_copy(const char* string_u8, size_t size) {
-		if (size < sizeof(value_.string_u8_inline_)) {
-			std::memcpy(value_.string_u8_inline_, string_u8, size);
-			value_.string_u8_inline_[size] = '\0';
-		}
-		else {
-			//auto new_str = new char[size + 1];
-			//std::memcpy(new_str, string_u8, size);
-			//new_str[size] = '\0';
-			//value_.string_u8_ = new_str;
-		}
-		tag_.string_length_ = size;
-	}
-
-	void set_string_u8_shared(const char* string_u8, size_t size) {
-		if (size < sizeof(value_.string_u8_inline_)) {
-			std::memcpy(value_.string_u8_inline_, string_u8, size);
-			value_.string_u8_inline_[size] = '\0';
-		}
-		else {
-			// value_.string_u8_ = string_u8;
-		}
-		tag_.string_length_ = size;
-	}
 
 private:
 	union {

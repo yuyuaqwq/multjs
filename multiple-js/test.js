@@ -2,7 +2,7 @@
 sbs
 b */
 
-// let arr = [3123, 231, "dawd", ["sbsb", 666]];
+let arr = [3123, 231, "dawd", ["sbsb", 666]];
 // let index = arr[100];
 
 // let obj = {fake:1243, sbsb:666};
@@ -20,7 +20,7 @@ println(a, b);
 
 let t = tick();
 let i = 0;
-while (i < 10000000) {
+while (i < 10000) {
     i = i + 1.21;
 }
 println("i:", i, "    ", "tick:", tick() - t, "ms");
