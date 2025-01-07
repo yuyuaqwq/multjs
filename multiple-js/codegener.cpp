@@ -573,17 +573,11 @@ Value CodeGener::MakeValue(Exp* exp) {
 	}
 	case ExpType::kArrayLiteralExp: {
 		auto arr_exp = static_cast<ArrayLiteralExp*>(exp);
-		// 创建一个数组对象
-		// 为该数组填充Value成员
-		// 将数组对象添加到常量池
 		ArrayObject* arr_obj = new ArrayObject();
-
 		for (auto& exp : arr_exp->arr_litera) {
 			arr_obj->mutale_values().emplace_back(MakeValue(exp.get()));
 		}
 		return Value(arr_obj);
-		auto const_idx = AllocConst(Value(arr_obj));
-		cur_func_->byte_code.EmitConstLoad(const_idx);
 		break;
 	}
 	case ExpType::kObjectLiteralExp: {
