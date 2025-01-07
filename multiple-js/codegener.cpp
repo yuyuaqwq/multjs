@@ -399,26 +399,13 @@ void CodeGener::GenerateBreakStat(BreakStat* stat) {
 
 void CodeGener::GenerateExp(Exp* exp) {
 	switch (exp->GetType()) {
-	case ExpType::kNull: {
-		auto const_idx = AllocConst(Value(nullptr));
-		cur_func_->byte_code.EmitConstLoad(const_idx);
-		break;
-	}
-	case ExpType::kBool: {
-		auto bool_exp = static_cast<BoolExp*>(exp);
-		auto const_idx = AllocConst(Value(bool_exp->value));
-		cur_func_->byte_code.EmitConstLoad(const_idx);
-		break;
-	}
-	case ExpType::kNumber: {
-		auto num_exp = static_cast<NumberExp*>(exp);
-		auto const_idx = AllocConst(Value(num_exp->value));
-		cur_func_->byte_code.EmitConstLoad(const_idx);
-		break;
-	}
-	case ExpType::kString: {
-		auto str_exp = static_cast<StringExp*>(exp);
-		auto const_idx = AllocConst(Value(str_exp->value));
+	case ExpType::kNull:
+	case ExpType::kBool:
+	case ExpType::kNumber:
+	case ExpType::kString:
+	case ExpType::kArrayLiteralExp:
+	case ExpType::kObjectLiteralExp: {
+		auto const_idx = AllocConst(MakeValue(exp));
 		cur_func_->byte_code.EmitConstLoad(const_idx);
 		break;
 	}
@@ -430,25 +417,6 @@ void CodeGener::GenerateExp(Exp* exp) {
 			throw CodeGenerException("var not defined");
 		}
 		cur_func_->byte_code.EmitVarLoad(var_idx);	// 从变量中获取
-		break;
-	}
-	case ExpType::kArrayLiteralExp: {
-		auto arr_exp = static_cast<ArrayLiteralExp*>(exp);
-		// 创建一个数组对象
-		// 为该数组填充Value成员
-		// 将数组对象添加到常量池
-		ArrayObject* arr_obj = new ArrayObject();
-
-		for (auto& exp : arr_exp->arr_litera) {
-			arr_obj->mutale_values().emplace_back(MakeValue(exp.get()));
-		}
-
-		auto const_idx = AllocConst(Value(arr_obj));
-		cur_func_->byte_code.EmitConstLoad(const_idx);
-		break;
-	}
-	case ExpType::kObjectLiteralExp: {
-
 		break;
 	}
 	case ExpType::kIndexedExp: {
@@ -587,7 +555,42 @@ void CodeGener::GenerateIfEq(Exp* exp) {
 }
 
 Value CodeGener::MakeValue(Exp* exp) {
-	return Value();
+	switch (exp->GetType()) {
+	case ExpType::kNull: {
+		return Value(nullptr);
+	}
+	case ExpType::kBool: {
+		auto bool_exp = static_cast<BoolExp*>(exp);
+		return Value(bool_exp->value);
+	}
+	case ExpType::kNumber: {
+		auto num_exp = static_cast<NumberExp*>(exp);
+		return Value(num_exp->value);
+	}
+	case ExpType::kString: {
+		auto str_exp = static_cast<StringExp*>(exp);
+		return Value(str_exp->value);
+	}
+	case ExpType::kArrayLiteralExp: {
+		auto arr_exp = static_cast<ArrayLiteralExp*>(exp);
+		// 创建一个数组对象
+		// 为该数组填充Value成员
+		// 将数组对象添加到常量池
+		ArrayObject* arr_obj = new ArrayObject();
+
+		for (auto& exp : arr_exp->arr_litera) {
+			arr_obj->mutale_values().emplace_back(MakeValue(exp.get()));
+		}
+		return Value(arr_obj);
+		auto const_idx = AllocConst(Value(arr_obj));
+		cur_func_->byte_code.EmitConstLoad(const_idx);
+		break;
+	}
+	case ExpType::kObjectLiteralExp: {
+		return Value();
+	}
+	default:
+		throw CodeGenerException("Unable to generate expression for value");
 }
 
 } // namespace mjs
