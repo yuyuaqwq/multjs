@@ -585,6 +585,7 @@ Value CodeGener::MakeValue(Exp* exp) {
 	}
 	default:
 		throw CodeGenerException("Unable to generate expression for value");
+	}
 }
 
 } // namespace mjs
