@@ -1,1 +1,1 @@
-# multiple-js
+# mult-js
