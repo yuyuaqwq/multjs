@@ -19,18 +19,14 @@
 int main() {
     using namespace mjs;
 
-    std::fstream srcFile;
-    srcFile.open(R"(test.js)");
-
-    srcFile.seekg(0, std::ios::end);
-    std::streampos length = srcFile.tellg();
-    srcFile.seekg(0, std::ios::beg);
-    std::vector<char> res(length);
-    srcFile.read((char*)res.data(), length);
+    std::fstream file;
+    file.open(R"(test.js)");
+    auto content = std::string((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());;
+    file.close();
 
     Runtime rt;
     auto ctx = Context(&rt);
-    ctx.Eval(res.data());
+    ctx.Eval(content);
 
     auto start = std::chrono::high_resolution_clock::now();
 
