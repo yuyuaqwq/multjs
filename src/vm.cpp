@@ -23,11 +23,8 @@ void Vm::SetEvalFunction(const Value& func) {
 }
 
 Value& Vm::GetVar(uint32_t idx) {
-	// stack_frame_.emplace(context_->runtime().stack().NewStackFrame())
-
+	// 现在的upvalue设计有问题，不应该是找函数
 	// if (stack_frame_.Get(idx).type() == ValueType::kUpValue) {
-		// upvalue可能形成链表(代码生成阶段，根据从外层作用域名字找到了变量，但是该变量实际上也是upvalue)，因此要重复向上找直到不是upvalue
-		// 有时间可以从代码生成那边优化，也是做循环向上找，直到不再指向upvalue
 		//auto func = cur_func_;
 		//auto up_value = func->stack_frame.Get(idx).up_value();
 		//while (up_value->func_body->stack_frame.Get(up_value->index).type() == ValueType::kUpValue) {

@@ -13,14 +13,13 @@ public:
 class Scope {
 public:
 	Scope(FunctionBodyObject* func, uint32_t var_count = 0)
-		: func_(func)
-		, var_count_(var_count) {}
+		: func_(func) {}
 
 	uint32_t AllocVar(const std::string& var_name) {
 		if (var_table_.find(var_name) != var_table_.end()) {
 			throw ScopeException("local var redefinition");
 		}
-		auto var_idx = var_count_++;
+		auto var_idx = func_->var_count;
 		var_table_.emplace(var_name, var_idx);
 		return var_idx;
 	}
@@ -34,11 +33,9 @@ public:
 	}
 
 	FunctionBodyObject* func() const { return func_; }
-	uint32_t var_count() const { return var_count_; }
 
 private:
 	FunctionBodyObject* func_; // 所属函数
-	uint32_t var_count_; // 当前函数在当前作用域中的有效变量计数
 	struct VarInfo {
 		uint32_t var_idx;
 		bool is_upvalue;

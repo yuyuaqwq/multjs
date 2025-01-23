@@ -10,13 +10,7 @@ CodeGener::CodeGener(Runtime* runtime)
 	: runtime_(runtime) {}
 
 void CodeGener::EntryScope(FunctionBodyObject* sub_func) {
-	if (!sub_func) {
-		// 进入的作用域不是新函数
-		scopes_.emplace_back(cur_func_, scopes_.back().var_count());
-		return;
-	}
-	// 进入的作用域是新函数
-	scopes_.emplace_back(sub_func, 0);
+	scopes_.emplace_back(sub_func);
 }
 
 void CodeGener::ExitScope() {
@@ -28,8 +22,9 @@ uint32_t CodeGener::AllocConst(Value&& value) {
 }
 
 uint32_t CodeGener::AllocVar(std::string var_name) {
+	auto idx = scopes_.back().AllocVar(var_name);
 	++cur_func_->var_count;
-	return scopes_.back().AllocVar(var_name);
+	return idx;
 }
 
 
@@ -60,15 +55,15 @@ uint32_t CodeGener::GetVar(std::string var_name) {
 }
 
 
-void CodeGener::RegistryFunctionBridge(std::string func_name, FunctionBridgeObject func) {
-	auto var_idx = AllocVar(func_name);
-	auto const_idx = AllocConst(Value(func));
-
-	// 生成将函数放到变量表中的代码
-	// 交给虚拟机执行时去加载，虚拟机发现加载的常量是函数体，就会将函数原型赋给局部变量
-	cur_func_->byte_code.EmitConstLoad(const_idx);
-	cur_func_->byte_code.EmitVarStore(var_idx);
-}
+//void CodeGener::RegistryFunctionBridge(std::string func_name, FunctionBridgeObject func) {
+//	auto var_idx = AllocVar(func_name);
+//	auto const_idx = AllocConst(Value(func));
+//
+//	// 生成将函数放到变量表中的代码
+//	// 交给虚拟机执行时去加载，虚拟机发现加载的常量是函数体，就会将函数原型赋给局部变量
+//	cur_func_->byte_code.EmitConstLoad(const_idx);
+//	cur_func_->byte_code.EmitVarStore(var_idx);
+//}
 
 
 Value CodeGener::Generate(BlockStat* block) {
