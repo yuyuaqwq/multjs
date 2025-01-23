@@ -9,23 +9,20 @@ uint32_t ConstPool::New(const Value& value) {
 
 uint32_t ConstPool::New(Value&& value) {
 	auto lock = std::lock_guard(mutex_);
-	uint32_t const_idx;
 	auto it = const_map_.find(value);
 	if (it == const_map_.end()) {
-		if (const_index_ % kStaticArraySize == 0) {
-			auto i1 = const_index_ / kStaticArraySize;
-			if (i1 >= kStaticArraySize) {
-				throw std::overflow_error("The number of constants exceeds the upper limit.");
-			}
-			pool_[i1] = std::make_unique<StaticArray>();
+		return it->second;
+	}
+	if (const_index_ % kStaticArraySize == 0) {
+		auto i1 = const_index_ / kStaticArraySize;
+		if (i1 >= kStaticArraySize) {
+			throw std::overflow_error("The number of constants exceeds the upper limit.");
 		}
-		const_idx = const_index_++;
-		const_map_.emplace(value, const_idx);
-		Get(const_idx) = std::move(value);
+		pool_[i1] = std::make_unique<StaticArray>();
 	}
-	else {
-		const_idx = it->second;
-	}
+	auto const_idx = const_index_++;
+	const_map_.emplace(value, const_idx);
+	Get(const_idx) = std::move(value);
 	return const_idx;
 }
 
