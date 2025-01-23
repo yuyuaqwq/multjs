@@ -26,9 +26,10 @@ file(GLOB SRC
     ./src/**/*.cpp)
 
 
-add_library(${MJS_LIB} SHARED ${SRC} ${PRIVATE_HEADERS} ${PUBLIC_HEADERS})
+add_library(${MJS_LIB} STATIC ${SRC} ${PRIVATE_HEADERS} ${PUBLIC_HEADERS})
 target_include_directories(${MJS_LIB} PRIVATE ${MJS_HEADER_DIR})
 
 add_executable(mjs_test test/test.cpp)
 target_include_directories(mjs_test PRIVATE ${MJS_HEADER_DIR})
+target_include_directories(mjs_test PRIVATE ./src)
 target_link_libraries(mjs_test PRIVATE ${MJS_LIB})

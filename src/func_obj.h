@@ -16,8 +16,8 @@ public:
 
 public:
 	uint32_t par_count;
+	uint32_t var_count = 0;
 	ByteCode byte_code;
-	StackFrame stack_frame;
 };
 
 } // namespace mjs

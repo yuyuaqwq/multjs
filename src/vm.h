@@ -5,6 +5,7 @@
 #include <vector>
 #include <string>
 #include <memory>
+#include <optional>
 
 #include "instr.h"
 
@@ -15,33 +16,37 @@
 
 namespace mjs {
 
-class VMException : public std::exception {
+class VmException : public std::exception {
 public:
 	using Base = std::exception;
 	using Base::Base;
 };
 
-class VM {
+class Context;
+class Vm {
 public:
 	friend class CodeGener;
 
 public:
-	explicit VM(ConstPool* const_pool);
+	explicit Vm(Context* context);
 
 public:
-	std::string Disassembly();
-	void Run();
+	void SetEvalFunction(const Value& func);
 
-	void Gc();
+	void Run();
 
 private:
 	Value& GetVar(uint32_t idx);
 	void SetVar(uint32_t idx, Value&& var);
 
+	const ConstPool& const_pool() const;
+
 private:
+	Context* context_;
+
+	FunctionBodyObject* cur_func_ = nullptr;
 	uint32_t pc_ = 0;
-	FunctionBodyObject* cur_func_;
-	ConstPool* const_pool_;
+
 	StackFrame stack_frame_;
 };
 

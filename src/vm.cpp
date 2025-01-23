@@ -1,5 +1,7 @@
 #include "vm.h"
 
+#include "runtime.h"
+#include "context.h"
 #include "func_obj.h"
 #include "up_obj.h"
 
@@ -7,52 +9,54 @@
 
 namespace mjs {
 
-VM::VM(ConstPool* const_pool)
-	: const_pool_(const_pool)
-{
-	cur_func_ = const_pool_->Get(0).function_body();
+Vm::Vm(Context* context)
+	: context_(context)
+	, stack_frame_(&context_->runtime().stack()) {}
+
+const ConstPool& Vm::const_pool() const {
+	return context_->runtime().const_pool();
 }
 
-std::string VM::Disassembly() {
-	return cur_func_->Disassembly();
+void Vm::SetEvalFunction(const Value& func) {
+	cur_func_ = func.function_body();
+	context_->runtime().stack().ReSize(cur_func_->var_count);
 }
 
-Value& VM::GetVar(uint32_t idx) {
-	if (cur_func_->stack_frame.Get(idx).type() == ValueType::kUpValue) {
+Value& Vm::GetVar(uint32_t idx) {
+	// stack_frame_.emplace(context_->runtime().stack().NewStackFrame())
+
+	// if (stack_frame_.Get(idx).type() == ValueType::kUpValue) {
 		// upvalue可能形成链表(代码生成阶段，根据从外层作用域名字找到了变量，但是该变量实际上也是upvalue)，因此要重复向上找直到不是upvalue
 		// 有时间可以从代码生成那边优化，也是做循环向上找，直到不再指向upvalue
-		auto func = cur_func_;
-		auto up_value = func->stack_frame.Get(idx).up_value();
-		while (up_value->func_body->stack_frame.Get(up_value->index).type() == ValueType::kUpValue) {
-			func = up_value->func_body;
-			up_value = func->stack_frame.Get(up_value->index).up_value();
-		}
-		return up_value->func_body->stack_frame.Get(up_value->index);
-	}
-	return cur_func_->stack_frame.Get(idx);
+		//auto func = cur_func_;
+		//auto up_value = func->stack_frame.Get(idx).up_value();
+		//while (up_value->func_body->stack_frame.Get(up_value->index).type() == ValueType::kUpValue) {
+		//	func = up_value->func_body;
+		//	up_value = func->stack_frame.Get(up_value->index).up_value();
+		//}
+		// return up_value->func_body->stack_frame.Get(up_value->index);
+	// }
+	return stack_frame_.Get(idx);
 }
 
-void VM::SetVar(uint32_t idx, Value&& var) {
-	if (idx >= cur_func_->stack_frame.Size()) {
-		cur_func_->stack_frame.ReSize(idx + 1);
-	}
+void Vm::SetVar(uint32_t idx, Value&& var) {
+	// if (stack_frame_.Get(idx).type() == ValueType::kUpValue) {
+		//auto func = cur_func_;
+		//auto up_value = func->stack_frame.Get(idx).up_value();
+		//while (up_value->func_body->stack_frame.Get(up_value->index).type() == ValueType::kUpValue) {
+		//	func = up_value->func_body;
+		//	up_value = func->stack_frame.Get(up_value->index).up_value();
+		//}
+		//up_value->func_body->stack_frame.Set(up_value->index, std::move(var));
+		//return;
+	// }
 
-	else if (cur_func_->stack_frame.Get(idx).type() == ValueType::kUpValue) {
-		auto func = cur_func_;
-		auto up_value = func->stack_frame.Get(idx).up_value();
-		while (up_value->func_body->stack_frame.Get(up_value->index).type() == ValueType::kUpValue) {
-			func = up_value->func_body;
-			up_value = func->stack_frame.Get(up_value->index).up_value();
-		}
-		up_value->func_body->stack_frame.Set(up_value->index, std::move(var));
-		return;
-	}
-
-	cur_func_->stack_frame.Set(idx, std::move(var));
+	stack_frame_.Set(idx, std::move(var));
 }
 
 
-void VM::Run() {
+void Vm::Run() {
+	if (!cur_func_) return;
 	do {
 		// auto pc = pc_; std::cout << cur_func_->byte_code.Disassembly(pc) << std::endl;
 		auto opcode = cur_func_->byte_code.GetOpcode(pc_++);
@@ -66,19 +70,19 @@ void VM::Run() {
 		case OpcodeType::kCLoad_4:
 		case OpcodeType::kCLoad_5:
 			auto const_idx = opcode - OpcodeType::kCLoad_0;
-			stack_frame_.Push(const_pool_->Get(const_idx));
+			stack_frame_.Push(const_pool().Get(const_idx));
 			break;
 		}
 		case OpcodeType::kCLoad: {
 			auto const_idx = cur_func_->byte_code.GetU8(pc_);
 			pc_ += 1;
-			stack_frame_.Push(const_pool_->Get(const_idx));
+			stack_frame_.Push(const_pool().Get(const_idx));
 			break;
 		}
 		case OpcodeType::kCLoadW: {
 			auto const_idx = cur_func_->byte_code.GetU16(pc_);
 			pc_ += 2;
-			stack_frame_.Push(const_pool_->Get(const_idx));
+			stack_frame_.Push(const_pool().Get(const_idx));
 			break;
 		}
 		case OpcodeType::kVLoad: {
@@ -153,28 +157,30 @@ void VM::Run() {
 			case ValueType::kFunctionBody: {
 				auto call_func = func.function_body();
 
-				// printf("%s\n", call_func->Disassembly().c_str());
+				std::cout << call_func->Disassembly();
 
 				if (par_count < call_func->par_count) {
-					throw VMException("Wrong number of parameters passed when calling the function");
+					throw VmException("Wrong number of parameters passed when calling the function");
 				}
 
 				auto save_func = cur_func_;
 				auto save_pc = pc_;
+				auto save_offset = stack_frame_.offset();
 
-				// 切换环境
+				// 切换环境和栈帧
 				cur_func_ = call_func;
 				pc_ = 0;
-
-				// 移动栈上的参数到新函数的栈帧
-				//m_varIdxBase = m_var_sect.size();
-				for (int i = cur_func_->par_count - 1; i >= 0; i--) {
-					SetVar(i, std::move(stack_frame_.Pop()));
+				if (context_->runtime().stack().Size() < cur_func_->par_count) {
+					throw VmException("Call function with incorrect number of parameters passed.");
 				}
+				stack_frame_.set_offset(context_->runtime().stack().Size() - cur_func_->par_count);
 
-				// 保存当前环境
+				// 保存当前环境，用于Ret返回
 				stack_frame_.Push(Value(save_func));
 				stack_frame_.Push(Value(save_pc));
+				stack_frame_.Push(Value(save_offset));
+
+				context_->runtime().stack().Upgrade(cur_func_->var_count);
 				break;
 			}
 			case ValueType::kFunctionBridge: {
@@ -182,18 +188,22 @@ void VM::Run() {
 				break;
 			}
 			default:
-				throw VMException("Non callable types.");
+				throw VmException("Non callable types.");
 			}
 			break;
 		}
 		case OpcodeType::kReturn: {
+			context_->runtime().stack().Reduce(cur_func_->var_count);
+
 			auto ret_value = stack_frame_.Pop();
+			auto save_offset = stack_frame_.Pop();
 			auto save_pc = stack_frame_.Pop();
 			auto& save_func = stack_frame_.Get(-1);
 
-			// 恢复环境
+			// 恢复环境和栈帧
 			cur_func_ = save_func.function_body();
 			pc_ = save_pc.u64();
+			stack_frame_.set_offset(save_offset.u64());
 
 			save_func = std::move(ret_value);
 			break;
@@ -249,17 +259,9 @@ void VM::Run() {
 			break;
 		}
 		default:
-			throw VMException("Unknown instruction");
+			throw VmException("Unknown instruction");
 		}
 	} while (pc_ >= 0 && pc_ < cur_func_->byte_code.Size());
-}
-
-void VM::Gc() {
-	// 第一趟将孩子解引用为0的挂入tmp，因为该孩子节点只被当前节点引用
-	// 如果当前节点可以被回收，那么该孩子就肯定也要被回收
-
-	// 第二趟扫的时候，再将当前链表中的节点指向的孩子挂回来，因为当前节点不是垃圾，其孩子自然也不是垃圾
-	// 如果没有被挂回链表的节点，那就是垃圾了，没有被根节点自下的路径引用
 }
 
 } // namespace mjs

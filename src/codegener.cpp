@@ -1,76 +1,60 @@
 #include "codegener.h"
 
+#include "runtime.h"
 #include "func_obj.h"
 #include "up_obj.h"
 
 namespace mjs {
 
-CodeGener::CodeGener(ConstPool* const_pool)
-	: const_pool_(const_pool)
-{
-	const_pool_->Push(Value(new FunctionBodyObject(0)));
-	cur_func_ = const_pool_->Get(0).function_body();
-
-	scope_.push_back(Scope{ cur_func_ });
-}
+CodeGener::CodeGener(Runtime* runtime)
+	: runtime_(runtime) {}
 
 void CodeGener::EntryScope(FunctionBodyObject* sub_func) {
 	if (!sub_func) {
 		// 进入的作用域不是新函数
-		scope_.push_back(Scope{ cur_func_, scope_.back().var_count });
+		scopes_.emplace_back(cur_func_, scopes_.back().var_count());
 		return;
 	}
 	// 进入的作用域是新函数
-	scope_.push_back(Scope{ sub_func, 0 });
+	scopes_.emplace_back(sub_func, 0);
 }
 
 void CodeGener::ExitScope() {
-	scope_.pop_back();
+	scopes_.pop_back();
 }
 
 uint32_t CodeGener::AllocConst(Value&& value) {
-	uint32_t const_idx;
-	auto it = const_map_.find(value);
-	if (it == const_map_.end()) {
-		const_idx = const_pool_->Size();
-		const_map_.emplace(value, const_idx);
-		const_pool_->Push(std::move(value));
-	}
-	else {
-		const_idx = it->second;
-	}
-	return const_idx;
+	return runtime_->const_pool().New(std::move(value));
 }
 
 uint32_t CodeGener::AllocVar(std::string var_name) {
-	auto& var_table = scope_.back().var_table;
-	if (var_table.find(var_name) != var_table.end()) {
-		throw CodeGenerException("local var redefinition");
-	}
-	auto var_idx = scope_.back().var_count++;
-	var_table.emplace(std::move(var_name), var_idx);
-	return var_idx;
+	++cur_func_->var_count;
+	return scopes_.back().AllocVar(var_name);
 }
+
 
 uint32_t CodeGener::GetVar(std::string var_name) {
 	uint32_t var_idx = -1;
 	// 就近找变量
-	for (int i = scope_.size() - 1; i >= 0; i--) {
-		auto& var_table = scope_[i].var_table;
-		auto it = var_table.find(var_name);
-		if (it != var_table.end()) {
-			if (scope_[i].func == cur_func_) {
-				var_idx = it->second;
-			}
-			else {
-				// 引用外部函数的变量，需要捕获，为当前函数加载upvalue变量
-				auto const_idx = AllocConst(Value(new UpValueObject(it->second, scope_[i].func)));
-				cur_func_->byte_code.EmitConstLoad(const_idx);
-				var_idx = AllocVar(var_name);
-				cur_func_->byte_code.EmitVarStore(var_idx);
-			}
-			break;
+	for (int i = scopes_.size() - 1; i >= 0; i--) {
+		auto var_idx_opt = scopes_[i].FindVar(var_name);
+		if (!var_idx_opt) {
+			// 当前作用域找不到变量，向上层作用域找
+			continue;
 		}
+		if (scopes_[i].func() == cur_func_) {
+			var_idx = *var_idx_opt;
+		}
+		else {
+			// 引用外部函数的变量，需要捕获，为当前函数加载upvalue变量
+			// 如果该变量也是upvalue，那么继续向上查找
+			//auto const_idx = AllocConst(Value(new UpValueObject(it->second.var_idx, scope_[i].func)));
+			//cur_func_->byte_code.EmitConstLoad(const_idx);
+			//var_idx = AllocVar(var_name);
+			//cur_func_->byte_code.EmitVarStore(var_idx);
+			continue;
+		}
+		break;
 	}
 	return var_idx;
 }
@@ -87,11 +71,21 @@ void CodeGener::RegistryFunctionBridge(std::string func_name, FunctionBridgeObje
 }
 
 
-void CodeGener::Generate(BlockStat* block) {
+Value CodeGener::Generate(BlockStat* block) {
+	scopes_.clear();
+
+	auto idx = runtime_->const_pool().New(Value(new FunctionBodyObject(0)));
+	cur_func_ = runtime_->const_pool().Get(idx).function_body();
+
+	scopes_.emplace_back(cur_func_);
+
 	for (auto& stat : block->stat_list) {
 		GenerateStat(stat.get());
 	}
+
 	// cur_func_->byte_code.EmitOpcode(OpcodeType::kStop);
+	return cur_func_;
+	
 }
 
 void CodeGener::GenerateBlock(BlockStat* block) {
@@ -163,8 +157,8 @@ void CodeGener::GenerateFunctionDeclStat(FuncDeclStat* stat) {
 	auto savefunc = cur_func_;
 
 	// 切换环境
-	EntryScope(const_pool_->Get(const_idx).function_body());
-	cur_func_ = const_pool_->Get(const_idx).function_body();
+	EntryScope(runtime_->const_pool().Get(const_idx).function_body());
+	cur_func_ = runtime_->const_pool().Get(const_idx).function_body();
 
 	for (int i = 0; i < cur_func_->par_count; i++) {
 		AllocVar(stat->par_list[i]);
