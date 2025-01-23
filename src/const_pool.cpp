@@ -10,7 +10,7 @@ uint32_t ConstPool::New(const Value& value) {
 uint32_t ConstPool::New(Value&& value) {
 	auto lock = std::lock_guard(mutex_);
 	auto it = const_map_.find(value);
-	if (it == const_map_.end()) {
+	if (it != const_map_.end()) {
 		return it->second;
 	}
 	if (const_index_ % kStaticArraySize == 0) {
