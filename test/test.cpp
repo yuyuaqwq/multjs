@@ -29,24 +29,6 @@ int main() {
     srcFile.read((char*)res.data(), length);
 
     Runtime rt;
-    //rt.RegistryFunctionBridge("println",
-    //    [](uint32_t parCount, StackFrame* stack) -> Value {
-    //        for (int i = 0; i < parCount; i++) {
-    //            auto val = stack->Pop();
-    //            if (val.type() == ValueType::kString) {
-    //                std::cout << val.string_u8();
-    //            }
-    //            else if (val.type() == ValueType::kNumber) {
-    //                std::cout << val.number();
-    //            }
-    //            //else if (val.type() == ValueType::kU64) {
-    //            //    std::cout << val.u64();
-    //            //}
-    //        }
-    //        printf("\n");
-    //        return Value();
-    //    });
-
     auto ctx = Context(&rt);
     ctx.Eval(res.data());
 

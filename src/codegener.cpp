@@ -1,5 +1,7 @@
 #include "codegener.h"
 
+#include <iostream>
+
 #include "runtime.h"
 #include "func_obj.h"
 #include "up_obj.h"
@@ -41,12 +43,7 @@ uint32_t CodeGener::GetVar(std::string var_name) {
 			var_idx = *var_idx_opt;
 		}
 		else {
-			// 引用外部函数的变量，需要捕获，为当前函数加载upvalue变量
-			// 如果该变量也是upvalue，那么继续向上查找
-			//auto const_idx = AllocConst(Value(new UpValueObject(it->second.var_idx, scope_[i].func)));
-			//cur_func_->byte_code.EmitConstLoad(const_idx);
-			//var_idx = AllocVar(var_name);
-			//cur_func_->byte_code.EmitVarStore(var_idx);
+			// 引用外部函数的变量，需要捕获为upvalue
 			continue;
 		}
 		break;
@@ -55,15 +52,15 @@ uint32_t CodeGener::GetVar(std::string var_name) {
 }
 
 
-//void CodeGener::RegistryFunctionBridge(std::string func_name, FunctionBridgeObject func) {
-//	auto var_idx = AllocVar(func_name);
-//	auto const_idx = AllocConst(Value(func));
-//
-//	// 生成将函数放到变量表中的代码
-//	// 交给虚拟机执行时去加载，虚拟机发现加载的常量是函数体，就会将函数原型赋给局部变量
-//	cur_func_->byte_code.EmitConstLoad(const_idx);
-//	cur_func_->byte_code.EmitVarStore(var_idx);
-//}
+void CodeGener::RegistryFunctionBridge(std::string func_name, FunctionBridgeObject func) {
+	auto var_idx = AllocVar(func_name);
+	auto const_idx = AllocConst(Value(func));
+
+	// 生成将函数放到变量表中的代码
+	// 交给虚拟机执行时去加载，虚拟机发现加载的常量是函数体，就会将函数原型赋给局部变量
+	cur_func_->byte_code.EmitConstLoad(const_idx);
+	cur_func_->byte_code.EmitVarStore(var_idx);
+}
 
 
 Value CodeGener::Generate(BlockStat* block) {
@@ -73,6 +70,24 @@ Value CodeGener::Generate(BlockStat* block) {
 	cur_func_ = runtime_->const_pool().Get(idx).function_body();
 
 	scopes_.emplace_back(cur_func_);
+
+	RegistryFunctionBridge("println",
+		[](uint32_t parCount, StackFrame* stack) -> Value {
+			for (int i = 0; i < parCount; i++) {
+				auto val = stack->Pop();
+				if (val.type() == ValueType::kString) {
+					std::cout << val.string_u8();
+				}
+				else if (val.type() == ValueType::kNumber) {
+					std::cout << val.number();
+				}
+				//else if (val.type() == ValueType::kU64) {
+				//    std::cout << val.u64();
+				//}
+			}
+			printf("\n");
+			return Value();
+		});
 
 	for (auto& stat : block->stat_list) {
 		GenerateStat(stat.get());

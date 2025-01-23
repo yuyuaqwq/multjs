@@ -29,7 +29,7 @@ class CodeGener {
 public:
 	CodeGener(Runtime* runtime);
 
-	// void RegistryFunctionBridge(std::string func_name, FunctionBridgeObject func);
+	void RegistryFunctionBridge(std::string func_name, FunctionBridgeObject func);
 	Value Generate(BlockStat* block);
 
 private:

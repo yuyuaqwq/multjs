@@ -23,29 +23,13 @@ void Vm::SetEvalFunction(const Value& func) {
 }
 
 Value& Vm::GetVar(uint32_t idx) {
-	// 现在的upvalue设计有问题，不应该是找函数
 	// if (stack_frame_.Get(idx).type() == ValueType::kUpValue) {
-		//auto func = cur_func_;
-		//auto up_value = func->stack_frame.Get(idx).up_value();
-		//while (up_value->func_body->stack_frame.Get(up_value->index).type() == ValueType::kUpValue) {
-		//	func = up_value->func_body;
-		//	up_value = func->stack_frame.Get(up_value->index).up_value();
-		//}
-		// return up_value->func_body->stack_frame.Get(up_value->index);
 	// }
 	return stack_frame_.Get(idx);
 }
 
 void Vm::SetVar(uint32_t idx, Value&& var) {
 	// if (stack_frame_.Get(idx).type() == ValueType::kUpValue) {
-		//auto func = cur_func_;
-		//auto up_value = func->stack_frame.Get(idx).up_value();
-		//while (up_value->func_body->stack_frame.Get(up_value->index).type() == ValueType::kUpValue) {
-		//	func = up_value->func_body;
-		//	up_value = func->stack_frame.Get(up_value->index).up_value();
-		//}
-		//up_value->func_body->stack_frame.Set(up_value->index, std::move(var));
-		//return;
 	// }
 
 	stack_frame_.Set(idx, std::move(var));
@@ -163,21 +147,28 @@ void Vm::Run() {
 				auto save_func = cur_func_;
 				auto save_pc = pc_;
 				auto save_offset = stack_frame_.offset();
+				
+				// 栈布局：
+				// 返回信息
+				// 局部变量
+				// 参数    <- offset
+				// 原始栈
 
 				// 切换环境和栈帧
 				cur_func_ = call_func;
 				pc_ = 0;
-				if (context_->runtime().stack().Size() < cur_func_->par_count) {
-					throw VmException("Call function with incorrect number of parameters passed.");
-				}
+				assert(context_->runtime().stack().Size() >= cur_func_->par_count);
 				stack_frame_.set_offset(context_->runtime().stack().Size() - cur_func_->par_count);
+
+				// 参数已经入栈了，再分配局部变量部分
+				assert(cur_func_->var_count >= cur_func_->par_count);
+				context_->runtime().stack().Upgrade(cur_func_->var_count - cur_func_->par_count);
 
 				// 保存当前环境，用于Ret返回
 				stack_frame_.Push(Value(save_func));
 				stack_frame_.Push(Value(save_pc));
 				stack_frame_.Push(Value(save_offset));
 
-				context_->runtime().stack().Upgrade(cur_func_->var_count);
 				break;
 			}
 			case ValueType::kFunctionBridge: {
@@ -190,19 +181,22 @@ void Vm::Run() {
 			break;
 		}
 		case OpcodeType::kReturn: {
-			context_->runtime().stack().Reduce(cur_func_->var_count);
-
 			auto ret_value = stack_frame_.Pop();
+
 			auto save_offset = stack_frame_.Pop();
 			auto save_pc = stack_frame_.Pop();
-			auto& save_func = stack_frame_.Get(-1);
+			auto save_func = stack_frame_.Pop();
 
 			// 恢复环境和栈帧
 			cur_func_ = save_func.function_body();
 			pc_ = save_pc.u64();
 			stack_frame_.set_offset(save_offset.u64());
 
-			save_func = std::move(ret_value);
+			// 清理参数和局部变量栈空间
+			context_->runtime().stack().Reduce(cur_func_->var_count);
+
+			// 返回位于原本位于栈帧栈顶的返回值
+			stack_frame_.Push(ret_value);
 			break;
 		}
 		case OpcodeType::kNe: {
