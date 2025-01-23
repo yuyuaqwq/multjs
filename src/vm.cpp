@@ -6,8 +6,6 @@
 
 #include "instr.h"
 
-#include <iostream>
-
 namespace mjs {
 
 Vm::Vm(Context* context)
@@ -139,7 +137,7 @@ void Vm::Run() {
 			case ValueType::kFunctionBody: {
 				auto call_func = func.function_body();
 
-				std::cout << call_func->Disassembly();
+				// std::cout << call_func->Disassembly();
 
 				if (par_count < call_func->par_count) {
 					throw VmException("Wrong number of parameters passed when calling the function");

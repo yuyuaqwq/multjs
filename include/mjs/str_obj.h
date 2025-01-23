@@ -1,5 +1,7 @@
 #pragma once
 
+#include <mjs/object.h>
+
 namespace mjs {
 
 class StringObject : public Object {

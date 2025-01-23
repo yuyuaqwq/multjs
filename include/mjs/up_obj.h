@@ -1,8 +1,6 @@
 #pragma once
 
-#include <cstdint>
-
-#include "object.h"
+#include <mjs/object.h>
 
 namespace mjs {
 

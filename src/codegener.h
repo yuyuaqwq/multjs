@@ -4,10 +4,8 @@
 #include <unordered_map>
 #include <string>
 
-#include <mjs/vm.h>
 #include <mjs/value.h>
-#include <mjs/const_pool.h>
-#include <mjs/stack_frame.h>
+#include <mjs/func_obj.h>
 
 #include "scope.h"
 #include "stat.h"

@@ -2,7 +2,8 @@
 
 #include <string>
 
-#include "object.h"
+#include <mjs/object.h>
+
 #include "instr.h"
 
 namespace mjs {

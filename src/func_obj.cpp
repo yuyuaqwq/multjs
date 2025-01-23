@@ -1,5 +1,3 @@
-#pragma once
-
 #include <mjs/func_obj.h>
 
 namespace mjs {
