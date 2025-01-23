@@ -5,8 +5,6 @@
 #include <map>
 #include <unordered_map>
 
-#include "token.h"
-
 namespace mjs {
 
 enum class ExpType {

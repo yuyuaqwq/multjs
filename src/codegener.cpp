@@ -3,9 +3,8 @@
 #include <iostream>
 
 #include <mjs/runtime.h>
-
-#include "func_obj.h"
-#include "up_obj.h"
+#include <mjs/func_obj.h>
+#include <mjs/up_obj.h>
 
 namespace mjs {
 

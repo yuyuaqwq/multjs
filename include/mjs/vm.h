@@ -10,7 +10,7 @@
 #include <mjs/value.h>
 #include <mjs/const_pool.h>
 #include <mjs/stack_frame.h>
-#include "object.h"
+#include <mjs/value.h>
 
 namespace mjs {
 

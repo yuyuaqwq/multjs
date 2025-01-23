@@ -1,6 +1,6 @@
 #pragma once
 
-#include "func_obj.h"
+#include <mjs/func_obj.h>
 
 namespace mjs {
 

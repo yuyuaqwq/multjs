@@ -1,4 +1,4 @@
-#include "object.h"
+#include <mjs/object.h>
 
 namespace mjs {
 

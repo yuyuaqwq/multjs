@@ -2,9 +2,9 @@
 
 #include <mjs/runtime.h>
 #include <mjs/context.h>
+#include <mjs/func_obj.h>
 
 #include "instr.h"
-#include "func_obj.h"
 
 #include <iostream>
 

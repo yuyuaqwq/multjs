@@ -1,4 +1,4 @@
-#include "up_obj.h"
+#include <mjs/up_obj.h>
 
 namespace mjs {
 

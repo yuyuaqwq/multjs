@@ -6,14 +6,11 @@
 #include <memory>
 #include <stdexcept>
 
-#include "instr.h"
-#include "object.h"
-#include "arr_obj.h"
-#include "up_obj.h"
-#include "str_obj.h"
-
-// #include "func_obj.h"
-
+#include <mjs/object.h>
+#include <mjs/arr_obj.h>
+#include <mjs/up_obj.h>
+#include <mjs/str_obj.h>
+// #include <mjs/func_obj.h>
 
 namespace mjs {
 
