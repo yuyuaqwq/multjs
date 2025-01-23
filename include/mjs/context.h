@@ -2,9 +2,8 @@
 
 #include <memory>
 
-#include "noncopyable.h"
-#include "const_pool.h"
-#include "vm.h"
+#include <mjs/noncopyable.h>
+#include <mjs/vm.h>
 
 namespace mjs {
 

@@ -1,6 +1,4 @@
-#include "stack_frame.h"
-
-#include "value.h"
+#include <mjs/stack_frame.h>
 
 namespace mjs {
 

@@ -4,10 +4,8 @@
 #include <string>
 #include <memory>
 
-#include "noncopyable.h"
-#include "value.h"
-
-#include <cstdlib>
+#include <mjs/noncopyable.h>
+#include <mjs/value.h>
 
 namespace mjs {
 

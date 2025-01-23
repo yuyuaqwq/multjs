@@ -1,8 +1,9 @@
 #pragma once
 
-#include "object.h"
+#include <string>
 
-#include "stack_frame.h"
+#include "object.h"
+#include "instr.h"
 
 namespace mjs {
 

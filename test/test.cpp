@@ -6,15 +6,8 @@
 #include <chrono>
 #include <random>
 
-#include "runtime.h"
-#include "context.h"
-
-//#include "lexer.h"
-//#include "parser.h"
-//#include "exp.h"
-//#include "codegener.h"
-//#include "vm.h"
-
+#include <mjs/runtime.h>
+#include <mjs/context.h>
 
 int main() {
     using namespace mjs;

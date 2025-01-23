@@ -7,11 +7,9 @@
 #include <memory>
 #include <optional>
 
-#include "instr.h"
-
-#include "value.h"
-#include "const_pool.h"
-#include "stack_frame.h"
+#include <mjs/value.h>
+#include <mjs/const_pool.h>
+#include <mjs/stack_frame.h>
 #include "object.h"
 
 namespace mjs {
@@ -32,7 +30,6 @@ public:
 
 public:
 	void SetEvalFunction(const Value& func);
-
 	void Run();
 
 private:

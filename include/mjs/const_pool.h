@@ -3,10 +3,11 @@
 #include <vector>
 #include <array>
 #include <string>
+#include <map>
 #include <memory>
 #include <mutex>
 
-#include "value.h"
+#include <mjs/value.h>
 
 namespace mjs {
 

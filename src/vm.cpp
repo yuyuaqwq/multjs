@@ -1,9 +1,10 @@
-#include "vm.h"
+#include <mjs/vm.h>
 
-#include "runtime.h"
-#include "context.h"
+#include <mjs/runtime.h>
+#include <mjs/context.h>
+
+#include "instr.h"
 #include "func_obj.h"
-#include "up_obj.h"
 
 #include <iostream>
 

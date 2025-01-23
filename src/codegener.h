@@ -4,14 +4,12 @@
 #include <unordered_map>
 #include <string>
 
-#include "instr.h"
-#include "vm.h"
+#include <mjs/vm.h>
+#include <mjs/value.h>
+#include <mjs/const_pool.h>
+#include <mjs/stack_frame.h>
 
-#include "value.h"
-#include "stack_frame.h"
-#include "const_pool.h"
 #include "scope.h"
-
 #include "stat.h"
 #include "exp.h"
 

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+
 #include "func_obj.h"
 
 namespace mjs {
@@ -10,6 +11,7 @@ public:
 	using Base = std::exception;
 	using Base::Base;
 };
+
 class Scope {
 public:
 	Scope(FunctionBodyObject* func, uint32_t var_count = 0)

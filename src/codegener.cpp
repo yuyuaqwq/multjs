@@ -2,7 +2,8 @@
 
 #include <iostream>
 
-#include "runtime.h"
+#include <mjs/runtime.h>
+
 #include "func_obj.h"
 #include "up_obj.h"
 
