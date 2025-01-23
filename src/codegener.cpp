@@ -534,8 +534,8 @@ void CodeGener::GenerateExp(Exp* exp) {
 		//	throw CodeGenerException("Wrong number of parameters passed during function call");
 		//}
 
-		for (int i = func_call_exp->par_list.size() - 1; i >= 0; i--) {
-			// 参数逆序入栈，由call负责将栈中参数放到栈帧中
+		for (int i = 0; i < func_call_exp->par_list.size(); ++i) {
+			// 参数直接入栈
 			GenerateExp(func_call_exp->par_list[i].get());
 		}
 
