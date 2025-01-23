@@ -15,8 +15,8 @@ public:
 	ConstPool& const_pool() { return const_pool_; }
 
 	Stack& stack() {
-		static thread_local Stack stack_(1024);
-		return stack_;
+		static thread_local auto stack = Stack(1024);
+		return stack;
 	}
 
 private:
