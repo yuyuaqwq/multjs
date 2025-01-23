@@ -170,7 +170,8 @@ void CodeGener::GenerateFunctionDeclStat(FuncDeclStat* stat) {
 	EntryScope(runtime_->const_pool().Get(const_idx).function_body());
 	cur_func_ = runtime_->const_pool().Get(const_idx).function_body();
 
-	for (int i = 0; i < cur_func_->par_count; i++) {
+	// 参数逆序分配
+	for (int i = cur_func_->par_count - 1; i >= 0; --i) {
 		AllocVar(stat->par_list[i]);
 	}
 
@@ -201,20 +202,6 @@ void CodeGener::GenerateReturnStat(ReturnStat* stat) {
 	}
 	cur_func_->byte_code.EmitOpcode(OpcodeType::kReturn);
 }
-
-// 为了简单起见，不提前计算/最后修复局部变量的总数，因此不能分配到栈上
-// 解决方案：
-	// 另外提供变量表容器
-
-// 函数内指令流的变量索引在生成时，无法确定变量分配的索引
-// 原因：
-	// 定义时无法提前得知call的位置，且call可能有多处，每次call时，变量表的状态可能都不一样
-// 解决方案：
-	// 为每个函数提供一个自己的变量表，不放到虚拟机中，call时切换变量表
-	// 在代码生成过程中，需要获取变量时，如果发现使用的变量是当前函数之外的外部作用域的，就会在常量区中创建一个类型为upvalue的变量，并加载到当前函数的变量中
-	// upvalue存储了外部函数的Body地址，以及对应的变量索引
-
-	// 这就是栈帧，每一个函数有自己的栈帧，调用时栈帧入栈，返回时栈帧出栈
 
 void CodeGener::GenerateNewVarStat(NewVarStat* stat) {
 	auto var_idx = AllocVar(stat->var_name);
@@ -534,8 +521,8 @@ void CodeGener::GenerateExp(Exp* exp) {
 		//	throw CodeGenerException("Wrong number of parameters passed during function call");
 		//}
 
-		for (int i = 0; i < func_call_exp->par_list.size(); ++i) {
-			// 参数直接入栈
+		// 参数逆序入栈
+		for (int i = func_call_exp->par_list.size() - 1; i >= 0; --i) {
 			GenerateExp(func_call_exp->par_list[i].get());
 		}
 
