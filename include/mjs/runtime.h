@@ -1,10 +1,8 @@
 #pragma once
 
-#include <memory>
-
-#include "noncopyable.h"
-#include "const_pool.h"
-#include "context.h"
+#include <mjs/noncopyable.h>
+#include <mjs/const_pool.h>
+#include <mjs/stack_frame.h>
 
 namespace mjs {
 
