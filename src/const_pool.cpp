@@ -14,6 +14,9 @@ uint32_t ConstPool::New(Value&& value) {
 	if (it == const_map_.end()) {
 		if (const_index_ % kStaticArraySize == 0) {
 			auto i1 = const_index_ / kStaticArraySize;
+			if (i1 >= kStaticArraySize) {
+				throw std::overflow_error("The number of constants exceeds the upper limit.");
+			}
 			pool_[i1] = std::make_unique<StaticArray>();
 		}
 		const_idx = const_index_++;
