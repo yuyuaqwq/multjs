@@ -41,7 +41,7 @@ private:
 	FunctionBodyObject* func_; // 所属函数
 	struct VarInfo {
 		uint32_t var_idx;
-		bool is_upvalue;
+		//bool is_upvalue;
 	};
 	std::unordered_map<std::string, VarInfo> var_table_; // 变量表
 };

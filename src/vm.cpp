@@ -3,6 +3,7 @@
 #include <mjs/runtime.h>
 #include <mjs/context.h>
 #include <mjs/func_obj.h>
+#include <mjs/up_obj.h>
 
 #include "instr.h"
 
@@ -26,16 +27,24 @@ void Vm::SetEvalFunction(const Value& func) {
 }
 
 Value& Vm::GetVar(uint32_t idx) {
-	// if (stack_frame_.Get(idx).type() == ValueType::kUpValue) {
-	// }
+	 if (stack_frame_.Get(idx).type() == ValueType::kUpValue) {
+		 auto up_value = stack_frame_.Get(idx).up_value();
+
+		 up_value->func_body();
+
+	 }
 	return stack_frame_.Get(idx);
 }
 
 void Vm::SetVar(uint32_t idx, Value&& var) {
-	// if (stack_frame_.Get(idx).type() == ValueType::kUpValue) {
-	// }
+	 if (stack_frame_.Get(idx).type() == ValueType::kUpValue) {
 
+	 }
 	stack_frame_.Set(idx, std::move(var));
+}
+
+void Vm::LoadValue(const Value& value) {
+	stack_frame_.Push(value);
 }
 
 
@@ -54,25 +63,25 @@ void Vm::Run() {
 		case OpcodeType::kCLoad_4:
 		case OpcodeType::kCLoad_5:
 			auto const_idx = opcode - OpcodeType::kCLoad_0;
-			stack_frame_.Push(const_pool().Get(const_idx));
+			LoadValue(const_pool().Get(const_idx));
 			break;
 		}
 		case OpcodeType::kCLoad: {
 			auto const_idx = cur_func_->byte_code.GetU8(pc_);
 			pc_ += 1;
-			stack_frame_.Push(const_pool().Get(const_idx));
+			LoadValue(const_pool().Get(const_idx));
 			break;
 		}
 		case OpcodeType::kCLoadW: {
 			auto const_idx = cur_func_->byte_code.GetU16(pc_);
 			pc_ += 2;
-			stack_frame_.Push(const_pool().Get(const_idx));
+			LoadValue(const_pool().Get(const_idx));
 			break;
 		}
 		case OpcodeType::kVLoad: {
 			auto var_idx = cur_func_->byte_code.GetU8(pc_);
 			pc_ += 1;
-			stack_frame_.Push(GetVar(var_idx));
+			LoadValue(GetVar(var_idx));
 			break;
 		}
 		case OpcodeType::kVLoad_0:
@@ -137,13 +146,27 @@ void Vm::Run() {
 			auto& func = GetVar(var_idx);
 			auto par_count = stack_frame_.Pop().u64();
 
+			FunctionBodyObject* func_body = nullptr;
 			switch (func.type()) {
 			case ValueType::kFunctionBody: {
-				auto call_func = func.function_body();
+				func_body = func.function_body();
+				// 这里最外层函数还没处理，最外层也需要这样来创建
+				if (!func_body->closure_value_idxs.empty()) {
+					// 如果内部存在捕获该函数变量的子函数
+					func = Value(new FunctionRefObject(func_body));
+					auto func_ref = func.function_ref();
+					
 
-				// std::cout << call_func->Disassembly();
+				}
+			}
+			case ValueType::kFunctionRef: {
+				if (func.type() == ValueType::kFunctionRef) {
+					func_body = func.function_ref()->func_body_;
+				}
 
-				if (par_count < call_func->par_count) {
+				// std::cout << func_body->Disassembly();
+
+				if (par_count < func_body->par_count) {
 					throw VmException("Wrong number of parameters passed when calling the function");
 				}
 
@@ -151,19 +174,19 @@ void Vm::Run() {
 				auto save_pc = pc_;
 				auto save_bottom = stack_frame_.bottom();
 				
-				// 栈布局：
+				// 栈帧布局：
 				// 返回信息
 				// 局部变量
 				// 参数1
 				// ...
 				// 参数n    <- bottom
-				// 原始栈
+				// 上一栈帧
 
 				// 把多余的参数弹出
-				stack().Reduce(par_count - call_func->par_count);
+				stack().Reduce(par_count - func_body->par_count);
 
 				// 切换环境和栈帧
-				cur_func_ = call_func;
+				cur_func_ = func_body;
 				pc_ = 0;
 				assert(stack().size() >= cur_func_->par_count);
 				stack_frame_.set_bottom(stack().size() - cur_func_->par_count);

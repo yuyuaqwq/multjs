@@ -20,13 +20,18 @@ enum class ValueType : uint64_t {
 	kI64,
 	kU64,
 	kFunctionBody,
+	kFunctionRef,
 	kFunctionBridge,
 	kUpValue,
 };
 
+class StackFrame;
+
 class Object;
 class FunctionBodyObject;
-class StackFrame;
+class FunctionRefObject;
+class UpValueObject;
+
 class Value {
 public:
 	using FunctionBridgeObject = Value(*)(uint32_t par_count, StackFrame* stack);
@@ -43,8 +48,9 @@ public:
 	explicit Value(const char* string_u8, size_t size);
 	explicit Value(const std::string string_u8);
 	explicit Value(Object* object);
-	explicit Value(Value* up_value);
+	explicit Value(UpValueObject* up_value);
 	explicit Value(FunctionBodyObject* body);
+	explicit Value(FunctionRefObject* ref);
 	explicit Value(FunctionBridgeObject bridge);
 
 	~Value();
@@ -88,8 +94,9 @@ public:
 	uint64_t u64() const;
 
 	FunctionBodyObject* function_body() const;
+	FunctionRefObject* function_ref() const;
 	FunctionBridgeObject function_bridge() const;
-	Value* up_value() const;
+	UpValueObject* up_value() const;
 
 private:
 	union {

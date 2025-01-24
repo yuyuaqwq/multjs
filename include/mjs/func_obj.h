@@ -14,16 +14,21 @@ namespace mjs {
 // 并且会在局部变量表中创建并函数引用，指向函数体，类似语法糖的想法
 class FunctionBodyObject : public Object {
 public:
-	explicit FunctionBodyObject(uint32_t par_count) noexcept;
+	explicit FunctionBodyObject(FunctionBodyObject* parent, uint32_t par_count) noexcept;
 	std::string Disassembly();
 
 public:
+	FunctionBodyObject* parent;
+
 	uint32_t par_count;
 	uint32_t var_count = 0;
 	ByteCode byte_code;
 
-	// 引用的闭包变量
-
+	// 记录从外部函数作用域中捕获的闭包变量
+	struct ClosureInfo {
+		uint32_t var_idx;
+	};
+	std::vector<ClosureInfo> closure_infos_;
 };
 
 class FunctionRefObject : public Object {
@@ -32,10 +37,6 @@ public:
 
 public:
 	FunctionBodyObject* func_body_;
-
-	Value parent_func_;
-	// 被捕获的变量列表
-
 };
 
 } // namespace mjs

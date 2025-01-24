@@ -2,6 +2,7 @@
 
 #include <mjs/object.h>
 #include <mjs/str_obj.h>
+#include <mjs/up_obj.h>
 
 namespace mjs {
 
@@ -61,14 +62,19 @@ Value::Value(Object* object) {
 	value_.object_->ref();
 }
 
-Value::Value(Value* up_value) {
+Value::Value(UpValueObject* up_value) {
 	tag_.type_ = ValueType::kUpValue;
-	value_.value_ = up_value;
+	value_.object_ = reinterpret_cast<Object*>(up_value);
 }
 
 Value::Value(FunctionBodyObject* body) {
 	tag_.type_ = ValueType::kFunctionBody;
 	value_.object_ = reinterpret_cast<Object*>(body);
+}
+
+Value::Value(FunctionRefObject* ref) {
+	tag_.type_ = ValueType::kFunctionRef;
+	value_.object_ = reinterpret_cast<Object*>(ref);
 }
 
 Value::Value(FunctionBridgeObject bridge) {
@@ -376,14 +382,19 @@ FunctionBodyObject* Value::function_body() const {
 	return reinterpret_cast<FunctionBodyObject*>(value_.object_); 
 }
 
+FunctionRefObject* Value::function_ref() const {
+	assert(type() == ValueType::kFunctionRef);
+	return reinterpret_cast<FunctionRefObject*>(value_.object_);
+}
+
 FunctionBridgeObject Value::function_bridge() const { 
 	assert(type() == ValueType::kFunctionBridge); 
 	return reinterpret_cast<FunctionBridgeObject>(value_.object_); 
 }
 
-Value* Value::up_value() const { 
+UpValueObject* Value::up_value() const { 
 	assert(type() == ValueType::kUpValue); 
-	return value_.value_; 
+	return reinterpret_cast<UpValueObject*>(value_.object_);
 }
 
 } // namespace mjs

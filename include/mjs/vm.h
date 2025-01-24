@@ -36,6 +36,8 @@ private:
 	Value& GetVar(uint32_t idx);
 	void SetVar(uint32_t idx, Value&& var);
 
+	void LoadValue(const Value& value);
+
 	const ConstPool& const_pool() const;
 	Stack& stack();
 private:

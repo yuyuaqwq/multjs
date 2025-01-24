@@ -25,15 +25,15 @@ class CodeGener {
 public:
 	CodeGener(Runtime* runtime);
 
-	void RegistryFunctionBridge(std::string func_name, FunctionBridgeObject func);
+	void RegistryFunctionBridge(const std::string& func_name, FunctionBridgeObject func);
 	Value Generate(BlockStat* block);
 
 private:
 	void EntryScope(FunctionBodyObject* sub_func = nullptr);
 	void ExitScope();
 	uint32_t AllocConst(Value&& value);
-	uint32_t AllocVar(std::string varName);
-	uint32_t GetVar(std::string varName);
+	uint32_t AllocVar(const std::string& varName);
+	uint32_t GetVar(const std::string& varName);
 
 	void GenerateBlock(BlockStat* block);
 	void GenerateStat(Stat* stat);

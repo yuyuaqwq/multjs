@@ -1,9 +1,10 @@
 function add(a, b, println) {
-    println("a:", a, "b:", b);
+    println("a:", a, ", b:", b, ", cc:", cc);
     a = a + b;
 
+    let cc = 1000;
     function bbb(c, d, e, println) {
-        println("c:", c, "d:", d, "e:", e);
+        println("c:", c, ", d:", d, ", e:", e, ", cc:", cc);
         let f = c + d + e;
         return f;
     }

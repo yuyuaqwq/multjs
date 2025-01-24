@@ -108,9 +108,9 @@ public:
 	void RepairPc(uint32_t pc_from, uint32_t pc_to);
 	uint32_t CalcPc(uint32_t cur_pc);
 
-	size_t Size() { return bytes_.size(); }
-
 	std::string Disassembly(uint32_t& pc);
+
+	size_t Size() { return bytes_.size(); }
 
 private:
 	std::vector<uint8_t> bytes_;

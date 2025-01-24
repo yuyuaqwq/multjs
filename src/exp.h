@@ -163,11 +163,11 @@ struct FunctionCallExp : public Exp {
 	virtual ExpType GetType() const noexcept override {
 		return ExpType::kFunctionCall;
 	}
-	FunctionCallExp(std::unique_ptr<Exp> func, std::vector<std::unique_ptr<Exp>>&& par_list)
-		: func(std::move(func))
+	FunctionCallExp(std::unique_ptr<Exp> func_name, std::vector<std::unique_ptr<Exp>>&& par_list)
+		: func_name(std::move(func_name))
 		, par_list(std::move(par_list)) {}
 
-	std::unique_ptr<Exp> func;
+	std::unique_ptr<Exp> func_name;
 	std::vector<std::unique_ptr<Exp>> par_list;
 };
 

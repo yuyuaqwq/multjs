@@ -2,8 +2,9 @@
 
 namespace mjs {
 
-FunctionBodyObject::FunctionBodyObject(uint32_t par_count) noexcept
-	: par_count(par_count) {}
+FunctionBodyObject::FunctionBodyObject(FunctionBodyObject* parent, uint32_t par_count) noexcept
+	: parent(parent)
+	, par_count(par_count) {}
 
 std::string FunctionBodyObject::Disassembly() {
 	std::string str;

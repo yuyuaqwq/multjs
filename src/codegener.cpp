@@ -4,6 +4,7 @@
 
 #include <mjs/runtime.h>
 #include <mjs/arr_obj.h>
+#include <mjs/up_obj.h>
 
 namespace mjs {
 
@@ -22,14 +23,14 @@ uint32_t CodeGener::AllocConst(Value&& value) {
 	return runtime_->const_pool().New(std::move(value));
 }
 
-uint32_t CodeGener::AllocVar(std::string var_name) {
+uint32_t CodeGener::AllocVar(const std::string& var_name) {
 	auto idx = scopes_.back().AllocVar(var_name);
 	++cur_func_->var_count;
 	return idx;
 }
 
 
-uint32_t CodeGener::GetVar(std::string var_name) {
+uint32_t CodeGener::GetVar(const std::string& var_name) {
 	uint32_t var_idx = -1;
 	// 就近找变量
 	for (int i = scopes_.size() - 1; i >= 0; i--) {
@@ -42,11 +43,23 @@ uint32_t CodeGener::GetVar(std::string var_name) {
 			var_idx = *var_idx_opt;
 		}
 		else {
-			// 引用外部函数的变量，需要捕获为upvalue
-			auto const_idx = AllocConst(Value());
+			// 创建闭包链
 
 
-			continue;
+			// 外部函数记录该变量被子函数引用
+			// auto closure_value_idx = scopes_[i].func()->closure_infos_.size();
+			scopes_[i].func()->closure_infos_.emplace_back(
+				FunctionBodyObject::ClosureInfo{
+					.var_idx = *var_idx_opt
+				}
+			);
+			
+			// 引用外部函数的变量，通过upvalue捕获
+			// auto const_idx = AllocConst(Value(new UpValueObject(scopes_[i].func(), closure_value_idx)));
+			// cur_func_->byte_code.EmitConstLoad(const_idx);
+
+			// var_idx = AllocVar(var_name);
+			// cur_func_->byte_code.EmitVarStore(var_idx);
 		}
 		break;
 	}
@@ -54,7 +67,7 @@ uint32_t CodeGener::GetVar(std::string var_name) {
 }
 
 
-void CodeGener::RegistryFunctionBridge(std::string func_name, FunctionBridgeObject func) {
+void CodeGener::RegistryFunctionBridge(const std::string& func_name, FunctionBridgeObject func) {
 	auto var_idx = AllocVar(func_name);
 	auto const_idx = AllocConst(Value(func));
 
@@ -68,7 +81,8 @@ void CodeGener::RegistryFunctionBridge(std::string func_name, FunctionBridgeObje
 Value CodeGener::Generate(BlockStat* block) {
 	scopes_.clear();
 
-	auto idx = runtime_->const_pool().New(Value(new FunctionBodyObject(0)));
+	// 创建顶层函数(模块)
+	auto idx = AllocConst(Value(new FunctionBodyObject(nullptr, 0)));
 	cur_func_ = runtime_->const_pool().Get(idx).function_body();
 
 	scopes_.emplace_back(cur_func_);
@@ -157,20 +171,22 @@ void CodeGener::GenerateStat(Stat* stat) {
 }
 
 void CodeGener::GenerateFunctionDeclStat(FuncDeclStat* stat) {
-	auto var_idx = AllocVar(stat->func_name);
-	auto const_idx = AllocConst(Value(new FunctionBodyObject(stat->par_list.size())));
-
-	// 生成将函数放到变量表中的代码
-	// 交给虚拟机执行时去加载，虚拟机发现加载的常量是函数体，就会将函数原型赋给局部变量
+	auto const_idx = AllocConst(Value(new FunctionBodyObject(scopes_.back().func(), stat->par_list.size())));
 	cur_func_->byte_code.EmitConstLoad(const_idx);
+	auto func_body = runtime_->const_pool().Get(const_idx).function_body();
+
+	//cur_func_->byte_code.EmitOpcode(OpcodeType::kFuncRef);
+	//cur_func_->byte_code.EmitU32(const_idx);
+
+	auto var_idx = AllocVar(stat->func_name);
 	cur_func_->byte_code.EmitVarStore(var_idx);
 
 	// 保存环境，以生成新指令流
 	auto savefunc = cur_func_;
 
 	// 切换环境
-	EntryScope(runtime_->const_pool().Get(const_idx).function_body());
-	cur_func_ = runtime_->const_pool().Get(const_idx).function_body();
+	EntryScope(func_body);
+	cur_func_ = func_body;
 
 	// 参数正序分配
 	for (int i = 0; i < cur_func_->par_count; ++i) {
@@ -514,7 +530,7 @@ void CodeGener::GenerateExp(Exp* exp) {
 	case ExpType::kFunctionCall: {
 		auto func_call_exp = static_cast<FunctionCallExp*>(exp);
 
-		auto var_idx = GetVar(static_cast<IdentifierExp*>(func_call_exp->func.get())->name);
+		auto var_idx = GetVar(static_cast<IdentifierExp*>(func_call_exp->func_name.get())->name);
 		if (var_idx == -1) {
 			throw CodeGenerException("Function not defined");
 		}
