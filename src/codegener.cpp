@@ -40,13 +40,6 @@ uint32_t CodeGener::GetVar(const std::string& var_name) {
 			var_idx = *var_idx_opt;
 		}
 		else {
-			// 外部函数记录该变量被子函数引用
-			// auto closure_value_idx = scopes_[i].func()->closure_infos_.size();
-			
-			// 引用外部函数的变量，通过upvalue捕获
-			// auto const_idx = AllocConst(Value(new UpValueObject(scopes_[i].func(), *var_idx_opt)));
-			// cur_func_->byte_code.EmitConstLoad(const_idx);
-
 			// 在上层函数作用域找到了，向下构建upvalue捕获链
 			auto scope_func = scopes_[i].func();
 			for (int j = i + 1; j < scopes_.size(); ++j) {
@@ -67,8 +60,6 @@ uint32_t CodeGener::GetVar(const std::string& var_name) {
 					*var_idx_opt = var_idx;
 				}
 			}
-			
-			// cur_func_->byte_code.EmitVarStore(var_idx);
 		}
 		break;
 	}
