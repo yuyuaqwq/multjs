@@ -7,13 +7,13 @@ namespace mjs {
 
 class UpValueObject : public Object {
 public:
-	UpValueObject(FunctionBodyObject* func_body, uint32_t closure_value_idx) noexcept
+	UpValueObject(FunctionBodyObject* func_body, uint32_t var_idx) noexcept
 		: func_body(func_body)
-		, closure_value_idx(closure_value_idx) {}
+		, var_idx(var_idx) {}
 
 public:
 	FunctionBodyObject* func_body;
-	uint32_t closure_value_idx;
+	uint32_t var_idx;
 };
 
 // 闭包值引用

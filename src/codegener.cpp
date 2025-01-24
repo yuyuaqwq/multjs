@@ -48,18 +48,18 @@ uint32_t CodeGener::GetVar(const std::string& var_name) {
 
 			// 外部函数记录该变量被子函数引用
 			// auto closure_value_idx = scopes_[i].func()->closure_infos_.size();
-			scopes_[i].func()->closure_infos_.emplace_back(
-				FunctionBodyObject::ClosureInfo{
-					.var_idx = *var_idx_opt
-				}
-			);
+			//scopes_[i].func()->closure_infos_.emplace_back(
+			//	FunctionBodyObject::ClosureInfo{
+			//		.var_idx = *var_idx_opt
+			//	}
+			//);
 			
 			// 引用外部函数的变量，通过upvalue捕获
-			// auto const_idx = AllocConst(Value(new UpValueObject(scopes_[i].func(), closure_value_idx)));
-			// cur_func_->byte_code.EmitConstLoad(const_idx);
+			auto const_idx = AllocConst(Value(new UpValueObject(scopes_[i].func(), *var_idx_opt)));
+			cur_func_->byte_code.EmitConstLoad(const_idx);
 
-			// var_idx = AllocVar(var_name);
-			// cur_func_->byte_code.EmitVarStore(var_idx);
+			var_idx = AllocVar(var_name);
+			cur_func_->byte_code.EmitVarStore(var_idx);
 		}
 		break;
 	}
