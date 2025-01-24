@@ -22,7 +22,7 @@ Stack& Vm::stack() {
 
 void Vm::SetEvalFunction(const Value& func) {
 	cur_func_ = func.function_body();
-	stack().ReSize(cur_func_->var_count);
+	stack().resize(cur_func_->var_count);
 }
 
 Value& Vm::GetVar(uint32_t idx) {
@@ -149,14 +149,14 @@ void Vm::Run() {
 
 				auto save_func = cur_func_;
 				auto save_pc = pc_;
-				auto save_offset = stack_frame_.offset();
+				auto save_bottom = stack_frame_.bottom();
 				
 				// 栈布局：
 				// 返回信息
 				// 局部变量
 				// 参数1
 				// ...
-				// 参数n    <- offset
+				// 参数n    <- bottom
 				// 原始栈
 
 				// 把多余的参数弹出
@@ -165,8 +165,8 @@ void Vm::Run() {
 				// 切换环境和栈帧
 				cur_func_ = call_func;
 				pc_ = 0;
-				assert(stack().Size() >= cur_func_->par_count);
-				stack_frame_.set_offset(stack().Size() - cur_func_->par_count);
+				assert(stack().size() >= cur_func_->par_count);
+				stack_frame_.set_bottom(stack().size() - cur_func_->par_count);
 
 				// 参数已经入栈了，再分配局部变量部分
 				assert(cur_func_->var_count >= cur_func_->par_count);
@@ -175,19 +175,19 @@ void Vm::Run() {
 				// 保存当前环境，用于Ret返回
 				stack_frame_.Push(Value(save_func));
 				stack_frame_.Push(Value(save_pc));
-				stack_frame_.Push(Value(save_offset));
+				stack_frame_.Push(Value(save_bottom));
 
 				break;
 			}
 			case ValueType::kFunctionBridge: {
 				// 切换栈帧
-				auto old_offset = stack_frame_.offset();
-				stack_frame_.set_offset(stack().Size() - par_count);
+				auto old_bottom = stack_frame_.bottom();
+				stack_frame_.set_bottom(stack().size() - par_count);
 
 				auto ret = func.function_bridge()(par_count, &stack_frame_);
 
 				// 还原栈帧
-				stack_frame_.set_offset(old_offset);
+				stack_frame_.set_bottom(old_bottom);
 				stack().Reduce(par_count);
 				stack_frame_.Push(std::move(ret));
 				break;
@@ -200,7 +200,7 @@ void Vm::Run() {
 		case OpcodeType::kReturn: {
 			auto ret_value = stack_frame_.Pop();
 
-			auto save_offset = stack_frame_.Pop();
+			auto save_bottom = stack_frame_.Pop();
 			auto save_pc = stack_frame_.Pop();
 			auto save_func = stack_frame_.Pop();
 
@@ -209,8 +209,8 @@ void Vm::Run() {
 			pc_ = save_pc.u64();
 
 			// 设置栈顶和栈底
-			stack().ReSize(stack_frame_.offset());
-			stack_frame_.set_offset(save_offset.u64());
+			stack().resize(stack_frame_.bottom());
+			stack_frame_.set_bottom(save_bottom.u64());
 
 			// 返回位于原本位于栈帧栈顶的返回值
 			stack_frame_.Push(ret_value);

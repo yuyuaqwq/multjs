@@ -28,14 +28,6 @@ void Stack::Set(int32_t index, Value&& value) {
 	stack_[index] = std::move(value);
 }
 
-size_t Stack::Size() const noexcept {
-	return stack_.size();
-}
-
-void Stack::ReSize(size_t size) {
-	stack_.resize(size);
-}
-
 void Stack::Upgrade(uint32_t size) {
 	stack_.resize(stack_.size() + size);
 }
@@ -44,6 +36,14 @@ void Stack::Reduce(uint32_t size) {
 	stack_.resize(stack_.size() - size);
 }
 
+
+size_t Stack::size() const noexcept {
+	return stack_.size();
+}
+
+void Stack::resize(size_t size) {
+	stack_.resize(size);
+}
 
 
 
@@ -62,10 +62,10 @@ Value StackFrame::Pop() {
 // 负数表示从栈顶向下索引
 Value& StackFrame::Get(int32_t index) {
 	if (index >= 0) {
-		return stack_->Get(offset_ + index);
+		return stack_->Get(bottom_ + index);
 	}
 	else {
-		return stack_->Get(stack_->Size() + index);
+		return stack_->Get(stack_->size() + index);
 	}
 }
 
@@ -76,10 +76,10 @@ void StackFrame::Set(int32_t index, const Value& value) {
 
 void StackFrame::Set(int32_t index, Value&& value) {
 	if (index >= 0) {
-		stack_->Set(offset_ + index, value);
+		stack_->Set(bottom_ + index, value);
 	}
 	else {
-		stack_->Set(stack_->Size() + index, value);
+		stack_->Set(stack_->size() + index, value);
 	}
 }
 
