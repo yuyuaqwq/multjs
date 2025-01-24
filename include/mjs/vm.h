@@ -37,7 +37,7 @@ private:
 	void SetVar(uint32_t idx, Value&& var);
 
 	const ConstPool& const_pool() const;
-
+	Stack& stack();
 private:
 	Context* context_;
 

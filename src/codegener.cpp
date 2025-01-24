@@ -70,9 +70,9 @@ Value CodeGener::Generate(BlockStat* block) {
 	scopes_.emplace_back(cur_func_);
 
 	RegistryFunctionBridge("println",
-		[](uint32_t parCount, StackFrame* stack) -> Value {
-			for (int i = 0; i < parCount; i++) {
-				auto val = stack->Pop();
+		[](uint32_t par_count, StackFrame* stack) -> Value {
+			for (int i = 0; i < par_count; i++) {
+				auto val = stack->Get(i);
 				if (val.type() == ValueType::kString) {
 					std::cout << val.string_u8();
 				}
@@ -168,8 +168,8 @@ void CodeGener::GenerateFunctionDeclStat(FuncDeclStat* stat) {
 	EntryScope(runtime_->const_pool().Get(const_idx).function_body());
 	cur_func_ = runtime_->const_pool().Get(const_idx).function_body();
 
-	// 参数逆序分配
-	for (int i = cur_func_->par_count - 1; i >= 0; --i) {
+	// 参数正序分配
+	for (int i = 0; i < cur_func_->par_count; ++i) {
 		AllocVar(stat->par_list[i]);
 	}
 
@@ -519,8 +519,8 @@ void CodeGener::GenerateExp(Exp* exp) {
 		//	throw CodeGenerException("Wrong number of parameters passed during function call");
 		//}
 
-		// 参数逆序入栈
-		for (int i = func_call_exp->par_list.size() - 1; i >= 0; --i) {
+		// 参数正序入栈
+		for (int i = 0; i < func_call_exp->par_list.size(); ++i) {
 			GenerateExp(func_call_exp->par_list[i].get());
 		}
 

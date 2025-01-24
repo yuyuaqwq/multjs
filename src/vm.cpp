@@ -10,15 +10,19 @@ namespace mjs {
 
 Vm::Vm(Context* context)
 	: context_(context)
-	, stack_frame_(&context_->runtime().stack()) {}
+	, stack_frame_(&stack()) {}
 
 const ConstPool& Vm::const_pool() const {
 	return context_->runtime().const_pool();
 }
 
+Stack& Vm::stack() {
+	return context_->runtime().stack();
+}
+
 void Vm::SetEvalFunction(const Value& func) {
 	cur_func_ = func.function_body();
-	context_->runtime().stack().ReSize(cur_func_->var_count);
+	stack().ReSize(cur_func_->var_count);
 }
 
 Value& Vm::GetVar(uint32_t idx) {
@@ -150,18 +154,23 @@ void Vm::Run() {
 				// 栈布局：
 				// 返回信息
 				// 局部变量
-				// 参数    <- offset
+				// 参数1
+				// ...
+				// 参数n    <- offset
 				// 原始栈
+
+				// 把多余的参数弹出
+				stack().Reduce(par_count - call_func->par_count);
 
 				// 切换环境和栈帧
 				cur_func_ = call_func;
 				pc_ = 0;
-				assert(context_->runtime().stack().Size() >= cur_func_->par_count);
-				stack_frame_.set_offset(context_->runtime().stack().Size() - cur_func_->par_count);
+				assert(stack().Size() >= cur_func_->par_count);
+				stack_frame_.set_offset(stack().Size() - cur_func_->par_count);
 
 				// 参数已经入栈了，再分配局部变量部分
 				assert(cur_func_->var_count >= cur_func_->par_count);
-				context_->runtime().stack().Upgrade(cur_func_->var_count - cur_func_->par_count);
+				stack().Upgrade(cur_func_->var_count - cur_func_->par_count);
 
 				// 保存当前环境，用于Ret返回
 				stack_frame_.Push(Value(save_func));
@@ -171,7 +180,16 @@ void Vm::Run() {
 				break;
 			}
 			case ValueType::kFunctionBridge: {
-				stack_frame_.Push(func.function_bridge()(par_count, &stack_frame_));
+				// 切换栈帧
+				auto old_offset = stack_frame_.offset();
+				stack_frame_.set_offset(stack().Size() - par_count);
+
+				auto ret = func.function_bridge()(par_count, &stack_frame_);
+
+				// 还原栈帧
+				stack_frame_.set_offset(old_offset);
+				stack().Reduce(par_count);
+				stack_frame_.Push(std::move(ret));
 				break;
 			}
 			default:
@@ -189,10 +207,10 @@ void Vm::Run() {
 			// 恢复环境和栈帧
 			cur_func_ = save_func.function_body();
 			pc_ = save_pc.u64();
-			stack_frame_.set_offset(save_offset.u64());
 
-			// 清理参数和局部变量栈空间
-			context_->runtime().stack().Reduce(cur_func_->var_count);
+			// 设置栈顶和栈底
+			stack().ReSize(stack_frame_.offset());
+			stack_frame_.set_offset(save_offset.u64());
 
 			// 返回位于原本位于栈帧栈顶的返回值
 			stack_frame_.Push(ret_value);

@@ -9,12 +9,12 @@ function add(a, b, println) {
     }
     // println("add call");
     // println(a);
-    let c = bbb(a, a, b, println);
+    let c = bbb(a, a, b, println, "faf", "dwadwad", "dwad");
     return c;
 }
 
 // println("hello world!");
 
 let a = 1;
-let b = add(666, a, println);
+let b = add(666, a, println, "sbsb");
 println("b", b);
