@@ -2,6 +2,6 @@
 
 namespace mjs {
 
-UpValueObject::UpValueObject() noexcept {}
+//UpValueObject::UpValueObject() noexcept {}
 
 } // namespace mjs

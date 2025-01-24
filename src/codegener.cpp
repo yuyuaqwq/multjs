@@ -3,6 +3,7 @@
 #include <iostream>
 
 #include <mjs/runtime.h>
+#include <mjs/arr_obj.h>
 
 namespace mjs {
 
@@ -42,6 +43,9 @@ uint32_t CodeGener::GetVar(std::string var_name) {
 		}
 		else {
 			// 引用外部函数的变量，需要捕获为upvalue
+			auto const_idx = AllocConst(Value());
+
+
 			continue;
 		}
 		break;
@@ -92,7 +96,7 @@ Value CodeGener::Generate(BlockStat* block) {
 	}
 
 	// cur_func_->byte_code.EmitOpcode(OpcodeType::kStop);
-	return cur_func_;
+	return Value(cur_func_);
 	
 }
 

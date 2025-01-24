@@ -13,4 +13,8 @@ std::string FunctionBodyObject::Disassembly() {
 	return str;
 }
 
+FunctionRefObject::FunctionRefObject(FunctionBodyObject* func_body) noexcept
+	: func_body_(func_body) {}
+
+
 } // namespace mjs
