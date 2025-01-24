@@ -1,8 +1,9 @@
+let cc = 1000;
+
 function add(a, b, println) {
-    println("a:", a, ", b:", b, ", cc:", cc);
+    println("a:", a, ", b:", b);
     a = a + b;
 
-    let cc = 1000;
     function bbb(c, d, e, println) {
         println("c:", c, ", d:", d, ", e:", e, ", cc:", cc);
         let f = c + d + e;
@@ -11,6 +12,9 @@ function add(a, b, println) {
     // println("add call");
     // println(a);
     let c = bbb(a, a, b, println, "faf", "dwadwad", "dwad");
+    cc = 2000;
+    c = bbb(a, a, b, println, "faf", "dwadwad", "dwad");
+
     return c;
 }
 

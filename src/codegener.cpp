@@ -4,7 +4,6 @@
 
 #include <mjs/runtime.h>
 #include <mjs/arr_obj.h>
-#include <mjs/up_obj.h>
 
 namespace mjs {
 
@@ -24,16 +23,14 @@ uint32_t CodeGener::AllocConst(Value&& value) {
 }
 
 uint32_t CodeGener::AllocVar(const std::string& var_name) {
-	auto idx = scopes_.back().AllocVar(var_name);
-	++cur_func_->var_count;
-	return idx;
+	return scopes_.back().AllocVar(var_name);
 }
 
 
 uint32_t CodeGener::GetVar(const std::string& var_name) {
 	uint32_t var_idx = -1;
 	// 就近找变量
-	for (int i = scopes_.size() - 1; i >= 0; i--) {
+	for (int i = scopes_.size() - 1; i >= 0; --i) {
 		auto var_idx_opt = scopes_[i].FindVar(var_name);
 		if (!var_idx_opt) {
 			// 当前作用域找不到变量，向上层作用域找
@@ -43,23 +40,35 @@ uint32_t CodeGener::GetVar(const std::string& var_name) {
 			var_idx = *var_idx_opt;
 		}
 		else {
-			// 创建闭包链
-
-
 			// 外部函数记录该变量被子函数引用
 			// auto closure_value_idx = scopes_[i].func()->closure_infos_.size();
-			//scopes_[i].func()->closure_infos_.emplace_back(
-			//	FunctionBodyObject::ClosureInfo{
-			//		.var_idx = *var_idx_opt
-			//	}
-			//);
 			
 			// 引用外部函数的变量，通过upvalue捕获
-			auto const_idx = AllocConst(Value(new UpValueObject(scopes_[i].func(), *var_idx_opt)));
-			cur_func_->byte_code.EmitConstLoad(const_idx);
+			// auto const_idx = AllocConst(Value(new UpValueObject(scopes_[i].func(), *var_idx_opt)));
+			// cur_func_->byte_code.EmitConstLoad(const_idx);
 
-			var_idx = AllocVar(var_name);
-			cur_func_->byte_code.EmitVarStore(var_idx);
+			// 在上层函数作用域找到了，向下构建upvalue捕获链
+			auto scope_func = scopes_[i].func();
+			for (int j = i + 1; j < scopes_.size(); ++j) {
+				if (scope_func != scopes_[j].func()) {
+					scope_func = scopes_[j].func();
+
+					// 为upvalue分配变量
+					var_idx = scopes_[j].AllocVar(var_name);
+
+					// 调用函数时遍历该函数的closure_vars
+					scope_func->closure_vars_.emplace(var_name,
+						FunctionBodyObject::ClosureVar{
+							.parent_var_idx = *var_idx_opt,
+							.var_idx = var_idx
+						}
+					);
+
+					*var_idx_opt = var_idx;
+				}
+			}
+			
+			// cur_func_->byte_code.EmitVarStore(var_idx);
 		}
 		break;
 	}

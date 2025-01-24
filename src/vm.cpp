@@ -3,7 +3,6 @@
 #include <mjs/runtime.h>
 #include <mjs/context.h>
 #include <mjs/func_obj.h>
-#include <mjs/up_obj.h>
 
 #include "instr.h"
 
@@ -27,20 +26,19 @@ void Vm::SetEvalFunction(const Value& func) {
 }
 
 Value& Vm::GetVar(uint32_t idx) {
-	 if (stack_frame_.Get(idx).type() == ValueType::kUpValue) {
-		 auto up_value = stack_frame_.Get(idx).up_value();
-
-		 up_value->func_body();
-
-	 }
-	return stack_frame_.Get(idx);
+	auto* var = &stack_frame_.Get(idx);
+	while (var->type() == ValueType::kUpValue) {
+		var = var->up_value().value;
+	}
+	return *var;
 }
 
 void Vm::SetVar(uint32_t idx, Value&& var) {
-	 if (stack_frame_.Get(idx).type() == ValueType::kUpValue) {
-
-	 }
-	stack_frame_.Set(idx, std::move(var));
+	auto* var_ = &stack_frame_.Get(idx);
+	while (var_->type() == ValueType::kUpValue) {
+		var_ = var_->up_value().value;
+	}
+	*var_ = std::move(var);
 }
 
 void Vm::LoadValue(const Value& value) {
@@ -150,19 +148,24 @@ void Vm::Run() {
 			switch (func.type()) {
 			case ValueType::kFunctionBody: {
 				func_body = func.function_body();
-				// 这里最外层函数还没处理，最外层也需要这样来创建
-				if (!func_body->closure_value_idxs.empty()) {
-					// 如果内部存在捕获该函数变量的子函数
-					func = Value(new FunctionRefObject(func_body));
-					auto func_ref = func.function_ref();
-					
 
-				}
-			}
-			case ValueType::kFunctionRef: {
-				if (func.type() == ValueType::kFunctionRef) {
-					func_body = func.function_ref()->func_body_;
-				}
+			//	// 被调用函数如果捕获了外部的变量
+			//	if (func_body->closure_vars_.empty()) {
+
+			//	}
+
+			//	//if (!func_body->closure_value_idxs.empty()) {
+			//	//	// 如果内部存在捕获该函数变量的子函数
+			//	//	func = Value(new FunctionRefObject(func_body));
+			//	//	auto func_ref = func.function_ref();
+			//	//	
+
+			//	//}
+			//}
+			//case ValueType::kFunctionRef: {
+			//	if (func.type() == ValueType::kFunctionRef) {
+			//		func_body = func.function_ref()->func_body_;
+			//	}
 
 				// std::cout << func_body->Disassembly();
 
@@ -199,6 +202,12 @@ void Vm::Run() {
 				stack_frame_.Push(Value(save_func));
 				stack_frame_.Push(Value(save_pc));
 				stack_frame_.Push(Value(save_bottom));
+
+				// 函数内的upvalue处理
+				for (auto& var : func_body->closure_vars_) {
+					auto& value = stack().Get(save_bottom + var.second.parent_var_idx);
+					stack_frame_.Set(var.second.var_idx, Value(UpValue{ .value = &value }));
+				}
 
 				break;
 			}

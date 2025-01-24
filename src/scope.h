@@ -22,7 +22,7 @@ public:
 		if (var_table_.find(var_name) != var_table_.end()) {
 			throw ScopeException("local var redefinition");
 		}
-		auto var_idx = func_->var_count;
+		auto var_idx = func_->var_count++;
 		var_table_.emplace(var_name, var_idx);
 		return var_idx;
 	}

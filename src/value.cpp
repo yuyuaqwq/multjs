@@ -2,7 +2,6 @@
 
 #include <mjs/object.h>
 #include <mjs/str_obj.h>
-#include <mjs/up_obj.h>
 
 namespace mjs {
 
@@ -62,9 +61,9 @@ Value::Value(Object* object) {
 	value_.object_->ref();
 }
 
-Value::Value(UpValueObject* up_value) {
+Value::Value(const UpValue& up_value) {
 	tag_.type_ = ValueType::kUpValue;
-	value_.object_ = reinterpret_cast<Object*>(up_value);
+	value_.up_value_ = up_value;
 }
 
 Value::Value(FunctionBodyObject* body) {
@@ -148,7 +147,7 @@ bool Value::operator<(const Value& rhs) const {
 	case ValueType::kFunctionBody:
 	case ValueType::kFunctionBridge:
 	case ValueType::kUpValue:
-		return value_.value_ < rhs.value_.value_;
+		return value_.up_value_.value < rhs.value_.up_value_.value;
 	default:
 		throw std::runtime_error("Incorrect value type.");
 	}
@@ -181,7 +180,7 @@ bool Value::operator>(const Value& rhs) const {
 	case ValueType::kFunctionBody:
 	case ValueType::kFunctionBridge:
 	case ValueType::kUpValue:
-		return value_.value_ > rhs.value_.value_;
+		return value_.up_value_.value > rhs.value_.up_value_.value;
 	default:
 		throw std::runtime_error("Incorrect value type.");
 	}
@@ -392,9 +391,9 @@ FunctionBridgeObject Value::function_bridge() const {
 	return reinterpret_cast<FunctionBridgeObject>(value_.object_); 
 }
 
-UpValueObject* Value::up_value() const { 
+const UpValue& Value::up_value() const { 
 	assert(type() == ValueType::kUpValue); 
-	return reinterpret_cast<UpValueObject*>(value_.object_);
+	return value_.up_value_;
 }
 
 } // namespace mjs

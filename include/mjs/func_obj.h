@@ -24,11 +24,16 @@ public:
 	uint32_t var_count = 0;
 	ByteCode byte_code;
 
+	// 记录是否存在被捕获的闭包变量
+	// 如果存在的话，则需要创建Ref
+
+
 	// 记录从外部函数作用域中捕获的闭包变量
-	struct ClosureInfo {
+	struct ClosureVar {
+		uint32_t parent_var_idx;
 		uint32_t var_idx;
 	};
-	std::vector<ClosureInfo> closure_infos_;
+	std::unordered_map<std::string, ClosureVar> closure_vars_;
 };
 
 class FunctionRefObject : public Object {

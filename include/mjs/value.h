@@ -19,18 +19,37 @@ enum class ValueType : uint64_t {
 	// 内部使用
 	kI64,
 	kU64,
+
+	kUpValue,
+
 	kFunctionBody,
 	kFunctionRef,
 	kFunctionBridge,
-	kUpValue,
 };
 
-class StackFrame;
+class Value;
+struct UpValue {
+public:
+	//UpValue(Value* value) noexcept
+	//	: value(value) {}
+
+	//UpValue(const UpValue& rv) {
+	//	value = rv.value;
+	//}
+
+	//void operator=(const UpValue& rv) {
+	//	value = rv.value;
+	//}
+
+public:
+	Value* value;
+};
 
 class Object;
 class FunctionBodyObject;
 class FunctionRefObject;
-class UpValueObject;
+
+class StackFrame;
 
 class Value {
 public:
@@ -48,7 +67,7 @@ public:
 	explicit Value(const char* string_u8, size_t size);
 	explicit Value(const std::string string_u8);
 	explicit Value(Object* object);
-	explicit Value(UpValueObject* up_value);
+	explicit Value(const UpValue& up_value);
 	explicit Value(FunctionBodyObject* body);
 	explicit Value(FunctionRefObject* ref);
 	explicit Value(FunctionBridgeObject bridge);
@@ -84,6 +103,8 @@ public:
 	const char* string_u8() const;
 	void set_string_u8(const char* string_u8, size_t size);
 
+	const UpValue& up_value() const;
+
 	Object* object() const;
 	template<typename ObjectT>
 	ObjectT* object() const {
@@ -96,7 +117,6 @@ public:
 	FunctionBodyObject* function_body() const;
 	FunctionRefObject* function_ref() const;
 	FunctionBridgeObject function_bridge() const;
-	UpValueObject* up_value() const;
 
 private:
 	union {
@@ -111,11 +131,13 @@ private:
 		bool boolean_;
 		double f64_;
 		Object* object_;
-		Value* value_;
-		char string_u8_inline_[8];
+		
+		UpValue up_value_;
 
 		int64_t i64_;
 		uint64_t u64_;
+
+		char string_u8_inline_[8];
 	} value_;
 };
 
