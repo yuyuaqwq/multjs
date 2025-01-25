@@ -115,6 +115,9 @@ void Vm::LoadValue(const Value& value) {
 			auto& parent_arr_obj = parent_func->closure_value_arr_.object<ArrayObject>().mutale_values();
 
 			for (auto& def : func->func_def_->closure_var_defs_) {
+				if (def.second.parent_var_idx == -1) {
+					continue;
+				}
 				auto parent_arr_idx = parent_func->func_def_->closure_var_defs_[def.second.parent_var_idx].arr_idx;
 				arr_obj[def.second.arr_idx] = Value(UpValue(&parent_arr_obj[parent_arr_idx]));
 			}
