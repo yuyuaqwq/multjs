@@ -185,9 +185,6 @@ void CodeGener::GenerateFunctionDeclStat(FuncDeclStat* stat) {
 
 	auto func_def = runtime_->const_pool().Get(const_idx).function_def();
 
-	//cur_func_->byte_code.EmitOpcode(OpcodeType::kFuncRef);
-	//cur_func_->byte_code.EmitU32(const_idx);
-
 	auto var_idx = AllocVar(stat->func_name);
 	cur_func_->byte_code.EmitVarStore(var_idx);
 
