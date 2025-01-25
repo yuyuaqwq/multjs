@@ -29,14 +29,13 @@ public:
 	explicit Vm(Context* context);
 
 public:
-	void SetEvalFunction(const Value& func);
-	void Run();
+	void EvalFunction(const Value& func);
 
 private:
-	FunctionDefObject* function_def(const Value& func_val) const;
-
-	bool FunctionInit(Value* func_val);
+	bool FunctionLoadInit(Value* func_val);
 	void FunctionCallInit(const Value& func_val);
+
+	void Run();
 
 	Value& GetVar(uint32_t idx);
 	void SetVar(uint32_t idx, Value&& var);
@@ -45,10 +44,10 @@ private:
 
 	const ConstPool& const_pool() const;
 	Stack& stack();
+	FunctionDefObject* function_def(const Value& func_val) const;
 private:
 	Context* context_;
 
-	// FunctionObjectÉúÃüÖÜÆÚ
 	Value cur_func_val_;
 	uint32_t pc_ = 0;
 

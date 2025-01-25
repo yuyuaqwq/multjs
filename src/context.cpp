@@ -20,8 +20,7 @@ void Context::Eval(std::string_view script) {
 
 	std::cout << func.function_def()->Disassembly();
 
-	vm_.SetEvalFunction(func);
-	vm_.Run();
+	vm_.EvalFunction(func);
 }
 
 } // namespace mjs

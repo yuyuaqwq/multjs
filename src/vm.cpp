@@ -21,12 +21,15 @@ Stack& Vm::stack() {
 	return context_->runtime().stack();
 }
 
-void Vm::SetEvalFunction(const Value& func_val) {
-	cur_func_val_ = func_val;
-	FunctionInit(&cur_func_val_);
-	stack().resize(function_def(cur_func_val_)->var_count);
+void Vm::EvalFunction(const Value& func_val) {
 	pc_ = 0;
+	cur_func_val_ = func_val;
+	stack().resize(function_def(cur_func_val_)->var_count);
+
+	FunctionLoadInit(&cur_func_val_);
 	FunctionCallInit(cur_func_val_);
+
+	Run();
 }
 
 FunctionDefObject* Vm::function_def(const Value& func_val) const {
@@ -39,7 +42,7 @@ FunctionDefObject* Vm::function_def(const Value& func_val) const {
 	return nullptr;
 }
 
-bool Vm::FunctionInit(Value* func_val) {
+bool Vm::FunctionLoadInit(Value* func_val) {
 	if (func_val->type() != ValueType::kFunctionDef) {
 		return false;
 	}
@@ -97,7 +100,7 @@ void Vm::LoadValue(const Value& value) {
 		// 后续可以单独分一个指令
 		// 即函数定义类型的赋值，如果存在closure_var_defs_，需要自动转成函数类型
 		auto func_val = value;
-		if (FunctionInit(&func_val)) {
+		if (FunctionLoadInit(&func_val)) {
 			// array需要初始化为upvalue，指向父函数的ArrayValue
 			// 如果没有父函数就不需要，即是顶层函数，默认初始化为未定义
 
