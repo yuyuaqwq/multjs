@@ -42,8 +42,8 @@ public:
 	FunctionDefObject* func_def_;
 
 	// 父函数的引用计数占用
-	// 用于当前闭包被返回时，延长生命周期
-	Value parent_closure_value_arr_;
+	// 用于当前闭包被返回时，延长父函数的ArrayValue的生命周期
+	Value parent_function_;
 
 	// 当前函数被子函数捕获的值，不在放到栈上，而是提升到堆上(包括UpValue)
 	Value closure_value_arr_;

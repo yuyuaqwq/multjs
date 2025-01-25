@@ -104,12 +104,12 @@ void Vm::LoadValue(const Value& value) {
 			auto func = func_val.function();
 			auto parent_func = cur_func_val_.function();
 
-			// 递增父函数的ArrayValue的引用计数
-			func->parent_closure_value_arr_ = parent_func->closure_value_arr_;
+			// 递增父函数的引用计数，用于延长父函数中的ArrayValue的生命周期
+			func->parent_function_ = cur_func_val_;
 
 			// 引用到父函数的ArrayValue
 			auto& arr_obj = func->closure_value_arr_.object<ArrayObject>().mutale_values();
-			auto& parent_arr_obj = func->parent_closure_value_arr_.object<ArrayObject>().mutale_values();
+			auto& parent_arr_obj = parent_func->closure_value_arr_.object<ArrayObject>().mutale_values();
 
 			for (auto& def : func->func_def_->closure_var_defs_) {
 				auto parent_arr_idx = parent_func->func_def_->closure_var_defs_[def.second.parent_var_idx].arr_idx;
