@@ -15,7 +15,7 @@ public:
 
 class Scope {
 public:
-	Scope(FunctionBodyObject* func, uint32_t var_count = 0)
+	Scope(FunctionDefObject* func, uint32_t var_count = 0)
 		: func_(func) {}
 
 	uint32_t AllocVar(const std::string& var_name) {
@@ -27,7 +27,7 @@ public:
 		return var_idx;
 	}
 
-	std::optional<uint32_t> FindVar(const std::string& var_name) {
+	std::optional<int32_t> FindVar(const std::string& var_name) {
 		auto it = var_table_.find(var_name);
 		if (it == var_table_.end()) {
 			return std::nullopt;
@@ -35,15 +35,15 @@ public:
 		return it->second.var_idx;
 	}
 
-	FunctionBodyObject* func() const { return func_; }
+	FunctionDefObject* func() const { return func_; }
 
 private:
-	FunctionBodyObject* func_; // ËùÊôº¯Êı
+	FunctionDefObject* func_; // æ‰€å±å‡½æ•°
 	struct VarInfo {
 		uint32_t var_idx;
 		//bool is_upvalue;
 	};
-	std::unordered_map<std::string, VarInfo> var_table_; // ±äÁ¿±í
+	std::unordered_map<std::string, VarInfo> var_table_; // å˜é‡è¡¨
 };
 
 } // namespace mjs

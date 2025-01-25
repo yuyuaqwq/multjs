@@ -13,7 +13,7 @@
 
 namespace mjs {
 
-// ´úÂëÉú³ÉÊ±·¢ÉúµÄÒì³£
+// ä»£ç ç”Ÿæˆæ—¶å‘ç”Ÿçš„å¼‚å¸¸
 class CodeGenerException : public std::exception{
 public:
 	using Base = std::exception;
@@ -29,11 +29,11 @@ public:
 	Value Generate(BlockStat* block);
 
 private:
-	void EntryScope(FunctionBodyObject* sub_func = nullptr);
+	void EntryScope(FunctionDefObject* sub_func = nullptr);
 	void ExitScope();
-	uint32_t AllocConst(Value&& value);
-	uint32_t AllocVar(const std::string& varName);
-	uint32_t GetVar(const std::string& varName);
+	int32_t AllocConst(Value&& value);
+	int32_t AllocVar(const std::string& varName);
+	int32_t GetVar(const std::string& varName);
 
 	void GenerateBlock(BlockStat* block);
 	void GenerateStat(Stat* stat);
@@ -52,13 +52,13 @@ private:
 private:
 	Runtime* runtime_;
 
-	// º¯Êı
-	FunctionBodyObject* cur_func_ = nullptr;				// µ±Ç°Éú³Éº¯Êı
+	// å‡½æ•°
+	FunctionDefObject* cur_func_ = nullptr;				// å½“å‰ç”Ÿæˆå‡½æ•°
 
-	// ×÷ÓÃÓò
+	// ä½œç”¨åŸŸ
 	std::vector<Scope> scopes_;
 
-	// Ñ­»·
+	// å¾ªç¯
 	uint32_t cur_loop_start_pc_ = 0;
 	std::vector<uint32_t>* cur_loop_repair_end_pc_list_ = nullptr;
 };

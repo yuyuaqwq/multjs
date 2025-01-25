@@ -10,7 +10,7 @@ namespace mjs {
 CodeGener::CodeGener(Runtime* runtime)
 	: runtime_(runtime) {}
 
-void CodeGener::EntryScope(FunctionBodyObject* sub_func) {
+void CodeGener::EntryScope(FunctionDefObject* sub_func) {
 	scopes_.emplace_back(sub_func);
 }
 
@@ -18,47 +18,55 @@ void CodeGener::ExitScope() {
 	scopes_.pop_back();
 }
 
-uint32_t CodeGener::AllocConst(Value&& value) {
+int32_t CodeGener::AllocConst(Value&& value) {
 	return runtime_->const_pool().New(std::move(value));
 }
 
-uint32_t CodeGener::AllocVar(const std::string& var_name) {
+int32_t CodeGener::AllocVar(const std::string& var_name) {
 	return scopes_.back().AllocVar(var_name);
 }
 
 
-uint32_t CodeGener::GetVar(const std::string& var_name) {
-	uint32_t var_idx = -1;
-	// ¾Í½üÕÒ±äÁ¿
+int32_t CodeGener::GetVar(const std::string& var_name) {
+	int32_t var_idx = -1;
+	// å°±è¿‘æ‰¾å˜é‡
 	for (int i = scopes_.size() - 1; i >= 0; --i) {
 		auto var_idx_opt = scopes_[i].FindVar(var_name);
 		if (!var_idx_opt) {
-			// µ±Ç°×÷ÓÃÓòÕÒ²»µ½±äÁ¿£¬ÏòÉÏ²ã×÷ÓÃÓòÕÒ
+			// å½“å‰ä½œç”¨åŸŸæ‰¾ä¸åˆ°å˜é‡ï¼Œå‘ä¸Šå±‚ä½œç”¨åŸŸæ‰¾
 			continue;
 		}
 		if (scopes_[i].func() == cur_func_) {
 			var_idx = *var_idx_opt;
 		}
 		else {
-			// ÔÚÉÏ²ãº¯Êı×÷ÓÃÓòÕÒµ½ÁË£¬ÏòÏÂ¹¹½¨upvalue²¶»ñÁ´
+			// åœ¨ä¸Šå±‚å‡½æ•°ä½œç”¨åŸŸæ‰¾åˆ°äº†ï¼Œæ„å»ºupvalueæ•è·é“¾
 			auto scope_func = scopes_[i].func();
-			for (int j = i + 1; j < scopes_.size(); ++j) {
-				if (scope_func != scopes_[j].func()) {
-					scope_func = scopes_[j].func();
-
-					// Îªupvalue·ÖÅä±äÁ¿
-					var_idx = scopes_[j].AllocVar(var_name);
-
-					// µ÷ÓÃº¯ÊıÊ±±éÀú¸Ãº¯ÊıµÄclosure_vars
-					scope_func->closure_vars_.emplace(var_name,
-						FunctionBodyObject::ClosureVar{
-							.parent_var_idx = *var_idx_opt,
-							.var_idx = var_idx
-						}
-					);
-
-					*var_idx_opt = var_idx;
+			scope_func->closure_var_defs_.emplace(
+				*var_idx_opt,
+				FunctionDefObject::ClosureVarDef{
+					.arr_idx = int32_t(scope_func->closure_var_defs_.size()),
+					.parent_var_idx = -1
 				}
+			);
+
+			for (int j = i + 1; j < scopes_.size(); ++j) {
+				if (scope_func == scopes_[j].func()) {
+					continue;
+				}
+				scope_func = scopes_[j].func();
+
+				// ä¸ºupvalueåˆ†é…å˜é‡
+				var_idx = scopes_[j].AllocVar(var_name);
+				scope_func->closure_var_defs_.emplace(
+					var_idx,
+					FunctionDefObject::ClosureVarDef{
+						.arr_idx = int32_t(scope_func->closure_var_defs_.size()),
+						.parent_var_idx = *var_idx_opt
+					}
+				);
+
+				*var_idx_opt = var_idx;
 			}
 		}
 		break;
@@ -71,8 +79,8 @@ void CodeGener::RegistryFunctionBridge(const std::string& func_name, FunctionBri
 	auto var_idx = AllocVar(func_name);
 	auto const_idx = AllocConst(Value(func));
 
-	// Éú³É½«º¯Êı·Åµ½±äÁ¿±íÖĞµÄ´úÂë
-	// ½»¸øĞéÄâ»úÖ´ĞĞÊ±È¥¼ÓÔØ£¬ĞéÄâ»ú·¢ÏÖ¼ÓÔØµÄ³£Á¿ÊÇº¯ÊıÌå£¬¾Í»á½«º¯ÊıÔ­ĞÍ¸³¸ø¾Ö²¿±äÁ¿
+	// ç”Ÿæˆå°†å‡½æ•°æ”¾åˆ°å˜é‡è¡¨ä¸­çš„ä»£ç 
+	// äº¤ç»™è™šæ‹Ÿæœºæ‰§è¡Œæ—¶å»åŠ è½½ï¼Œè™šæ‹Ÿæœºå‘ç°åŠ è½½çš„å¸¸é‡æ˜¯å‡½æ•°ä½“ï¼Œå°±ä¼šå°†å‡½æ•°åŸå‹èµ‹ç»™å±€éƒ¨å˜é‡
 	cur_func_->byte_code.EmitConstLoad(const_idx);
 	cur_func_->byte_code.EmitVarStore(var_idx);
 }
@@ -81,9 +89,9 @@ void CodeGener::RegistryFunctionBridge(const std::string& func_name, FunctionBri
 Value CodeGener::Generate(BlockStat* block) {
 	scopes_.clear();
 
-	// ´´½¨¶¥²ãº¯Êı(Ä£¿é)
-	auto idx = AllocConst(Value(new FunctionBodyObject(nullptr, 0)));
-	cur_func_ = runtime_->const_pool().Get(idx).function_body();
+	// åˆ›å»ºé¡¶å±‚å‡½æ•°(æ¨¡å—)
+	auto idx = AllocConst(Value(new FunctionDefObject(nullptr, 0)));
+	cur_func_ = runtime_->const_pool().Get(idx).function_def();
 
 	scopes_.emplace_back(cur_func_);
 
@@ -130,7 +138,7 @@ void CodeGener::GenerateStat(Stat* stat) {
 	}
 	case StatType::kExp: {
 		auto exp_stat = static_cast<ExpStat*>(stat)->exp.get();
-		// Å×Æú´¿±í´ïÊ½Óï¾äµÄ×îÖÕ½á¹û
+		// æŠ›å¼ƒçº¯è¡¨è¾¾å¼è¯­å¥çš„æœ€ç»ˆç»“æœ
 		if (exp_stat) {
 			GenerateExp(exp_stat);
 			cur_func_->byte_code.EmitOpcode(OpcodeType::kPop);
@@ -171,9 +179,9 @@ void CodeGener::GenerateStat(Stat* stat) {
 }
 
 void CodeGener::GenerateFunctionDeclStat(FuncDeclStat* stat) {
-	auto const_idx = AllocConst(Value(new FunctionBodyObject(scopes_.back().func(), stat->par_list.size())));
+	auto const_idx = AllocConst(Value(new FunctionDefObject(scopes_.back().func(), stat->par_list.size())));
 	cur_func_->byte_code.EmitConstLoad(const_idx);
-	auto func_body = runtime_->const_pool().Get(const_idx).function_body();
+	auto func_def = runtime_->const_pool().Get(const_idx).function_def();
 
 	//cur_func_->byte_code.EmitOpcode(OpcodeType::kFuncRef);
 	//cur_func_->byte_code.EmitU32(const_idx);
@@ -181,14 +189,14 @@ void CodeGener::GenerateFunctionDeclStat(FuncDeclStat* stat) {
 	auto var_idx = AllocVar(stat->func_name);
 	cur_func_->byte_code.EmitVarStore(var_idx);
 
-	// ±£´æ»·¾³£¬ÒÔÉú³ÉĞÂÖ¸ÁîÁ÷
+	// ä¿å­˜ç¯å¢ƒï¼Œä»¥ç”Ÿæˆæ–°æŒ‡ä»¤æµ
 	auto savefunc = cur_func_;
 
-	// ÇĞ»»»·¾³
-	EntryScope(func_body);
-	cur_func_ = func_body;
+	// åˆ‡æ¢ç¯å¢ƒ
+	EntryScope(func_def);
+	cur_func_ = func_def;
 
-	// ²ÎÊıÕıĞò·ÖÅä
+	// å‚æ•°æ­£åºåˆ†é…
 	for (int i = 0; i < cur_func_->par_count; ++i) {
 		AllocVar(stat->par_list[i]);
 	}
@@ -199,14 +207,14 @@ void CodeGener::GenerateFunctionDeclStat(FuncDeclStat* stat) {
 		GenerateStat(stat.get());
 		if (i == block->stat_list.size() - 1) {
 			if (stat->GetType() != StatType::kReturn) {
-				// ²¹È«Ä©Î²µÄreturn
+				// è¡¥å…¨æœ«å°¾çš„return
 				cur_func_->byte_code.EmitConstLoad(AllocConst(Value()));
 				cur_func_->byte_code.EmitOpcode(OpcodeType::kReturn);
 			}
 		}
 	}
 
-	// »Ö¸´»·¾³
+	// æ¢å¤ç¯å¢ƒ
 	ExitScope();
 	cur_func_ = savefunc;
 }
@@ -224,7 +232,7 @@ void CodeGener::GenerateReturnStat(ReturnStat* stat) {
 void CodeGener::GenerateNewVarStat(NewVarStat* stat) {
 	auto var_idx = AllocVar(stat->var_name);
 	GenerateExp(stat->exp.get());
-	// µ¯³öµ½±äÁ¿ÖĞ
+	// å¼¹å‡ºåˆ°å˜é‡ä¸­
 	cur_func_->byte_code.EmitVarStore(var_idx);
 }
 
@@ -233,20 +241,20 @@ void CodeGener::GenerateNewVarStat(NewVarStat* stat) {
 //	if (var_idx == -1) {
 //		throw CodeGenerException("var not defined");
 //	}
-//	// ±í´ïÊ½Ñ¹Õ»
+//	// è¡¨è¾¾å¼å‹æ ˆ
 //	GenerateExp(stat->exp.get());
-//	// µ¯³öµ½±äÁ¿ÖĞ
+//	// å¼¹å‡ºåˆ°å˜é‡ä¸­
 //	cur_func_->byte_code.EmitVarStore(var_idx);
 //}
 
-// 2×Ö½ÚÖ¸µÄÊÇ»ùÓÚµ±Ç°Ö¸ÁîµÄoffset
+// 2å­—èŠ‚æŒ‡çš„æ˜¯åŸºäºå½“å‰æŒ‡ä»¤çš„offset
 void CodeGener::GenerateIfStat(IfStat* stat) {
-	// ±í´ïÊ½½á¹ûÑ¹Õ»
+	// è¡¨è¾¾å¼ç»“æœå‹æ ˆ
 	GenerateExp(stat->exp.get());
 
-	// Áô¸øÏÂÒ»¸öelse if/elseĞŞ¸´
+	// ç•™ç»™ä¸‹ä¸€ä¸ªelse if/elseä¿®å¤
 	uint32_t if_pc = cur_func_->byte_code.GetPc();
-	// ÌáÇ°Ğ´ÈëÌø×ªµÄÖ¸Áî
+	// æå‰å†™å…¥è·³è½¬çš„æŒ‡ä»¤
 	GenerateIfEq(stat->exp.get());
 
 	GenerateBlock(stat->block.get());
@@ -312,18 +320,18 @@ void CodeGener::GenerateIfStat(IfStat* stat) {
 	std::vector<uint32_t> repair_end_pc_list;
 	for (auto& else_if_stat : stat->else_if_stat_list) {
 		repair_end_pc_list.push_back(cur_func_->byte_code.GetPc());
-		// ÌáÇ°Ğ´ÈëÉÏÒ»·ÖÖ§ÍË³öif·ÖÖ§½á¹¹µÄjmpÌø×ª
+		// æå‰å†™å…¥ä¸Šä¸€åˆ†æ”¯é€€å‡ºifåˆ†æ”¯ç»“æ„çš„jmpè·³è½¬
 		cur_func_->byte_code.EmitOpcode(OpcodeType::kGoto);
 		cur_func_->byte_code.EmitU16(0);
 
-		// ĞŞ¸´Ìõ¼şÎªfalseÊ±£¬Ìø×ªµ½if/else if¿éÖ®ºóµÄµØÖ·
+		// ä¿®å¤æ¡ä»¶ä¸ºfalseæ—¶ï¼Œè·³è½¬åˆ°if/else ifå—ä¹‹åçš„åœ°å€
 		cur_func_->byte_code.RepairPc(if_pc, cur_func_->byte_code.GetPc());
 
-		// ±í´ïÊ½½á¹ûÑ¹Õ»
+		// è¡¨è¾¾å¼ç»“æœå‹æ ˆ
 		GenerateExp(else_if_stat->exp.get());
-		// Áô¸øÏÂÒ»¸öelse if/elseĞŞ¸´
+		// ç•™ç»™ä¸‹ä¸€ä¸ªelse if/elseä¿®å¤
 		if_pc = cur_func_->byte_code.GetPc();
-		// ÌáÇ°Ğ´ÈëÌø×ªµÄÖ¸Áî
+		// æå‰å†™å…¥è·³è½¬çš„æŒ‡ä»¤
 		GenerateIfEq(else_if_stat->exp.get());
 
 		GenerateBlock(else_if_stat->block.get());
@@ -331,20 +339,20 @@ void CodeGener::GenerateIfStat(IfStat* stat) {
 
 	if (stat->else_stat.get()) {
 		repair_end_pc_list.push_back(cur_func_->byte_code.GetPc());
-		cur_func_->byte_code.EmitOpcode(OpcodeType::kGoto);		// ÌáÇ°Ğ´ÈëÉÏÒ»·ÖÖ§ÍË³öif·ÖÖ§½á¹¹µÄjmpÌø×ª
+		cur_func_->byte_code.EmitOpcode(OpcodeType::kGoto);		// æå‰å†™å…¥ä¸Šä¸€åˆ†æ”¯é€€å‡ºifåˆ†æ”¯ç»“æ„çš„jmpè·³è½¬
 		cur_func_->byte_code.EmitU16(0);
 
-		// ĞŞ¸´Ìõ¼şÎªfalseÊ±£¬Ìø×ªµ½if/else if¿éÖ®ºóµÄµØÖ·
+		// ä¿®å¤æ¡ä»¶ä¸ºfalseæ—¶ï¼Œè·³è½¬åˆ°if/else ifå—ä¹‹åçš„åœ°å€
 		cur_func_->byte_code.RepairPc(if_pc, cur_func_->byte_code.GetPc());
 
 		GenerateBlock(stat->else_stat->block.get());
 	}
 	else {
-		// ĞŞ¸´Ìõ¼şÎªfalseÊ±£¬Ìø×ªµ½if/else if¿éÖ®ºóµÄµØÖ·
+		// ä¿®å¤æ¡ä»¶ä¸ºfalseæ—¶ï¼Œè·³è½¬åˆ°if/else ifå—ä¹‹åçš„åœ°å€
 		cur_func_->byte_code.RepairPc(if_pc, cur_func_->byte_code.GetPc());
 	}
 
-	// ÖÁ´Ëif·ÖÖ§½á¹¹½áÊø£¬ĞŞ¸´ËùÓĞÍË³ö·ÖÖ§½á¹¹µÄµØÖ·
+	// è‡³æ­¤ifåˆ†æ”¯ç»“æ„ç»“æŸï¼Œä¿®å¤æ‰€æœ‰é€€å‡ºåˆ†æ”¯ç»“æ„çš„åœ°å€
 	for (auto repair_pnd_pc : repair_end_pc_list) {
 		cur_func_->byte_code.RepairPc(repair_pnd_pc, cur_func_->byte_code.GetPc());
 	}
@@ -357,27 +365,27 @@ void CodeGener::GenerateWhileStat(WhileStat* stat) {
 	std::vector<uint32_t> loop_repair_end_pc_list;
 	cur_loop_repair_end_pc_list_ = &loop_repair_end_pc_list;
 
-	// ¼ÇÂ¼ÖØĞÂÑ­»·µÄpc
+	// è®°å½•é‡æ–°å¾ªç¯çš„pc
 	uint32_t loop_start_pc = cur_func_->byte_code.GetPc();
 	cur_loop_start_pc_ = loop_start_pc;
 
-	// ±í´ïÊ½½á¹ûÑ¹Õ»
+	// è¡¨è¾¾å¼ç»“æœå‹æ ˆ
 	GenerateExp(stat->exp.get());
 
-	// µÈ´ıĞŞ¸´
+	// ç­‰å¾…ä¿®å¤
 	loop_repair_end_pc_list.push_back(cur_func_->byte_code.GetPc());
-	// ÌáÇ°Ğ´ÈëÌø×ªµÄÖ¸Áî
+	// æå‰å†™å…¥è·³è½¬çš„æŒ‡ä»¤
 	GenerateIfEq(stat->exp.get());
 
 	GenerateBlock(stat->block.get());
 
-	// ÖØĞÂ»ØÈ¥¿´ÊÇ·ñĞèÒªÑ­»·
+	// é‡æ–°å›å»çœ‹æ˜¯å¦éœ€è¦å¾ªç¯
 	cur_func_->byte_code.EmitOpcode(OpcodeType::kGoto);
 	cur_func_->byte_code.EmitI16(0);
 	cur_func_->byte_code.RepairPc(cur_func_->byte_code.GetPc() - 3, loop_start_pc);
 
 	for (auto repair_end_pc : loop_repair_end_pc_list) {
-		// ĞŞ¸´Ìø³öÑ­»·µÄÖ¸ÁîµÄpc
+		// ä¿®å¤è·³å‡ºå¾ªç¯çš„æŒ‡ä»¤çš„pc
 		cur_func_->byte_code.RepairPc(repair_end_pc, cur_func_->byte_code.GetPc());
 	}
 
@@ -389,7 +397,7 @@ void CodeGener::GenerateContinueStat(ContinueStat* stat) {
 	if (cur_loop_repair_end_pc_list_ == nullptr) {
 		throw CodeGenerException("Cannot use break in acyclic scope");
 	}
-	// Ìø»Øµ±Ç°Ñ­»·µÄÆğÊ¼pc
+	// è·³å›å½“å‰å¾ªç¯çš„èµ·å§‹pc
 	cur_func_->byte_code.EmitOpcode(OpcodeType::kGoto);
 	cur_func_->byte_code.EmitI16(0);
 	cur_func_->byte_code.RepairPc(cur_func_->byte_code.GetPc() - 3, cur_loop_start_pc_);
@@ -400,7 +408,7 @@ void CodeGener::GenerateBreakStat(BreakStat* stat) {
 		throw CodeGenerException("Cannot use break in acyclic scope");
 	}
 	cur_loop_repair_end_pc_list_->push_back(cur_func_->byte_code.GetPc());
-	// ÎŞ·¨ÌáÇ°µÃÖª½áÊøpc£¬±£´æ´ıĞŞ¸´pc£¬µÈ´ıĞŞ¸´
+	// æ— æ³•æå‰å¾—çŸ¥ç»“æŸpcï¼Œä¿å­˜å¾…ä¿®å¤pcï¼Œç­‰å¾…ä¿®å¤
 	cur_func_->byte_code.EmitOpcode(OpcodeType::kGoto);
 	cur_func_->byte_code.EmitU16(0);
 }
@@ -419,25 +427,25 @@ void CodeGener::GenerateExp(Exp* exp) {
 		break;
 	}
 	case ExpType::kIdentifier: {
-		// ÊÇÈ¡±äÁ¿ÖµµÄ»°£¬²éÕÒµ½¶ÔÓ¦µÄ±äÁ¿±àºÅ£¬½«ÆäÈëÕ»
+		// æ˜¯å–å˜é‡å€¼çš„è¯ï¼ŒæŸ¥æ‰¾åˆ°å¯¹åº”çš„å˜é‡ç¼–å·ï¼Œå°†å…¶å…¥æ ˆ
 		auto var_exp = static_cast<IdentifierExp*>(exp);
 		auto var_idx = GetVar(var_exp->name);
 		if (var_idx == -1) {
 			throw CodeGenerException("var not defined");
 		}
-		cur_func_->byte_code.EmitVarLoad(var_idx);	// ´Ó±äÁ¿ÖĞ»ñÈ¡
+		cur_func_->byte_code.EmitVarLoad(var_idx);	// ä»å˜é‡ä¸­è·å–
 		break;
 	}
 	case ExpType::kIndexedExp: {
 		auto idx_exp = static_cast<IndexedExp*>(exp);
 
-		// ±»·ÃÎÊµÄ±í´ïÊ½£¬Ó¦¸ÃÊÇÒ»¸öÊı×é£¬ÈëÕ»Õâ¸ö±í´ïÊ½
+		// è¢«è®¿é—®çš„è¡¨è¾¾å¼ï¼Œåº”è¯¥æ˜¯ä¸€ä¸ªæ•°ç»„ï¼Œå…¥æ ˆè¿™ä¸ªè¡¨è¾¾å¼
 		idx_exp->exp;
 
-		// ÓÃÓÚ·ÃÎÊµÄÏÂ±êµÄ±í´ïÊ½£¬ÊÇÒ»¸öÕûÊı£¬ÈëÕ»Õâ¸ö±í´ïÊ½
+		// ç”¨äºè®¿é—®çš„ä¸‹æ ‡çš„è¡¨è¾¾å¼ï¼Œæ˜¯ä¸€ä¸ªæ•´æ•°ï¼Œå…¥æ ˆè¿™ä¸ªè¡¨è¾¾å¼
 		idx_exp->index_exp;
 
-		// Éú³É·ÃÎÊË÷ÒıµÄÖ¸Áî
+		// ç”Ÿæˆè®¿é—®ç´¢å¼•çš„æŒ‡ä»¤
 
 		
 		break;
@@ -445,10 +453,10 @@ void CodeGener::GenerateExp(Exp* exp) {
 
 	case ExpType::kUnaryOp: {
 		auto unary_op_exp = static_cast<UnaryOpExp*>(exp);
-		// ±í´ïÊ½µÄÖµÈëÕ»
+		// è¡¨è¾¾å¼çš„å€¼å…¥æ ˆ
 		GenerateExp(unary_op_exp->operand.get());
 
-		// Éú³ÉÔËËãÖ¸Áî
+		// ç”Ÿæˆè¿ç®—æŒ‡ä»¤
 		switch (unary_op_exp->oper) {
 		case TokenType::kOpSub:
 			cur_func_->byte_code.EmitOpcode(OpcodeType::kNeg);
@@ -481,16 +489,16 @@ void CodeGener::GenerateExp(Exp* exp) {
 			else {
 				throw CodeGenerException("Expression that cannot be assigned a value");
 			}
-			// ×îºóÔÙ°Ñ×óÖµ±í´ïÊ½ÈëÕ»
+			// æœ€åå†æŠŠå·¦å€¼è¡¨è¾¾å¼å…¥æ ˆ
 			GenerateExp(bina_op_exp->left_exp.get());
 			return;
 		}
 
-		// ×óÓÒ±í´ïÊ½µÄÖµÈëÕ»
+		// å·¦å³è¡¨è¾¾å¼çš„å€¼å…¥æ ˆ
 		GenerateExp(bina_op_exp->left_exp.get());
 		GenerateExp(bina_op_exp->right_exp.get());
 
-		// Éú³ÉÔËËãÖ¸Áî
+		// ç”Ÿæˆè¿ç®—æŒ‡ä»¤
 		switch (bina_op_exp->oper) {
 		case TokenType::kOpAdd:
 			cur_func_->byte_code.EmitOpcode(OpcodeType::kAdd);
@@ -535,11 +543,11 @@ void CodeGener::GenerateExp(Exp* exp) {
 			throw CodeGenerException("Function not defined");
 		}
 
-		//if (func_call_exp->par_list.size() < const_table_[]->GetFunctionBody()->par_count) {
+		//if (func_call_exp->par_list.size() < const_table_[]->function_def()->par_count) {
 		//	throw CodeGenerException("Wrong number of parameters passed during function call");
 		//}
 
-		// ²ÎÊıÕıĞòÈëÕ»
+		// å‚æ•°æ­£åºå…¥æ ˆ
 		for (int i = 0; i < func_call_exp->par_list.size(); ++i) {
 			GenerateExp(func_call_exp->par_list[i].get());
 		}

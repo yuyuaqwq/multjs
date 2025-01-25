@@ -22,32 +22,19 @@ enum class ValueType : uint64_t {
 
 	kUpValue,
 
-	kFunctionBody,
-	kFunctionRef,
 	kFunctionBridge,
+	kFunctionDef,
+	kFunction,
 };
 
 class Value;
 struct UpValue {
-public:
-	//UpValue(Value* value) noexcept
-	//	: value(value) {}
-
-	//UpValue(const UpValue& rv) {
-	//	value = rv.value;
-	//}
-
-	//void operator=(const UpValue& rv) {
-	//	value = rv.value;
-	//}
-
-public:
 	Value* value;
 };
 
 class Object;
-class FunctionBodyObject;
-class FunctionRefObject;
+class FunctionDefObject;
+class FunctionObject;
 
 class StackFrame;
 
@@ -68,8 +55,8 @@ public:
 	explicit Value(const std::string string_u8);
 	explicit Value(Object* object);
 	explicit Value(const UpValue& up_value);
-	explicit Value(FunctionBodyObject* body);
-	explicit Value(FunctionRefObject* ref);
+	explicit Value(FunctionDefObject* def);
+	explicit Value(FunctionObject* func);
 	explicit Value(FunctionBridgeObject bridge);
 
 	~Value();
@@ -105,17 +92,17 @@ public:
 
 	const UpValue& up_value() const;
 
-	Object* object() const;
+	Object& object() const;
 	template<typename ObjectT>
-	ObjectT* object() const {
-		return static_cast<ObjectT*>(object());
+	ObjectT& object() const {
+		return static_cast<ObjectT&>(object());
 	}
 
 	int64_t i64() const;
 	uint64_t u64() const;
 
-	FunctionBodyObject* function_body() const;
-	FunctionRefObject* function_ref() const;
+	FunctionDefObject* function_def() const;
+	FunctionObject* function() const;
 	FunctionBridgeObject function_bridge() const;
 
 private:

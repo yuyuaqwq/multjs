@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <unordered_map>
 
 #include <mjs/object.h>
 #include <mjs/value.h>
@@ -9,39 +10,43 @@
 
 namespace mjs {
 
-// ¹ØÓÚº¯ÊıµÄÉè¼Æ
-// º¯ÊıÌå¾ÍÊÇÖ¸ÁîÁ÷µÄ·â×°£¬Ö»»á´æ·ÅÔÚ³£Á¿Àï£¬¶¨Òåº¯Êı»áÔÚ³£Á¿³Ø´´½¨º¯Êı
-// ²¢ÇÒ»áÔÚ¾Ö²¿±äÁ¿±íÖĞ´´½¨²¢º¯ÊıÒıÓÃ£¬Ö¸Ïòº¯ÊıÌå£¬ÀàËÆÓï·¨ÌÇµÄÏë·¨
-class FunctionBodyObject : public Object {
+class FunctionDefObject : public Object {
 public:
-	explicit FunctionBodyObject(FunctionBodyObject* parent, uint32_t par_count) noexcept;
+	explicit FunctionDefObject(FunctionDefObject* parent, uint32_t par_count) noexcept;
 	std::string Disassembly();
 
 public:
-	FunctionBodyObject* parent;
+	FunctionDefObject* parent;
 
 	uint32_t par_count;
 	uint32_t var_count = 0;
 	ByteCode byte_code;
 
-	// ¼ÇÂ¼ÊÇ·ñ´æÔÚ±»²¶»ñµÄ±Õ°ü±äÁ¿
-	// Èç¹û´æÔÚµÄ»°£¬ÔòĞèÒª´´½¨Ref
-
-
-	// ¼ÇÂ¼´ÓÍâ²¿º¯Êı×÷ÓÃÓòÖĞ²¶»ñµÄ±Õ°ü±äÁ¿
-	struct ClosureVar {
-		uint32_t parent_var_idx;
-		uint32_t var_idx;
+	// upvalueå˜é‡è®°å½•ï¼Œupvalueå˜é‡åœ¨å½“å‰ä½œç”¨åŸŸçš„ç´¢å¼•
+	// å¦‚æœå­˜åœ¨çš„è¯ï¼Œåˆ™åŠ è½½æ—¶éœ€è¦åˆ›å»ºFunctionObject
+	struct ClosureVarDef {
+		int32_t arr_idx;
+		int32_t parent_var_idx;
 	};
-	std::unordered_map<std::string, ClosureVar> closure_vars_;
+	// key: var_idx
+	std::unordered_map<int32_t, ClosureVarDef> closure_var_defs_;
 };
 
-class FunctionRefObject : public Object {
+// é—­åŒ…ï¼Œå¯ä»¥è€ƒè™‘æ”¹åClosureObject
+// ä½†ç›®å‰ä¸ä¸€å®šæ˜¯é—­åŒ…ï¼Œåªæ˜¯å˜é‡è¢«å­å‡½æ•°æ•è·çš„å‡½æ•°ä¹Ÿç”Ÿæˆè¿™ä¸ªå‡½æ•°
+class FunctionObject : public Object {
 public:
-	explicit FunctionRefObject(FunctionBodyObject* func_body) noexcept;
+	explicit FunctionObject(FunctionDefObject* def) noexcept;
 
 public:
-	FunctionBodyObject* func_body_;
+	FunctionDefObject* func_def_;
+
+	// çˆ¶å‡½æ•°çš„å¼•ç”¨è®¡æ•°å ç”¨
+	// ç”¨äºå½“å‰é—­åŒ…è¢«è¿”å›æ—¶ï¼Œå»¶é•¿ç”Ÿå‘½å‘¨æœŸ
+	Value parent_closure_value_arr_;
+
+	// å½“å‰å‡½æ•°è¢«å­å‡½æ•°æ•è·çš„å€¼ï¼Œä¸åœ¨æ”¾åˆ°æ ˆä¸Šï¼Œè€Œæ˜¯æå‡åˆ°å †ä¸Š(åŒ…æ‹¬UpValue)
+	Value closure_value_arr_;
 };
 
 } // namespace mjs

@@ -2,11 +2,11 @@
 
 namespace mjs {
 
-FunctionBodyObject::FunctionBodyObject(FunctionBodyObject* parent, uint32_t par_count) noexcept
+FunctionDefObject::FunctionDefObject(FunctionDefObject* parent, uint32_t par_count) noexcept
 	: parent(parent)
 	, par_count(par_count) {}
 
-std::string FunctionBodyObject::Disassembly() {
+std::string FunctionDefObject::Disassembly() {
 	std::string str;
 	for (uint32_t pc = 0; pc < byte_code.Size(); ) {
 		str += byte_code.Disassembly(pc) + "\n";
@@ -14,8 +14,8 @@ std::string FunctionBodyObject::Disassembly() {
 	return str;
 }
 
-FunctionRefObject::FunctionRefObject(FunctionBodyObject* func_body) noexcept
-	: func_body_(func_body) {}
+FunctionObject::FunctionObject(FunctionDefObject* func_def) noexcept
+	: func_def_(func_def) {}
 
 
 } // namespace mjs

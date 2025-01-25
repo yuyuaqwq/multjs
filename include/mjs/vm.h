@@ -33,6 +33,11 @@ public:
 	void Run();
 
 private:
+	FunctionDefObject* function_def(const Value& func_val) const;
+
+	bool FunctionInit(Value* func_val);
+	void FunctionCallInit(const Value& func_val);
+
 	Value& GetVar(uint32_t idx);
 	void SetVar(uint32_t idx, Value&& var);
 
@@ -43,7 +48,8 @@ private:
 private:
 	Context* context_;
 
-	FunctionBodyObject* cur_func_ = nullptr;
+	// FunctionObjectÉúÃüÖÜÆÚ
+	Value cur_func_val_;
 	uint32_t pc_ = 0;
 
 	StackFrame stack_frame_;

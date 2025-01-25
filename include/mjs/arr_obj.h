@@ -1,5 +1,6 @@
 #pragma once
 
+#include <mjs/object.h>
 #include <mjs/value.h>
 
 namespace mjs {

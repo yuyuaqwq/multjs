@@ -66,13 +66,13 @@ Value::Value(const UpValue& up_value) {
 	value_.up_value_ = up_value;
 }
 
-Value::Value(FunctionBodyObject* body) {
-	tag_.type_ = ValueType::kFunctionBody;
-	value_.object_ = reinterpret_cast<Object*>(body);
+Value::Value(FunctionDefObject* def) {
+	tag_.type_ = ValueType::kFunctionDef;
+	value_.object_ = reinterpret_cast<Object*>(def);
 }
 
-Value::Value(FunctionRefObject* ref) {
-	tag_.type_ = ValueType::kFunctionRef;
+Value::Value(FunctionObject* ref) {
+	tag_.type_ = ValueType::kFunction;
 	value_.object_ = reinterpret_cast<Object*>(ref);
 }
 
@@ -85,10 +85,10 @@ Value::Value(FunctionBridgeObject bridge) {
 Value::~Value() {
 	if (type() == ValueType::kString && tag_.string_length_ >= sizeof(value_.string_u8_inline_)
 		|| type() == ValueType::kObject) {
-		object()->deref();
-		if (object()->ref_count() == 0) {
+		object().deref();
+		if (object().ref_count() == 0) {
 			// ÊÍ·Å¶ÔÏó
-			delete object();
+			delete &object();
 		}
 	}
 }
@@ -107,7 +107,7 @@ void Value::operator=(const Value& r) {
 	if (type() == ValueType::kString && tag_.string_length_ >= sizeof(value_.string_u8_inline_)
 		|| type() == ValueType::kObject) {
 		value_.object_ = r.value_.object_;
-		object()->ref();
+		object().ref();
 	}
 	else {
 		value_ = r.value_;
@@ -138,13 +138,13 @@ bool Value::operator<(const Value& rhs) const {
 		return std::strcmp(string_u8(), rhs.string_u8()) < 0;
 	}
 	case ValueType::kObject:
-		return object() < rhs.object(); // Compare pointers
+		return &object() < &rhs.object(); // Compare pointers
 
 	case ValueType::kI64:
 		return i64() < rhs.i64();
 	case ValueType::kU64:
 		return u64() < rhs.u64();
-	case ValueType::kFunctionBody:
+	case ValueType::kFunctionDef:
 	case ValueType::kFunctionBridge:
 	case ValueType::kUpValue:
 		return value_.up_value_.value < rhs.value_.up_value_.value;
@@ -171,13 +171,13 @@ bool Value::operator>(const Value& rhs) const {
 		return std::strcmp(string_u8(), rhs.string_u8()) > 0;
 	}
 	case ValueType::kObject:
-		return object() > rhs.object(); // Compare pointers
+		return &object() > &rhs.object(); // Compare pointers
 
 	case ValueType::kI64:
 		return i64() > rhs.i64();
 	case ValueType::kU64:
 		return u64() > rhs.u64();
-	case ValueType::kFunctionBody:
+	case ValueType::kFunctionDef:
 	case ValueType::kFunctionBridge:
 	case ValueType::kUpValue:
 		return value_.up_value_.value > rhs.value_.up_value_.value;
@@ -203,10 +203,10 @@ bool Value::operator==(const Value& rhs) const {
 		return std::strcmp(string_u8(), rhs.string_u8()) == 0;
 	}
 	case ValueType::kObject:
-		return object() == rhs.object();
+		return &object() == &rhs.object();
 	case ValueType::kI64:
 		return i64() == rhs.i64();
-	case ValueType::kFunctionBody:
+	case ValueType::kFunctionDef:
 	case ValueType::kFunctionBridge:
 	case ValueType::kUpValue:
 		return value_.object_ == rhs.value_.object_;
@@ -360,9 +360,9 @@ void Value::set_string_u8(const char* string_u8, size_t size) {
 }
 
 
-Object* Value::object() const {
+Object& Value::object() const {
 	assert(type() == ValueType::kString || type() == ValueType::kObject);
-	return value_.object_;
+	return *value_.object_;
 }
 
 
@@ -376,14 +376,14 @@ uint64_t Value::u64() const {
 }
 
 
-FunctionBodyObject* Value::function_body() const { 
-	assert(type() == ValueType::kFunctionBody); 
-	return reinterpret_cast<FunctionBodyObject*>(value_.object_); 
+FunctionDefObject* Value::function_def() const { 
+	assert(type() == ValueType::kFunctionDef); 
+	return reinterpret_cast<FunctionDefObject*>(value_.object_); 
 }
 
-FunctionRefObject* Value::function_ref() const {
-	assert(type() == ValueType::kFunctionRef);
-	return reinterpret_cast<FunctionRefObject*>(value_.object_);
+FunctionObject* Value::function() const {
+	assert(type() == ValueType::kFunction);
+	return reinterpret_cast<FunctionObject*>(value_.object_);
 }
 
 FunctionBridgeObject Value::function_bridge() const { 
