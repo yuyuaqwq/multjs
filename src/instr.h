@@ -66,7 +66,6 @@ enum class OpcodeType {
 	// Return instructions
 	kReturn = 0xb1,
 
-	kFuncDefInit = 0xb7,
 	// Method invocation
 	kInvokeStatic = 0xb8,
 };

@@ -40,7 +40,7 @@ private:
 	Value& GetVar(uint32_t idx);
 	void SetVar(uint32_t idx, Value&& var);
 
-	void LoadValue(const Value& value);
+	void LoadConst(uint32_t const_idx);
 
 	const ConstPool& const_pool() const;
 	Stack& stack();
