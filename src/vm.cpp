@@ -230,6 +230,9 @@ void Vm::Run() {
 			break;
 		}
 		case OpcodeType::kReturn: {
+			// 将要返回，需要提升当前栈帧上的闭包变量到堆中
+			// 拿到返回之后的函数变量，将其赋值为
+
 			auto ret_value = stack_frame_.Pop();
 
 			auto save_bottom = stack_frame_.Pop();
