@@ -14,6 +14,8 @@ std::map<OpcodeType, InstrInfo> g_instr_symbol{
 
     {OpcodeType::kCLoad, {"cload", {1}}},
     {OpcodeType::kCLoadW, {"cload_w", {2}}},
+    {OpcodeType::kCLoadD, {"cload_d", {4}}},
+    
 
     {OpcodeType::kVLoad, {"vload", {1}}},
     {OpcodeType::kVLoad_0, {"vload_0", {}}},
@@ -52,6 +54,7 @@ std::map<OpcodeType, InstrInfo> g_instr_symbol{
 
     {OpcodeType::kReturn, {"return", {}}},
 
+    {OpcodeType::kInitFuncDef, {"initfuncdef", {}}},
     {OpcodeType::kInvokeStatic, {"invokestatic", {2}}},
 };
 
@@ -130,7 +133,8 @@ void ByteCode::EmitConstLoad(uint32_t idx) {
 		EmitU16(idx);
 	}
 	else {
-		// err
+        EmitOpcode(OpcodeType::kCLoadD);
+        EmitU32(idx);
 	}
 }
 

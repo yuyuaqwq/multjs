@@ -26,6 +26,7 @@ void Vm::EvalFunction(const Value& func_val) {
 	cur_func_val_ = func_val;
 	stack().resize(function_def(cur_func_val_)->var_count);
 
+	// 最外层的函数不会通过CLoadFunc加载，所以需要自己初始化
 	FunctionLoadInit(&cur_func_val_);
 	FunctionCallInit(cur_func_val_);
 
@@ -96,36 +97,6 @@ void Vm::SetVar(uint32_t idx, Value&& var) {
 }
 
 void Vm::LoadValue(const Value& value) {
-	if (value.type() == ValueType::kFunctionDef) {
-		// 后续可以单独分一个指令
-		// 即函数定义类型的赋值，如果存在closure_var_defs_，需要自动转成函数类型
-		auto func_val = value;
-		if (FunctionLoadInit(&func_val)) {
-			// array需要初始化为upvalue，指向父函数的ArrayValue
-			// 如果没有父函数就不需要，即是顶层函数，默认初始化为未定义
-
-			auto func = func_val.function();
-			auto parent_func = cur_func_val_.function();
-
-			// 递增父函数的引用计数，用于延长父函数中的ArrayValue的生命周期
-			func->parent_function_ = cur_func_val_;
-
-			// 引用到父函数的ArrayValue
-			auto& arr_obj = func->closure_value_arr_.object<ArrayObject>().mutale_values();
-			auto& parent_arr_obj = parent_func->closure_value_arr_.object<ArrayObject>().mutale_values();
-
-			for (auto& def : func->func_def_->closure_var_defs_) {
-				if (def.second.parent_var_idx == -1) {
-					// 当前是顶级变量
-					continue;
-				}
-				auto parent_arr_idx = parent_func->func_def_->closure_var_defs_[def.second.parent_var_idx].arr_idx;
-				arr_obj[def.second.arr_idx] = Value(UpValue(&parent_arr_obj[parent_arr_idx]));
-			}
-		}
-		stack_frame_.Push(func_val);
-		return;
-	}
 	stack_frame_.Push(value);
 }
 
@@ -159,6 +130,12 @@ void Vm::Run() {
 		case OpcodeType::kCLoadW: {
 			auto const_idx = cur_func_def->byte_code.GetU16(pc_);
 			pc_ += 2;
+			LoadValue(const_pool().Get(const_idx));
+			break;
+		}
+		case OpcodeType::kCLoadD: {
+			auto const_idx = cur_func_def->byte_code.GetU32(pc_);
+			pc_ += 4;
 			LoadValue(const_pool().Get(const_idx));
 			break;
 		}
@@ -223,6 +200,38 @@ void Vm::Run() {
 			a = -a;
 			break;
 		}		 
+		case OpcodeType::kInitFuncDef: {
+			auto& func_val = stack_frame_.Get(-1);
+
+			if (func_val.type() != ValueType::kFunctionDef) {
+				throw VmException("The loaded function constant is not a function definition.");
+			}
+
+			if (FunctionLoadInit(&func_val)) {
+				// array需要初始化为upvalue，指向父函数的ArrayValue
+				// 如果没有父函数就不需要，即是顶层函数，默认初始化为未定义
+
+				auto func = func_val.function();
+				auto parent_func = cur_func_val_.function();
+
+				// 递增父函数的引用计数，用于延长父函数中的ArrayValue的生命周期
+				func->parent_function_ = cur_func_val_;
+
+				// 引用到父函数的ArrayValue
+				auto& arr_obj = func->closure_value_arr_.object<ArrayObject>().mutale_values();
+				auto& parent_arr_obj = parent_func->closure_value_arr_.object<ArrayObject>().mutale_values();
+
+				for (auto& def : func->func_def_->closure_var_defs_) {
+					if (def.second.parent_var_idx == -1) {
+						// 当前是顶级变量
+						continue;
+					}
+					auto parent_arr_idx = parent_func->func_def_->closure_var_defs_[def.second.parent_var_idx].arr_idx;
+					arr_obj[def.second.arr_idx] = Value(UpValue(&parent_arr_obj[parent_arr_idx]));
+				}
+			}
+			break;
+		}
 		case OpcodeType::kInvokeStatic: {
 			auto var_idx = cur_func_def->byte_code.GetU16(pc_);
 			pc_ += 2;

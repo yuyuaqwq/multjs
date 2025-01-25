@@ -18,6 +18,7 @@ enum class OpcodeType {
 
 	kCLoad = 0x12,
 	kCLoadW = 0x13,
+	kCLoadD = 0x14,
 
 	// Load instructions
 	kVLoad = 0x15,
@@ -65,6 +66,7 @@ enum class OpcodeType {
 	// Return instructions
 	kReturn = 0xb1,
 
+	kInitFuncDef = 0xb7,
 	// Method invocation
 	kInvokeStatic = 0xb8,
 };

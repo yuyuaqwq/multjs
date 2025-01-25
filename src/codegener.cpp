@@ -181,6 +181,8 @@ void CodeGener::GenerateStat(Stat* stat) {
 void CodeGener::GenerateFunctionDeclStat(FuncDeclStat* stat) {
 	auto const_idx = AllocConst(Value(new FunctionDefObject(stat->par_list.size())));
 	cur_func_->byte_code.EmitConstLoad(const_idx);
+	cur_func_->byte_code.EmitOpcode(OpcodeType::kInitFuncDef);
+
 	auto func_def = runtime_->const_pool().Get(const_idx).function_def();
 
 	//cur_func_->byte_code.EmitOpcode(OpcodeType::kFuncRef);
