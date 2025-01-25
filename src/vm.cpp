@@ -236,7 +236,7 @@ void Vm::Run() {
 			case ValueType::kFunctionDef: {
 				func_def = function_def(func_val);
 
-				printf("%s\n", func_def->Disassembly().c_str());
+				// printf("%s\n", func_def->Disassembly().c_str());
 
 				if (par_count < func_def->par_count) {
 					throw VmException("Wrong number of parameters passed when calling the function");
