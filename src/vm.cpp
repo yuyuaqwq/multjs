@@ -200,7 +200,7 @@ void Vm::Run() {
 			a = -a;
 			break;
 		}		 
-		case OpcodeType::kInitFuncDef: {
+		case OpcodeType::kFuncDefInit: {
 			auto& func_val = stack_frame_.Get(-1);
 
 			if (func_val.type() != ValueType::kFunctionDef) {

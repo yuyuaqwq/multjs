@@ -54,7 +54,7 @@ std::map<OpcodeType, InstrInfo> g_instr_symbol{
 
     {OpcodeType::kReturn, {"return", {}}},
 
-    {OpcodeType::kInitFuncDef, {"initfuncdef", {}}},
+    {OpcodeType::kFuncDefInit, {"funcdefinit", {}}},
     {OpcodeType::kInvokeStatic, {"invokestatic", {2}}},
 };
 
