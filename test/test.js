@@ -24,6 +24,8 @@ function tt() {
     function qqq() {
         sbsb = sbsb + 100;
         println("sbsb:", sbsb);
+        cc = cc + 5;
+        println("cc:", cc);
     }
     return qqq;
 }
@@ -37,3 +39,12 @@ println("b:", b);
 let tt_1 = tt();
 tt_1();
 tt_1();
+
+let tt_2 = tt();
+tt_2();
+tt_2();
+
+let tt_3 = tt_2;
+tt_3();
+
+tt_2();

@@ -230,11 +230,11 @@ void Vm::Run() {
 			auto& func_val = GetVar(var_idx);
 			auto par_count = stack_frame_.Pop().u64();
 
-			FunctionDefObject* func_def = nullptr;
+			
 			switch (func_val.type()) {
 			case ValueType::kFunction:
 			case ValueType::kFunctionDef: {
-				func_def = function_def(func_val);
+				auto func_def = function_def(func_val);
 
 				// printf("%s\n", func_def->Disassembly().c_str());
 
