@@ -116,6 +116,7 @@ void Vm::LoadValue(const Value& value) {
 
 			for (auto& def : func->func_def_->closure_var_defs_) {
 				if (def.second.parent_var_idx == -1) {
+					// 当前是顶级变量
 					continue;
 				}
 				auto parent_arr_idx = parent_func->func_def_->closure_var_defs_[def.second.parent_var_idx].arr_idx;
