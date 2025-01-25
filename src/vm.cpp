@@ -107,18 +107,12 @@ void Vm::LoadValue(const Value& value) {
 			// 递增父函数的ArrayValue的引用计数
 			func->parent_closure_value_arr_ = parent_func->closure_value_arr_;
 
-			auto& parent_arr_obj = func->parent_closure_value_arr_.object<ArrayObject>().mutale_values();
-
-
-			func->func_def_->closure_var_defs_;
-
 			// 引用到父函数的ArrayValue
 			auto& arr_obj = func->closure_value_arr_.object<ArrayObject>().mutale_values();
-
+			auto& parent_arr_obj = func->parent_closure_value_arr_.object<ArrayObject>().mutale_values();
 
 			for (auto& def : func->func_def_->closure_var_defs_) {
 				auto parent_arr_idx = parent_func->func_def_->closure_var_defs_[def.second.parent_var_idx].arr_idx;
-
 				arr_obj[def.second.arr_idx] = Value(UpValue(&parent_arr_obj[parent_arr_idx]));
 			}
 		}
@@ -233,7 +227,6 @@ void Vm::Run() {
 			switch (func_val.type()) {
 			case ValueType::kFunction:
 			case ValueType::kFunctionDef: {
-
 				func_def = function_def(func_val);
 
 				printf("%s\n", func_def->Disassembly().c_str());
