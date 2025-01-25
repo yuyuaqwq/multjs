@@ -32,8 +32,8 @@ public:
 	void EvalFunction(const Value& func);
 
 private:
-	bool FunctionLoadInit(Value* func_val);
-	void FunctionCallInit(const Value& func_val);
+	bool FunctionDefInit(Value* func_val);
+	void FunctionInit(const Value& func_val);
 
 	void Run();
 

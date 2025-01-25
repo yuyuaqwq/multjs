@@ -27,8 +27,8 @@ void Vm::EvalFunction(const Value& func_val) {
 	stack().resize(function_def(cur_func_val_)->var_count);
 
 	// 最外层的函数不会通过CLoadFunc加载，所以需要自己初始化
-	FunctionLoadInit(&cur_func_val_);
-	FunctionCallInit(cur_func_val_);
+	FunctionDefInit(&cur_func_val_);
+	FunctionInit(cur_func_val_);
 
 	Run();
 }
@@ -43,10 +43,7 @@ FunctionDefObject* Vm::function_def(const Value& func_val) const {
 	return nullptr;
 }
 
-bool Vm::FunctionLoadInit(Value* func_val) {
-	if (func_val->type() != ValueType::kFunctionDef) {
-		return false;
-	}
+bool Vm::FunctionDefInit(Value* func_val) {
 	auto func_def = func_val->function_def();
 	if (func_def->closure_var_defs_.empty()) {
 		return false;
@@ -64,19 +61,17 @@ bool Vm::FunctionLoadInit(Value* func_val) {
 	return true;
 }
 
-void Vm::FunctionCallInit(const Value& func_val) {
-	if (func_val.type() == ValueType::kFunction) {
-		auto func = func_val.function();
-		auto func_def = func->func_def_;
+void Vm::FunctionInit(const Value& func_val) {
+	auto func = func_val.function();
+	auto func_def = func->func_def_;
 
-		// 调用的是函数对象，可能需要处理闭包内的upvalue
-		auto& arr_obj = func->closure_value_arr_.object<ArrayObject>();
-		for (auto& def : func_def->closure_var_defs_) {
-			// 栈上的对象通过upvalue关联到闭包变量
-			stack_frame_.Set(def.first, Value(
-				UpValue(&arr_obj.mutale_values()[def.second.arr_idx])
-			));
-		}
+	// 调用的是函数对象，可能需要处理闭包内的upvalue
+	auto& arr_obj = func->closure_value_arr_.object<ArrayObject>();
+	for (auto& def : func_def->closure_var_defs_) {
+		// 栈上的对象通过upvalue关联到闭包变量
+		stack_frame_.Set(def.first, Value(
+			UpValue(&arr_obj.mutale_values()[def.second.arr_idx])
+		));
 	}
 }
 
@@ -101,7 +96,7 @@ void Vm::LoadConst(uint32_t const_idx) {
 
 	if (value.type() == ValueType::kFunctionDef) {
 		auto func_val = value;
-		if (FunctionLoadInit(&func_val)) {
+		if (FunctionDefInit(&func_val)) {
 			// array需要初始化为upvalue，指向父函数的ArrayValue
 			// 如果没有父函数就不需要，即是顶层函数，默认初始化为未定义
 
@@ -280,7 +275,9 @@ void Vm::Run() {
 				stack_frame_.Push(Value(save_pc));
 				stack_frame_.Push(Value(save_bottom));
 
-				FunctionCallInit(func_val);
+				if (func_val.type() == ValueType::kFunction) {
+					FunctionInit(func_val);
+				}
 
 				break;
 			}
