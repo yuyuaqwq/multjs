@@ -2,9 +2,8 @@
 
 namespace mjs {
 
-FunctionDefObject::FunctionDefObject(FunctionDefObject* parent, uint32_t par_count) noexcept
-	: parent(parent)
-	, par_count(par_count) {}
+FunctionDefObject::FunctionDefObject(uint32_t par_count) noexcept
+	: par_count(par_count) {}
 
 std::string FunctionDefObject::Disassembly() {
 	std::string str;

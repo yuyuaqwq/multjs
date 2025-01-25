@@ -90,7 +90,7 @@ Value CodeGener::Generate(BlockStat* block) {
 	scopes_.clear();
 
 	// 创建顶层函数(模块)
-	auto idx = AllocConst(Value(new FunctionDefObject(nullptr, 0)));
+	auto idx = AllocConst(Value(new FunctionDefObject(0)));
 	cur_func_ = runtime_->const_pool().Get(idx).function_def();
 
 	scopes_.emplace_back(cur_func_);
@@ -179,7 +179,7 @@ void CodeGener::GenerateStat(Stat* stat) {
 }
 
 void CodeGener::GenerateFunctionDeclStat(FuncDeclStat* stat) {
-	auto const_idx = AllocConst(Value(new FunctionDefObject(scopes_.back().func(), stat->par_list.size())));
+	auto const_idx = AllocConst(Value(new FunctionDefObject(stat->par_list.size())));
 	cur_func_->byte_code.EmitConstLoad(const_idx);
 	auto func_def = runtime_->const_pool().Get(const_idx).function_def();
 

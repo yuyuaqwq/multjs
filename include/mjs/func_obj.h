@@ -12,12 +12,10 @@ namespace mjs {
 
 class FunctionDefObject : public Object {
 public:
-	explicit FunctionDefObject(FunctionDefObject* parent, uint32_t par_count) noexcept;
+	explicit FunctionDefObject(uint32_t par_count) noexcept;
 	std::string Disassembly();
 
 public:
-	FunctionDefObject* parent;
-
 	uint32_t par_count;
 	uint32_t var_count = 0;
 	ByteCode byte_code;
