@@ -44,7 +44,7 @@ public:
 	Value parent_function_;
 
 	// 当前函数被子函数捕获的值，不在放到栈上，而是提升到堆上(包括UpValue)
-	Value closure_value_arr_;
+	std::vector<Value> closure_value_arr_;
 };
 
 } // namespace mjs

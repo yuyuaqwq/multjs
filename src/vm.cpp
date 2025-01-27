@@ -54,9 +54,8 @@ bool Vm::FunctionDefInit(Value* func_val) {
 	auto func = func_val->function();
 	// func->upvalues_.resize(func_def->closure_var_defs_.size());
 
-	func->closure_value_arr_ = Value(new ArrayObject());
-	auto& arr_obj = func->closure_value_arr_.object<ArrayObject>();
-	arr_obj.mutale_values().resize(func_def->closure_var_defs_.size());
+	auto& arr = func->closure_value_arr_;
+	arr.resize(func_def->closure_var_defs_.size());
 
 	return true;
 }
@@ -66,11 +65,11 @@ void Vm::FunctionInit(const Value& func_val) {
 	auto func_def = func->func_def_;
 
 	// 调用的是函数对象，可能需要处理闭包内的upvalue
-	auto& arr_obj = func->closure_value_arr_.object<ArrayObject>();
+	auto& arr = func->closure_value_arr_;
 	for (auto& def : func_def->closure_var_defs_) {
 		// 栈上的对象通过upvalue关联到闭包变量
 		stack_frame_.Set(def.first, Value(
-			UpValue(&arr_obj.mutale_values()[def.second.arr_idx])
+			UpValue(&arr[def.second.arr_idx])
 		));
 	}
 }
@@ -107,8 +106,8 @@ void Vm::LoadConst(uint32_t const_idx) {
 			func->parent_function_ = cur_func_val_;
 
 			// 引用到父函数的ArrayValue
-			auto& arr_obj = func->closure_value_arr_.object<ArrayObject>().mutale_values();
-			auto& parent_arr_obj = parent_func->closure_value_arr_.object<ArrayObject>().mutale_values();
+			auto& arr = func->closure_value_arr_;
+			auto& parent_arr = parent_func->closure_value_arr_;
 
 			for (auto& def : func->func_def_->closure_var_defs_) {
 				if (def.second.parent_var_idx == -1) {
@@ -116,7 +115,7 @@ void Vm::LoadConst(uint32_t const_idx) {
 					continue;
 				}
 				auto parent_arr_idx = parent_func->func_def_->closure_var_defs_[def.second.parent_var_idx].arr_idx;
-				arr_obj[def.second.arr_idx] = Value(UpValue(&parent_arr_obj[parent_arr_idx]));
+				arr[def.second.arr_idx] = Value(UpValue(&parent_arr[parent_arr_idx]));
 			}
 		}
 		stack_frame_.Push(std::move(func_val));
