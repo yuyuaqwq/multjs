@@ -476,19 +476,19 @@ void CodeGener::GenerateExp(Exp* exp) {
 		auto bina_op_exp = static_cast<BinaryOpExp*>(exp);
 		if (bina_op_exp->oper == TokenType::kOpAssign) {
 			GenerateExp(bina_op_exp->right_exp.get());
-			if (bina_op_exp->left_exp->GetType() == ExpType::kIdentifier) {
-				auto var_exp = static_cast<IdentifierExp*>(bina_op_exp->left_exp.get());
-				auto var_idx = GetVar(var_exp->name);
-				if (var_idx == -1) {
-					throw CodeGenerException("var not defined");
-				}
-				cur_func_->byte_code.EmitVarStore(var_idx);
+			if (bina_op_exp->left_exp->value_category != ExpValueCategory::kLeftValue) {
+				throw CodeGenerException("The left side of the assignment operator must be an lvalue.");
 			}
-			else {
-				throw CodeGenerException("Expression that cannot be assigned a value");
-			}
-			// 最后再把左值表达式入栈
+			// 再把左值表达式入栈
 			GenerateExp(bina_op_exp->left_exp.get());
+			return;
+		}
+
+		if (bina_op_exp->oper == TokenType::kSepDot) {
+			// 对象访问
+			auto attr_exp = static_cast<IdentifierExp*>(bina_op_exp->right_exp.get());
+			auto const_idx = AllocConst(MakeValue(attr_exp));
+			cur_func_->byte_code.EmitAttrLoad(const_idx);	// 访问对象成员
 			return;
 		}
 
@@ -585,6 +585,10 @@ Value CodeGener::MakeValue(Exp* exp) {
 	case ExpType::kString: {
 		auto str_exp = static_cast<StringExp*>(exp);
 		return Value(str_exp->value);
+	}
+	case ExpType::kIdentifier: {
+		auto ident_exp = static_cast<IdentifierExp*>(exp);
+		return Value(ident_exp->name);
 	}
 	case ExpType::kArrayLiteralExp: {
 		auto arr_exp = static_cast<ArrayLiteralExp*>(exp);

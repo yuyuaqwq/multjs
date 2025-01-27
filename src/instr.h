@@ -106,6 +106,8 @@ public:
 	void EmitVarStore(uint32_t idx);
 	void EmitVarLoad(uint32_t idx); 
 
+	void EmitAttrLoad(uint32_t const_idx);
+
 	void RepairPc(uint32_t pc_from, uint32_t pc_to);
 	uint32_t CalcPc(uint32_t cur_pc);
 

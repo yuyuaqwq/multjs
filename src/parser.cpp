@@ -487,9 +487,15 @@ std::unique_ptr<Exp> Parser::ParseExp2() {
 			if (lexer_->PeekToken().Is(TokenType::kSepLParen)) {
 				auto par_list = ParseExpList(TokenType::kSepLParen, TokenType::kSepRParen, false);
 				exp2 = std::make_unique<FunctionCallExp>(std::move(exp2), std::move(par_list));
-
 			}
+			auto exp2_type = exp2->GetType();
 			exp = std::make_unique<BinaryOpExp>(move(exp), type, std::move(exp2));
+			if (exp2_type == ExpType::kIdentifier) {
+				exp->value_category = ExpValueCategory::kLeftValue;
+			}
+			else {
+				exp->value_category = ExpValueCategory::kRightValue;
+			}
 		}
 		else if (type == TokenType::kSepLParen) {
 			auto par_list = ParseExpList(TokenType::kSepLParen, TokenType::kSepRParen, false);
@@ -582,6 +588,7 @@ std::unique_ptr<Exp> Parser::ParseExp0() {
 	case TokenType::kIdentifier: {
 		lexer_->NextToken();
 		exp = std::make_unique<IdentifierExp>(token.str());
+		exp->value_category = ExpValueCategory::kLeftValue;
 		break;
 	}
 	}

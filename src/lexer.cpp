@@ -161,6 +161,9 @@ Token Lexer::ReadNextToken() {
     case ',':
         token.set_type(TokenType::kSepComma);
         return token;
+    case '.':
+        token.set_type(TokenType::kSepDot);
+        return token;
     case '(':
         token.set_type(TokenType::kSepLParen);
         return token;

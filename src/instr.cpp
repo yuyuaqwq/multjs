@@ -163,6 +163,10 @@ void ByteCode::EmitVarLoad(uint32_t idx) {
     }
 }
 
+void ByteCode::EmitAttrLoad(uint32_t const_idx) {
+    EmitConstLoad(idx);
+}
+
 
 void ByteCode::RepairPc(uint32_t pc_from, uint32_t pc_to) {
 	// skip opcode

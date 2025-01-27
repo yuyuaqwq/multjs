@@ -1,3 +1,4 @@
+/*
 let cc = 1000;
 
 function add(a, b) {
@@ -48,3 +49,12 @@ let tt_3 = tt_2;
 tt_3();
 
 tt_2();
+*/
+
+
+function tt() {
+    return 100;
+}
+let obj = {};
+obj.sb = tt;
+obj.sb();
