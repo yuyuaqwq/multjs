@@ -74,6 +74,15 @@ int32_t CodeGener::GetVar(const std::string& var_name) {
 	return var_idx;
 }
 
+int32_t CodeGener::GetVarByExp(Exp* exp) {
+	auto var_exp = static_cast<IdentifierExp*>(exp);
+	auto var_idx = GetVar(var_exp->name);
+	if (var_idx == -1) {
+		throw CodeGenerException("var not defined");
+	}
+	return var_idx;
+}
+
 
 void CodeGener::RegistryFunctionBridge(const std::string& func_name, FunctionBridgeObject func) {
 	auto var_idx = AllocVar(func_name);
@@ -233,17 +242,6 @@ void CodeGener::GenerateNewVarStat(NewVarStat* stat) {
 	// 弹出到变量中
 	cur_func_->byte_code.EmitVarStore(var_idx);
 }
-
-//void CodeGener::GenerateAssignStat(AssignStat* stat) {
-//	auto var_idx = GetVar(stat->var_name);
-//	if (var_idx == -1) {
-//		throw CodeGenerException("var not defined");
-//	}
-//	// 表达式压栈
-//	GenerateExp(stat->exp.get());
-//	// 弹出到变量中
-//	cur_func_->byte_code.EmitVarStore(var_idx);
-//}
 
 // 2字节指的是基于当前指令的offset
 void CodeGener::GenerateIfStat(IfStat* stat) {
@@ -426,11 +424,7 @@ void CodeGener::GenerateExp(Exp* exp) {
 	}
 	case ExpType::kIdentifier: {
 		// 是取变量值的话，查找到对应的变量编号，将其入栈
-		auto var_exp = static_cast<IdentifierExp*>(exp);
-		auto var_idx = GetVar(var_exp->name);
-		if (var_idx == -1) {
-			throw CodeGenerException("var not defined");
-		}
+		auto var_idx = GetVarByExp(exp);
 		cur_func_->byte_code.EmitVarLoad(var_idx);	// 从变量中获取
 		break;
 	}
@@ -473,31 +467,89 @@ void CodeGener::GenerateExp(Exp* exp) {
 		break;
 	}
 	case ExpType::kBinaryOp: {
-		auto bina_op_exp = static_cast<BinaryOpExp*>(exp);
-		if (bina_op_exp->oper == TokenType::kOpAssign) {
-			GenerateExp(bina_op_exp->right_exp.get());
-			if (bina_op_exp->left_exp->value_category != ExpValueCategory::kLeftValue) {
+		auto bina_exp = static_cast<BinaryOpExp*>(exp);
+		if (bina_exp->oper == TokenType::kOpAssign) {
+			// 右值表达式先入栈
+			GenerateExp(bina_exp->right_exp.get());
+
+			auto lvalue_exp = static_cast<BinaryOpExp*>(bina_exp->left_exp.get());
+			if (lvalue_exp->value_category != ExpValueCategory::kLeftValue) {
 				throw CodeGenerException("The left side of the assignment operator must be an lvalue.");
 			}
-			// 再把左值表达式入栈
-			GenerateExp(bina_op_exp->left_exp.get());
+			// 再处理左值表达式
+
+			// 为左值赋值
+			if (lvalue_exp->GetType() == ExpType::kIdentifier) {
+				auto var_idx = GetVarByExp(exp);
+				cur_func_->byte_code.EmitVarStore(var_idx);	// 从变量中获取
+
+				// 完成后，需要再将左值再次入栈
+				GenerateExp(lvalue_exp);
+			}
+			else if (lvalue_exp->GetType() == ExpType::kBinaryOp
+				&& static_cast<BinaryOpExp*>(bina_exp->left_exp.get())->oper == TokenType::kSepDot) {
+				
+				// 需要根据左值表达式的类型生成指令
+				if (lvalue_exp->left_exp->GetType() == ExpType::kIdentifier) {
+					// 局部变量则需要varidx
+					auto var_idx = GetVarByExp(lvalue_exp->left_exp.get());
+
+					auto prop_exp = static_cast<IdentifierExp*>(lvalue_exp->right_exp.get());
+					auto const_idx = AllocConst(MakeValue(prop_exp));
+					
+					cur_func_->byte_code.EmitVPropertyStore(var_idx, const_idx);	// 设置对象成员
+
+					// 完成后，需要再将左值再次入栈
+					GenerateExp(lvalue_exp);
+				}
+				else {
+					// 临时对象则需要入栈
+					throw CodeGenerException("Lvalue expression type error.");
+				}
+			}
+			else {
+				throw CodeGenerException("Lvalue expression type error.");
+			}
+
 			return;
 		}
 
-		if (bina_op_exp->oper == TokenType::kSepDot) {
-			// 对象访问
-			auto attr_exp = static_cast<IdentifierExp*>(bina_op_exp->right_exp.get());
-			auto const_idx = AllocConst(MakeValue(attr_exp));
-			cur_func_->byte_code.EmitAttrLoad(const_idx);	// 访问对象成员
+		// 这里是访问属性
+		if (bina_exp->oper == TokenType::kSepDot) {
+			// 根据名称进行对象访问
+			auto prop_exp = bina_exp->right_exp.get();
+
+			// 可能是调用函数
+			if (prop_exp->GetType() == ExpType::kFunctionCall) {
+				auto func_call = static_cast<FunctionCallExp*>(prop_exp);
+				GenerateFunctionCallPar(func_call);
+
+				// 左值表达式入栈
+				GenerateExp(bina_exp->left_exp.get());
+
+				auto const_idx = AllocConst(MakeValue(func_call->func_name.get()));
+				cur_func_->byte_code.EmitPropertyCall(const_idx);
+			}
+			else if (prop_exp->GetType() == ExpType::kIdentifier) {
+				// 左值表达式入栈
+				GenerateExp(bina_exp->left_exp.get());
+
+				// 访问对象成员
+				auto const_idx = AllocConst(MakeValue(prop_exp));
+				cur_func_->byte_code.EmitPropertyLoad(const_idx);
+			}
+			else {
+				throw CodeGenerException("Incorrect right value for attribute access.");
+			}
 			return;
 		}
 
 		// 左右表达式的值入栈
-		GenerateExp(bina_op_exp->left_exp.get());
-		GenerateExp(bina_op_exp->right_exp.get());
+		GenerateExp(bina_exp->left_exp.get());
+		GenerateExp(bina_exp->right_exp.get());
 
 		// 生成运算指令
-		switch (bina_op_exp->oper) {
+		switch (bina_exp->oper) {
 		case TokenType::kOpAdd:
 			cur_func_->byte_code.EmitOpcode(OpcodeType::kAdd);
 			break;
@@ -536,24 +588,14 @@ void CodeGener::GenerateExp(Exp* exp) {
 	case ExpType::kFunctionCall: {
 		auto func_call_exp = static_cast<FunctionCallExp*>(exp);
 
-		auto var_idx = GetVar(static_cast<IdentifierExp*>(func_call_exp->func_name.get())->name);
-		if (var_idx == -1) {
-			throw CodeGenerException("Function not defined");
-		}
+		auto var_idx = GetVarByExp(func_call_exp->func_name.get());
 
 		//if (func_call_exp->par_list.size() < const_table_[]->function_def()->par_count) {
 		//	throw CodeGenerException("Wrong number of parameters passed during function call");
 		//}
 
-		// 参数正序入栈
-		for (int i = 0; i < func_call_exp->par_list.size(); ++i) {
-			GenerateExp(func_call_exp->par_list[i].get());
-		}
-
-		auto const_idx = AllocConst(Value(func_call_exp->par_list.size()));
-		cur_func_->byte_code.EmitConstLoad(const_idx);
-
-		cur_func_->byte_code.EmitOpcode(OpcodeType::kInvokeStatic);
+		GenerateFunctionCallPar(func_call_exp);
+		cur_func_->byte_code.EmitOpcode(OpcodeType::kFunctionCall);
 		cur_func_->byte_code.EmitU16(var_idx);
 
 		break;
@@ -597,14 +639,28 @@ Value CodeGener::MakeValue(Exp* exp) {
 			arr_obj->mutale_values().emplace_back(MakeValue(exp.get()));
 		}
 		return Value(arr_obj);
-		break;
 	}
 	case ExpType::kObjectLiteralExp: {
-		return Value();
+		auto obj_exp = static_cast<ObjectLiteralExp*>(exp);
+		Object* obj = new Object();
+		for (auto& exp : obj_exp->obj_litera) {
+			obj->SetProperty(exp.first, MakeValue(exp.second.get()));
+		}
+		return Value(obj);
 	}
 	default:
 		throw CodeGenerException("Unable to generate expression for value");
 	}
+}
+
+void CodeGener::GenerateFunctionCallPar(FunctionCallExp* func_call_exp) {
+	// 参数正序入栈
+	for (int i = 0; i < func_call_exp->par_list.size(); ++i) {
+		GenerateExp(func_call_exp->par_list[i].get());
+	}
+
+	auto const_idx = AllocConst(Value(func_call_exp->par_list.size()));
+	cur_func_->byte_code.EmitConstLoad(const_idx);
 }
 
 } // namespace mjs

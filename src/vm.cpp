@@ -61,6 +61,9 @@ bool Vm::FunctionDefInit(Value* func_val) {
 }
 
 void Vm::FunctionInit(const Value& func_val) {
+	if (func_val.type() != ValueType::kFunction) {
+		return;
+	}
 	auto func = func_val.function();
 	auto func_def = func->func_def_;
 
@@ -195,6 +198,55 @@ void Vm::Run() {
 			SetVar(var_idx, stack_frame_.Pop());
 			break;
 		}
+		case OpcodeType::kPropertyLoad: {
+			// 栈上是属性名
+			auto name_val = stack_frame_.Pop();
+			auto name = name_val.string_u8();
+
+			auto& obj_val = stack_frame_.Get(-1);
+			auto obj = obj_val.object();
+
+			auto prop = obj.GetProperty(name);
+			if (!prop) {
+				obj_val = Value();
+			}
+			else {
+				obj_val = *prop;
+			}
+
+			break;
+		}
+		case OpcodeType::kPropertyCall: {
+			// 栈上是属性名
+			auto name_val = stack_frame_.Pop();
+			auto name = name_val.string_u8();
+
+			auto obj_val = stack_frame_.Pop();
+			auto obj = obj_val.object();
+
+			auto prop = obj.GetProperty(name);
+			if (!prop) {
+				// 调用一个未定义的属性
+			}
+			else {
+				FunctionSwitch(&cur_func_def, *prop);
+			}
+
+			break;
+		}
+		case OpcodeType::kVPropertyStore: {
+			auto var_idx = cur_func_def->byte_code.GetU8(pc_);
+			pc_ += 1;
+
+			// 设置变量的属性
+			auto name_val = stack_frame_.Pop();
+			auto name = name_val.string_u8();
+
+			auto& var = GetVar(var_idx);
+			var.object().SetProperty(name, stack_frame_.Pop());
+
+			break;
+		}
 		case OpcodeType::kAdd: {
 			auto a = stack_frame_.Pop();
 			auto& b = stack_frame_.Get(-1);
@@ -224,78 +276,13 @@ void Vm::Run() {
 			a = -a;
 			break;
 		}		 
-		case OpcodeType::kInvokeStatic: {
+		case OpcodeType::kFunctionCall: {
 			auto var_idx = cur_func_def->byte_code.GetU16(pc_);
 			pc_ += 2;
 
 			auto& func_val = GetVar(var_idx);
-			auto par_count = stack_frame_.Pop().u64();
-
+			FunctionSwitch(&cur_func_def, func_val);
 			
-			switch (func_val.type()) {
-			case ValueType::kFunction:
-			case ValueType::kFunctionDef: {
-				auto func_def = function_def(func_val);
-
-				// printf("%s\n", func_def->Disassembly().c_str());
-
-				if (par_count < func_def->par_count) {
-					throw VmException("Wrong number of parameters passed when calling the function");
-				}
-
-				auto save_func = cur_func_def;
-				auto save_pc = pc_;
-				auto save_bottom = stack_frame_.bottom();
-				
-				// 栈帧布局：
-				// 返回信息
-				// 局部变量
-				// 参数1
-				// ...
-				// 参数n    <- bottom
-				// 上一栈帧
-
-				// 把多余的参数弹出
-				stack().Reduce(par_count - func_def->par_count);
-
-				// 切换环境和栈帧
-				cur_func_def = func_def;
-				cur_func_val_ = func_val;
-				pc_ = 0;
-				assert(stack().size() >= cur_func_def->par_count);
-				stack_frame_.set_bottom(stack().size() - cur_func_def->par_count);
-
-				// 参数已经入栈了，再分配局部变量部分
-				assert(cur_func_def->var_count >= cur_func_def->par_count);
-				stack().Upgrade(cur_func_def->var_count - cur_func_def->par_count);
-
-				// 保存当前环境，用于Ret返回
-				stack_frame_.Push(Value(save_func));
-				stack_frame_.Push(Value(save_pc));
-				stack_frame_.Push(Value(save_bottom));
-
-				if (func_val.type() == ValueType::kFunction) {
-					FunctionInit(func_val);
-				}
-
-				break;
-			}
-			case ValueType::kFunctionBridge: {
-				// 切换栈帧
-				auto old_bottom = stack_frame_.bottom();
-				stack_frame_.set_bottom(stack().size() - par_count);
-
-				auto ret = func_val.function_bridge()(par_count, &stack_frame_);
-
-				// 还原栈帧
-				stack_frame_.set_bottom(old_bottom);
-				stack().Reduce(par_count);
-				stack_frame_.Push(std::move(ret));
-				break;
-			}
-			default:
-				throw VmException("Non callable types.");
-			}
 			break;
 		}
 		case OpcodeType::kReturn: {
@@ -374,6 +361,75 @@ void Vm::Run() {
 			throw VmException("Unknown instruction");
 		}
 	} while (pc_ >= 0 && pc_ < cur_func_def->byte_code.Size());
+}
+
+void Vm::FunctionSwitch(FunctionDefObject** cur_func_def, const Value& func_val) {
+	auto par_count = stack_frame_.Pop().u64();
+
+	switch (func_val.type()) {
+	case ValueType::kFunction:
+	case ValueType::kFunctionDef: {
+		auto func_def = function_def(func_val);
+
+		// printf("%s\n", func_def->Disassembly().c_str());
+
+		if (par_count < func_def->par_count) {
+			throw VmException("Wrong number of parameters passed when calling the function");
+		}
+
+		auto save_func = *cur_func_def;
+		auto save_pc = pc_;
+		auto save_bottom = stack_frame_.bottom();
+
+		// 栈帧布局：
+		// 返回信息
+		// 局部变量
+		// 参数1
+		// ...
+		// 参数n    <- bottom
+		// 上一栈帧
+
+		// 把多余的参数弹出
+		stack().Reduce(par_count - func_def->par_count);
+
+		// 切换环境和栈帧
+		*cur_func_def = func_def;
+		cur_func_val_ = func_val;
+		pc_ = 0;
+		assert(stack().size() >= (*cur_func_def)->par_count);
+		stack_frame_.set_bottom(stack().size() - (*cur_func_def)->par_count);
+
+		// 参数已经入栈了，再分配局部变量部分
+		assert((*cur_func_def)->var_count >= (*cur_func_def)->par_count);
+		stack().Upgrade((*cur_func_def)->var_count - (*cur_func_def)->par_count);
+
+		// 保存当前环境，用于Ret返回
+		stack_frame_.Push(Value(save_func));
+		stack_frame_.Push(Value(save_pc));
+		stack_frame_.Push(Value(save_bottom));
+
+		if (func_val.type() == ValueType::kFunction) {
+			FunctionInit(func_val);
+		}
+
+		break;
+	}
+	case ValueType::kFunctionBridge: {
+		// 切换栈帧
+		auto old_bottom = stack_frame_.bottom();
+		stack_frame_.set_bottom(stack().size() - par_count);
+
+		auto ret = func_val.function_bridge()(par_count, &stack_frame_);
+
+		// 还原栈帧
+		stack_frame_.set_bottom(old_bottom);
+		stack().Reduce(par_count);
+		stack_frame_.Push(std::move(ret));
+		break;
+	}
+	default:
+		throw VmException("Non callable types.");
+	}
 }
 
 } // namespace mjs

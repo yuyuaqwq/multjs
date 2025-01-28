@@ -29,6 +29,10 @@ std::map<OpcodeType, InstrInfo> g_instr_symbol{
     {OpcodeType::kVStore_2, {"vstore_2", {}}},
     {OpcodeType::kVStore_3, {"vstore_3", {}}},
 
+    {OpcodeType::kPropertyLoad, {"propertyload", {}}},
+    {OpcodeType::kPropertyCall, {"propertycall", {}}},
+    {OpcodeType::kVPropertyStore, {"vpropertystore", {1}}},
+
     {OpcodeType::kPop, {"pop", {}}},
 
     {OpcodeType::kAdd, {"add", {}}},
@@ -54,7 +58,7 @@ std::map<OpcodeType, InstrInfo> g_instr_symbol{
 
     {OpcodeType::kReturn, {"return", {}}},
 
-    {OpcodeType::kInvokeStatic, {"invokestatic", {2}}},
+    {OpcodeType::kFunctionCall, {"functioncall", {2}}},
 };
 
 
@@ -163,9 +167,24 @@ void ByteCode::EmitVarLoad(uint32_t idx) {
     }
 }
 
-void ByteCode::EmitAttrLoad(uint32_t const_idx) {
-    EmitConstLoad(idx);
+void ByteCode::EmitPropertyLoad(uint32_t const_idx) {
+    EmitConstLoad(const_idx);
+    EmitOpcode(OpcodeType::kPropertyLoad);
 }
+
+void ByteCode::EmitPropertyCall(uint32_t const_idx) {
+    EmitConstLoad(const_idx);
+    EmitOpcode(OpcodeType::kPropertyCall);
+}
+
+void ByteCode::EmitVPropertyStore(uint32_t var_idx, uint32_t const_idx) {
+    EmitConstLoad(const_idx);
+    EmitOpcode(OpcodeType::kVPropertyStore);
+    EmitU8(var_idx);
+
+    // todo: U16¡¢U32
+}
+
 
 
 void ByteCode::RepairPc(uint32_t pc_from, uint32_t pc_to) {

@@ -34,6 +34,10 @@ enum class OpcodeType {
 	kVStore_2 = 0x3d,
 	kVStore_3 = 0x3e,
 
+	kPropertyLoad = 0x40,
+	kPropertyCall = 0x41,
+	kVPropertyStore = 0x42,
+
 	// Stack manipulation
 	kPop = 0x57,
 
@@ -67,7 +71,7 @@ enum class OpcodeType {
 	kReturn = 0xb1,
 
 	// Method invocation
-	kInvokeStatic = 0xb8,
+	kFunctionCall = 0xb8,
 };
 
 
@@ -106,7 +110,9 @@ public:
 	void EmitVarStore(uint32_t idx);
 	void EmitVarLoad(uint32_t idx); 
 
-	void EmitAttrLoad(uint32_t const_idx);
+	void EmitPropertyLoad(uint32_t const_idx);
+	void EmitPropertyCall(uint32_t const_idx);
+	void EmitVPropertyStore(uint32_t var_idx, uint32_t const_idx);
 
 	void RepairPc(uint32_t pc_from, uint32_t pc_to);
 	uint32_t CalcPc(uint32_t cur_pc);

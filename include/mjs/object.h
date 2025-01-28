@@ -2,18 +2,18 @@
 
 #include <unordered_map>
 
+#include <mjs/value.h>
+
 namespace mjs {
 
-// using PropertieMap = std::unordered_map<std::string, Value>;
-class Value;
-class PropertieMap;
+using PropertyMap = std::unordered_map<std::string, Value>;
 class Object {
 public:
 	Object() {
 		tag_.full_ = 0;
 		tag_.ref_count_ = 0;
 
-		properties_ = nullptr;
+		property_map_ = nullptr;
 	}
 	virtual ~Object() = default;
 
@@ -29,12 +29,29 @@ public:
 		--tag_.ref_count_;
 	}
 
+	void SetProperty(const std::string& name, Value&& val) {
+		if (!property_map_) property_map_ = new PropertyMap();
+		(*property_map_)[name] = std::move(val);
+	}
+
+	Value* GetProperty(const std::string& name) {
+		if (!property_map_) return nullptr;
+		auto iter = property_map_->find(name);
+		if (iter == property_map_->end()) return nullptr;
+		return &iter->second;
+	}
+
+	void DelProperty(const std::string& name) {
+		if (!property_map_) return;
+		property_map_->erase(name);
+	}
+
 private:
 	union {
 		uint64_t full_;
 		uint32_t ref_count_;
 	} tag_;
-	PropertieMap* properties_;
+	PropertyMap* property_map_;
 };
 
 } // namespace mjs

@@ -53,6 +53,7 @@ tt_2();
 
 
 function tt() {
+    println("tt:", 100);
     return 100;
 }
 let obj = {};
