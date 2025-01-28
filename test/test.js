@@ -58,4 +58,5 @@ function tt() {
 }
 let obj = {};
 obj.sb = tt;
-obj.sb();
+obj.sb = obj.sb2 = obj.sb();
+println(obj.sb, " ", obj.sb2);
