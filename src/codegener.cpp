@@ -439,7 +439,6 @@ void CodeGener::GenerateExp(Exp* exp) {
 
 		// 生成访问索引的指令
 
-		
 		break;
 	}
 
@@ -468,53 +467,8 @@ void CodeGener::GenerateExp(Exp* exp) {
 	}
 	case ExpType::kBinaryOp: {
 		auto bina_exp = static_cast<BinaryOpExp*>(exp);
-		if (bina_exp->oper == TokenType::kOpAssign) {
-			// 右值表达式先入栈
-			GenerateExp(bina_exp->right_exp.get());
 
-			auto lvalue_exp = static_cast<BinaryOpExp*>(bina_exp->left_exp.get());
-			if (lvalue_exp->value_category != ExpValueCategory::kLeftValue) {
-				throw CodeGenerException("The left side of the assignment operator must be an lvalue.");
-			}
-			// 再处理左值表达式
-
-			// 为左值赋值
-			if (lvalue_exp->GetType() == ExpType::kIdentifier) {
-				auto var_idx = GetVarByExp(exp);
-				cur_func_->byte_code.EmitVarStore(var_idx);	// 从变量中获取
-
-				// 完成后，需要再将左值再次入栈
-				GenerateExp(lvalue_exp);
-			}
-			else if (lvalue_exp->GetType() == ExpType::kBinaryOp
-				&& static_cast<BinaryOpExp*>(bina_exp->left_exp.get())->oper == TokenType::kSepDot) {
-				
-				// 需要根据左值表达式的类型生成指令
-				if (lvalue_exp->left_exp->GetType() == ExpType::kIdentifier) {
-					// 局部变量则需要varidx
-					auto var_idx = GetVarByExp(lvalue_exp->left_exp.get());
-
-					auto prop_exp = static_cast<IdentifierExp*>(lvalue_exp->right_exp.get());
-					auto const_idx = AllocConst(MakeValue(prop_exp));
-					
-					cur_func_->byte_code.EmitVPropertyStore(var_idx, const_idx);	// 设置对象成员
-
-					// 完成后，需要再将左值再次入栈
-					GenerateExp(lvalue_exp);
-				}
-				else {
-					// 临时对象则需要入栈
-					throw CodeGenerException("Lvalue expression type error.");
-				}
-			}
-			else {
-				throw CodeGenerException("Lvalue expression type error.");
-			}
-
-			return;
-		}
-
-		// 这里是访问属性
+		// 访问属性
 		if (bina_exp->oper == TokenType::kSepDot) {
 			// 根据名称进行对象访问
 			auto prop_exp = bina_exp->right_exp.get();
@@ -544,6 +498,63 @@ void CodeGener::GenerateExp(Exp* exp) {
 			return;
 		}
 
+		// 赋值表达式
+		if (bina_exp->oper == TokenType::kOpAssign) {
+			// 右值表达式先入栈
+			GenerateExp(bina_exp->right_exp.get());
+
+			auto lvalue_exp = static_cast<BinaryOpExp*>(bina_exp->left_exp.get());
+			if (lvalue_exp->value_category != ExpValueCategory::kLeftValue) {
+				throw CodeGenerException("The left side of the assignment operator must be an lvalue.");
+			}
+			// 再处理左值表达式
+
+			// 为左值赋值
+			if (lvalue_exp->GetType() == ExpType::kIdentifier) {
+				auto var_idx = GetVarByExp(exp);
+				cur_func_->byte_code.EmitVarStore(var_idx);	// 从变量中获取
+
+				// 完成后，需要再将左值再次入栈
+				GenerateExp(lvalue_exp);
+			}
+			else if (lvalue_exp->GetType() == ExpType::kBinaryOp
+				&& static_cast<BinaryOpExp*>(lvalue_exp)->oper == TokenType::kSepDot) {
+				// 左值是成员运算符表达式
+				
+				if (lvalue_exp->left_exp->GetType() == ExpType::kIdentifier) {
+					// 设置局部变量的属性，则需要varidx
+					auto var_idx = GetVarByExp(lvalue_exp->left_exp.get());
+
+					auto prop_exp = static_cast<IdentifierExp*>(lvalue_exp->right_exp.get());
+					auto const_idx = AllocConst(MakeValue(prop_exp));
+					
+					cur_func_->byte_code.EmitVPropertyStore(var_idx, const_idx);	// 设置对象成员
+				}
+				else {
+					// 设置嵌套对象的属性
+					// 如：obj.a.b = 100;
+					// 先入栈obj.a这个对象
+					GenerateExp(lvalue_exp->left_exp.get());
+
+					auto prop_exp = static_cast<IdentifierExp*>(lvalue_exp->right_exp.get());
+					auto const_idx = AllocConst(MakeValue(prop_exp));
+
+					// 设置栈顶对象的成员
+					cur_func_->byte_code.EmitPropertyStore(const_idx);
+				}
+
+				// 完成后，需要再将左值再次入栈
+				GenerateExp(lvalue_exp);
+			}
+			else {
+				throw CodeGenerException("Lvalue expression type error.");
+			}
+
+			return;
+		}
+
+		// 其他二元运算
+		
 		// 左右表达式的值入栈
 		GenerateExp(bina_exp->left_exp.get());
 		GenerateExp(bina_exp->right_exp.get());

@@ -204,7 +204,7 @@ void Vm::Run() {
 			auto name = name_val.string_u8();
 
 			auto& obj_val = stack_frame_.Get(-1);
-			auto obj = obj_val.object();
+			auto& obj = obj_val.object();
 
 			auto prop = obj.GetProperty(name);
 			if (!prop) {
@@ -213,7 +213,6 @@ void Vm::Run() {
 			else {
 				obj_val = *prop;
 			}
-
 			break;
 		}
 		case OpcodeType::kPropertyCall: {
@@ -222,16 +221,28 @@ void Vm::Run() {
 			auto name = name_val.string_u8();
 
 			auto obj_val = stack_frame_.Pop();
-			auto obj = obj_val.object();
+			auto& obj = obj_val.object();
 
 			auto prop = obj.GetProperty(name);
 			if (!prop) {
 				// 调用一个未定义的属性
+				throw VmException("Call of non-function.");
 			}
 			else {
 				FunctionSwitch(&cur_func_def, *prop);
 			}
+			break;
+		}
+		case OpcodeType::kPropertyStore: {
+			// 栈上是属性名
+			auto name_val = stack_frame_.Pop();
+			auto name = name_val.string_u8();
 
+			auto obj_val = stack_frame_.Pop();
+			auto& obj = obj_val.object();
+
+			obj.SetProperty(name, stack_frame_.Pop());
+			
 			break;
 		}
 		case OpcodeType::kVPropertyStore: {

@@ -60,3 +60,7 @@ let obj = {};
 obj.sb = tt;
 obj.sb = obj.sb2 = obj.sb();
 println(obj.sb, " ", obj.sb2);
+
+obj.sb = {};
+obj.sb.sb2 = tt;
+obj.sb.sb2();

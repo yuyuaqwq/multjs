@@ -31,6 +31,7 @@ std::map<OpcodeType, InstrInfo> g_instr_symbol{
 
     {OpcodeType::kPropertyLoad, {"propertyload", {}}},
     {OpcodeType::kPropertyCall, {"propertycall", {}}},
+    {OpcodeType::kPropertyStore, {"propertystore", {}}},
     {OpcodeType::kVPropertyStore, {"vpropertystore", {1}}},
 
     {OpcodeType::kPop, {"pop", {}}},
@@ -177,6 +178,11 @@ void ByteCode::EmitPropertyCall(uint32_t const_idx) {
     EmitOpcode(OpcodeType::kPropertyCall);
 }
 
+void ByteCode::EmitPropertyStore(uint32_t const_idx) {
+    EmitConstLoad(const_idx);
+    EmitOpcode(OpcodeType::kPropertyStore);
+}
+
 void ByteCode::EmitVPropertyStore(uint32_t var_idx, uint32_t const_idx) {
     EmitConstLoad(const_idx);
     EmitOpcode(OpcodeType::kVPropertyStore);
@@ -184,7 +190,6 @@ void ByteCode::EmitVPropertyStore(uint32_t var_idx, uint32_t const_idx) {
 
     // todo: U16¡¢U32
 }
-
 
 
 void ByteCode::RepairPc(uint32_t pc_from, uint32_t pc_to) {

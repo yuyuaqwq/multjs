@@ -36,7 +36,8 @@ enum class OpcodeType {
 
 	kPropertyLoad = 0x40,
 	kPropertyCall = 0x41,
-	kVPropertyStore = 0x42,
+	kPropertyStore = 0x42,
+	kVPropertyStore = 0x43,
 
 	// Stack manipulation
 	kPop = 0x57,
@@ -112,6 +113,7 @@ public:
 
 	void EmitPropertyLoad(uint32_t const_idx);
 	void EmitPropertyCall(uint32_t const_idx);
+	void EmitPropertyStore(uint32_t const_idx);
 	void EmitVPropertyStore(uint32_t var_idx, uint32_t const_idx);
 
 	void RepairPc(uint32_t pc_from, uint32_t pc_to);

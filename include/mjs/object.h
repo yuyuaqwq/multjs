@@ -2,12 +2,13 @@
 
 #include <unordered_map>
 
+#include <mjs/noncopyable.h>
 #include <mjs/value.h>
 
 namespace mjs {
 
 using PropertyMap = std::unordered_map<std::string, Value>;
-class Object {
+class Object : noncopyable {
 public:
 	Object() {
 		tag_.full_ = 0;
