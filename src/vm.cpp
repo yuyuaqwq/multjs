@@ -13,10 +13,6 @@ Vm::Vm(Context* context)
 	: context_(context)
 	, stack_frame_(&stack()) {}
 
-const GlobalConstPool& Vm::const_pool() const {
-	return context_->runtime().const_pool();
-}
-
 Stack& Vm::stack() {
 	return context_->runtime().stack();
 }
@@ -93,8 +89,31 @@ void Vm::SetVar(VarIndex idx, Value&& var) {
 	*var_ = std::move(var);
 }
 
+const Value& Vm::GetGlobalConst(ConstIndex idx) {
+	auto& var = context_->runtime().const_pool().Get(idx);
+	return var;
+}
+
+const Value& Vm::GetLocalConst(ConstIndex idx) {
+	auto& var = context_->const_pool().Get(idx);
+	return var;
+}
+
+const Value& Vm::GetConst(ConstIndex idx) {
+	if (IsGlobalConstIndex(idx)) {
+		return GetGlobalConst(idx);
+	}
+	else if (IsLocalConstIndex(idx)) {
+		return GetLocalConst(idx);
+	}
+	else {
+		throw VmException("Incorrect const index.");
+	}
+}
+
+
 void Vm::LoadConst(ConstIndex const_idx) {
-	auto& value = const_pool().Get(const_idx);
+	auto& value = GetGlobalConst(const_idx);
 
 	if (value.type() == ValueType::kFunctionDef) {
 		auto func_val = value;
@@ -252,16 +271,33 @@ void Vm::Run() {
 			break;
 		}
 		case OpcodeType::kIndexedLoad: {
-		//	auto idx_val = stack_frame_.Pop();
-		//	auto& obj = stack_frame_.Get(-1);
+			auto idx_val = stack_frame_.Pop();
+			auto& obj = stack_frame_.Get(-1);
 
-		//	auto prop = obj.object().GetProperty(idx_val);
-		//	if (!prop) {
-		//		obj = Value();
-		//	}
-		//	else {
-		//		obj = *prop;
-		//	}
+			idx_val = idx_val.ToString();
+
+			ConstIndex idx;
+			if (idx_val.const_index() == kConstInvaildIndex) {
+				// 先找全局变量，找不到再找局部变量
+				auto idx_opt = context_->runtime().const_pool().Find(idx_val);
+				if (!idx_opt) {
+					idx = context_->const_pool().New(idx_val);
+				}
+				else {
+					idx = *idx_opt;
+				}
+			}
+			else {
+				idx = idx_val.const_index();
+			}
+
+			auto prop = obj.object().GetProperty(idx);
+			if (!prop) {
+				obj = Value();
+			}
+			else {
+				obj = *prop;
+			}
 			break;
 		}
 		case OpcodeType::kAdd: {

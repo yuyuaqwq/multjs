@@ -6,6 +6,7 @@
 #include <map>
 #include <memory>
 #include <mutex>
+#include <optional>
 
 #include <mjs/const_def.h>
 #include <mjs/value.h>
@@ -20,6 +21,27 @@ private:
 	using StaticArray = std::array<Value, kStaticArraySize>;
 
 public:
+	GlobalConstPool();
+
+	ConstIndex New(const Value& value);
+	ConstIndex New(Value&& value);
+
+	const Value& Get(ConstIndex index) const;
+	Value& Get(ConstIndex index);
+
+	std::optional<ConstIndex> Find(const Value& value);
+
+private:
+	std::mutex mutex_;
+	std::map<Value, ConstIndex> const_map_;
+	std::array<std::unique_ptr<StaticArray>, kStaticArraySize> pool_;
+	uint32_t const_index_ = 1;
+};
+
+class LocalConstPool {
+public:
+	LocalConstPool();
+
 	ConstIndex New(const Value& value);
 	ConstIndex New(Value&& value);
 
@@ -27,18 +49,8 @@ public:
 	Value& Get(ConstIndex index);
 
 private:
-	std::mutex mutex_;
 	std::map<Value, ConstIndex> const_map_;
-	std::array<std::unique_ptr<StaticArray>, kStaticArraySize> pool_;
-	uint32_t const_index_ = 0;
-};
-
-class LocalConstPool {
-public:
-
-private:
-	std::map<Value, uint32_t> const_map_;
-	std::vector<Value> pool_;
+	std::vector<Value*> pool_;
 };
 
 } // namespace mjs

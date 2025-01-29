@@ -10,7 +10,7 @@ public:
 	char* mutable_str() { return str_; }
 
 private:
-	char str_[8];
+	char str_[1];
 };
 
 } // namespace mjs

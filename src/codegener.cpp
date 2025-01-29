@@ -435,7 +435,13 @@ void CodeGener::GenerateExp(Exp* exp) {
 		GenerateExp(idx_exp->exp.get());
 
 		// 用于访问的下标的表达式，入栈这个表达式
-		GenerateExp(idx_exp->index_exp.get());
+		//if (idx_exp->index_exp->GetType() == ExpType::kNumber) {
+		//	// 如果是number表达式，可以提前预处理为StringValue
+
+		//}
+		//else {
+			GenerateExp(idx_exp->index_exp.get());
+		//}
 
 		// 生成索引访问的指令
 		cur_func_->byte_code.EmitIndexedLoad();
@@ -650,10 +656,10 @@ Value CodeGener::MakeValue(Exp* exp) {
 	case ExpType::kArrayLiteralExp: {
 		auto arr_exp = static_cast<ArrayLiteralExp*>(exp);
 		ArrayObject* arr_obj = new ArrayObject();
-		size_t i = 0;
+		double i = 0;
 		for (auto& exp : arr_exp->arr_litera) {
 			// arr_obj->mutale_values().emplace_back(MakeValue(exp.get()));
-			auto const_idx = AllocConst(Value(i++));
+			auto const_idx = AllocConst(Value(std::to_string(i++)));
 			arr_obj->SetProperty(const_idx, MakeValue(exp.get()));
 		}
 		return Value(arr_obj);

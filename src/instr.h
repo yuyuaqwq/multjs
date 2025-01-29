@@ -45,7 +45,6 @@ enum class OpcodeType {
 	kIndexedLoad = 0x48,
 	kIndexedStore = 0x49,
 
-
 	// Stack manipulation
 	kPop = 0x57,
 

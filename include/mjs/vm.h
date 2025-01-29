@@ -42,9 +42,12 @@ private:
 	Value& GetVar(VarIndex idx);
 	void SetVar(VarIndex idx, Value&& var);
 
+	const Value& GetGlobalConst(ConstIndex idx);
+	const Value& GetLocalConst(ConstIndex idx);
+	const Value& GetConst(ConstIndex idx);
+
 	void LoadConst(ConstIndex const_idx);
 
-	const GlobalConstPool& const_pool() const;
 	Stack& stack();
 	FunctionDefObject* function_def(const Value& func_val) const;
 private:

@@ -83,8 +83,14 @@ Value::Value(FunctionBridgeObject bridge) {
 
 
 Value::~Value() {
-	if (type() == ValueType::kString && tag_.string_length_ >= sizeof(value_.string_u8_inline_)
-		|| type() == ValueType::kObject) {
+	if (type() == ValueType::kString) {
+		object().deref();
+		if (object().ref_count() == 0) {
+			std::destroy_at(&object<StringObject>());
+			std::free(&object());
+		}
+	}
+	else if (type() == ValueType::kObject) {
 		object().deref();
 		if (object().ref_count() == 0) {
 			// ÊÍ·Å¶ÔÏó
@@ -104,8 +110,7 @@ Value::Value(Value&& r) noexcept {
 
 void Value::operator=(const Value& r) {
 	tag_.full_ = r.tag_.full_;
-	if (type() == ValueType::kString && tag_.string_length_ >= sizeof(value_.string_u8_inline_)
-		|| type() == ValueType::kObject) {
+	if (type() == ValueType::kString || type() == ValueType::kObject) {
 		value_.object_ = r.value_.object_;
 		object().ref();
 	}
@@ -322,7 +327,7 @@ void Value::set_number(double number) {
 }
 
 
-int64_t Value::boolean() const { 
+bool Value::boolean() const { 
 	assert(type() == ValueType::kBoolean); 
 	return value_.boolean_;
 }
@@ -335,28 +340,16 @@ void Value::set_boolean(bool boolean) {
 
 const char* Value::string_u8() const {
 	assert(type() == ValueType::kString);
-	if (tag_.string_length_ < sizeof(value_.string_u8_inline_)) {
-		return value_.string_u8_inline_;
-	}
-	else {
-		return static_cast<StringObject*>(value_.object_)->str();
-	}
+	return static_cast<StringObject*>(value_.object_)->str();
 }
 
 void Value::set_string_u8(const char* string_u8, size_t size) {
-	if (size < sizeof(value_.string_u8_inline_)) {
-		std::memcpy(value_.string_u8_inline_, string_u8, size);
-		value_.string_u8_inline_[size] = '\0';
-	}
-	else {
-		StringObject* str_obj = static_cast<StringObject*>(std::malloc(sizeof(StringObject) + size - 8 + 1));
-		std::construct_at(str_obj);
-		std::memcpy(str_obj->mutable_str(), string_u8, size);
-		str_obj->mutable_str()[size] = '\0';
-		value_.object_ = str_obj;
-		str_obj->ref();
-	}
-	tag_.string_length_ = size;
+	StringObject* str_obj = static_cast<StringObject*>(std::malloc(sizeof(StringObject) + size));
+	std::construct_at(str_obj);
+	std::memcpy(str_obj->mutable_str(), string_u8, size);
+	str_obj->mutable_str()[size] = '\0';
+	value_.object_ = str_obj;
+	str_obj->ref();
 }
 
 
@@ -395,5 +388,24 @@ const UpValue& Value::up_value() const {
 	assert(type() == ValueType::kUpValue); 
 	return value_.up_value_;
 }
+
+Value Value::ToString() const {
+	switch (type()) {
+	case ValueType::kUndefined:
+		return Value("undefined");
+	case ValueType::kNull:
+		return Value("null");
+	case ValueType::kBoolean:
+		return Value(boolean() ? "true" : "false");
+	case ValueType::kNumber:
+		return Value(std::to_string(number()));
+	case ValueType::kString: {
+		return *this;
+	}
+	default:
+		throw std::runtime_error("Incorrect value type.");
+	}
+}
+
 
 } // namespace mjs

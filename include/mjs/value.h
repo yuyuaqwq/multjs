@@ -6,9 +6,11 @@
 #include <memory>
 #include <stdexcept>
 
+#include <mjs/const_def.h>
+
 namespace mjs {
 
-enum class ValueType : uint64_t {
+enum class ValueType : uint32_t {
 	kUndefined = 0,
 	kNull,
 	kBoolean,
@@ -84,7 +86,7 @@ public:
 	double number() const;
 	void set_number(double number);
 
-	int64_t boolean() const;
+	bool boolean() const;
 	void set_boolean(bool boolean);
 
 	const char* string_u8() const;
@@ -105,13 +107,20 @@ public:
 	FunctionObject* function() const;
 	FunctionBridgeObject function_bridge() const;
 
+	ConstIndex const_index() const { return tag_.const_index_; }
+	void set_const_index(ConstIndex const_index) { tag_.const_index_ = const_index; }
+
+	Value ToString() const;
+
 private:
 	union {
 		uint64_t full_ = 0;
 		struct {
 			ValueType type_ : 4;
-			uint64_t read_only_ : 1;	// 用于常量池中的Value，在复制时不会触发引用计数的增加，析构时不会减少引用计数
-			uint64_t string_length_ : 32;
+			uint32_t read_only_ : 1;	// 用于常量池中的Value，在复制时不会触发引用计数的增加，析构时不会减少引用计数
+
+			// 非0则是来自常量池的value
+			ConstIndex const_index_;
 		};
 	} tag_;
 	union {
@@ -123,8 +132,6 @@ private:
 
 		int64_t i64_;
 		uint64_t u64_;
-
-		char string_u8_inline_[8];
 	} value_;
 };
 

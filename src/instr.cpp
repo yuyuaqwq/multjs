@@ -34,6 +34,9 @@ std::map<OpcodeType, InstrInfo> g_instr_symbol{
     {OpcodeType::kPropertyStore, {"propertystore", {4}}},
     {OpcodeType::kVPropertyStore, {"vpropertystore", {2, 4}}},
 
+    {OpcodeType::kIndexedLoad, {"indexedload", {}}},
+    {OpcodeType::kIndexedStore, {"indexedstore", {}}},
+
     {OpcodeType::kPop, {"pop", {}}},
 
     {OpcodeType::kAdd, {"add", {}}},
