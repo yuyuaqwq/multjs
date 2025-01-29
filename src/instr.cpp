@@ -85,7 +85,7 @@ VarIndex ByteCode::GetVarIndex(Pc* pc) {
     return GetU16(pc_);
 }
 
-ConstIndex ByteCode::GetConstIndex(uint32_t* pc) {
+ConstIndex ByteCode::GetConstIndex(Pc* pc) {
     auto pc_ = *pc;
     *pc += sizeof(ConstIndex);
     return GetI32(pc_);

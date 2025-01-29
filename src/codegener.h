@@ -34,9 +34,9 @@ private:
 
 	ConstIndex AllocConst(Value&& value);
 
-	int32_t AllocVar(const std::string& varName);
-	int32_t GetVar(const std::string& varName);
-	int32_t GetVarByExp(Exp* exp);
+	VarIndex AllocVar(const std::string& varName);
+	std::optional<VarIndex> GetVar(const std::string& varName);
+	VarIndex GetVarByExp(Exp* exp);
 
 	void GenerateBlock(BlockStat* block);
 	void GenerateStat(Stat* stat);

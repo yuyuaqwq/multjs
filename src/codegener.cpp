@@ -24,21 +24,21 @@ ConstIndex CodeGener::AllocConst(Value&& value) {
 }
 
 
-int32_t CodeGener::AllocVar(const std::string& var_name) {
+VarIndex CodeGener::AllocVar(const std::string& var_name) {
 	return scopes_.back().AllocVar(var_name);
 }
 
-int32_t CodeGener::GetVar(const std::string& var_name) {
-	int32_t var_idx = -1;
+std::optional<VarIndex> CodeGener::GetVar(const std::string& var_name) {
+	std::optional<VarIndex> find_var_idx = std::nullopt;
 	// 就近找变量
-	for (int i = scopes_.size() - 1; i >= 0; --i) {
+	for (ptrdiff_t i = scopes_.size() - 1; i >= 0; --i) {
 		auto var_idx_opt = scopes_[i].FindVar(var_name);
 		if (!var_idx_opt) {
 			// 当前作用域找不到变量，向上层作用域找
 			continue;
 		}
 		if (scopes_[i].func() == cur_func_) {
-			var_idx = *var_idx_opt;
+			find_var_idx = *var_idx_opt;
 		}
 		else {
 			// 在上层函数作用域找到了，构建upvalue捕获链
@@ -50,37 +50,37 @@ int32_t CodeGener::GetVar(const std::string& var_name) {
 				}
 			);
 
-			for (int j = i + 1; j < scopes_.size(); ++j) {
+			for (size_t j = i + 1; j < scopes_.size(); ++j) {
 				if (scope_func == scopes_[j].func()) {
 					continue;
 				}
 				scope_func = scopes_[j].func();
 
 				// 为upvalue分配变量
-				var_idx = scopes_[j].AllocVar(var_name);
+				find_var_idx = scopes_[j].AllocVar(var_name);
 				scope_func->closure_var_defs_.emplace(
-					var_idx,
+					*find_var_idx,
 					FunctionDefObject::ClosureVarDef{
 						.arr_idx = int32_t(scope_func->closure_var_defs_.size()),
 						.parent_var_idx = *var_idx_opt
 					}
 				);
 
-				*var_idx_opt = var_idx;
+				*var_idx_opt = *find_var_idx;
 			}
 		}
 		break;
 	}
-	return var_idx;
+	return find_var_idx;
 }
 
-int32_t CodeGener::GetVarByExp(Exp* exp) {
+VarIndex CodeGener::GetVarByExp(Exp* exp) {
 	auto var_exp = static_cast<IdentifierExp*>(exp);
 	auto var_idx = GetVar(var_exp->name);
-	if (var_idx == -1) {
+	if (!var_idx) {
 		throw CodeGenerException("var not defined");
 	}
-	return var_idx;
+	return *var_idx;
 }
 
 
@@ -106,7 +106,7 @@ Value CodeGener::Generate(BlockStat* block) {
 
 	RegistryFunctionBridge("println",
 		[](uint32_t par_count, StackFrame* stack) -> Value {
-			for (int i = 0; i < par_count; i++) {
+			for (size_t i = 0; i < par_count; i++) {
 				auto val = stack->Get(i);
 				if (val.type() == ValueType::kString) {
 					std::cout << val.string_u8();
@@ -204,12 +204,12 @@ void CodeGener::GenerateFunctionDeclStat(FuncDeclStat* stat) {
 	cur_func_ = func_def;
 
 	// 参数正序分配
-	for (int i = 0; i < cur_func_->par_count; ++i) {
+	for (size_t i = 0; i < cur_func_->par_count; ++i) {
 		AllocVar(stat->par_list[i]);
 	}
 
 	auto block = stat->block.get();
-	for (int i = 0; i < block->stat_list.size(); i++) {
+	for (size_t i = 0; i < block->stat_list.size(); i++) {
 		auto& stat = block->stat_list[i];
 		GenerateStat(stat.get());
 		if (i == block->stat_list.size() - 1) {
@@ -650,7 +650,7 @@ Value CodeGener::MakeValue(Exp* exp) {
 	case ExpType::kArrayLiteralExp: {
 		auto arr_exp = static_cast<ArrayLiteralExp*>(exp);
 		ArrayObject* arr_obj = new ArrayObject();
-		uint32_t i = 0;
+		size_t i = 0;
 		for (auto& exp : arr_exp->arr_litera) {
 			// arr_obj->mutale_values().emplace_back(MakeValue(exp.get()));
 			auto const_idx = AllocConst(Value(i++));
@@ -674,7 +674,7 @@ Value CodeGener::MakeValue(Exp* exp) {
 
 void CodeGener::GenerateFunctionCallPar(FunctionCallExp* func_call_exp) {
 	// 参数正序入栈
-	for (int i = 0; i < func_call_exp->par_list.size(); ++i) {
+	for (size_t i = 0; i < func_call_exp->par_list.size(); ++i) {
 		GenerateExp(func_call_exp->par_list[i].get());
 	}
 
