@@ -29,10 +29,10 @@ std::map<OpcodeType, InstrInfo> g_instr_symbol{
     {OpcodeType::kVStore_2, {"vstore_2", {}}},
     {OpcodeType::kVStore_3, {"vstore_3", {}}},
 
-    {OpcodeType::kPropertyLoad, {"propertyload", {}}},
-    {OpcodeType::kPropertyCall, {"propertycall", {}}},
-    {OpcodeType::kPropertyStore, {"propertystore", {}}},
-    {OpcodeType::kVPropertyStore, {"vpropertystore", {1}}},
+    {OpcodeType::kPropertyLoad, {"propertyload", {4}}},
+    {OpcodeType::kPropertyCall, {"propertycall", {4}}},
+    {OpcodeType::kPropertyStore, {"propertystore", {4}}},
+    {OpcodeType::kVPropertyStore, {"vpropertystore", {2, 4}}},
 
     {OpcodeType::kPop, {"pop", {}}},
 
@@ -63,67 +63,54 @@ std::map<OpcodeType, InstrInfo> g_instr_symbol{
 };
 
 
-uint8_t* ByteCode::GetPtr(uint32_t pc) {
+uint8_t* ByteCode::GetPtr(Pc pc) {
 	return bytes_.data() + pc;
 }
 
-uint32_t ByteCode::GetPc() const noexcept {
-	return bytes_.size();
-}
 
-OpcodeType ByteCode::GetOpcode(uint32_t pc) {
+OpcodeType ByteCode::GetOpcode(Pc pc) {
 	return (OpcodeType)bytes_[pc];
 }
 
-uint8_t ByteCode::GetU8(uint32_t pc) {
-	return *(uint8_t*)&bytes_[pc];
+
+Pc ByteCode::GetPc(Pc* pc)  {
+    auto pc_ = *pc;
+    *pc += sizeof(Pc);
+    return GetU32(pc_);
 }
 
-uint16_t ByteCode::GetU16(uint32_t pc) {
-	return *(uint16_t*)&bytes_[pc];
+VarIndex ByteCode::GetVarIndex(Pc* pc) {
+    auto pc_ = *pc;
+    *pc += sizeof(VarIndex);
+    return GetU16(pc_);
 }
 
-uint32_t ByteCode::GetU32(uint32_t pc) {
-	return *(uint32_t*)&bytes_[pc];
+ConstIndex ByteCode::GetConstIndex(uint32_t* pc) {
+    auto pc_ = *pc;
+    *pc += sizeof(ConstIndex);
+    return GetI32(pc_);
 }
+
 
 void ByteCode::EmitOpcode(OpcodeType opcode) {
 	bytes_.push_back(static_cast<uint8_t>(opcode));
 }
 
-void ByteCode::EmitI8(int8_t val) {
-	bytes_.push_back(static_cast<uint8_t>(val));
+
+
+void ByteCode::EmitPcOffset(PcOffset offset) {
+    EmitU16(offset);
 }
 
-void ByteCode::EmitU8(uint8_t val) {
-	bytes_.push_back(val);
+void ByteCode::EmitVarIndex(VarIndex idx) {
+    EmitU16(idx);
 }
 
-void ByteCode::EmitI16(int16_t val) {
-	bytes_.push_back(static_cast<uint8_t>(val & 0xff));
-	bytes_.push_back(static_cast<uint8_t>(val >> 8));
+void ByteCode::EmitConstIndex(ConstIndex idx) {
+    EmitI32(idx);
 }
 
-void ByteCode::EmitU16(uint16_t val) {
-	bytes_.push_back(static_cast<uint8_t>(val & 0xff));
-	bytes_.push_back(static_cast<uint8_t>(val >> 8));
-}
-
-void ByteCode::EmitI32(uint32_t val) {
-	bytes_.push_back(static_cast<uint8_t>(val & 0xff));
-	bytes_.push_back(static_cast<uint8_t>(val >> 8));
-	bytes_.push_back(static_cast<uint8_t>(val >> 16));
-	bytes_.push_back(static_cast<uint8_t>(val >> 24));
-}
-
-void ByteCode::EmitU32(uint32_t val) {
-	bytes_.push_back(static_cast<uint8_t>(val & 0xff));
-	bytes_.push_back(static_cast<uint8_t>(val >> 8));
-	bytes_.push_back(static_cast<uint8_t>(val >> 16));
-	bytes_.push_back(static_cast<uint8_t>(val >> 24));
-}
-
-void ByteCode::EmitConstLoad(uint32_t idx) {
+void ByteCode::EmitConstLoad(ConstIndex idx) {
     if (idx <= 5) {
         EmitOpcode(OpcodeType::kCLoad_0 + idx);
     }
@@ -142,7 +129,7 @@ void ByteCode::EmitConstLoad(uint32_t idx) {
 	}
 }
 
-void ByteCode::EmitVarStore(uint32_t idx) {
+void ByteCode::EmitVarStore(VarIndex idx) {
     if (idx >= 0 && idx <= 3) {
         EmitOpcode(OpcodeType::kVStore_0 + idx);
     }
@@ -155,7 +142,7 @@ void ByteCode::EmitVarStore(uint32_t idx) {
     }
 }
 
-void ByteCode::EmitVarLoad(uint32_t idx) {
+void ByteCode::EmitVarLoad(VarIndex idx) {
     if (idx >= 0 && idx <= 3) {
         EmitOpcode(OpcodeType::kVLoad_0 + idx);
     }
@@ -168,41 +155,49 @@ void ByteCode::EmitVarLoad(uint32_t idx) {
     }
 }
 
-void ByteCode::EmitPropertyLoad(uint32_t const_idx) {
-    EmitConstLoad(const_idx);
+void ByteCode::EmitPropertyLoad(ConstIndex const_idx) {
     EmitOpcode(OpcodeType::kPropertyLoad);
+    EmitConstIndex(const_idx);
 }
 
-void ByteCode::EmitPropertyCall(uint32_t const_idx) {
-    EmitConstLoad(const_idx);
+void ByteCode::EmitPropertyCall(ConstIndex const_idx) {
     EmitOpcode(OpcodeType::kPropertyCall);
+    EmitConstIndex(const_idx);
 }
 
-void ByteCode::EmitPropertyStore(uint32_t const_idx) {
-    EmitConstLoad(const_idx);
+void ByteCode::EmitPropertyStore(ConstIndex const_idx) {
     EmitOpcode(OpcodeType::kPropertyStore);
+    EmitConstIndex(const_idx);
 }
 
-void ByteCode::EmitVPropertyStore(uint32_t var_idx, uint32_t const_idx) {
-    EmitConstLoad(const_idx);
+void ByteCode::EmitVPropertyStore(VarIndex var_idx, ConstIndex const_idx) {
     EmitOpcode(OpcodeType::kVPropertyStore);
-    EmitU8(var_idx);
-
-    // todo: U16¡¢U32
+    EmitVarIndex(var_idx);
+    EmitConstIndex(const_idx); 
 }
 
 
-void ByteCode::RepairPc(uint32_t pc_from, uint32_t pc_to) {
+void ByteCode::EmitIndexedLoad() {
+    EmitOpcode(OpcodeType::kIndexedLoad);
+}
+
+
+void ByteCode::EmitIndexedStore() {
+    EmitOpcode(OpcodeType::kIndexedStore);
+}
+
+
+void ByteCode::RepairPc(Pc pc_from, Pc pc_to) {
 	// skip opcode
 	*reinterpret_cast<int16_t*>(GetPtr(pc_from) + 1) = int64_t(pc_to) - int64_t(pc_from);
 }
 
-uint32_t ByteCode::CalcPc(uint32_t cur_pc) {
+Pc ByteCode::CalcPc(Pc cur_pc) {
     // skip opcode
     return cur_pc + *reinterpret_cast<int16_t*>(GetPtr(cur_pc) + 1);
 }
 
-std::string ByteCode::Disassembly(uint32_t& pc) {
+std::string ByteCode::Disassembly(Pc& pc) {
     std::string str;
     char buf[16] = { 0 };
     sprintf_s(buf, "%04d\t", pc);
@@ -225,5 +220,65 @@ std::string ByteCode::Disassembly(uint32_t& pc) {
     }
     return str;
 }
+
+
+int8_t ByteCode::GetI8(Pc pc) {
+    return *(int8_t*)&bytes_[pc];
+}
+
+uint8_t ByteCode::GetU8(Pc pc) {
+    return *(uint8_t*)&bytes_[pc];
+}
+
+int16_t ByteCode::GetI16(Pc pc) {
+    return *(int16_t*)&bytes_[pc];
+}
+
+uint16_t ByteCode::GetU16(Pc pc) {
+    return *(uint16_t*)&bytes_[pc];
+}
+
+int32_t ByteCode::GetI32(Pc pc) {
+    return *(int32_t*)&bytes_[pc];
+}
+
+Pc ByteCode::GetU32(Pc pc) {
+    return *(Pc*)&bytes_[pc];
+}
+
+
+
+void ByteCode::EmitI8(int8_t val) {
+    bytes_.push_back(static_cast<uint8_t>(val));
+}
+
+void ByteCode::EmitU8(uint8_t val) {
+    bytes_.push_back(val);
+}
+
+void ByteCode::EmitI16(int16_t val) {
+    bytes_.push_back(static_cast<uint8_t>(val & 0xff));
+    bytes_.push_back(static_cast<uint8_t>(val >> 8));
+}
+
+void ByteCode::EmitU16(uint16_t val) {
+    bytes_.push_back(static_cast<uint8_t>(val & 0xff));
+    bytes_.push_back(static_cast<uint8_t>(val >> 8));
+}
+
+void ByteCode::EmitI32(uint32_t val) {
+    bytes_.push_back(static_cast<uint8_t>(val & 0xff));
+    bytes_.push_back(static_cast<uint8_t>(val >> 8));
+    bytes_.push_back(static_cast<uint8_t>(val >> 16));
+    bytes_.push_back(static_cast<uint8_t>(val >> 24));
+}
+
+void ByteCode::EmitU32(uint32_t val) {
+    bytes_.push_back(static_cast<uint8_t>(val & 0xff));
+    bytes_.push_back(static_cast<uint8_t>(val >> 8));
+    bytes_.push_back(static_cast<uint8_t>(val >> 16));
+    bytes_.push_back(static_cast<uint8_t>(val >> 24));
+}
+
 
 } // namespace mjs

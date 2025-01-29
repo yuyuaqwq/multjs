@@ -28,6 +28,9 @@ public:
 
 private:
 	Runtime* runtime_;
+
+	LocalConstPool local_const_pool_;
+
 	Vm vm_;
 };
 

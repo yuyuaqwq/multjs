@@ -15,10 +15,10 @@ public:
 
 class Scope {
 public:
-	Scope(FunctionDefObject* func, uint32_t var_count = 0)
+	Scope(FunctionDefObject* func)
 		: func_(func) {}
 
-	uint32_t AllocVar(const std::string& var_name) {
+	VarIndex AllocVar(const std::string& var_name) {
 		if (var_table_.find(var_name) != var_table_.end()) {
 			throw ScopeException("local var redefinition");
 		}
@@ -27,7 +27,7 @@ public:
 		return var_idx;
 	}
 
-	std::optional<int32_t> FindVar(const std::string& var_name) {
+	std::optional<VarIndex> FindVar(const std::string& var_name) {
 		auto it = var_table_.find(var_name);
 		if (it == var_table_.end()) {
 			return std::nullopt;
@@ -40,8 +40,7 @@ public:
 private:
 	FunctionDefObject* func_; // 所属函数
 	struct VarInfo {
-		uint32_t var_idx;
-		//bool is_upvalue;
+		VarIndex var_idx;
 	};
 	std::unordered_map<std::string, VarInfo> var_table_; // 变量表
 };

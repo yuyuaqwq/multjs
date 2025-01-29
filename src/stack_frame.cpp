@@ -16,23 +16,23 @@ Value Stack::Pop() {
 	return value;
 }
 
-Value& Stack::Get(int32_t index) {
+Value& Stack::Get(size_t index) {
 	return stack_[index];
 }
 
-void Stack::Set(int32_t index, const Value& value) {
+void Stack::Set(size_t index, const Value& value) {
 	stack_[index] = value;
 }
 
-void Stack::Set(int32_t index, Value&& value) {
+void Stack::Set(size_t index, Value&& value) {
 	stack_[index] = std::move(value);
 }
 
-void Stack::Upgrade(uint32_t size) {
+void Stack::Upgrade(size_t size) {
 	stack_.resize(stack_.size() + size);
 }
 
-void Stack::Reduce(uint32_t size) {
+void Stack::Reduce(size_t size) {
 	stack_.resize(stack_.size() - size);
 }
 
@@ -60,7 +60,7 @@ Value StackFrame::Pop() {
 }
 
 // 负数表示从栈顶向下索引
-Value& StackFrame::Get(int32_t index) {
+Value& StackFrame::Get(ptrdiff_t index) {
 	if (index >= 0) {
 		return stack_->Get(bottom_ + index);
 	}
@@ -69,12 +69,12 @@ Value& StackFrame::Get(int32_t index) {
 	}
 }
 
-void StackFrame::Set(int32_t index, const Value& value) {
+void StackFrame::Set(ptrdiff_t index, const Value& value) {
 	auto value_ = value;
 	Set(index, std::move(value_));
 }
 
-void StackFrame::Set(int32_t index, Value&& value) {
+void StackFrame::Set(ptrdiff_t index, Value&& value) {
 	if (index >= 0) {
 		stack_->Set(bottom_ + index, value);
 	}

@@ -9,6 +9,7 @@
 
 #include <mjs/value.h>
 #include <mjs/const_pool.h>
+#include <mjs/var_def.h>
 #include <mjs/stack_frame.h>
 #include <mjs/value.h>
 
@@ -38,12 +39,12 @@ private:
 
 	void Run();
 
-	Value& GetVar(uint32_t idx);
-	void SetVar(uint32_t idx, Value&& var);
+	Value& GetVar(VarIndex idx);
+	void SetVar(VarIndex idx, Value&& var);
 
-	void LoadConst(uint32_t const_idx);
+	void LoadConst(ConstIndex const_idx);
 
-	const ConstPool& const_pool() const;
+	const GlobalConstPool& const_pool() const;
 	Stack& stack();
 	FunctionDefObject* function_def(const Value& func_val) const;
 private:

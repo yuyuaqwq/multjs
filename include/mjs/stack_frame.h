@@ -26,16 +26,16 @@ public:
 
 	// 正数表示从栈帧底向上索引，0开始
 	// 负数表示从栈帧顶向下索引，-1开始
-	Value& Get(int32_t index);
-	void Set(int32_t index, const Value& value);
-	void Set(int32_t index, Value&& value);
+	Value& Get(ptrdiff_t index);
+	void Set(ptrdiff_t index, const Value& value);
+	void Set(ptrdiff_t index, Value&& value);
 
-	uint32_t bottom() const { return bottom_; }
-	void set_bottom(uint32_t bottom) { bottom_ = bottom; }
+	size_t bottom() const { return bottom_; }
+	void set_bottom(size_t bottom) { bottom_ = bottom; }
 
 private:
 	Stack* stack_;
-	uint32_t bottom_ = 0;	// 当前栈帧的栈底
+	size_t bottom_ = 0;	// 当前栈帧的栈底
 };
 
 // 每个线程固定的栈
@@ -49,12 +49,12 @@ public:
 	void Push(Value&& value);
 	Value Pop();
 
-	Value& Get(int32_t index);
-	void Set(int32_t index, const Value& value);
-	void Set(int32_t index, Value&& value);
+	Value& Get(size_t index);
+	void Set(size_t index, const Value& value);
+	void Set(size_t index, Value&& value);
 
-	void Upgrade(uint32_t size);
-	void Reduce(uint32_t size);
+	void Upgrade(size_t size);
+	void Reduce(size_t size);
 
 	size_t size()  const noexcept;
 	void resize(size_t size);

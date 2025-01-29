@@ -2,6 +2,7 @@
 
 #include <string>
 #include <unordered_map>
+#include <optional>
 
 #include <mjs/object.h>
 #include <mjs/value.h>
@@ -31,10 +32,10 @@ public:
 		int32_t arr_idx;
 
 		// upvalue指向的变量在父作用域中的变量索引
-		int32_t parent_var_idx;
+		std::optional<VarIndex> parent_var_idx;
 	};
 	// key: upvalue变量索引
-	std::unordered_map<int32_t, ClosureVarDef> closure_var_defs_;
+	std::unordered_map<VarIndex, ClosureVarDef> closure_var_defs_;
 };
 
 // 闭包，可以考虑改名ClosureObject

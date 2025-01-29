@@ -3,11 +3,12 @@
 #include <unordered_map>
 
 #include <mjs/noncopyable.h>
+#include <mjs/const_def.h>
 #include <mjs/value.h>
 
 namespace mjs {
 
-using PropertyMap = std::unordered_map<std::string, Value>;
+using PropertyMap = std::unordered_map<ConstIndex, Value>;
 class Object : noncopyable {
 public:
 	Object() {
@@ -16,7 +17,12 @@ public:
 
 		property_map_ = nullptr;
 	}
-	virtual ~Object() = default;
+	virtual ~Object() {
+		if (property_map_) {
+			delete property_map_;
+		}
+		assert(tag_.ref_count_ == 0);
+	}
 
 	uint32_t ref_count() const {
 		return tag_.ref_count_;
@@ -30,21 +36,21 @@ public:
 		--tag_.ref_count_;
 	}
 
-	void SetProperty(const std::string& name, Value&& val) {
+	void SetProperty(ConstIndex key, Value&& val) {
 		if (!property_map_) property_map_ = new PropertyMap();
-		(*property_map_)[name] = std::move(val);
+		(*property_map_)[key] = std::move(val);
 	}
 
-	Value* GetProperty(const std::string& name) {
+	Value* GetProperty(ConstIndex key) {
 		if (!property_map_) return nullptr;
-		auto iter = property_map_->find(name);
+		auto iter = property_map_->find(key);
 		if (iter == property_map_->end()) return nullptr;
 		return &iter->second;
 	}
 
-	void DelProperty(const std::string& name) {
+	void DelProperty(ConstIndex key) {
 		if (!property_map_) return;
-		property_map_->erase(name);
+		property_map_->erase(key);
 	}
 
 private:

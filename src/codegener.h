@@ -31,11 +31,12 @@ public:
 private:
 	void EntryScope(FunctionDefObject* sub_func = nullptr);
 	void ExitScope();
-	int32_t AllocConst(Value&& value);
+
+	ConstIndex AllocConst(Value&& value);
+
 	int32_t AllocVar(const std::string& varName);
 	int32_t GetVar(const std::string& varName);
 	int32_t GetVarByExp(Exp* exp);
-
 
 	void GenerateBlock(BlockStat* block);
 	void GenerateStat(Stat* stat);

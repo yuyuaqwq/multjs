@@ -2,12 +2,12 @@
 
 namespace mjs {
 
-uint32_t ConstPool::New(const Value& value) {
+ConstIndex GlobalConstPool::New(const Value& value) {
 	auto value_ = value;
 	return New(std::move(value_));
 }
 
-uint32_t ConstPool::New(Value&& value) {
+ConstIndex GlobalConstPool::New(Value&& value) {
 	auto lock = std::lock_guard(mutex_);
 	auto it = const_map_.find(value);
 	if (it != const_map_.end()) {
@@ -26,11 +26,11 @@ uint32_t ConstPool::New(Value&& value) {
 	return const_idx;
 }
 
-const Value& ConstPool::Get(uint32_t index) const {
-	return const_cast<ConstPool*>(this)->Get(index);
+const Value& GlobalConstPool::Get(ConstIndex index) const {
+	return const_cast<GlobalConstPool*>(this)->Get(index);
 }
 
-Value& ConstPool::Get(uint32_t index) {
+Value& GlobalConstPool::Get(ConstIndex index) {
 	auto i1 = index / kStaticArraySize;
 	auto i2 = index % kStaticArraySize;
 	return (*pool_[i1])[i2];

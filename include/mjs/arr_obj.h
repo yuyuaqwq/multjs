@@ -7,10 +7,11 @@ namespace mjs {
 
 class ArrayObject : public Object {
 public:
-    std::vector<Value>& mutale_values() { return values_; }
+    // std::vector<Value>& mutale_values() { return values_; }
 
 private:
-    std::vector<Value> values_;
+    // 优化项，优先从vector中查找，找不到才找prop_map
+    // std::vector<Value> values_;
 };
 
 } // namespace mjs

@@ -13,7 +13,7 @@ Vm::Vm(Context* context)
 	: context_(context)
 	, stack_frame_(&stack()) {}
 
-const ConstPool& Vm::const_pool() const {
+const GlobalConstPool& Vm::const_pool() const {
 	return context_->runtime().const_pool();
 }
 
@@ -77,7 +77,7 @@ void Vm::FunctionInit(const Value& func_val) {
 	}
 }
 
-Value& Vm::GetVar(uint32_t idx) {
+Value& Vm::GetVar(VarIndex idx) {
 	auto* var = &stack_frame_.Get(idx);
 	while (var->type() == ValueType::kUpValue) {
 		var = var->up_value().value;
@@ -85,7 +85,7 @@ Value& Vm::GetVar(uint32_t idx) {
 	return *var;
 }
 
-void Vm::SetVar(uint32_t idx, Value&& var) {
+void Vm::SetVar(VarIndex idx, Value&& var) {
 	auto* var_ = &stack_frame_.Get(idx);
 	while (var_->type() == ValueType::kUpValue) {
 		var_ = var_->up_value().value;
@@ -93,7 +93,7 @@ void Vm::SetVar(uint32_t idx, Value&& var) {
 	*var_ = std::move(var);
 }
 
-void Vm::LoadConst(uint32_t const_idx) {
+void Vm::LoadConst(ConstIndex const_idx) {
 	auto& value = const_pool().Get(const_idx);
 
 	if (value.type() == ValueType::kFunctionDef) {
@@ -113,11 +113,11 @@ void Vm::LoadConst(uint32_t const_idx) {
 			auto& parent_arr = parent_func->closure_value_arr_;
 
 			for (auto& def : func->func_def_->closure_var_defs_) {
-				if (def.second.parent_var_idx == -1) {
+				if (!def.second.parent_var_idx) {
 					// 当前是顶级变量
 					continue;
 				}
-				auto parent_arr_idx = parent_func->func_def_->closure_var_defs_[def.second.parent_var_idx].arr_idx;
+				auto parent_arr_idx = parent_func->func_def_->closure_var_defs_[*def.second.parent_var_idx].arr_idx;
 				arr[def.second.arr_idx] = Value(UpValue(&parent_arr[parent_arr_idx]));
 			}
 		}
@@ -149,19 +149,19 @@ void Vm::Run() {
 			break;
 		}
 		case OpcodeType::kCLoad: {
-			auto const_idx = cur_func_def->byte_code.GetU8(pc_);
+			auto const_idx = cur_func_def->byte_code.GetI8(pc_);
 			pc_ += 1;
 			LoadConst(const_idx);
 			break;
 		}
 		case OpcodeType::kCLoadW: {
-			auto const_idx = cur_func_def->byte_code.GetU16(pc_);
+			auto const_idx = cur_func_def->byte_code.GetI16(pc_);
 			pc_ += 2;
 			LoadConst(const_idx);
 			break;
 		}
 		case OpcodeType::kCLoadD: {
-			auto const_idx = cur_func_def->byte_code.GetU32(pc_);
+			auto const_idx = cur_func_def->byte_code.GetI32(pc_);
 			pc_ += 4;
 			LoadConst(const_idx);
 			break;
@@ -199,14 +199,13 @@ void Vm::Run() {
 			break;
 		}
 		case OpcodeType::kPropertyLoad: {
-			// 栈上是属性名
-			auto name_val = stack_frame_.Pop();
-			auto name = name_val.string_u8();
+			auto const_idx = cur_func_def->byte_code.GetU32(pc_);
+			pc_ += 4;
 
 			auto& obj_val = stack_frame_.Get(-1);
 			auto& obj = obj_val.object();
 
-			auto prop = obj.GetProperty(name);
+			auto prop = obj.GetProperty(const_idx);
 			if (!prop) {
 				obj_val = Value();
 			}
@@ -216,14 +215,13 @@ void Vm::Run() {
 			break;
 		}
 		case OpcodeType::kPropertyCall: {
-			// 栈上是属性名
-			auto name_val = stack_frame_.Pop();
-			auto name = name_val.string_u8();
+			auto const_idx = cur_func_def->byte_code.GetU32(pc_);
+			pc_ += 4;
 
 			auto obj_val = stack_frame_.Pop();
 			auto& obj = obj_val.object();
 
-			auto prop = obj.GetProperty(name);
+			auto prop = obj.GetProperty(const_idx);
 			if (!prop) {
 				// 调用一个未定义的属性
 				throw VmException("Call of non-function.");
@@ -234,28 +232,36 @@ void Vm::Run() {
 			break;
 		}
 		case OpcodeType::kPropertyStore: {
-			// 栈上是属性名
-			auto name_val = stack_frame_.Pop();
-			auto name = name_val.string_u8();
+			auto const_idx = cur_func_def->byte_code.GetU32(pc_);
+			pc_ += 4;
 
 			auto obj_val = stack_frame_.Pop();
 			auto& obj = obj_val.object();
 
-			obj.SetProperty(name, stack_frame_.Pop());
+			obj.SetProperty(const_idx, stack_frame_.Pop());
 			
 			break;
 		}
 		case OpcodeType::kVPropertyStore: {
-			auto var_idx = cur_func_def->byte_code.GetU8(pc_);
-			pc_ += 1;
-
-			// 设置变量的属性
-			auto name_val = stack_frame_.Pop();
-			auto name = name_val.string_u8();
+			auto var_idx = cur_func_def->byte_code.GetVarIndex(&pc_);
+			auto const_idx = cur_func_def->byte_code.GetConstIndex(&pc_);
 
 			auto& var = GetVar(var_idx);
-			var.object().SetProperty(name, stack_frame_.Pop());
+			var.object().SetProperty(const_idx, stack_frame_.Pop());
 
+			break;
+		}
+		case OpcodeType::kIndexedLoad: {
+		//	auto idx_val = stack_frame_.Pop();
+		//	auto& obj = stack_frame_.Get(-1);
+
+		//	auto prop = obj.object().GetProperty(idx_val);
+		//	if (!prop) {
+		//		obj = Value();
+		//	}
+		//	else {
+		//		obj = *prop;
+		//	}
 			break;
 		}
 		case OpcodeType::kAdd: {

@@ -9,8 +9,8 @@ namespace mjs {
 // 常量池、字节码、栈等共享资源位于Runtime
 class Runtime : noncopyable {
 public:
-	const ConstPool& const_pool() const { return const_pool_; }
-	ConstPool& const_pool() { return const_pool_; }
+	const GlobalConstPool& const_pool() const { return const_pool_; }
+	GlobalConstPool& const_pool() { return const_pool_; }
 
 	Stack& stack() {
 		static thread_local auto stack = Stack(1024);
@@ -18,7 +18,7 @@ public:
 	}
 
 private:
-	ConstPool const_pool_;
+	GlobalConstPool const_pool_;
 };
 
 } // namespace mjs
