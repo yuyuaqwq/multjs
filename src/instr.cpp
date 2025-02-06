@@ -32,11 +32,9 @@ std::map<OpcodeType, InstrInfo> g_instr_symbol{
     {OpcodeType::kPropertyLoad, {"propertyload", {}}},
     {OpcodeType::kPropertyCall, {"propertycall", {}}},
     {OpcodeType::kPropertyStore, {"propertystore", {}}},
-    {OpcodeType::kVPropertyStore, {"vpropertystore", {2}}},
 
     {OpcodeType::kIndexedLoad, {"indexedload", {}}},
     {OpcodeType::kIndexedStore, {"indexedstore", {}}},
-    {OpcodeType::kVIndexedStore, {"vindexedstore", {2}}},
     
 
     {OpcodeType::kPop, {"pop", {}}},
@@ -172,11 +170,6 @@ void ByteCode::EmitPropertyStore() {
     EmitOpcode(OpcodeType::kPropertyStore);
 }
 
-void ByteCode::EmitVPropertyStore(VarIndex var_idx) {
-    EmitOpcode(OpcodeType::kVPropertyStore);
-    EmitVarIndex(var_idx);
-}
-
 
 void ByteCode::EmitIndexedLoad() {
     EmitOpcode(OpcodeType::kIndexedLoad);
@@ -185,12 +178,6 @@ void ByteCode::EmitIndexedLoad() {
 void ByteCode::EmitIndexedStore() {
     EmitOpcode(OpcodeType::kIndexedStore);
 }
-
-void ByteCode::EmitVIndexedStore(VarIndex var_idx) {
-    EmitOpcode(OpcodeType::kVIndexedStore);
-    EmitVarIndex(var_idx);
-}
-
 
 
 void ByteCode::RepairPc(Pc pc_from, Pc pc_to) {

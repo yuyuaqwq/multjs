@@ -113,15 +113,7 @@ Value CodeGener::Generate(BlockStat* block) {
 		[](uint32_t par_count, StackFrame* stack) -> Value {
 			for (size_t i = 0; i < par_count; i++) {
 				auto val = stack->Get(i);
-				if (val.type() == ValueType::kString) {
-					std::cout << val.string_u8();
-				}
-				else if (val.type() == ValueType::kNumber) {
-					std::cout << val.number();
-				}
-				//else if (val.type() == ValueType::kU64) {
-				//    std::cout << val.u64();
-				//}
+				std::cout << val.ToString().string_u8();
 			}
 			printf("\n");
 			return Value();
@@ -537,59 +529,35 @@ void CodeGener::GenerateExp(Exp* exp) {
 			case ExpType::kIndexedExp: {
 				auto indexed_exp = static_cast<IndexedExp*>(lvalue_exp);
 
-				if (indexed_exp->exp->GetType() == ExpType::kIdentifier) {
-					// 设置局部变量的属性，则需要varidx
-					auto var_idx = GetVarByExp(indexed_exp->exp.get());
+				// obj["a"]["b"] = 100;
 
-					GenerateExp(indexed_exp->index_exp.get());
+				// 入栈的是obj["a"]
+				GenerateExp(indexed_exp->exp.get());
 
-					// 设置局部变量的对象成员
-					cur_func_->byte_code.EmitVIndexedStore(var_idx);
-				}
-				else {
-					// obj["a"]["b"] = 100;
+				// 入栈["b"]
+				GenerateExp(indexed_exp->index_exp.get());
 
-					// 入栈的是obj["a"]
-					GenerateExp(indexed_exp->exp.get());
-
-					// 入栈["b"]
-					GenerateExp(indexed_exp->index_exp.get());
-
-					cur_func_->byte_code.EmitIndexedStore();
-				}
+				cur_func_->byte_code.EmitIndexedStore();
 
 				break;
 			}
 			case ExpType::kDotExp: {
 				auto dot_exp = static_cast<DotExp*>(lvalue_exp);
 
-				if (dot_exp->exp->GetType() == ExpType::kIdentifier) {
-					// 设置局部变量的属性，则需要varidx
-					auto var_idx = GetVarByExp(dot_exp->exp.get());
+				// 设置对象的属性
+				// 如：obj.a.b = 100;
+				// 先入栈obj.a这个对象
+				GenerateExp(dot_exp->exp.get());
 
-					auto prop_exp = static_cast<IdentifierExp*>(dot_exp->prop_exp.get());
-					auto const_idx = AllocConst(MakeValue(prop_exp));
-					cur_func_->byte_code.EmitConstLoad(const_idx);
+				auto prop_exp = static_cast<IdentifierExp*>(dot_exp->prop_exp.get());
+				auto const_idx = AllocConst(MakeValue(prop_exp));
+				cur_func_->byte_code.EmitConstLoad(const_idx);
 
-					// 设置局部变量的对象成员
-					cur_func_->byte_code.EmitVPropertyStore(var_idx);
-				}
-				else {
-					// 设置嵌套对象的属性
-					// 如：obj.a.b = 100;
-					// 先入栈obj.a这个对象
-					GenerateExp(dot_exp->exp.get());
-
-					auto prop_exp = static_cast<IdentifierExp*>(dot_exp->prop_exp.get());
-					auto const_idx = AllocConst(MakeValue(prop_exp));
-					cur_func_->byte_code.EmitConstLoad(const_idx);
-
-					// 设置栈顶对象的成员
-					cur_func_->byte_code.EmitPropertyStore();
-				}
+				// 设置栈顶对象的成员
+				cur_func_->byte_code.EmitPropertyStore();
+				
 				break;
 			}
-			
 			default:
 				throw CodeGenerException("Lvalue expression type error.");
 			}

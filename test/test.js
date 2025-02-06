@@ -78,3 +78,7 @@ println(arr[1][2]);
 arr[1][2] = 888;
 println(arr[1][2]);
 println(arr["1"]["2"]);
+
+let sb = 1;
+sb.emm = 666;
+println(sb.emm);

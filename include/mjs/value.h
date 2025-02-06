@@ -53,6 +53,7 @@ public:
 	explicit Value(int32_t i32);
 	explicit Value(uint64_t u64);
 	explicit Value(uint32_t u32);
+	explicit Value(const char* string_u8);
 	explicit Value(const char* string_u8, size_t size);
 	explicit Value(const std::string string_u8);
 	explicit Value(Object* object);

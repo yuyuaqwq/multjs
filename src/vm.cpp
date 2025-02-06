@@ -221,15 +221,25 @@ void Vm::Run() {
 			auto key_val = stack_frame_.Pop();
 
 			auto& obj_val = stack_frame_.Get(-1);
-			auto& obj = obj_val.object();
 
-			auto prop = obj.GetProperty(key_val);
-			if (!prop) {
-				obj_val = Value();
+			if (obj_val.type() == ValueType::kObject) {
+				auto& obj = obj_val.object();
+				auto prop = obj.GetProperty(key_val);
+				if (!prop) {
+					obj_val = Value();
+				}
+				else {
+					obj_val = *prop;
+				}
 			}
 			else {
-				obj_val = *prop;
+				// 非Object类型，根据类型来处理
+				// 如undefined需要报错
+				// number等需要转成临时Number Object
+
+				obj_val = Value();
 			}
+			
 			break;
 		}
 		case OpcodeType::kPropertyCall: {
@@ -252,19 +262,16 @@ void Vm::Run() {
 			auto key_val = stack_frame_.Pop();
 
 			auto obj_val = stack_frame_.Pop();
-			auto& obj = obj_val.object();
-
-			obj.SetProperty(key_val, stack_frame_.Pop());
-			break;
-		}
-		case OpcodeType::kVPropertyStore: {
-			auto key_val = stack_frame_.Pop();
-
-			auto var_idx = cur_func_def->byte_code.GetVarIndex(&pc_);
-			auto& var_val = GetVar(var_idx);
-			auto& var_obj = var_val.object();
-
-			var_obj.SetProperty(key_val, stack_frame_.Pop());
+			if (obj_val.type() == ValueType::kObject) {
+				auto& obj = obj_val.object();
+				obj.SetProperty(key_val, stack_frame_.Pop());
+			}
+			else {
+				// 非Object类型，根据类型来处理
+				// 如undefined需要报错
+				// number等需要转成临时Number Object
+			}
+			
 			break;
 		}
 		case OpcodeType::kIndexedLoad: {
@@ -293,18 +300,6 @@ void Vm::Run() {
 			obj.SetProperty(idx_val, stack_frame_.Pop());
 			break;
 		}
-		case OpcodeType::kVIndexedStore: {
-			auto idx_val = stack_frame_.Pop();
-			idx_val = idx_val.ToString();
-
-			auto var_idx = cur_func_def->byte_code.GetVarIndex(&pc_);
-			auto& var_val = GetVar(var_idx);
-			auto& var_obj = var_val.object();
-
-			var_obj.SetProperty(idx_val, stack_frame_.Pop());
-			break;
-		}
-
 		case OpcodeType::kAdd: {
 			auto a = stack_frame_.Pop();
 			auto& b = stack_frame_.Get(-1);

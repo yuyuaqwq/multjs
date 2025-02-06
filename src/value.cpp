@@ -47,6 +47,11 @@ Value::Value(uint32_t u32) {
 	value_.u64_ = u32;
 }
 
+Value::Value(const char* string_u8) {
+	tag_.type_ = ValueType::kString;
+	set_string_u8(string_u8, std::strlen(string_u8));
+}
+
 Value::Value(const char* string_u8, size_t size) {
 	tag_.type_ = ValueType::kString;
 	set_string_u8(string_u8, size);

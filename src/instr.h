@@ -40,11 +40,9 @@ enum class OpcodeType {
 	kPropertyLoad = 0x40,
 	kPropertyCall = 0x41,
 	kPropertyStore = 0x42,
-	kVPropertyStore = 0x43,
 
 	kIndexedLoad = 0x48,
 	kIndexedStore = 0x49,
-	kVIndexedStore = 0x4a,
 
 	// Stack manipulation
 	kPop = 0x57,
@@ -122,11 +120,9 @@ public:
 	void EmitPropertyLoad();
 	void EmitPropertyCall();
 	void EmitPropertyStore();
-	void EmitVPropertyStore(VarIndex var_idx);
 
 	void EmitIndexedLoad();
 	void EmitIndexedStore();
-	void EmitVIndexedStore(VarIndex var_idx);
 
 	void RepairPc(Pc pc_from, Pc pc_to);
 	Pc CalcPc(Pc cur_pc);
