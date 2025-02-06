@@ -118,10 +118,10 @@ public:
 
 	void EmitGoto();
 
-	void EmitPropertyLoad(ConstIndex const_idx);
-	void EmitPropertyCall(ConstIndex const_idx);
-	void EmitPropertyStore(ConstIndex const_idx);
-	void EmitVPropertyStore(VarIndex var_idx, ConstIndex const_idx);
+	void EmitPropertyLoad();
+	void EmitPropertyCall();
+	void EmitPropertyStore();
+	void EmitVPropertyStore(VarIndex var_idx);
 
 	void EmitIndexedLoad();
 	void EmitIndexedStore();

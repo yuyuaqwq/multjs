@@ -52,18 +52,18 @@ tt_2();
 */
 
 
-// function tt() {
-//     println("tt:", 100);
-//     return 100;
-// }
-// let obj = {};
-// obj.sb = tt;
-// obj.sb = obj.sb2 = obj.sb();
-// println(obj.sb, " ", obj.sb2);
+function tt() {
+    println("tt:", 100);
+    return 100;
+}
+let obj = {};
+obj.sb = tt;
+obj.sb = obj.sb2 = obj.sb();
+println(obj.sb, " ", obj.sb2);
 
-// obj.sb = {};
-// obj.sb.sb2 = tt;
-// obj.sb.sb2();
+obj.sb = {};
+obj.sb.sb2 = tt;
+obj.sb.sb2();
 
 
 let arr = [1, 2, 3];

@@ -25,12 +25,12 @@ public:
 	}
 
 	Runtime& runtime() const { return *runtime_; }
-	LocalConstPool& const_pool() { return local_const_pool_; }
+	// LocalConstPool& const_pool() { return local_const_pool_; }
 
 private:
 	Runtime* runtime_;
 
-	LocalConstPool local_const_pool_;
+	// LocalConstPool local_const_pool_;
 
 	Vm vm_;
 };

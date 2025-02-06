@@ -23,12 +23,16 @@ ConstIndex CodeGener::AllocConst(Value&& value) {
 	return runtime_->const_pool().New(std::move(value));
 }
 
+const Value& CodeGener::FindConstValueByIndex(ConstIndex idx) {
+	return runtime_->const_pool().Get(idx);
+}
+
 
 VarIndex CodeGener::AllocVar(const std::string& var_name) {
 	return scopes_.back().AllocVar(var_name);
 }
 
-std::optional<VarIndex> CodeGener::GetVar(const std::string& var_name) {
+std::optional<VarIndex> CodeGener::FindVarIndexByName(const std::string& var_name) {
 	std::optional<VarIndex> find_var_idx = std::nullopt;
 	// 就近找变量
 	for (ptrdiff_t i = scopes_.size() - 1; i >= 0; --i) {
@@ -76,7 +80,7 @@ std::optional<VarIndex> CodeGener::GetVar(const std::string& var_name) {
 
 VarIndex CodeGener::GetVarByExp(Exp* exp) {
 	auto var_exp = static_cast<IdentifierExp*>(exp);
-	auto var_idx = GetVar(var_exp->name);
+	auto var_idx = FindVarIndexByName(var_exp->name);
 	if (!var_idx) {
 		throw CodeGenerException("var not defined");
 	}
@@ -490,7 +494,9 @@ void CodeGener::GenerateExp(Exp* exp) {
 				GenerateExp(bina_exp->left_exp.get());
 
 				auto const_idx = AllocConst(MakeValue(func_call->func_name.get()));
-				cur_func_->byte_code.EmitPropertyCall(const_idx);
+				cur_func_->byte_code.EmitConstLoad(const_idx);
+
+				cur_func_->byte_code.EmitPropertyCall();
 			}
 			else if (prop_exp->GetType() == ExpType::kIdentifier) {
 				// 左值表达式入栈
@@ -498,7 +504,9 @@ void CodeGener::GenerateExp(Exp* exp) {
 
 				// 访问对象成员
 				auto const_idx = AllocConst(MakeValue(prop_exp));
-				cur_func_->byte_code.EmitPropertyLoad(const_idx);
+				cur_func_->byte_code.EmitConstLoad(const_idx);
+
+				cur_func_->byte_code.EmitPropertyLoad();
 			}
 			else {
 				throw CodeGenerException("Incorrect right value for attribute access.");
@@ -536,8 +544,9 @@ void CodeGener::GenerateExp(Exp* exp) {
 
 					auto prop_exp = static_cast<IdentifierExp*>(lvalue_exp->right_exp.get());
 					auto const_idx = AllocConst(MakeValue(prop_exp));
+					cur_func_->byte_code.EmitConstLoad(const_idx);
 
-					cur_func_->byte_code.EmitVPropertyStore(var_idx, const_idx);	// 设置对象成员
+					cur_func_->byte_code.EmitVPropertyStore(var_idx);	// 设置对象成员
 				}
 				else {
 					// 设置嵌套对象的属性
@@ -547,9 +556,10 @@ void CodeGener::GenerateExp(Exp* exp) {
 
 					auto prop_exp = static_cast<IdentifierExp*>(lvalue_exp->right_exp.get());
 					auto const_idx = AllocConst(MakeValue(prop_exp));
+					cur_func_->byte_code.EmitConstLoad(const_idx);
 
 					// 设置栈顶对象的成员
-					cur_func_->byte_code.EmitPropertyStore(const_idx);
+					cur_func_->byte_code.EmitPropertyStore();
 				}
 
 				// 完成后，需要再将左值再次入栈
@@ -660,7 +670,7 @@ Value CodeGener::MakeValue(Exp* exp) {
 		for (auto& exp : arr_exp->arr_litera) {
 			// arr_obj->mutale_values().emplace_back(MakeValue(exp.get()));
 			auto const_idx = AllocConst(Value(std::to_string(i++)));
-			arr_obj->SetProperty(const_idx, MakeValue(exp.get()));
+			arr_obj->SetProperty(FindConstValueByIndex(const_idx), MakeValue(exp.get()));
 		}
 		return Value(arr_obj);
 	}
@@ -669,7 +679,7 @@ Value CodeGener::MakeValue(Exp* exp) {
 		Object* obj = new Object();
 		for (auto& exp : obj_exp->obj_litera) {
 			auto const_idx = AllocConst(Value(exp.first));
-			obj->SetProperty(const_idx, MakeValue(exp.second.get()));
+			obj->SetProperty(FindConstValueByIndex(const_idx), MakeValue(exp.second.get()));
 		}
 		return Value(obj);
 	}

@@ -29,10 +29,10 @@ std::map<OpcodeType, InstrInfo> g_instr_symbol{
     {OpcodeType::kVStore_2, {"vstore_2", {}}},
     {OpcodeType::kVStore_3, {"vstore_3", {}}},
 
-    {OpcodeType::kPropertyLoad, {"propertyload", {4}}},
-    {OpcodeType::kPropertyCall, {"propertycall", {4}}},
-    {OpcodeType::kPropertyStore, {"propertystore", {4}}},
-    {OpcodeType::kVPropertyStore, {"vpropertystore", {2, 4}}},
+    {OpcodeType::kPropertyLoad, {"propertyload", {}}},
+    {OpcodeType::kPropertyCall, {"propertycall", {}}},
+    {OpcodeType::kPropertyStore, {"propertystore", {}}},
+    {OpcodeType::kVPropertyStore, {"vpropertystore", {2}}},
 
     {OpcodeType::kIndexedLoad, {"indexedload", {}}},
     {OpcodeType::kIndexedStore, {"indexedstore", {}}},
@@ -158,25 +158,21 @@ void ByteCode::EmitVarLoad(VarIndex idx) {
     }
 }
 
-void ByteCode::EmitPropertyLoad(ConstIndex const_idx) {
+void ByteCode::EmitPropertyLoad() {
     EmitOpcode(OpcodeType::kPropertyLoad);
-    EmitConstIndex(const_idx);
 }
 
-void ByteCode::EmitPropertyCall(ConstIndex const_idx) {
+void ByteCode::EmitPropertyCall() {
     EmitOpcode(OpcodeType::kPropertyCall);
-    EmitConstIndex(const_idx);
 }
 
-void ByteCode::EmitPropertyStore(ConstIndex const_idx) {
+void ByteCode::EmitPropertyStore() {
     EmitOpcode(OpcodeType::kPropertyStore);
-    EmitConstIndex(const_idx);
 }
 
-void ByteCode::EmitVPropertyStore(VarIndex var_idx, ConstIndex const_idx) {
+void ByteCode::EmitVPropertyStore(VarIndex var_idx) {
     EmitOpcode(OpcodeType::kVPropertyStore);
     EmitVarIndex(var_idx);
-    EmitConstIndex(const_idx); 
 }
 
 

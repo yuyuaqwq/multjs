@@ -1,5 +1,6 @@
 #pragma once
 
+#include <map>
 #include <unordered_map>
 
 #include <mjs/noncopyable.h>
@@ -9,7 +10,7 @@
 namespace mjs {
 
 // 
-using PropertyMap = std::unordered_map<Value, Value>;
+using PropertyMap = std::map<Value, Value>;// std::unordered_map<Value, Value>;
 class Object : noncopyable {
 public:
 	Object() {

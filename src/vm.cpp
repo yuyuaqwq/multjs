@@ -94,18 +94,18 @@ const Value& Vm::GetGlobalConst(ConstIndex idx) {
 	return var;
 }
 
-const Value& Vm::GetLocalConst(ConstIndex idx) {
-	auto& var = context_->const_pool().Get(idx);
-	return var;
-}
+//const Value& Vm::GetLocalConst(ConstIndex idx) {
+//	auto& var = context_->const_pool().Get(idx);
+//	return var;
+//}
 
 const Value& Vm::GetConst(ConstIndex idx) {
 	if (IsGlobalConstIndex(idx)) {
 		return GetGlobalConst(idx);
 	}
-	else if (IsLocalConstIndex(idx)) {
-		return GetLocalConst(idx);
-	}
+	//else if (IsLocalConstIndex(idx)) {
+	//	return GetLocalConst(idx);
+	//}
 	else {
 		throw VmException("Incorrect const index.");
 	}
@@ -218,13 +218,12 @@ void Vm::Run() {
 			break;
 		}
 		case OpcodeType::kPropertyLoad: {
-			auto const_idx = cur_func_def->byte_code.GetU32(pc_);
-			pc_ += 4;
+			auto key_val = stack_frame_.Pop();
 
 			auto& obj_val = stack_frame_.Get(-1);
 			auto& obj = obj_val.object();
 
-			auto prop = obj.GetProperty(const_idx);
+			auto prop = obj.GetProperty(key_val);
 			if (!prop) {
 				obj_val = Value();
 			}
@@ -234,13 +233,12 @@ void Vm::Run() {
 			break;
 		}
 		case OpcodeType::kPropertyCall: {
-			auto const_idx = cur_func_def->byte_code.GetU32(pc_);
-			pc_ += 4;
+			auto key_val = stack_frame_.Pop();
 
 			auto obj_val = stack_frame_.Pop();
 			auto& obj = obj_val.object();
 
-			auto prop = obj.GetProperty(const_idx);
+			auto prop = obj.GetProperty(key_val);
 			if (!prop) {
 				// 调用一个未定义的属性
 				throw VmException("Call of non-function.");
@@ -251,22 +249,22 @@ void Vm::Run() {
 			break;
 		}
 		case OpcodeType::kPropertyStore: {
-			auto const_idx = cur_func_def->byte_code.GetU32(pc_);
-			pc_ += 4;
+			auto key_val = stack_frame_.Pop();
 
 			auto obj_val = stack_frame_.Pop();
 			auto& obj = obj_val.object();
 
-			obj.SetProperty(const_idx, stack_frame_.Pop());
+			obj.SetProperty(key_val, stack_frame_.Pop());
 			
 			break;
 		}
 		case OpcodeType::kVPropertyStore: {
-			auto var_idx = cur_func_def->byte_code.GetVarIndex(&pc_);
-			auto const_idx = cur_func_def->byte_code.GetConstIndex(&pc_);
+			auto key_val = stack_frame_.Pop();
 
+			auto var_idx = cur_func_def->byte_code.GetVarIndex(&pc_);
 			auto& var = GetVar(var_idx);
-			var.object().SetProperty(const_idx, stack_frame_.Pop());
+
+			var.object().SetProperty(key_val, stack_frame_.Pop());
 
 			break;
 		}
@@ -276,22 +274,7 @@ void Vm::Run() {
 
 			idx_val = idx_val.ToString();
 
-			ConstIndex idx;
-			if (idx_val.const_index() == kConstInvaildIndex) {
-				// 先找全局变量，找不到再找局部变量
-				auto idx_opt = context_->runtime().const_pool().Find(idx_val);
-				if (!idx_opt) {
-					idx = context_->const_pool().New(idx_val);
-				}
-				else {
-					idx = *idx_opt;
-				}
-			}
-			else {
-				idx = idx_val.const_index();
-			}
-
-			auto prop = obj.object().GetProperty(idx);
+			auto prop = obj.object().GetProperty(idx_val);
 			if (!prop) {
 				obj = Value();
 			}

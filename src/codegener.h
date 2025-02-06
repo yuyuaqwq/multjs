@@ -33,9 +33,10 @@ private:
 	void ExitScope();
 
 	ConstIndex AllocConst(Value&& value);
+	const Value& FindConstValueByIndex(ConstIndex idx);
 
-	VarIndex AllocVar(const std::string& varName);
-	std::optional<VarIndex> GetVar(const std::string& varName);
+	VarIndex AllocVar(const std::string& name);
+	std::optional<VarIndex> FindVarIndexByName(const std::string& name);
 	VarIndex GetVarByExp(Exp* exp);
 
 	void GenerateBlock(BlockStat* block);
