@@ -19,6 +19,7 @@ enum class ExpType {
 	kArrayLiteralExp,
 	kObjectLiteralExp,
 	kIndexedExp,
+	kDotExp,
 	kFunctionCall,
 };
 
@@ -124,6 +125,19 @@ struct IdentifierExp : public Exp {
 	}
 
 	std::string name;
+};
+
+
+struct DotExp : public Exp {
+	virtual ExpType GetType() const noexcept override {
+		return ExpType::kDotExp;
+	}
+	DotExp(std::unique_ptr<Exp> exp, std::unique_ptr<Exp> prop_exp)
+		: exp(std::move(exp))
+		, prop_exp(std::move(prop_exp)) {}
+
+	std::unique_ptr<Exp> exp;
+	std::unique_ptr<Exp> prop_exp;
 };
 
 struct IndexedExp : public Exp {

@@ -255,34 +255,56 @@ void Vm::Run() {
 			auto& obj = obj_val.object();
 
 			obj.SetProperty(key_val, stack_frame_.Pop());
-			
 			break;
 		}
 		case OpcodeType::kVPropertyStore: {
 			auto key_val = stack_frame_.Pop();
 
 			auto var_idx = cur_func_def->byte_code.GetVarIndex(&pc_);
-			auto& var = GetVar(var_idx);
+			auto& var_val = GetVar(var_idx);
+			auto& var_obj = var_val.object();
 
-			var.object().SetProperty(key_val, stack_frame_.Pop());
-
+			var_obj.SetProperty(key_val, stack_frame_.Pop());
 			break;
 		}
 		case OpcodeType::kIndexedLoad: {
 			auto idx_val = stack_frame_.Pop();
-			auto& obj = stack_frame_.Get(-1);
-
 			idx_val = idx_val.ToString();
 
-			auto prop = obj.object().GetProperty(idx_val);
+			auto& obj_val = stack_frame_.Get(-1);
+			auto& obj = obj_val.object();
+			
+			auto prop = obj.GetProperty(idx_val);
 			if (!prop) {
-				obj = Value();
+				obj_val = Value();
 			}
 			else {
-				obj = *prop;
+				obj_val = *prop;
 			}
 			break;
 		}
+		case OpcodeType::kIndexedStore: {
+			auto idx_val = stack_frame_.Pop();
+			idx_val = idx_val.ToString();
+
+			auto obj_val = stack_frame_.Pop();
+			auto& obj = obj_val.object();
+
+			obj.SetProperty(idx_val, stack_frame_.Pop());
+			break;
+		}
+		case OpcodeType::kVIndexedStore: {
+			auto idx_val = stack_frame_.Pop();
+			idx_val = idx_val.ToString();
+
+			auto var_idx = cur_func_def->byte_code.GetVarIndex(&pc_);
+			auto& var_val = GetVar(var_idx);
+			auto& var_obj = var_val.object();
+
+			var_obj.SetProperty(idx_val, stack_frame_.Pop());
+			break;
+		}
+
 		case OpcodeType::kAdd: {
 			auto a = stack_frame_.Pop();
 			auto& b = stack_frame_.Get(-1);

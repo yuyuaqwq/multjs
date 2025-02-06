@@ -68,3 +68,13 @@ obj.sb.sb2();
 
 let arr = [1, 2, 3];
 println(arr[0]);
+println(arr["1"]);
+arr[1] = 666;
+println(arr[1]);
+
+arr[1] = [6, 7, 8];
+println(arr["1"]["2"]);
+println(arr[1][2]);
+arr[1][2] = 888;
+println(arr[1][2]);
+println(arr["1"]["2"]);

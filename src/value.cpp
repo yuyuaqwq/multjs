@@ -1,3 +1,5 @@
+#include <format>
+
 #include <mjs/value.h>
 
 #include <mjs/object.h>
@@ -398,7 +400,7 @@ Value Value::ToString() const {
 	case ValueType::kBoolean:
 		return Value(boolean() ? "true" : "false");
 	case ValueType::kNumber:
-		return Value(std::to_string(number()));
+		return Value(std::format("{}", number()));
 	case ValueType::kString: {
 		return *this;
 	}

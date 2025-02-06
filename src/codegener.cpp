@@ -79,6 +79,7 @@ std::optional<VarIndex> CodeGener::FindVarIndexByName(const std::string& var_nam
 }
 
 VarIndex CodeGener::GetVarByExp(Exp* exp) {
+	assert(exp->GetType() == ExpType::kIdentifier);
 	auto var_exp = static_cast<IdentifierExp*>(exp);
 	auto var_idx = FindVarIndexByName(var_exp->name);
 	if (!var_idx) {
@@ -452,6 +453,40 @@ void CodeGener::GenerateExp(Exp* exp) {
 
 		break;
 	}
+	case ExpType::kDotExp: {
+		auto dot_exp = static_cast<DotExp*>(exp);
+
+		// 成员访问表达式
+		auto prop_exp = dot_exp->prop_exp.get();
+
+		// 可能是调用函数
+		if (prop_exp->GetType() == ExpType::kFunctionCall) {
+			auto func_call = static_cast<FunctionCallExp*>(prop_exp);
+			GenerateFunctionCallPar(func_call);
+
+			// 左值表达式入栈
+			GenerateExp(dot_exp->exp.get());
+
+			auto const_idx = AllocConst(MakeValue(func_call->func_name.get()));
+			cur_func_->byte_code.EmitConstLoad(const_idx);
+
+			cur_func_->byte_code.EmitPropertyCall();
+		}
+		else if (prop_exp->GetType() == ExpType::kIdentifier) {
+			// 左值表达式入栈
+			GenerateExp(dot_exp->exp.get());
+
+			// 访问对象成员
+			auto const_idx = AllocConst(MakeValue(prop_exp));
+			cur_func_->byte_code.EmitConstLoad(const_idx);
+
+			cur_func_->byte_code.EmitPropertyLoad();
+		}
+		else {
+			throw CodeGenerException("Incorrect right value for attribute access.");
+		}
+		return;
+	}
 	case ExpType::kUnaryOp: {
 		auto unary_op_exp = static_cast<UnaryOpExp*>(exp);
 		// 表达式的值入栈
@@ -479,96 +514,88 @@ void CodeGener::GenerateExp(Exp* exp) {
 		auto bina_exp = static_cast<BinaryOpExp*>(exp);
 
 		switch (bina_exp->oper) {
-		case TokenType::kSepDot: {
-			// 成员访问表达式
-
-			// 根据名称进行对象访问
-			auto prop_exp = bina_exp->right_exp.get();
-
-			// 可能是调用函数
-			if (prop_exp->GetType() == ExpType::kFunctionCall) {
-				auto func_call = static_cast<FunctionCallExp*>(prop_exp);
-				GenerateFunctionCallPar(func_call);
-
-				// 左值表达式入栈
-				GenerateExp(bina_exp->left_exp.get());
-
-				auto const_idx = AllocConst(MakeValue(func_call->func_name.get()));
-				cur_func_->byte_code.EmitConstLoad(const_idx);
-
-				cur_func_->byte_code.EmitPropertyCall();
-			}
-			else if (prop_exp->GetType() == ExpType::kIdentifier) {
-				// 左值表达式入栈
-				GenerateExp(bina_exp->left_exp.get());
-
-				// 访问对象成员
-				auto const_idx = AllocConst(MakeValue(prop_exp));
-				cur_func_->byte_code.EmitConstLoad(const_idx);
-
-				cur_func_->byte_code.EmitPropertyLoad();
-			}
-			else {
-				throw CodeGenerException("Incorrect right value for attribute access.");
-			}
-			return;
-		}
-		case  TokenType::kOpAssign: {
+		case TokenType::kOpAssign: {
 			// 赋值表达式
 			
 			// 右值表达式先入栈
 			GenerateExp(bina_exp->right_exp.get());
 
-			auto lvalue_exp = static_cast<BinaryOpExp*>(bina_exp->left_exp.get());
+			auto lvalue_exp = bina_exp->left_exp.get();
 			if (lvalue_exp->value_category != ExpValueCategory::kLeftValue) {
 				throw CodeGenerException("The left side of the assignment operator must be an lvalue.");
 			}
 
 			// 再处理左值表达式
-
+			switch (lvalue_exp->GetType())
+			{
 			// 为左值赋值
-			if (lvalue_exp->GetType() == ExpType::kIdentifier) {
+			case ExpType::kIdentifier: {
 				auto var_idx = GetVarByExp(exp);
 				cur_func_->byte_code.EmitVarStore(var_idx);	// 从变量中获取
-
-				// 完成后，需要再将左值再次入栈
-				GenerateExp(lvalue_exp);
+				break;
 			}
-			else if (lvalue_exp->GetType() == ExpType::kBinaryOp
-				&& static_cast<BinaryOpExp*>(lvalue_exp)->oper == TokenType::kSepDot) {
-				// 左值是成员运算符表达式
+			case ExpType::kIndexedExp: {
+				auto indexed_exp = static_cast<IndexedExp*>(lvalue_exp);
 
-				if (lvalue_exp->left_exp->GetType() == ExpType::kIdentifier) {
+				if (indexed_exp->exp->GetType() == ExpType::kIdentifier) {
 					// 设置局部变量的属性，则需要varidx
-					auto var_idx = GetVarByExp(lvalue_exp->left_exp.get());
+					auto var_idx = GetVarByExp(indexed_exp->exp.get());
 
-					auto prop_exp = static_cast<IdentifierExp*>(lvalue_exp->right_exp.get());
+					GenerateExp(indexed_exp->index_exp.get());
+
+					// 设置局部变量的对象成员
+					cur_func_->byte_code.EmitVIndexedStore(var_idx);
+				}
+				else {
+					// obj["a"]["b"] = 100;
+
+					// 入栈的是obj["a"]
+					GenerateExp(indexed_exp->exp.get());
+
+					// 入栈["b"]
+					GenerateExp(indexed_exp->index_exp.get());
+
+					cur_func_->byte_code.EmitIndexedStore();
+				}
+
+				break;
+			}
+			case ExpType::kDotExp: {
+				auto dot_exp = static_cast<DotExp*>(lvalue_exp);
+
+				if (dot_exp->exp->GetType() == ExpType::kIdentifier) {
+					// 设置局部变量的属性，则需要varidx
+					auto var_idx = GetVarByExp(dot_exp->exp.get());
+
+					auto prop_exp = static_cast<IdentifierExp*>(dot_exp->prop_exp.get());
 					auto const_idx = AllocConst(MakeValue(prop_exp));
 					cur_func_->byte_code.EmitConstLoad(const_idx);
 
-					cur_func_->byte_code.EmitVPropertyStore(var_idx);	// 设置对象成员
+					// 设置局部变量的对象成员
+					cur_func_->byte_code.EmitVPropertyStore(var_idx);
 				}
 				else {
 					// 设置嵌套对象的属性
 					// 如：obj.a.b = 100;
 					// 先入栈obj.a这个对象
-					GenerateExp(lvalue_exp->left_exp.get());
+					GenerateExp(dot_exp->exp.get());
 
-					auto prop_exp = static_cast<IdentifierExp*>(lvalue_exp->right_exp.get());
+					auto prop_exp = static_cast<IdentifierExp*>(dot_exp->prop_exp.get());
 					auto const_idx = AllocConst(MakeValue(prop_exp));
 					cur_func_->byte_code.EmitConstLoad(const_idx);
 
 					// 设置栈顶对象的成员
 					cur_func_->byte_code.EmitPropertyStore();
 				}
-
-				// 完成后，需要再将左值再次入栈
-				GenerateExp(lvalue_exp);
+				break;
 			}
-			else {
+			
+			default:
 				throw CodeGenerException("Lvalue expression type error.");
 			}
 
+			// 完成后，需要再将左值再次入栈
+			GenerateExp(lvalue_exp);
 			return;
 		}
 		}
@@ -669,7 +696,7 @@ Value CodeGener::MakeValue(Exp* exp) {
 		double i = 0;
 		for (auto& exp : arr_exp->arr_litera) {
 			// arr_obj->mutale_values().emplace_back(MakeValue(exp.get()));
-			auto const_idx = AllocConst(Value(std::to_string(i++)));
+			auto const_idx = AllocConst(Value(i++).ToString());
 			arr_obj->SetProperty(FindConstValueByIndex(const_idx), MakeValue(exp.get()));
 		}
 		return Value(arr_obj);

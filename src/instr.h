@@ -44,6 +44,7 @@ enum class OpcodeType {
 
 	kIndexedLoad = 0x48,
 	kIndexedStore = 0x49,
+	kVIndexedStore = 0x4a,
 
 	// Stack manipulation
 	kPop = 0x57,
@@ -125,6 +126,7 @@ public:
 
 	void EmitIndexedLoad();
 	void EmitIndexedStore();
+	void EmitVIndexedStore(VarIndex var_idx);
 
 	void RepairPc(Pc pc_from, Pc pc_to);
 	Pc CalcPc(Pc cur_pc);

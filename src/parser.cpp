@@ -489,11 +489,12 @@ std::unique_ptr<Exp> Parser::ParseExp2() {
 				exp2 = std::make_unique<FunctionCallExp>(std::move(exp2), std::move(par_list));
 			}
 			auto exp2_type = exp2->GetType();
-			exp = std::make_unique<BinaryOpExp>(move(exp), type, std::move(exp2));
+			exp = std::make_unique<DotExp>(move(exp), std::move(exp2));
 			if (exp2_type == ExpType::kIdentifier) {
 				exp->value_category = ExpValueCategory::kLeftValue;
 			}
 			else {
+				// 如果是函数调用表达式，就是右值
 				exp->value_category = ExpValueCategory::kRightValue;
 			}
 		}
@@ -506,6 +507,7 @@ std::unique_ptr<Exp> Parser::ParseExp2() {
 			auto index_exp = ParseExp();
 			lexer_->MatchToken(TokenType::kSepRBrack);
 			exp = std::make_unique<IndexedExp>(std::move(exp), std::move(index_exp));
+			exp->value_category = ExpValueCategory::kLeftValue;
 		}
 		else {
 			break;

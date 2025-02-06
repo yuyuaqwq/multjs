@@ -36,6 +36,8 @@ std::map<OpcodeType, InstrInfo> g_instr_symbol{
 
     {OpcodeType::kIndexedLoad, {"indexedload", {}}},
     {OpcodeType::kIndexedStore, {"indexedstore", {}}},
+    {OpcodeType::kVIndexedStore, {"vindexedstore", {2}}},
+    
 
     {OpcodeType::kPop, {"pop", {}}},
 
@@ -180,10 +182,15 @@ void ByteCode::EmitIndexedLoad() {
     EmitOpcode(OpcodeType::kIndexedLoad);
 }
 
-
 void ByteCode::EmitIndexedStore() {
     EmitOpcode(OpcodeType::kIndexedStore);
 }
+
+void ByteCode::EmitVIndexedStore(VarIndex var_idx) {
+    EmitOpcode(OpcodeType::kVIndexedStore);
+    EmitVarIndex(var_idx);
+}
+
 
 
 void ByteCode::RepairPc(Pc pc_from, Pc pc_to) {
