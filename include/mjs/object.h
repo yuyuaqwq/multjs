@@ -8,7 +8,8 @@
 
 namespace mjs {
 
-using PropertyMap = std::unordered_map<ConstIndex, Value>;
+// 
+using PropertyMap = std::unordered_map<Value, Value>;
 class Object : noncopyable {
 public:
 	Object() {
@@ -36,19 +37,19 @@ public:
 		--tag_.ref_count_;
 	}
 
-	void SetProperty(ConstIndex key, Value&& val) {
+	void SetProperty(const Value& key, Value&& val) {
 		if (!property_map_) property_map_ = new PropertyMap();
 		(*property_map_)[key] = std::move(val);
 	}
 
-	Value* GetProperty(ConstIndex key) {
+	Value* GetProperty(const Value& key) {
 		if (!property_map_) return nullptr;
 		auto iter = property_map_->find(key);
 		if (iter == property_map_->end()) return nullptr;
 		return &iter->second;
 	}
 
-	void DelProperty(ConstIndex key) {
+	void DelProperty(const Value& key) {
 		if (!property_map_) return;
 		property_map_->erase(key);
 	}
