@@ -79,6 +79,9 @@ arr[1][2] = 888;
 println(arr[1][2]);
 println(arr["1"]["2"]);
 
+arr["1"] = tt;
+arr["1"]();
+
 let sb = 1;
 sb.emm = 666;
 println(sb.emm);
