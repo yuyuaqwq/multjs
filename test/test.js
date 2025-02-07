@@ -1,4 +1,4 @@
-/*
+
 let cc = 1000;
 
 function add(a, b) {
@@ -24,7 +24,7 @@ function tt() {
     let sbsb = 50;
     function qqq() {
         sbsb = sbsb + 100;
-        println("sbsb:", sbsb);
+        println("qqq:", sbsb);
         cc = cc + 5;
         println("cc:", cc);
     }
@@ -49,13 +49,13 @@ let tt_3 = tt_2;
 tt_3();
 
 tt_2();
-*/
 
 
-function tt() {
-    println("tt:", 100);
-    return 100;
-}
+
+// function tt() {
+//     println("tt:", 100);
+//     return 100;
+// }
 let obj = {};
 obj.sb = tt;
 obj.sb = obj.sb2 = obj.sb();

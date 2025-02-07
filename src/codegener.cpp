@@ -113,7 +113,14 @@ Value CodeGener::Generate(BlockStat* block) {
 		[](uint32_t par_count, StackFrame* stack) -> Value {
 			for (size_t i = 0; i < par_count; i++) {
 				auto val = stack->Get(i);
-				std::cout << val.ToString().string_u8();
+				try
+				{
+					std::cout << val.ToString().string_u8();
+				}
+				catch (const std::exception&)
+				{
+					std::cout << "unknown";
+				}
 			}
 			printf("\n");
 			return Value();
@@ -509,8 +516,8 @@ void CodeGener::GenerateExp(Exp* exp) {
 			{
 			// 为左值赋值
 			case ExpType::kIdentifier: {
-				auto var_idx = GetVarByExp(exp);
-				cur_func_->byte_code.EmitVarStore(var_idx);	// 从变量中获取
+				auto var_idx = GetVarByExp(lvalue_exp);
+				cur_func_->byte_code.EmitVarStore(var_idx);
 				break;
 			}
 			case ExpType::kIndexedExp: {
