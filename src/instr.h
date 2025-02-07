@@ -38,8 +38,7 @@ enum class OpcodeType {
 	kVStore_3 = 0x3e,
 
 	kPropertyLoad = 0x40,
-	kPropertyCall = 0x41,
-	kPropertyStore = 0x42,
+	kPropertyStore = 0x41,
 
 	kIndexedLoad = 0x48,
 	kIndexedStore = 0x49,
@@ -118,7 +117,6 @@ public:
 	void EmitGoto();
 
 	void EmitPropertyLoad();
-	void EmitPropertyCall();
 	void EmitPropertyStore();
 
 	void EmitIndexedLoad();

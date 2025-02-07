@@ -451,32 +451,19 @@ void CodeGener::GenerateExp(Exp* exp) {
 		// 成员访问表达式
 		auto prop_exp = dot_exp->prop_exp.get();
 
-		// 可能是调用函数
-		if (prop_exp->GetType() == ExpType::kFunctionCall) {
-			auto func_call = static_cast<FunctionCallExp*>(prop_exp);
-			GenerateFunctionCallPar(func_call);
+		//if (prop_exp->GetType() != ExpType::kIdentifier) {
+		//	throw CodeGenerException("Incorrect right value for attribute access.");
+		//}
 
-			// 左值表达式入栈
-			GenerateExp(dot_exp->exp.get());
+		// 左值表达式入栈
+		GenerateExp(dot_exp->exp.get());
 
-			auto const_idx = AllocConst(MakeValue(func_call->func_name.get()));
-			cur_func_->byte_code.EmitConstLoad(const_idx);
+		// 访问对象成员
+		auto const_idx = AllocConst(MakeValue(prop_exp));
+		cur_func_->byte_code.EmitConstLoad(const_idx);
 
-			cur_func_->byte_code.EmitPropertyCall();
-		}
-		else if (prop_exp->GetType() == ExpType::kIdentifier) {
-			// 左值表达式入栈
-			GenerateExp(dot_exp->exp.get());
+		cur_func_->byte_code.EmitPropertyLoad();
 
-			// 访问对象成员
-			auto const_idx = AllocConst(MakeValue(prop_exp));
-			cur_func_->byte_code.EmitConstLoad(const_idx);
-
-			cur_func_->byte_code.EmitPropertyLoad();
-		}
-		else {
-			throw CodeGenerException("Incorrect right value for attribute access.");
-		}
 		return;
 	}
 	case ExpType::kUnaryOp: {
@@ -614,15 +601,18 @@ void CodeGener::GenerateExp(Exp* exp) {
 	case ExpType::kFunctionCall: {
 		auto func_call_exp = static_cast<FunctionCallExp*>(exp);
 
-		auto var_idx = GetVarByExp(func_call_exp->func_name.get());
-
 		//if (func_call_exp->par_list.size() < const_table_[]->function_def()->par_count) {
 		//	throw CodeGenerException("Wrong number of parameters passed during function call");
 		//}
 
 		GenerateFunctionCallPar(func_call_exp);
+
+		GenerateExp(func_call_exp->func_obj.get());
+
 		cur_func_->byte_code.EmitOpcode(OpcodeType::kFunctionCall);
-		cur_func_->byte_code.EmitPcOffset(var_idx);
+
+		// auto var_idx = GetVarByExp(func_call_exp->func_obj.get());
+		// cur_func_->byte_code.EmitPcOffset(var_idx);
 
 		break;
 	}

@@ -30,7 +30,6 @@ std::map<OpcodeType, InstrInfo> g_instr_symbol{
     {OpcodeType::kVStore_3, {"vstore_3", {}}},
 
     {OpcodeType::kPropertyLoad, {"propertyload", {}}},
-    {OpcodeType::kPropertyCall, {"propertycall", {}}},
     {OpcodeType::kPropertyStore, {"propertystore", {}}},
 
     {OpcodeType::kIndexedLoad, {"indexedload", {}}},
@@ -62,7 +61,7 @@ std::map<OpcodeType, InstrInfo> g_instr_symbol{
 
     {OpcodeType::kReturn, {"return", {}}},
 
-    {OpcodeType::kFunctionCall, {"functioncall", {2}}},
+    {OpcodeType::kFunctionCall, {"functioncall", {}}},
 };
 
 
@@ -160,10 +159,6 @@ void ByteCode::EmitVarLoad(VarIndex idx) {
 
 void ByteCode::EmitPropertyLoad() {
     EmitOpcode(OpcodeType::kPropertyLoad);
-}
-
-void ByteCode::EmitPropertyCall() {
-    EmitOpcode(OpcodeType::kPropertyCall);
 }
 
 void ByteCode::EmitPropertyStore() {

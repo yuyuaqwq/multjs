@@ -242,22 +242,6 @@ void Vm::Run() {
 			
 			break;
 		}
-		case OpcodeType::kPropertyCall: {
-			auto key_val = stack_frame_.Pop();
-
-			auto obj_val = stack_frame_.Pop();
-			auto& obj = obj_val.object();
-
-			auto prop = obj.GetProperty(key_val);
-			if (!prop) {
-				// 调用一个未定义的属性
-				throw VmException("Call of non-function.");
-			}
-			else {
-				FunctionSwitch(&cur_func_def, *prop);
-			}
-			break;
-		}
 		case OpcodeType::kPropertyStore: {
 			auto key_val = stack_frame_.Pop();
 
@@ -330,10 +314,12 @@ void Vm::Run() {
 			break;
 		}		 
 		case OpcodeType::kFunctionCall: {
-			auto var_idx = cur_func_def->byte_code.GetU16(pc_);
-			pc_ += 2;
+			//auto var_idx = cur_func_def->byte_code.GetU16(pc_);
+			//pc_ += 2;
 
-			auto& func_val = GetVar(var_idx);
+			// auto& func_val = GetVar(var_idx);
+
+			auto func_val = stack_frame_.Pop();
 			FunctionSwitch(&cur_func_def, func_val);
 			
 			break;

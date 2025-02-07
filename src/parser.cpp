@@ -483,20 +483,8 @@ std::unique_ptr<Exp> Parser::ParseExp2() {
 			if (exp2->GetType() != ExpType::kIdentifier) {
 				throw ParserException("cannot match identifier.");
 			}
-			// 还可能是对标识符的函数调用
-			if (lexer_->PeekToken().Is(TokenType::kSepLParen)) {
-				auto par_list = ParseExpList(TokenType::kSepLParen, TokenType::kSepRParen, false);
-				exp2 = std::make_unique<FunctionCallExp>(std::move(exp2), std::move(par_list));
-			}
-			auto exp2_type = exp2->GetType();
 			exp = std::make_unique<DotExp>(move(exp), std::move(exp2));
-			if (exp2_type == ExpType::kIdentifier) {
-				exp->value_category = ExpValueCategory::kLeftValue;
-			}
-			else {
-				// 如果是函数调用表达式，就是右值
-				exp->value_category = ExpValueCategory::kRightValue;
-			}
+			exp->value_category = ExpValueCategory::kLeftValue;
 		}
 		else if (type == TokenType::kSepLParen) {
 			auto par_list = ParseExpList(TokenType::kSepLParen, TokenType::kSepRParen, false);
