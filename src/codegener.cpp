@@ -10,7 +10,7 @@ namespace mjs {
 CodeGener::CodeGener(Runtime* runtime)
 	: runtime_(runtime) {}
 
-void CodeGener::EntryScope(FuncDefObject* sub_func) {
+void CodeGener::EntryScope(FunctionDefObject* sub_func) {
 	scopes_.emplace_back(sub_func);
 }
 
@@ -49,7 +49,7 @@ std::optional<VarIndex> CodeGener::FindVarIndexByName(const std::string& var_nam
 			auto scope_func = scopes_[i].func();
 			scope_func->closure_var_defs_.emplace(
 				*var_idx_opt,
-				FuncDefObject::ClosureVarDef{
+				FunctionDefObject::ClosureVarDef{
 					.arr_idx = int32_t(scope_func->closure_var_defs_.size()),
 				}
 			);
@@ -64,7 +64,7 @@ std::optional<VarIndex> CodeGener::FindVarIndexByName(const std::string& var_nam
 				find_var_idx = scopes_[j].AllocVar(var_name);
 				scope_func->closure_var_defs_.emplace(
 					*find_var_idx,
-					FuncDefObject::ClosureVarDef{
+					FunctionDefObject::ClosureVarDef{
 						.arr_idx = int32_t(scope_func->closure_var_defs_.size()),
 						.parent_var_idx = *var_idx_opt
 					}
@@ -104,7 +104,7 @@ Value CodeGener::Generate(BlockStat* block) {
 	scopes_.clear();
 
 	// 创建顶层函数(模块)
-	auto const_idx = AllocConst(Value(new FuncDefObject(0)));
+	auto const_idx = AllocConst(Value(new FunctionDefObject(0)));
 	cur_func_ = runtime_->const_pool().Get(const_idx).function_def();
 
 	scopes_.emplace_back(cur_func_);
@@ -192,7 +192,7 @@ void CodeGener::GenerateStat(Stat* stat) {
 }
 
 void CodeGener::GenerateFunctionDeclStat(FuncDeclStat* stat) {
-	auto const_idx = AllocConst(Value(new FuncDefObject(stat->par_list.size())));
+	auto const_idx = AllocConst(Value(new FunctionDefObject(stat->par_list.size())));
 	cur_func_->byte_code.EmitConstLoad(const_idx);
 
 	auto func_def = runtime_->const_pool().Get(const_idx).function_def();

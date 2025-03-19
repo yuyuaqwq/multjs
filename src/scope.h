@@ -15,7 +15,7 @@ public:
 
 class Scope {
 public:
-	Scope(FuncDefObject* func)
+	Scope(FunctionDefObject* func)
 		: func_(func) {}
 
 	VarIndex AllocVar(const std::string& var_name) {
@@ -35,10 +35,10 @@ public:
 		return it->second.var_idx;
 	}
 
-	FuncDefObject* func() const { return func_; }
+	FunctionDefObject* func() const { return func_; }
 
 private:
-	FuncDefObject* func_; // 所属函数
+	FunctionDefObject* func_; // 所属函数
 	struct VarInfo {
 		VarIndex var_idx;
 	};

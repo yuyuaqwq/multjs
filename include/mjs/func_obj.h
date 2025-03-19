@@ -11,9 +11,9 @@
 
 namespace mjs {
 
-class FuncDefObject : public Object {
+class FunctionDefObject : public Object {
 public:
-	explicit FuncDefObject(uint32_t par_count) noexcept;
+	explicit FunctionDefObject(uint32_t par_count) noexcept;
 	std::string Disassembly();
 
 public:
@@ -43,10 +43,10 @@ public:
 // 闭包就是在将FuncDefObject赋值给Value的时候，会捕获当前的词法作用域上下文，闭包对象=函数指针+外部变量的捕获列表
 class FunctionObject : public Object {
 public:
-	explicit FunctionObject(FuncDefObject* def) noexcept;
+	explicit FunctionObject(FunctionDefObject* def) noexcept;
 
 public:
-	FuncDefObject* func_def_;
+	FunctionDefObject* func_def_;
 
 	// 父函数的引用计数占用
 	// 用于当前闭包被返回时，延长父函数的ArrayValue的生命周期
