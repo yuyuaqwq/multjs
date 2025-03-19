@@ -453,12 +453,12 @@ void Vm::FunctionSwitch(FunctionDefObject** cur_func_def, const Value& func_val)
 
 		break;
 	}
-	case ValueType::kFunctionBridge: {
+	case ValueType::kCppFunction: {
 		// ÇÐ»»Õ»Ö¡
 		auto old_bottom = stack_frame_.bottom();
 		stack_frame_.set_bottom(stack().Size() - par_count);
 
-		auto ret = func_val.function_bridge()(par_count, &stack_frame_);
+		auto ret = func_val.cpp_function()(par_count, &stack_frame_);
 
 		// »¹Ô­Õ»Ö¡
 		stack_frame_.set_bottom(old_bottom);

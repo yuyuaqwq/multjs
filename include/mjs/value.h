@@ -24,7 +24,7 @@ enum class ValueType : uint32_t {
 
 	kUpValue,
 
-	kFunctionBridge,
+	kCppFunction,
 	kFunctionDef,
 	kFunction,
 };
@@ -42,7 +42,7 @@ class StackFrame;
 
 class Value {
 public:
-	using FunctionBridgeObject = Value(*)(uint32_t par_count, StackFrame* stack);
+	using CppFunctionObject = Value(*)(uint32_t par_count, StackFrame* stack);
 
 public:
 	Value();
@@ -60,7 +60,7 @@ public:
 	explicit Value(const UpValue& up_value);
 	explicit Value(FunctionDefObject* def);
 	explicit Value(FunctionObject* func);
-	explicit Value(FunctionBridgeObject bridge);
+	explicit Value(CppFunctionObject bridge);
 
 	~Value();
 
@@ -106,7 +106,7 @@ public:
 
 	FunctionDefObject* function_def() const;
 	FunctionObject* function() const;
-	FunctionBridgeObject function_bridge() const;
+	CppFunctionObject cpp_function() const;
 
 	ConstIndex const_index() const { return tag_.const_index_; }
 	void set_const_index(ConstIndex const_index) { tag_.const_index_ = const_index; }
@@ -137,6 +137,6 @@ private:
 	} value_;
 };
 
-using FunctionBridgeObject = Value::FunctionBridgeObject;
+using CppFunctionObject = Value::CppFunctionObject;
 
 } // namespace mjs

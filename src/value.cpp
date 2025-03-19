@@ -83,8 +83,8 @@ Value::Value(FunctionObject* ref) {
 	value_.object_ = reinterpret_cast<Object*>(ref);
 }
 
-Value::Value(FunctionBridgeObject bridge) {
-	tag_.type_ = ValueType::kFunctionBridge;
+Value::Value(CppFunctionObject bridge) {
+	tag_.type_ = ValueType::kCppFunction;
 	value_.object_ = reinterpret_cast<Object*>(bridge);
 }
 
@@ -155,7 +155,7 @@ bool Value::operator<(const Value& rhs) const {
 	case ValueType::kU64:
 		return u64() < rhs.u64();
 	case ValueType::kFunctionDef:
-	case ValueType::kFunctionBridge:
+	case ValueType::kCppFunction:
 	case ValueType::kUpValue:
 		return value_.up_value_.value < rhs.value_.up_value_.value;
 	default:
@@ -186,7 +186,7 @@ bool Value::operator>(const Value& rhs) const {
 	case ValueType::kU64:
 		return u64() > rhs.u64();
 	case ValueType::kFunctionDef:
-	case ValueType::kFunctionBridge:
+	case ValueType::kCppFunction:
 	case ValueType::kUpValue:
 		return value_.up_value_.value > rhs.value_.up_value_.value;
 	default:
@@ -214,7 +214,7 @@ bool Value::operator==(const Value& rhs) const {
 	case ValueType::kI64:
 		return i64() == rhs.i64();
 	case ValueType::kFunctionDef:
-	case ValueType::kFunctionBridge:
+	case ValueType::kCppFunction:
 	case ValueType::kUpValue:
 		return value_.object_ == rhs.value_.object_;
 	default:
@@ -385,9 +385,9 @@ FunctionObject* Value::function() const {
 	return reinterpret_cast<FunctionObject*>(value_.object_);
 }
 
-FunctionBridgeObject Value::function_bridge() const { 
-	assert(type() == ValueType::kFunctionBridge); 
-	return reinterpret_cast<FunctionBridgeObject>(value_.object_); 
+CppFunctionObject Value::cpp_function() const { 
+	assert(type() == ValueType::kCppFunction); 
+	return reinterpret_cast<CppFunctionObject>(value_.object_); 
 }
 
 const UpValue& Value::up_value() const { 

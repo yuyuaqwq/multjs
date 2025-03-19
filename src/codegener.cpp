@@ -89,7 +89,7 @@ VarIndex CodeGener::GetVarByExp(Exp* exp) {
 }
 
 
-void CodeGener::RegistryFunctionBridge(const std::string& func_name, FunctionBridgeObject func) {
+void CodeGener::RegistryFunctionBridge(const std::string& func_name, CppFunctionObject func) {
 	auto var_idx = AllocVar(func_name);
 	auto const_idx = AllocConst(Value(func));
 
