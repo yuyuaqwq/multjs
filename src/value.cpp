@@ -73,7 +73,7 @@ Value::Value(const UpValue& up_value) {
 	value_.up_value_ = up_value;
 }
 
-Value::Value(FunctionDefObject* def) {
+Value::Value(FuncDefObject* def) {
 	tag_.type_ = ValueType::kFunctionDef;
 	value_.object_ = reinterpret_cast<Object*>(def);
 }
@@ -376,9 +376,9 @@ uint64_t Value::u64() const {
 }
 
 
-FunctionDefObject* Value::function_def() const { 
+FuncDefObject* Value::function_def() const { 
 	assert(type() == ValueType::kFunctionDef); 
-	return reinterpret_cast<FunctionDefObject*>(value_.object_); 
+	return reinterpret_cast<FuncDefObject*>(value_.object_); 
 }
 
 FunctionObject* Value::function() const {

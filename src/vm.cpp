@@ -29,7 +29,7 @@ void Vm::EvalFunction(const Value& func_val) {
 	Run();
 }
 
-FunctionDefObject* Vm::function_def(const Value& func_val) const {
+FuncDefObject* Vm::function_def(const Value& func_val) const {
 	if (func_val.type() == ValueType::kFunction) {
 		return func_val.function()->func_def_;
 	}
@@ -402,7 +402,7 @@ void Vm::Run() {
 	} while (pc_ >= 0 && pc_ < cur_func_def->byte_code.Size());
 }
 
-void Vm::FunctionSwitch(FunctionDefObject** cur_func_def, const Value& func_val) {
+void Vm::FunctionSwitch(FuncDefObject** cur_func_def, const Value& func_val) {
 	auto par_count = stack_frame_.Pop().u64();
 
 	switch (func_val.type()) {

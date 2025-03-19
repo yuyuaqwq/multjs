@@ -29,7 +29,7 @@ public:
 	Value Generate(BlockStat* block);
 
 private:
-	void EntryScope(FunctionDefObject* sub_func = nullptr);
+	void EntryScope(FuncDefObject* sub_func = nullptr);
 	void ExitScope();
 
 	ConstIndex AllocConst(Value&& value);
@@ -58,7 +58,7 @@ private:
 	Runtime* runtime_;
 
 	// 函数
-	FunctionDefObject* cur_func_ = nullptr;				// 当前生成函数
+	FuncDefObject* cur_func_ = nullptr;				// 当前生成函数
 
 	// 作用域
 	std::vector<Scope> scopes_;
