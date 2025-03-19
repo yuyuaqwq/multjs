@@ -231,6 +231,10 @@ Value Value::operator+(const Value& rhs) const {
 	if (type() == ValueType::kNumber && rhs.type() == ValueType::kNumber) {
 		return Value(number() + rhs.number());
 	}
+	else if (type() == ValueType::kString
+		|| rhs.type() == ValueType::kString) {
+		return Value(ToString() + rhs.ToString());
+	}
 	else {
 		throw std::runtime_error("Addition not supported for these Value types.");
 	}
