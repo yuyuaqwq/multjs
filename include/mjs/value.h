@@ -112,6 +112,7 @@ public:
 	void set_const_index(ConstIndex const_index) { tag_.const_index_ = const_index; }
 
 	Value ToString() const;
+	Value ToBoolean() const;
 
 private:
 	union {

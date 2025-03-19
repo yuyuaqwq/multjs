@@ -85,3 +85,5 @@ arr["1"]();
 let sb = 1;
 sb.emm = 666;
 println(sb.emm);
+
+println("abc" + 123);

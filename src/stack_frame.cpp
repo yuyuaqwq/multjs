@@ -37,11 +37,11 @@ void Stack::Reduce(size_t size) {
 }
 
 
-size_t Stack::size() const noexcept {
+size_t Stack::Size() const noexcept {
 	return stack_.size();
 }
 
-void Stack::resize(size_t size) {
+void Stack::Resize(size_t size) {
 	stack_.resize(size);
 }
 
@@ -65,7 +65,7 @@ Value& StackFrame::Get(ptrdiff_t index) {
 		return stack_->Get(bottom_ + index);
 	}
 	else {
-		return stack_->Get(stack_->size() + index);
+		return stack_->Get(stack_->Size() + index);
 	}
 }
 
@@ -79,7 +79,7 @@ void StackFrame::Set(ptrdiff_t index, Value&& value) {
 		stack_->Set(bottom_ + index, value);
 	}
 	else {
-		stack_->Set(stack_->size() + index, value);
+		stack_->Set(stack_->Size() + index, value);
 	}
 }
 

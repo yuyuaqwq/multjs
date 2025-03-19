@@ -65,7 +65,7 @@ Value::Value(const std::string string_u8) {
 Value::Value(Object* object) {
 	tag_.type_ = ValueType::kObject;
 	value_.object_ = object;
-	value_.object_->ref();
+	value_.object_->Reference();
 }
 
 Value::Value(const UpValue& up_value) {
@@ -91,14 +91,14 @@ Value::Value(FunctionBridgeObject bridge) {
 
 Value::~Value() {
 	if (type() == ValueType::kString) {
-		object().deref();
+		object().Dereference();
 		if (object().ref_count() == 0) {
 			std::destroy_at(&object<StringObject>());
 			std::free(&object());
 		}
 	}
 	else if (type() == ValueType::kObject) {
-		object().deref();
+		object().Dereference();
 		if (object().ref_count() == 0) {
 			//  Õ∑≈∂‘œÛ
 			delete &object();
@@ -119,7 +119,7 @@ void Value::operator=(const Value& r) {
 	tag_.full_ = r.tag_.full_;
 	if (type() == ValueType::kString || type() == ValueType::kObject) {
 		value_.object_ = r.value_.object_;
-		object().ref();
+		object().Reference();
 	}
 	else {
 		value_ = r.value_;
@@ -146,12 +146,10 @@ bool Value::operator<(const Value& rhs) const {
 		return boolean() < rhs.boolean();
 	case ValueType::kNumber:
 		return number() < rhs.number();
-	case ValueType::kString: {
+	case ValueType::kString: 
 		return std::strcmp(string_u8(), rhs.string_u8()) < 0;
-	}
 	case ValueType::kObject:
 		return &object() < &rhs.object(); // Compare pointers
-
 	case ValueType::kI64:
 		return i64() < rhs.i64();
 	case ValueType::kU64:
@@ -179,12 +177,10 @@ bool Value::operator>(const Value& rhs) const {
 		return boolean() > rhs.boolean();
 	case ValueType::kNumber:
 		return number() > rhs.number();
-	case ValueType::kString: {
+	case ValueType::kString:
 		return std::strcmp(string_u8(), rhs.string_u8()) > 0;
-	}
 	case ValueType::kObject:
 		return &object() > &rhs.object(); // Compare pointers
-
 	case ValueType::kI64:
 		return i64() > rhs.i64();
 	case ValueType::kU64:
@@ -211,9 +207,8 @@ bool Value::operator==(const Value& rhs) const {
 		return boolean() == rhs.boolean();
 	case ValueType::kNumber:
 		return number() == rhs.number();
-	case ValueType::kString: {
+	case ValueType::kString:
 		return std::strcmp(string_u8(), rhs.string_u8()) == 0;
-	}
 	case ValueType::kObject:
 		return &object() == &rhs.object();
 	case ValueType::kI64:
@@ -233,7 +228,7 @@ Value Value::operator+(const Value& rhs) const {
 	}
 	else if (type() == ValueType::kString
 		|| rhs.type() == ValueType::kString) {
-		return Value(ToString() + rhs.ToString());
+		return Value(std::string(ToString().string_u8()) + rhs.ToString().string_u8());
 	}
 	else {
 		throw std::runtime_error("Addition not supported for these Value types.");
@@ -355,12 +350,12 @@ const char* Value::string_u8() const {
 }
 
 void Value::set_string_u8(const char* string_u8, size_t size) {
-	StringObject* str_obj = static_cast<StringObject*>(std::malloc(sizeof(StringObject) + size));
+	auto* str_obj = static_cast<StringObject*>(std::malloc(sizeof(StringObject) + size));
 	std::construct_at(str_obj);
 	std::memcpy(str_obj->mutable_str(), string_u8, size);
 	str_obj->mutable_str()[size] = '\0';
 	value_.object_ = str_obj;
-	str_obj->ref();
+	str_obj->Reference();
 }
 
 
@@ -415,6 +410,27 @@ Value Value::ToString() const {
 	}
 	default:
 		throw std::runtime_error("Incorrect value type.");
+	}
+}
+
+Value Value::ToBoolean() const {
+	switch (type()) {
+	case ValueType::kUndefined:
+		return Value(false);
+	case ValueType::kNull:
+		return Value(false);
+	case ValueType::kBoolean:
+		return *this;
+	case ValueType::kNumber:
+		if (std::isnan(number())) {
+			return Value(false);
+		}
+		return Value(number() == 0);
+	case ValueType::kString: {
+		return Value(string_u8()[0] != '\0');
+	}
+	default:
+		throw std::runtime_error("Need to add new types.");
 	}
 }
 

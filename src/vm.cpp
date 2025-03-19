@@ -20,7 +20,7 @@ Stack& Vm::stack() {
 void Vm::EvalFunction(const Value& func_val) {
 	pc_ = 0;
 	cur_func_val_ = func_val;
-	stack().resize(function_def(cur_func_val_)->var_count);
+	stack().Resize(function_def(cur_func_val_)->var_count);
 
 	// 最外层的函数不会通过CLoadFunc加载，所以需要自己初始化
 	FunctionDefInit(&cur_func_val_);
@@ -339,7 +339,7 @@ void Vm::Run() {
 			pc_ = save_pc.u64();
 
 			// 设置栈顶和栈底
-			stack().resize(stack_frame_.bottom());
+			stack().Resize(stack_frame_.bottom());
 			stack_frame_.set_bottom(save_bottom.u64());
 
 			// 返回位于原本位于栈帧栈顶的返回值
@@ -383,8 +383,8 @@ void Vm::Run() {
 			break;
 		}
 		case OpcodeType::kIfEq: {
-			auto boolean = stack_frame_.Pop().boolean();
-			if (boolean == false) {
+			auto boolean_val = stack_frame_.Pop().ToBoolean();
+			if (boolean_val.boolean() == false) {
 				pc_ = cur_func_def->byte_code.CalcPc(--pc_);
 			}
 			else {
@@ -435,8 +435,8 @@ void Vm::FunctionSwitch(FunctionDefObject** cur_func_def, const Value& func_val)
 		*cur_func_def = func_def;
 		cur_func_val_ = func_val;
 		pc_ = 0;
-		assert(stack().size() >= (*cur_func_def)->par_count);
-		stack_frame_.set_bottom(stack().size() - (*cur_func_def)->par_count);
+		assert(stack().Size() >= (*cur_func_def)->par_count);
+		stack_frame_.set_bottom(stack().Size() - (*cur_func_def)->par_count);
 
 		// 参数已经入栈了，再分配局部变量部分
 		assert((*cur_func_def)->var_count >= (*cur_func_def)->par_count);
@@ -456,7 +456,7 @@ void Vm::FunctionSwitch(FunctionDefObject** cur_func_def, const Value& func_val)
 	case ValueType::kFunctionBridge: {
 		// 切换栈帧
 		auto old_bottom = stack_frame_.bottom();
-		stack_frame_.set_bottom(stack().size() - par_count);
+		stack_frame_.set_bottom(stack().Size() - par_count);
 
 		auto ret = func_val.function_bridge()(par_count, &stack_frame_);
 

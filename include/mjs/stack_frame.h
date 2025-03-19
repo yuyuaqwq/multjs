@@ -56,8 +56,8 @@ public:
 	void Upgrade(size_t size);
 	void Reduce(size_t size);
 
-	size_t size()  const noexcept;
-	void resize(size_t size);
+	size_t Size()  const noexcept;
+	void Resize(size_t size);
 
 private:
 	std::vector<Value> stack_;

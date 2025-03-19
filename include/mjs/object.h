@@ -11,7 +11,7 @@ namespace mjs {
 
 // 
 using PropertyMap = std::map<Value, Value>;// std::unordered_map<Value, Value>;
-class Object : noncopyable {
+class Object : public noncopyable {
 public:
 	Object() {
 		tag_.full_ = 0;
@@ -30,11 +30,11 @@ public:
 		return tag_.ref_count_;
 	}
 
-	void ref() {
+	void Reference() {
 		++tag_.ref_count_;
 	}
 
-	void deref() {
+	void Dereference() {
 		--tag_.ref_count_;
 	}
 
