@@ -35,7 +35,7 @@ public:
 private:
 	bool FunctionDefInit(Value* func_val);
 	void FunctionInit(const Value& func_val);
-	void FunctionSwitch(FunctionDefObject** cur_func_def, const Value& func_val);
+	void FunctionSwitch(FunctionDef** cur_func_def, const Value& func_val);
 
 	void Run();
 
@@ -49,7 +49,7 @@ private:
 	void LoadConst(ConstIndex const_idx);
 
 	Stack& stack();
-	FunctionDefObject* function_def(const Value& func_val) const;
+	FunctionDef* function_def(const Value& func_val) const;
 private:
 	Context* context_;
 

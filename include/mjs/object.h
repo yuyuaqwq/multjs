@@ -44,10 +44,20 @@ public:
 	}
 
 	Value* GetProperty(const Value& key) {
-		if (!property_map_) return nullptr;
-		auto iter = property_map_->find(key);
-		if (iter == property_map_->end()) return nullptr;
-		return &iter->second;
+		// 1. 查找自身属性
+		if (property_map_) {
+			auto iter = property_map_->find(key);
+			if (iter != property_map_->end()) {
+				return &iter->second;
+			}
+		}
+
+		// 2. 原型链查找
+		if (prototype_.IsObject()) {
+			return prototype_.object().GetProperty(key);
+		}
+
+		return nullptr;
 	}
 
 	void DelProperty(const Value& key) {
@@ -60,6 +70,7 @@ private:
 		uint64_t full_;
 		uint32_t ref_count_;
 	} tag_;
+	Value prototype_;
 	PropertyMap* property_map_;
 };
 

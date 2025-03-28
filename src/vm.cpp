@@ -2,8 +2,8 @@
 
 #include <mjs/runtime.h>
 #include <mjs/context.h>
-#include <mjs/arr_obj.h>
-#include <mjs/func_obj.h>
+#include <mjs/array_object.h>
+#include <mjs/function_object.h>
 
 #include "instr.h"
 
@@ -29,11 +29,11 @@ void Vm::EvalFunction(const Value& func_val) {
 	Run();
 }
 
-FunctionDefObject* Vm::function_def(const Value& func_val) const {
-	if (func_val.type() == ValueType::kFunction) {
+FunctionDef* Vm::function_def(const Value& func_val) const {
+	if (func_val.IsFunctionObject()) {
 		return func_val.function()->func_def_;
 	}
-	else if  (func_val.type() == ValueType::kFunctionDef) {
+	else if  (func_val.IsFunctionDef()) {
 		return func_val.function_def();
 	}
 	return nullptr;
@@ -57,7 +57,7 @@ bool Vm::FunctionDefInit(Value* func_val) {
 }
 
 void Vm::FunctionInit(const Value& func_val) {
-	if (func_val.type() != ValueType::kFunction) {
+	if (func_val.IsFunctionObject()) {
 		return;
 	}
 	auto func = func_val.function();
@@ -402,11 +402,11 @@ void Vm::Run() {
 	} while (pc_ >= 0 && pc_ < cur_func_def->byte_code.Size());
 }
 
-void Vm::FunctionSwitch(FunctionDefObject** cur_func_def, const Value& func_val) {
+void Vm::FunctionSwitch(FunctionDef** cur_func_def, const Value& func_val) {
 	auto par_count = stack_frame_.Pop().u64();
 
 	switch (func_val.type()) {
-	case ValueType::kFunction:
+	case ValueType::kFunctionObject:
 	case ValueType::kFunctionDef: {
 		auto func_def = function_def(func_val);
 
@@ -447,7 +447,7 @@ void Vm::FunctionSwitch(FunctionDefObject** cur_func_def, const Value& func_val)
 		stack_frame_.Push(Value(save_pc));
 		stack_frame_.Push(Value(save_bottom));
 
-		if (func_val.type() == ValueType::kFunction) {
+		if (func_val.type() == ValueType::kFunctionObject) {
 			FunctionInit(func_val);
 		}
 

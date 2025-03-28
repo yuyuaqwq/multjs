@@ -1,9 +1,9 @@
 #include <format>
 
 #include <mjs/value.h>
-
 #include <mjs/object.h>
-#include <mjs/str_obj.h>
+
+#include <mjs/function_def.h>
 
 namespace mjs {
 
@@ -49,17 +49,17 @@ Value::Value(uint32_t u32) {
 
 Value::Value(const char* string_u8) {
 	tag_.type_ = ValueType::kString;
-	set_string_u8(string_u8, std::strlen(string_u8));
+	value_.string_ = new String(string_u8, strlen(string_u8));
 }
 
 Value::Value(const char* string_u8, size_t size) {
 	tag_.type_ = ValueType::kString;
-	set_string_u8(string_u8, size);
+	value_.string_ = new String(string_u8, size);
 }
 
-Value::Value(const std::string string_u8) {
+Value::Value(std::string str) {
 	tag_.type_ = ValueType::kString;
-	set_string_u8(string_u8.data(), string_u8.size());
+	value_.string_ = new String(std::move(str));
 }
 
 Value::Value(Object* object) {
@@ -73,36 +73,38 @@ Value::Value(const UpValue& up_value) {
 	value_.up_value_ = up_value;
 }
 
-Value::Value(FunctionDefObject* def) {
-	tag_.type_ = ValueType::kFunctionDef;
-	value_.object_ = reinterpret_cast<Object*>(def);
-}
-
 Value::Value(FunctionObject* ref) {
-	tag_.type_ = ValueType::kFunction;
+	tag_.type_ = ValueType::kFunctionObject;
 	value_.object_ = reinterpret_cast<Object*>(ref);
 }
 
-Value::Value(CppFunctionObject bridge) {
+Value::Value(FunctionDef* func_def) {
+	tag_.type_ = ValueType::kFunctionDef;
+	value_.func_def_ = func_def;
+}
+
+Value::Value(CppFunction cpp_func) {
 	tag_.type_ = ValueType::kCppFunction;
-	value_.object_ = reinterpret_cast<Object*>(bridge);
+	value_.cpp_func_ = cpp_func;
 }
 
 
 Value::~Value() {
-	if (type() == ValueType::kString) {
-		object().Dereference();
-		if (object().ref_count() == 0) {
-			std::destroy_at(&object<StringObject>());
-			std::free(&object());
+	if (IsString()) {
+		value_.string_->Dereference();
+		if (value_.string_->ref_count() == 0) {
+			delete value_.string_;
 		}
 	}
-	else if (type() == ValueType::kObject) {
+	else if (IsObject()) {
 		object().Dereference();
 		if (object().ref_count() == 0) {
 			// 释放对象
 			delete &object();
 		}
+	}
+	else if (IsFunctionDef()) {
+		delete value_.func_def_;
 	}
 }
 
@@ -116,10 +118,14 @@ Value::Value(Value&& r) noexcept {
 
 
 void Value::operator=(const Value& r) {
-	tag_.full_ = r.tag_.full_;
-	if (type() == ValueType::kString || type() == ValueType::kObject) {
+	tag_.type_ = r.tag_.type_;
+	if (IsObject()) {
 		value_.object_ = r.value_.object_;
 		object().Reference();
+	}
+	else if (IsString()) {
+		value_.string_ = r.value_.string_;
+		value_.string_->Reference();
 	}
 	else {
 		value_ = r.value_;
@@ -147,7 +153,7 @@ bool Value::operator<(const Value& rhs) const {
 	case ValueType::kNumber:
 		return number() < rhs.number();
 	case ValueType::kString: 
-		return std::strcmp(string_u8(), rhs.string_u8()) < 0;
+		return string() < rhs.string();
 	case ValueType::kObject:
 		return &object() < &rhs.object(); // Compare pointers
 	case ValueType::kI64:
@@ -178,7 +184,7 @@ bool Value::operator>(const Value& rhs) const {
 	case ValueType::kNumber:
 		return number() > rhs.number();
 	case ValueType::kString:
-		return std::strcmp(string_u8(), rhs.string_u8()) > 0;
+		return string() > rhs.string();
 	case ValueType::kObject:
 		return &object() > &rhs.object(); // Compare pointers
 	case ValueType::kI64:
@@ -208,7 +214,7 @@ bool Value::operator==(const Value& rhs) const {
 	case ValueType::kNumber:
 		return number() == rhs.number();
 	case ValueType::kString:
-		return std::strcmp(string_u8(), rhs.string_u8()) == 0;
+		return string() == rhs.string();
 	case ValueType::kObject:
 		return &object() == &rhs.object();
 	case ValueType::kI64:
@@ -223,12 +229,12 @@ bool Value::operator==(const Value& rhs) const {
 }
 
 Value Value::operator+(const Value& rhs) const {
-	if (type() == ValueType::kNumber && rhs.type() == ValueType::kNumber) {
+	if (IsNumber() && rhs.IsNumber()) {
 		return Value(number() + rhs.number());
 	}
-	else if (type() == ValueType::kString
-		|| rhs.type() == ValueType::kString) {
-		return Value(std::string(ToString().string_u8()) + rhs.ToString().string_u8());
+	else if (IsString() || rhs.IsString()) {
+		// 创建一个新的字符串常量来保存
+		return Value((ToString().string()) + rhs.ToString().string());
 	}
 	else {
 		throw std::runtime_error("Addition not supported for these Value types.");
@@ -236,7 +242,7 @@ Value Value::operator+(const Value& rhs) const {
 }
 
 Value Value::operator-(const Value& rhs) const {
-	if (type() == ValueType::kNumber && rhs.type() == ValueType::kNumber) {
+	if (IsNumber() && rhs.IsNumber()) {
 		return Value(number() - rhs.number());
 	}
 	else {
@@ -245,7 +251,7 @@ Value Value::operator-(const Value& rhs) const {
 }
 
 Value Value::operator*(const Value& rhs) const {
-	if (type() == ValueType::kNumber && rhs.type() == ValueType::kNumber) {
+	if (IsNumber() && rhs.IsNumber()) {
 		return Value(number() * rhs.number());
 	}
 	else {
@@ -254,7 +260,7 @@ Value Value::operator*(const Value& rhs) const {
 }
 
 Value Value::operator/(const Value& rhs) const {
-	if (type() == ValueType::kNumber && rhs.type() == ValueType::kNumber) {
+	if (IsNumber() && rhs.IsNumber()) {
 		if (rhs.number() == 0) {
 			throw std::runtime_error("Division by zero.");
 		}
@@ -266,7 +272,7 @@ Value Value::operator/(const Value& rhs) const {
 }
 
 Value Value::operator-() const {
-	if (type() == ValueType::kNumber) {
+	if (IsNumber()) {
 		return Value(-number());
 	}
 	else {
@@ -275,7 +281,7 @@ Value Value::operator-() const {
 }
 
 Value& Value::operator++() {
-	if (type() == ValueType::kNumber) {
+	if (IsNumber()) {
 		++value_.f64_;
 	}
 	else {
@@ -285,7 +291,7 @@ Value& Value::operator++() {
 }
 
 Value& Value::operator--() {
-	if (type() == ValueType::kNumber) {
+	if (IsNumber()) {
 		--value_.f64_;
 	}
 	else {
@@ -295,7 +301,7 @@ Value& Value::operator--() {
 }
 
 Value Value::operator++(int) {
-	if (type() == ValueType::kNumber) {
+	if (IsNumber()) {
 		Value old = *this;
 		++value_.f64_;
 		return old;
@@ -306,7 +312,7 @@ Value Value::operator++(int) {
 }
 
 Value Value::operator--(int) {
-	if (type() == ValueType::kNumber) {
+	if (IsNumber()) {
 		Value old = *this;
 		--value_.f64_;
 		return old;
@@ -323,76 +329,122 @@ ValueType Value::type() const {
 
 
 double Value::number() const { 
-	assert(type() == ValueType::kNumber);
+	assert(IsNumber());
 	return value_.f64_;
 }
 
 void Value::set_number(double number) { 
-	assert(type() == ValueType::kNumber);
+	assert(IsNumber());
 	value_.f64_ = number;
 }
 
 
 bool Value::boolean() const { 
-	assert(type() == ValueType::kBoolean); 
+	assert(IsBoolean()); 
 	return value_.boolean_;
 }
 
 void Value::set_boolean(bool boolean) { 
-	assert(type() == ValueType::kBoolean);
+	assert(IsBoolean());
 	value_.boolean_ = boolean; 
 }
 
 
-const char* Value::string_u8() const {
-	assert(type() == ValueType::kString);
-	return static_cast<StringObject*>(value_.object_)->str();
-}
-
-void Value::set_string_u8(const char* string_u8, size_t size) {
-	auto* str_obj = static_cast<StringObject*>(std::malloc(sizeof(StringObject) + size));
-	std::construct_at(str_obj);
-	std::memcpy(str_obj->mutable_str(), string_u8, size);
-	str_obj->mutable_str()[size] = '\0';
-	value_.object_ = str_obj;
-	str_obj->Reference();
+String& Value::string() const {
+	assert(IsString());
+	return *value_.string_;
 }
 
 
 Object& Value::object() const {
-	assert(type() == ValueType::kString || type() == ValueType::kObject);
+	assert(IsObject());
 	return *value_.object_;
 }
 
 
 int64_t Value::i64() const { 
-	assert(type() == ValueType::kI64); 
+	assert(IsI64()); 
 	return value_.i64_;
 }
 uint64_t Value::u64() const { 
-	assert(type() == ValueType::kU64);
+	assert(IsU64());
 	return value_.u64_;
 }
 
 
-FunctionDefObject* Value::function_def() const {
-	assert(type() == ValueType::kFunctionDef); 
-	return reinterpret_cast<FunctionDefObject*>(value_.object_);
-}
-
 FunctionObject* Value::function() const {
-	assert(type() == ValueType::kFunction);
+	assert(IsFunctionObject());
 	return reinterpret_cast<FunctionObject*>(value_.object_);
 }
 
-CppFunctionObject Value::cpp_function() const { 
-	assert(type() == ValueType::kCppFunction); 
-	return reinterpret_cast<CppFunctionObject>(value_.object_); 
+FunctionDef* Value::function_def() const {
+	assert(IsFunctionDef());
+	return value_.func_def_;
+}
+
+CppFunction Value::cpp_function() const { 
+	assert(IsCppFunction()); 
+	return value_.cpp_func_;
 }
 
 const UpValue& Value::up_value() const { 
-	assert(type() == ValueType::kUpValue); 
+	assert(IsUpValue()); 
 	return value_.up_value_;
+}
+
+
+
+bool Value::IsUndefined() const {
+	return type() == ValueType::kUndefined;
+}
+
+bool Value::IsNull() const {
+	return type() == ValueType::kNull;
+}
+
+bool Value::IsBoolean() const {
+	return type() == ValueType::kBoolean;
+}
+
+bool Value::IsNumber() const {
+	return type() == ValueType::kNumber;
+}
+
+bool Value::IsString() const {
+	return type() == ValueType::kString;
+}
+
+bool Value::IsObject() const {
+	return type() == ValueType::kObject
+		|| type() == ValueType::kNumberObject
+		|| type() == ValueType::kStringObject
+		|| type() == ValueType::kArrayObject
+		|| type() == ValueType::kFunctionObject
+		;
+}
+
+bool Value::IsFunctionObject() const {
+	return type() == ValueType::kFunctionObject;
+}
+
+bool Value::IsI64() const {
+	return type() == ValueType::kI64;
+}
+
+bool Value::IsU64() const {
+	return type() == ValueType::kU64;
+}
+
+bool Value::IsFunctionDef() const {
+	return type() == ValueType::kFunctionDef;
+}
+
+bool Value::IsUpValue() const {
+	return type() == ValueType::kUpValue;
+}
+
+bool Value::IsCppFunction() const {
+	return type() == ValueType::kCppFunction;
 }
 
 Value Value::ToString() const {
@@ -427,7 +479,7 @@ Value Value::ToBoolean() const {
 		}
 		return Value(number() == 0);
 	case ValueType::kString: {
-		return Value(string_u8()[0] != '\0');
+		return Value(string().empty());
 	}
 	default:
 		throw std::runtime_error("Need to add new types.");

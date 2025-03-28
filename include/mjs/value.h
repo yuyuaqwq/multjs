@@ -8,25 +8,32 @@
 
 #include <mjs/const_def.h>
 
+#include "string.h"
+
 namespace mjs {
 
 enum class ValueType : uint32_t {
+	// 字面量
 	kUndefined = 0,
 	kNull,
 	kBoolean,
 	kNumber,
 	kString,
+
+	// 对象
 	kObject,
+	kNumberObject,
+	kStringObject,
+	kArrayObject,
+	kFunctionObject,
 
 	// 内部使用
 	kI64,
 	kU64,
 
 	kUpValue,
-
-	kCppFunction,
 	kFunctionDef,
-	kFunction,
+	kCppFunction,
 };
 
 class Value;
@@ -35,32 +42,36 @@ struct UpValue {
 };
 
 class Object;
-class FunctionDefObject;
+class FunctionDef;
 class FunctionObject;
 
 class StackFrame;
 
 class Value {
 public:
-	using CppFunctionObject = Value(*)(uint32_t par_count, StackFrame* stack);
+	using CppFunction = Value(*)(uint32_t par_count, StackFrame* stack);
 
 public:
 	Value();
 	explicit Value(std::nullptr_t);
 	explicit Value(bool boolean);
 	explicit Value(double number);
+	explicit Value(const char* string_u8);
+	explicit Value(const char* string_u8, size_t size);
+	explicit Value(std::string str);
+
+	explicit Value(Object* object);
+
+	explicit Value(const UpValue& up_value);
+
+	explicit Value(FunctionDef* def);
+	explicit Value(FunctionObject* func);
+	explicit Value(CppFunction bridge);
+
 	explicit Value(int64_t i64);
 	explicit Value(int32_t i32);
 	explicit Value(uint64_t u64);
 	explicit Value(uint32_t u32);
-	explicit Value(const char* string_u8);
-	explicit Value(const char* string_u8, size_t size);
-	explicit Value(const std::string string_u8);
-	explicit Value(Object* object);
-	explicit Value(const UpValue& up_value);
-	explicit Value(FunctionDefObject* def);
-	explicit Value(FunctionObject* func);
-	explicit Value(CppFunctionObject bridge);
 
 	~Value();
 
@@ -90,10 +101,7 @@ public:
 	bool boolean() const;
 	void set_boolean(bool boolean);
 
-	const char* string_u8() const;
-	void set_string_u8(const char* string_u8, size_t size);
-
-	const UpValue& up_value() const;
+	String& string() const;
 
 	Object& object() const;
 	template<typename ObjectT>
@@ -101,15 +109,32 @@ public:
 		return static_cast<ObjectT&>(object());
 	}
 
+	FunctionObject* function() const;
+
 	int64_t i64() const;
 	uint64_t u64() const;
-
-	FunctionDefObject* function_def() const;
-	FunctionObject* function() const;
-	CppFunctionObject cpp_function() const;
+	const UpValue& up_value() const;
+	FunctionDef* function_def() const;
+	CppFunction cpp_function() const;
 
 	ConstIndex const_index() const { return tag_.const_index_; }
 	void set_const_index(ConstIndex const_index) { tag_.const_index_ = const_index; }
+
+	bool IsUndefined() const;
+	bool IsNull() const;
+	bool IsBoolean() const;
+	bool IsNumber() const;
+	bool IsString() const;
+
+	bool IsObject() const;
+	bool IsFunctionObject() const;
+
+	bool IsI64() const;
+	bool IsU64() const;
+	bool IsFunctionDef() const;
+	bool IsUpValue() const;
+	bool IsCppFunction() const;
+
 
 	Value ToString() const;
 	Value ToBoolean() const;
@@ -128,15 +153,19 @@ private:
 	union {
 		bool boolean_;
 		double f64_;
+		String* string_;
+
 		Object* object_;
-		
-		UpValue up_value_;
 
 		int64_t i64_;
 		uint64_t u64_;
+
+		UpValue up_value_;
+		FunctionDef* func_def_;
+		CppFunction cpp_func_;
 	} value_;
 };
 
-using CppFunctionObject = Value::CppFunctionObject;
+using CppFunction = Value::CppFunction;
 
 } // namespace mjs

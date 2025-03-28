@@ -3,14 +3,14 @@
 #include <iostream>
 
 #include <mjs/runtime.h>
-#include <mjs/arr_obj.h>
+#include <mjs/array_object.h>
 
 namespace mjs {
 
 CodeGener::CodeGener(Runtime* runtime)
 	: runtime_(runtime) {}
 
-void CodeGener::EntryScope(FunctionDefObject* sub_func) {
+void CodeGener::EntryScope(FunctionDef* sub_func) {
 	scopes_.emplace_back(sub_func);
 }
 
@@ -41,30 +41,30 @@ std::optional<VarIndex> CodeGener::FindVarIndexByName(const std::string& var_nam
 			// 当前作用域找不到变量，向上层作用域找
 			continue;
 		}
-		if (scopes_[i].func() == cur_func_) {
+		if (scopes_[i].func_def() == cur_func_) {
 			find_var_idx = *var_idx_opt;
 		}
 		else {
 			// 在上层函数作用域找到了，构建upvalue捕获链
-			auto scope_func = scopes_[i].func();
+			auto scope_func = scopes_[i].func_def();
 			scope_func->closure_var_defs_.emplace(
 				*var_idx_opt,
-				FunctionDefObject::ClosureVarDef{
+				FunctionDef::ClosureVarDef{
 					.arr_idx = int32_t(scope_func->closure_var_defs_.size()),
 				}
 			);
 
 			for (size_t j = i + 1; j < scopes_.size(); ++j) {
-				if (scope_func == scopes_[j].func()) {
+				if (scope_func == scopes_[j].func_def()) {
 					continue;
 				}
-				scope_func = scopes_[j].func();
+				scope_func = scopes_[j].func_def();
 
 				// 为upvalue分配变量
 				find_var_idx = scopes_[j].AllocVar(var_name);
 				scope_func->closure_var_defs_.emplace(
 					*find_var_idx,
-					FunctionDefObject::ClosureVarDef{
+					FunctionDef::ClosureVarDef{
 						.arr_idx = int32_t(scope_func->closure_var_defs_.size()),
 						.parent_var_idx = *var_idx_opt
 					}
@@ -89,7 +89,7 @@ VarIndex CodeGener::GetVarByExp(Exp* exp) {
 }
 
 
-void CodeGener::RegistryFunctionBridge(const std::string& func_name, CppFunctionObject func) {
+void CodeGener::RegistryFunctionBridge(const std::string& func_name, CppFunction func) {
 	auto var_idx = AllocVar(func_name);
 	auto const_idx = AllocConst(Value(func));
 
@@ -104,7 +104,7 @@ Value CodeGener::Generate(BlockStat* block) {
 	scopes_.clear();
 
 	// 创建顶层函数(模块)
-	auto const_idx = AllocConst(Value(new FunctionDefObject(0)));
+	auto const_idx = AllocConst(Value(new FunctionDef(0)));
 	cur_func_ = runtime_->const_pool().Get(const_idx).function_def();
 
 	scopes_.emplace_back(cur_func_);
@@ -115,7 +115,7 @@ Value CodeGener::Generate(BlockStat* block) {
 				auto val = stack->Get(i);
 				try
 				{
-					std::cout << val.ToString().string_u8();
+					std::cout << val.ToString().string();
 				}
 				catch (const std::exception&)
 				{
@@ -192,7 +192,7 @@ void CodeGener::GenerateStat(Stat* stat) {
 }
 
 void CodeGener::GenerateFunctionDeclStat(FuncDeclStat* stat) {
-	auto const_idx = AllocConst(Value(new FunctionDefObject(stat->par_list.size())));
+	auto const_idx = AllocConst(Value(new FunctionDef(stat->par_list.size())));
 	cur_func_->byte_code.EmitConstLoad(const_idx);
 
 	auto func_def = runtime_->const_pool().Get(const_idx).function_def();

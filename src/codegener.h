@@ -5,7 +5,7 @@
 #include <string>
 
 #include <mjs/value.h>
-#include <mjs/func_obj.h>
+#include <mjs/function_object.h>
 
 #include "scope.h"
 #include "stat.h"
@@ -25,11 +25,11 @@ class CodeGener {
 public:
 	CodeGener(Runtime* runtime);
 
-	void RegistryFunctionBridge(const std::string& func_name, CppFunctionObject func);
+	void RegistryFunctionBridge(const std::string& func_name, CppFunction func);
 	Value Generate(BlockStat* block);
 
 private:
-	void EntryScope(FunctionDefObject* sub_func = nullptr);
+	void EntryScope(FunctionDef* sub_func = nullptr);
 	void ExitScope();
 
 	ConstIndex AllocConst(Value&& value);
@@ -58,7 +58,7 @@ private:
 	Runtime* runtime_;
 
 	// 函数
-	FunctionDefObject* cur_func_ = nullptr;				// 当前生成函数
+	FunctionDef* cur_func_ = nullptr;				// 当前生成函数
 
 	// 作用域
 	std::vector<Scope> scopes_;
