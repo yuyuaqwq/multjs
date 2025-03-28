@@ -61,17 +61,17 @@ public:
 	explicit Value(std::string str);
 
 	explicit Value(Object* object);
-
-	explicit Value(const UpValue& up_value);
-
-	explicit Value(FunctionDef* def);
 	explicit Value(FunctionObject* func);
-	explicit Value(CppFunction bridge);
 
 	explicit Value(int64_t i64);
 	explicit Value(int32_t i32);
 	explicit Value(uint64_t u64);
 	explicit Value(uint32_t u32);
+
+	explicit Value(const UpValue& up_value);
+
+	explicit Value(FunctionDef* def);
+	explicit Value(CppFunction bridge);
 
 	~Value();
 
@@ -80,6 +80,7 @@ public:
 
 	void operator=(const Value& r);
 	void operator=(Value&& r) noexcept;
+
 	bool operator<(const Value& rhs) const;
 	bool operator>(const Value& rhs) const;
 	bool operator==(const Value& rhs) const;

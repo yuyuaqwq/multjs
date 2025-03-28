@@ -25,10 +25,11 @@ ConstIndex GlobalConstPool::New(Value&& value) {
 		pool_[i1] = std::make_unique<StaticArray>();
 	}
 	auto const_idx = ConstToGlobalIndex(const_index_++);
-	const_map_.emplace(value, const_idx);
 	auto& val = Get(const_idx);
 	val = std::move(value);
 	val.set_const_index(const_idx);
+
+	auto res = const_map_.emplace(val, const_idx);
 	return const_idx;
 }
 

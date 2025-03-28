@@ -1,3 +1,5 @@
+#include <iostream>
+
 #include <mjs/vm.h>
 
 #include <mjs/runtime.h>
@@ -57,7 +59,7 @@ bool Vm::FunctionDefInit(Value* func_val) {
 }
 
 void Vm::FunctionInit(const Value& func_val) {
-	if (func_val.IsFunctionObject()) {
+	if (!func_val.IsFunctionObject()) {
 		return;
 	}
 	auto func = func_val.function();
@@ -153,7 +155,7 @@ void Vm::Run() {
 	if (!cur_func_def) return;
 
 	do {
-		// auto pc = pc_; std::cout << cur_func_def->byte_code.Disassembly(pc) << std::endl;
+		auto pc = pc_; std::cout << cur_func_def->byte_code.Disassembly(pc) << std::endl;
 		auto opcode = cur_func_def->byte_code.GetOpcode(pc_++);
 		switch (opcode) {
 		//case OpcodeType::kStop:

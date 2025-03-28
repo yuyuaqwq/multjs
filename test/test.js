@@ -31,7 +31,7 @@ function tt() {
     return qqq;
 }
 
-// println("hello world!");
+println("hello world!");
 
 let a = 1;
 let b = add(666, a, "sbsb");

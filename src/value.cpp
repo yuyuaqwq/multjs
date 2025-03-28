@@ -37,6 +37,37 @@ Value::Value(int32_t i32) {
 	value_.i64_ = i32;
 }
 
+Value::Value(const char* string_u8) {
+	tag_.type_ = ValueType::kString;
+	value_.string_ = new String(string_u8, strlen(string_u8));
+	value_.string_->Reference();
+}
+
+Value::Value(const char* string_u8, size_t size) {
+	tag_.type_ = ValueType::kString;
+	value_.string_ = new String(string_u8, size);
+	value_.string_->Reference();
+}
+
+Value::Value(std::string str) {
+	tag_.type_ = ValueType::kString;
+	value_.string_ = new String(std::move(str));
+	value_.string_->Reference();
+}
+
+Value::Value(Object* object) {
+	tag_.type_ = ValueType::kObject;
+	value_.object_ = object;
+	value_.object_->Reference();
+}
+
+Value::Value(FunctionObject* ref) {
+	tag_.type_ = ValueType::kFunctionObject;
+	value_.object_ = reinterpret_cast<Object*>(ref);
+	value_.object_->Reference();
+}
+
+
 Value::Value(uint64_t u64) {
 	tag_.type_ = ValueType::kU64;
 	value_.u64_ = u64;
@@ -47,35 +78,9 @@ Value::Value(uint32_t u32) {
 	value_.u64_ = u32;
 }
 
-Value::Value(const char* string_u8) {
-	tag_.type_ = ValueType::kString;
-	value_.string_ = new String(string_u8, strlen(string_u8));
-}
-
-Value::Value(const char* string_u8, size_t size) {
-	tag_.type_ = ValueType::kString;
-	value_.string_ = new String(string_u8, size);
-}
-
-Value::Value(std::string str) {
-	tag_.type_ = ValueType::kString;
-	value_.string_ = new String(std::move(str));
-}
-
-Value::Value(Object* object) {
-	tag_.type_ = ValueType::kObject;
-	value_.object_ = object;
-	value_.object_->Reference();
-}
-
 Value::Value(const UpValue& up_value) {
 	tag_.type_ = ValueType::kUpValue;
 	value_.up_value_ = up_value;
-}
-
-Value::Value(FunctionObject* ref) {
-	tag_.type_ = ValueType::kFunctionObject;
-	value_.object_ = reinterpret_cast<Object*>(ref);
 }
 
 Value::Value(FunctionDef* func_def) {
@@ -103,7 +108,7 @@ Value::~Value() {
 			delete &object();
 		}
 	}
-	else if (IsFunctionDef()) {
+	else if (IsFunctionDef() && const_index() != 0) {
 		delete value_.func_def_;
 	}
 }
