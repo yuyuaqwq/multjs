@@ -6,7 +6,7 @@
 
 #include <mjs/const_def.h>
 #include <mjs/var_def.h>
-#include <mjs/opcode_type.h>
+#include <mjs/opcode.h>
 
 namespace mjs {
 

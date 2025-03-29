@@ -1,9 +1,10 @@
 #pragma once
 
 #include <mjs/runtime.h>
+#include <mjs/opcode.h>
 #include <mjs/object.h>
 #include <mjs/stack_frame.h>
-#include <mjs/opcode_type.h>
+
 
 namespace mjs {
 
@@ -12,7 +13,7 @@ public:
     GeneratorObject(const Runtime& runtime, const Value& func)
         : func_(func), stack_(0)
     {
-        NewMethod(Value("next"), Value(ValueType::kGeneratorNext));
+        NewMethod(Value("next"), Value(ValueType::kGeneratorNext, this));
     }
 
     bool IsSuspended() const { return state_ == State::kSuspended; }

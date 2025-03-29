@@ -1,5 +1,6 @@
 
 function* gen(a, b, c) {
+    let ttt = this;
     let ada = "emm";
     let res1 = yield a + ada;
     println(res1, " ", ada);

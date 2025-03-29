@@ -92,9 +92,12 @@ Value::Value(CppFunction cpp_func) {
 	value_.cpp_func_ = cpp_func;
 }
 
-Value::Value(ValueType type) {
-	tag_.type_ = ValueType::kGeneratorNext;
-	value_.full_ = 0;
+Value::Value(ValueType type, GeneratorObject* generator) {
+	if (type == ValueType::kGeneratorNext) {
+		tag_.type_ = ValueType::kGeneratorNext;
+		value_.object_ = reinterpret_cast<Object*>(generator);
+		value_.object_->Reference();
+	}
 }
 
 
@@ -408,7 +411,7 @@ FunctionObject* Value::function() const {
 }
 
 GeneratorObject* Value::generator() const {
-	assert(IsGeneratorObject());
+	assert(IsGeneratorObject() || IsGeneratorNext());
 	return reinterpret_cast<GeneratorObject*>(value_.object_);
 }
 
@@ -495,6 +498,10 @@ bool Value::IsUpValue() const {
 
 bool Value::IsCppFunction() const {
 	return type() == ValueType::kCppFunction;
+}
+
+bool Value::IsGeneratorNext() const {
+	return type() == ValueType::kGeneratorNext;
 }
 
 Value Value::ToString() const {

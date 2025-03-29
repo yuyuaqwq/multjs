@@ -434,11 +434,20 @@ void CodeGener::GenerateExp(Exp* exp) {
 		cur_func_->byte_code.EmitVarLoad(var_idx);	// 从变量中获取
 		break;
 	}
+	case ExpType::kThis: {
+		cur_func_->byte_code.EmitOpcode(OpcodeType::kGetThis);
+		break;
+	}
 	case ExpType::kIndexedExp: {
 		auto idx_exp = static_cast<IndexedExp*>(exp);
 
 		// 被访问的表达式，应该是一个数组对象，入栈这个表达式
 		GenerateExp(idx_exp->exp.get());
+
+		// 判断下是否调用函数，是则dump
+		if (idx_exp->is_method_call) {
+			cur_func_->byte_code.EmitOpcode(OpcodeType::kDump);
+		}
 
 		// 用于访问的下标的表达式，入栈这个表达式
 		//if (idx_exp->index_exp->GetType() == ExpType::kNumber) {
@@ -466,6 +475,11 @@ void CodeGener::GenerateExp(Exp* exp) {
 
 		// 左值表达式入栈
 		GenerateExp(dot_exp->exp.get());
+
+		// 判断下是否调用函数，是则dump
+		if (dot_exp->is_method_call) {
+			cur_func_->byte_code.EmitOpcode(OpcodeType::kDump);
+		}
 
 		// 访问对象成员
 		auto const_idx = AllocConst(MakeValue(prop_exp));
@@ -615,8 +629,18 @@ void CodeGener::GenerateExp(Exp* exp) {
 		//}
 
 		GenerateFunctionCallPar(func_call_exp);
-
 		GenerateExp(func_call_exp->func_obj.get());
+
+		// 将this置于栈顶
+		if (func_call_exp->func_obj->GetType() == ExpType::kDotExp) {
+			cur_func_->byte_code.EmitOpcode(OpcodeType::kSwap);
+		}
+		else if (func_call_exp->func_obj->GetType() == ExpType::kIndexedExp) {
+			cur_func_->byte_code.EmitOpcode(OpcodeType::kSwap);
+		}
+		else {
+			cur_func_->byte_code.EmitOpcode(OpcodeType::kUndefined);
+		}
 
 		cur_func_->byte_code.EmitOpcode(OpcodeType::kFunctionCall);
 

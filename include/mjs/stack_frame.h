@@ -33,8 +33,12 @@ public:
 	size_t bottom() const { return bottom_; }
 	void set_bottom(size_t bottom) { bottom_ = bottom; }
 
+	const auto& this_val() const { return this_val_; }
+	void set_this_val(Value&& this_val) { this_val_ = this_val; }
+
 private:
 	Stack* stack_;
+	Value this_val_;
 	size_t bottom_ = 0;	// 当前栈帧的栈底(在栈中的索引)
 };
 

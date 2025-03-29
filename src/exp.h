@@ -16,6 +16,7 @@ enum class ExpType {
 	kBinaryOp,
 	kTernaryOp,
 	kIdentifier,
+	kThis,
 	kArrayLiteralExp,
 	kObjectLiteralExp,
 	kIndexedExp,
@@ -128,29 +129,38 @@ struct IdentifierExp : public Exp {
 	std::string name;
 };
 
+struct ThisExp : public Exp {
+	virtual ExpType GetType() const noexcept override {
+		return ExpType::kThis;
+	}
+};
 
 struct DotExp : public Exp {
 	virtual ExpType GetType() const noexcept override {
 		return ExpType::kDotExp;
 	}
-	DotExp(std::unique_ptr<Exp> exp, std::unique_ptr<Exp> prop_exp)
+	DotExp(std::unique_ptr<Exp> exp, std::unique_ptr<Exp> prop_exp, bool is_method_call)
 		: exp(std::move(exp))
-		, prop_exp(std::move(prop_exp)) {}
+		, prop_exp(std::move(prop_exp))
+		, is_method_call(is_method_call) {}
 
 	std::unique_ptr<Exp> exp;
 	std::unique_ptr<Exp> prop_exp;
+	bool is_method_call;
 };
 
 struct IndexedExp : public Exp {
 	virtual ExpType GetType() const noexcept override {
 		return ExpType::kIndexedExp;
 	}
-	IndexedExp(std::unique_ptr<Exp> exp, std::unique_ptr<Exp> index_exp)
+	IndexedExp(std::unique_ptr<Exp> exp, std::unique_ptr<Exp> index_exp, bool is_method_call)
 		: exp(std::move(exp))
-		, index_exp(std::move(index_exp)) {}
+		, index_exp(std::move(index_exp))
+		, is_method_call(is_method_call) {}
 
 	std::unique_ptr<Exp> exp;
 	std::unique_ptr<Exp> index_exp;
+	bool is_method_call;
 };
 
 struct ArrayLiteralExp : public Exp {

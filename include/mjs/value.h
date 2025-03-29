@@ -79,7 +79,7 @@ public:
 	explicit Value(FunctionDef* def);
 	explicit Value(CppFunction bridge);
 
-	explicit Value(ValueType type);
+	explicit Value(ValueType type, GeneratorObject* generator);
 
 	~Value();
 
@@ -146,6 +146,7 @@ public:
 	bool IsFunctionDef() const;
 	bool IsUpValue() const;
 	bool IsCppFunction() const;
+	bool IsGeneratorNext() const;
 
 
 	Value ToString() const;

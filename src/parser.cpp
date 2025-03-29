@@ -502,7 +502,13 @@ std::unique_ptr<Exp> Parser::ParseExp2() {
 			if (exp2->GetType() != ExpType::kIdentifier) {
 				throw ParserException("cannot match identifier.");
 			}
-			exp = std::make_unique<DotExp>(std::move(exp), std::move(exp2));
+
+			bool is_method_call = false;
+			if (lexer_->PeekToken().type() == TokenType::kSepLParen) {
+				is_method_call = true;
+			}
+
+			exp = std::make_unique<DotExp>(std::move(exp), std::move(exp2), is_method_call);
 			exp->value_category = ExpValueCategory::kLeftValue;
 		}
 		else if (type == TokenType::kSepLParen) {
@@ -513,7 +519,13 @@ std::unique_ptr<Exp> Parser::ParseExp2() {
 			lexer_->NextToken();
 			auto index_exp = ParseExp();
 			lexer_->MatchToken(TokenType::kSepRBrack);
-			exp = std::make_unique<IndexedExp>(std::move(exp), std::move(index_exp));
+			
+			bool is_method_call = false;
+			if (lexer_->PeekToken().type() == TokenType::kSepLParen) {
+				is_method_call = true;
+			}
+
+			exp = std::make_unique<IndexedExp>(std::move(exp), std::move(index_exp), is_method_call);
 			exp->value_category = ExpValueCategory::kLeftValue;
 		}
 		else {
@@ -599,6 +611,11 @@ std::unique_ptr<Exp> Parser::ParseExp0() {
 		exp = std::make_unique<IdentifierExp>(token.str());
 		exp->value_category = ExpValueCategory::kLeftValue;
 		break;
+	case TokenType::kKwThis: {
+		lexer_->NextToken();
+		exp = std::make_unique<ThisExp>();
+		break;
+	}
 	}
 	}
 

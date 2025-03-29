@@ -44,7 +44,10 @@ enum class OpcodeType {
 	kIndexedStore = 0x49,
 
 	// Stack manipulation
-	kPop = 0x57,
+	kPop = 0x50,
+	kDump = 0x51,
+	kSwap = 0x52,
+	kUndefined = 0x53,
 
 	// Arithmetic operations
 	kAdd = 0x60,
@@ -77,6 +80,8 @@ enum class OpcodeType {
 
 	// Method invocation
 	kFunctionCall = 0xb8,
+	kGetThis = 0xb9,
+	kSetThis = 0xba,
 
 	// async
 	kYield = 0xc0,

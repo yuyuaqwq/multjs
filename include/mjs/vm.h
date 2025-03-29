@@ -35,7 +35,7 @@ public:
 private:
 	bool FunctionDefLoadInit(Value* func_def_val);
 	void FunctionEnterInit(const Value& func_val);
-	void FunctionSwitch(FunctionDef** cur_func_def, const Value& func_val);
+	void FunctionSwitch(FunctionDef** cur_func_def, Value&& this_val, Value&& func_val);
 
 	void Run();
 
@@ -48,8 +48,8 @@ private:
 
 	void LoadConst(ConstIndex const_idx);
 
-	void SaveStackFrame(FunctionDef** cur_func_def, uint32_t par_count, bool is_generator
-		, const Value& func_val, FunctionDef* func_def);
+	void SaveStackFrame(FunctionDef** cur_func_def, const Value& func_val, FunctionDef* func_def
+		, Value&& this_val, uint32_t par_count, bool is_generator);
 	Value RestoreStackFrame(FunctionDef** cur_func_def);
 
 	Stack& stack();
@@ -59,8 +59,6 @@ private:
 
 	Value cur_func_val_;
 	uint32_t pc_ = 0;
-
-	Value this_val_;
 
 	StackFrame stack_frame_;
 };

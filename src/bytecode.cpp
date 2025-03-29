@@ -37,6 +37,9 @@ std::map<OpcodeType, InstrInfo> g_instr_symbol{
     
 
     {OpcodeType::kPop, {"pop", {}}},
+    {OpcodeType::kDump, {"dump", {}}},
+    {OpcodeType::kSwap, {"swap", {}}},
+    {OpcodeType::kUndefined, {"undefined", {}}},
 
     {OpcodeType::kAdd, {"add", {}}},
     {OpcodeType::kSub, {"sub", {}}},
@@ -62,6 +65,8 @@ std::map<OpcodeType, InstrInfo> g_instr_symbol{
     {OpcodeType::kReturn, {"return", {}}},
 
     {OpcodeType::kFunctionCall, {"function_call", {}}},
+    {OpcodeType::kGetThis, {"get_this", {}}},
+    {OpcodeType::kSetThis, {"set_this", {}}},
 
     {OpcodeType::kYield, {"yield", {}}},
     {OpcodeType::kGeneratorReturn, {"generator_return", {}}},

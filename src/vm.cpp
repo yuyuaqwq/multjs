@@ -4,7 +4,7 @@
 
 #include <mjs/runtime.h>
 #include <mjs/context.h>
-#include <mjs/opcode_type.h>
+#include <mjs/opcode.h>
 #include <mjs/array_object.h>
 #include <mjs/function_object.h>
 #include <mjs/generator_object.h>
@@ -154,8 +154,9 @@ void Vm::LoadConst(ConstIndex const_idx) {
 	stack_frame_.Push(value);
 }
 
-void Vm::SaveStackFrame(FunctionDef** cur_func_def, uint32_t par_count, bool is_generator
-	, const Value& func_val, FunctionDef* func_def)
+void Vm::SaveStackFrame(FunctionDef** cur_func_def, const Value& func_val, FunctionDef* func_def
+	, Value&& this_val, uint32_t par_count, bool is_generator
+	)
 {
 	auto save_func = cur_func_val_;
 	auto save_pc = pc_;
@@ -189,6 +190,8 @@ void Vm::SaveStackFrame(FunctionDef** cur_func_def, uint32_t par_count, bool is_
 	stack_frame_.Push(Value(save_func));
 	stack_frame_.Push(Value(save_pc));
 	stack_frame_.Push(Value(save_bottom));
+
+	stack_frame_.set_this_val(std::move(this_val));
 
 	if (cur_func_val_.IsFunctionObject()) {
 		FunctionEnterInit(cur_func_val_);
@@ -275,6 +278,18 @@ void Vm::Run() {
 			stack_frame_.Pop();
 			break;
 		}
+		case OpcodeType::kDump: {
+			stack_frame_.Push(stack_frame_.Get(-1));
+			break;
+		}
+		case OpcodeType::kSwap: {
+			std::swap(stack_frame_.Get(-1), stack_frame_.Get(-2));
+			break;
+		}
+		case OpcodeType::kUndefined: {
+			stack_frame_.Push(Value());
+			break;
+		}
 		case OpcodeType::kVStore: {
 			auto var_idx = cur_func_def->byte_code.GetU8(pc_);
 			pc_ += 1;
@@ -291,11 +306,7 @@ void Vm::Run() {
 		}
 		case OpcodeType::kPropertyLoad: {
 			auto key_val = stack_frame_.Pop();
-
 			auto& obj_val = stack_frame_.Get(-1);
-
-			this_val_ = obj_val;
-
 			if (obj_val.IsObject()) {
 				auto& obj = obj_val.object();
 				auto prop = obj.GetProperty(key_val);
@@ -394,9 +405,17 @@ void Vm::Run() {
 
 			// auto& func_val = GetVar(var_idx);
 
+			auto this_val = stack_frame_.Pop();
 			auto func_val = stack_frame_.Pop();
-			FunctionSwitch(&cur_func_def, func_val);
-			
+			FunctionSwitch(&cur_func_def, std::move(this_val), std::move(func_val));
+			break;
+		}
+		case OpcodeType::kGetThis: {
+			stack_frame_.Push(stack_frame_.this_val());
+			break;
+		}
+		case OpcodeType::kSetThis: {
+			stack_frame_.set_this_val(stack_frame_.Pop());
 			break;
 		}
 		case OpcodeType::kReturn: {
@@ -404,7 +423,7 @@ void Vm::Run() {
 			break;
 		}
 		case OpcodeType::kGeneratorReturn: {
-			auto generator = this_val_.generator();
+			auto generator = stack_frame_.this_val().generator();
 
 			generator->SetClosed();
 
@@ -414,9 +433,9 @@ void Vm::Run() {
 			break;
 		}
 		case OpcodeType::kYield: {
-			// 保存当前生成器的pc
-			auto generator = this_val_.generator();
+			auto generator = stack_frame_.this_val().generator();
 
+			// 保存当前生成器的pc
 			generator->set_pc(pc_);
 
 			// 保存当前栈帧到generator的栈帧中
@@ -486,7 +505,7 @@ void Vm::Run() {
 	} while (pc_ >= 0 && pc_ < cur_func_def->byte_code.Size());
 }
 
-void Vm::FunctionSwitch(FunctionDef** cur_func_def, const Value& func_val) {
+void Vm::FunctionSwitch(FunctionDef** cur_func_def, Value&& this_val, Value&& func_val) {
 	auto par_count = stack_frame_.Pop().u64();
 
 	switch (func_val.type()) {
@@ -521,7 +540,7 @@ void Vm::FunctionSwitch(FunctionDef** cur_func_def, const Value& func_val) {
 
 		// 把多余的参数弹出
 		stack().Reduce(par_count - func_def->par_count);
-		SaveStackFrame(cur_func_def, par_count, false, func_val, func_def);
+		SaveStackFrame(cur_func_def, func_val, func_def, std::move(this_val), par_count, false);
 		pc_ = 0;
 		break;
 	}
@@ -539,7 +558,8 @@ void Vm::FunctionSwitch(FunctionDef** cur_func_def, const Value& func_val) {
 		break;
 	}
 	case ValueType::kGeneratorNext: {
-		auto generator = this_val_.generator();
+		auto generator = func_val.generator();
+
 		auto next_val = Value();
 		if (par_count > 0) {
 			stack().Reduce(par_count - 1);
@@ -559,13 +579,15 @@ void Vm::FunctionSwitch(FunctionDef** cur_func_def, const Value& func_val) {
 
 		generator->SetExecuting();
 		
-		SaveStackFrame(cur_func_def, 0, true, generator->function(), generator->function_def());
+		SaveStackFrame(cur_func_def, generator->function(), generator->function_def()
+			, std::move(this_val), 0, true);
 		pc_ = generator->pc();
 
 		// next参数入栈
 		if (is_exec) {
 			stack().Push(next_val);
 		}
+
 		break;
 	}
 	default:
