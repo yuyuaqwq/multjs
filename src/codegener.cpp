@@ -166,10 +166,6 @@ void CodeGener::GenerateStat(Stat* stat) {
 		GenerateReturnStat(static_cast<ReturnStat*>(stat));
 		break;
 	}
-	case StatType::kYield: {
-		GenerateYieldStat(static_cast<YieldStat*>(stat));
-		break;
-	}
 	case StatType::kNewVar: {
 		GenerateNewVarStat(static_cast<NewVarStat*>(stat));
 		break;
@@ -244,16 +240,6 @@ void CodeGener::GenerateReturnStat(ReturnStat* stat) {
 		cur_func_->byte_code.EmitConstLoad(AllocConst(Value()));
 	}
 	cur_func_->byte_code.EmitReturn(cur_func_->is_generator);
-}
-
-void CodeGener::GenerateYieldStat(YieldStat* stat) {
-	if (stat->exp.get()) {
-		GenerateExp(stat->exp.get());
-	}
-	else {
-		cur_func_->byte_code.EmitConstLoad(AllocConst(Value()));
-	}
-	cur_func_->byte_code.EmitOpcode(OpcodeType::kYield);
 }
 
 
@@ -638,6 +624,14 @@ void CodeGener::GenerateExp(Exp* exp) {
 		// auto var_idx = GetVarByExp(func_call_exp->func_obj.get());
 		// cur_func_->byte_code.EmitPcOffset(var_idx);
 
+		break;
+	}
+	case ExpType::kYield: {
+		auto yield_exp = static_cast<YieldExp*>(exp);
+
+		GenerateExp(yield_exp->exp.get());
+
+		cur_func_->byte_code.EmitOpcode(OpcodeType::kYield);
 		break;
 	}
 	default:

@@ -91,16 +91,6 @@ StatType ReturnStat::GetType() const noexcept {
 	return StatType::kReturn;
 }
 
-YieldStat::YieldStat(std::unique_ptr<Exp> exp)
-	: exp(std::move(exp)) {}
-
-
-StatType YieldStat::GetType() const noexcept {
-	return StatType::kYield;
-}
-
-
-
 
 StatType NewVarStat::GetType() const noexcept {
 	return StatType::kNewVar;

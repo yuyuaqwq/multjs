@@ -17,7 +17,7 @@ public:
 
 public:
 	uint32_t par_count;
-	uint32_t var_count = 0;
+	uint32_t var_count = 0;		// °üÀ¨par_count
 	ByteCode byte_code;
 
 	bool is_generator = false;

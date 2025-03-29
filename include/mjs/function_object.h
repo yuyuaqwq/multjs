@@ -11,7 +11,7 @@ namespace mjs {
 
 // 闭包，可以考虑改名ClosureObject
 // 但目前不一定是闭包，只是变量被子函数捕获的函数也生成这个函数
-// 闭包就是在将FuncDef赋值给Value的时候，会捕获当前的词法作用域上下文，闭包对象=函数指针+外部变量的捕获列表
+// 闭包就是在将FunctionDef赋值给Value的时候，会捕获当前的词法作用域上下文，闭包对象=函数指针+外部变量的捕获列表
 class FunctionObject : public Object {
 public:
 	explicit FunctionObject(FunctionDef* def) noexcept;

@@ -37,11 +37,11 @@ public:
 	std::unique_ptr<ContinueStat> ParseContinueStat();
 	std::unique_ptr<BreakStat> ParseBreakStat();
 	std::unique_ptr<ReturnStat> ParseReturnStat();
-	std::unique_ptr<YieldStat> ParseYieldStat();
 
 	std::unique_ptr<NewVarStat> ParseNewVarStat();
 
 	std::unique_ptr<Exp> ParseExp();
+	std::unique_ptr<Exp> ParseExp20();
 	std::unique_ptr<Exp> ParseExp19();
 	std::unique_ptr<Exp> ParseExp18();
 	std::unique_ptr<Exp> ParseExp17();

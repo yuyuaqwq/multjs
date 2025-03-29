@@ -20,7 +20,6 @@ enum class StatType {
 	kContinue,
 	kBreak,
 	kReturn,
-	kYield,
 	kNewVar,
 	kBlock,
 };
@@ -116,13 +115,6 @@ struct BreakStat : public Stat {
 struct ReturnStat : public Stat {
 	virtual StatType GetType() const noexcept;
 	ReturnStat(std::unique_ptr<Exp> exp);
-
-	std::unique_ptr<Exp> exp;
-};
-
-struct YieldStat : public Stat {
-	virtual StatType GetType() const noexcept;
-	YieldStat(std::unique_ptr<Exp> exp);
 
 	std::unique_ptr<Exp> exp;
 };

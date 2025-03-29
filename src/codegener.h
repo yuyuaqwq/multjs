@@ -43,7 +43,6 @@ private:
 	void GenerateStat(Stat* stat);
 	void GenerateFunctionDeclStat(FuncDeclStat* stat);
 	void GenerateReturnStat(ReturnStat* stat);
-	void GenerateYieldStat(YieldStat* stat);
 	void GenerateNewVarStat(NewVarStat* stat);
 	void GenerateIfStat(IfStat* stat);
 	void GenerateWhileStat(WhileStat* stat);

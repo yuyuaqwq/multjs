@@ -65,10 +65,6 @@ void Vm::FunctionEnterInit(const Value& func_val) {
 		func = func_val.function();
 		func_def = func->func_def_;
 	}
-	//if (func_val.IsGeneratorObject()) {
-	//	func = func_val.generator();
-	//	func_def = func->func_def_;
-	//}
 
 	if (func == nullptr || func_def == nullptr) {
 		return;
@@ -156,6 +152,47 @@ void Vm::LoadConst(ConstIndex const_idx) {
 	}
 
 	stack_frame_.Push(value);
+}
+
+void Vm::SaveStackFrame(FunctionDef** cur_func_def, uint32_t par_count, bool is_generator
+	, const Value& func_val, FunctionDef* func_def)
+{
+	auto save_func = cur_func_val_;
+	auto save_pc = pc_;
+	auto save_bottom = stack_frame_.bottom();
+
+	// 栈帧布局：
+		// 返回信息
+		// 局部变量
+		// 参数1
+		// ...
+		// 参数n    <- bottom
+		// 上一栈帧
+
+	// 切换环境和栈帧
+	*cur_func_def = func_def;
+	cur_func_val_ = func_val;
+
+	// 参数已经入栈了，再分配局部变量部分
+	if (!is_generator) {
+		assert(stack().Size() >= (*cur_func_def)->par_count);
+		stack_frame_.set_bottom(stack().Size() - (*cur_func_def)->par_count);
+
+		assert((*cur_func_def)->var_count >= (*cur_func_def)->par_count);
+		stack().Upgrade((*cur_func_def)->var_count - (*cur_func_def)->par_count);
+	}
+	else {
+		stack_frame_.set_bottom(stack().Size() - (*cur_func_def)->var_count);
+	}
+
+	// 保存当前环境，用于Ret返回
+	stack_frame_.Push(Value(save_func));
+	stack_frame_.Push(Value(save_pc));
+	stack_frame_.Push(Value(save_bottom));
+
+	if (cur_func_val_.IsFunctionObject()) {
+		FunctionEnterInit(cur_func_val_);
+	}
 }
 
 
@@ -291,6 +328,7 @@ void Vm::Run() {
 				// 非Object类型，根据类型来处理
 				// 如undefined需要报错
 				// number等需要转成临时Number Object
+				// throw std::runtime_error("unrealized.");
 			}
 			
 			break;
@@ -366,21 +404,29 @@ void Vm::Run() {
 			break;
 		}
 		case OpcodeType::kGeneratorReturn: {
-			this_val_.generator()->SetClosed();
+			auto generator = this_val_.generator();
+
+			generator->SetClosed();
 
 			auto ret_value = RestoreStackFrame(&cur_func_def);
-
-			auto ret_obj = this_val_.generator()->MakeReturnObject(std::move(ret_value));
+			auto ret_obj = generator->MakeReturnObject(std::move(ret_value));
 			stack_frame_.Push(std::move(ret_obj));
 			break;
 		}
 		case OpcodeType::kYield: {
 			// 保存当前生成器的pc
-			this_val_.generator()->set_pc(pc_);
+			auto generator = this_val_.generator();
+
+			generator->set_pc(pc_);
+
+			// 保存当前栈帧到generator的栈帧中
+			auto& gen_vector = generator->stack().vector();
+			for (int32_t i = 0; i < gen_vector.size(); ++i) {
+				gen_vector[i] = std::move(stack_frame_.Get(i));
+			}
 
 			auto ret_value = RestoreStackFrame(&cur_func_def);
-
-			auto ret_obj = this_val_.generator()->MakeReturnObject(std::move(ret_value));
+			auto ret_obj = generator->MakeReturnObject(std::move(ret_value));
 			stack_frame_.Push(std::move(ret_obj));
 			break;
 		}
@@ -451,51 +497,32 @@ void Vm::FunctionSwitch(FunctionDef** cur_func_def, const Value& func_val) {
 		if (func_def->is_generator) {
 			// 是生成器函数
 			// 直接返回生成器对象
-			stack_frame_.Push(Value(new GeneratorObject(context_->runtime(), func_val)));
+			
+			// 提前分配参数和局部变量栈空间
+			auto generator = new GeneratorObject(context_->runtime(), func_val);
+			generator->stack().Upgrade(func_def->var_count);
+
+			// 弹出多余参数
+			stack().Reduce(par_count - func_def->par_count);
+
+			// 复制参数
+			for (int32_t i = func_def->par_count - 1; i >= 0; --i) {
+				generator->stack().Set(i, std::move(stack().Pop()));
+			}
+
+			stack_frame_.Push(Value(generator));
 			return;
 		}
-
 		// printf("%s\n", func_def->Disassembly().c_str());
 
 		if (par_count < func_def->par_count) {
 			throw VmException("Wrong number of parameters passed when calling the function");
 		}
 
-		auto save_func = cur_func_val_;
-		auto save_pc = pc_;
-		auto save_bottom = stack_frame_.bottom();
-
-		// 栈帧布局：
-		// 返回信息
-		// 局部变量
-		// 参数1
-		// ...
-		// 参数n    <- bottom
-		// 上一栈帧
-
 		// 把多余的参数弹出
 		stack().Reduce(par_count - func_def->par_count);
-
-		// 切换环境和栈帧
-		*cur_func_def = func_def;
-		cur_func_val_ = func_val;
+		SaveStackFrame(cur_func_def, par_count, false, func_val, func_def);
 		pc_ = 0;
-		assert(stack().Size() >= (*cur_func_def)->par_count);
-		stack_frame_.set_bottom(stack().Size() - (*cur_func_def)->par_count);
-
-		// 参数已经入栈了，再分配局部变量部分
-		assert((*cur_func_def)->var_count >= (*cur_func_def)->par_count);
-		stack().Upgrade((*cur_func_def)->var_count - (*cur_func_def)->par_count);
-
-		// 保存当前环境，用于Ret返回
-		stack_frame_.Push(Value(save_func));
-		stack_frame_.Push(Value(save_pc));
-		stack_frame_.Push(Value(save_bottom));
-
-		if (cur_func_val_.IsFunctionObject()) {
-			FunctionEnterInit(cur_func_val_);
-		}
-
 		break;
 	}
 	case ValueType::kCppFunction: {
@@ -513,37 +540,32 @@ void Vm::FunctionSwitch(FunctionDef** cur_func_def, const Value& func_val) {
 	}
 	case ValueType::kGeneratorNext: {
 		auto generator = this_val_.generator();
+		auto next_val = Value();
+		if (par_count > 0) {
+			stack().Reduce(par_count - 1);
+			next_val = stack().Pop();
+		}
 		if (generator->IsClosed()) {
 			stack_frame_.Push(generator->MakeReturnObject(Value()));
 			break;
 		}
 
-		generator->SetExecuting();
-
-		auto save_func = cur_func_val_;
-		auto save_pc = pc_;
-		auto save_bottom = stack_frame_.bottom();
+		bool is_exec = generator->IsExecuting();
 
 		// 复制栈帧
+		auto& vector = stack().vector();
 		auto& gen_vector = generator->stack().vector();
+		vector.insert(vector.end(), gen_vector.begin(), gen_vector.end());
+
+		generator->SetExecuting();
 		
-		stack().vector().insert(stack().vector().end(), gen_vector.begin(), gen_vector.end());
-
-		// 切换环境和栈帧
-		*cur_func_def = generator->function_def();
-		cur_func_val_ = generator->function();
+		SaveStackFrame(cur_func_def, 0, true, generator->function(), generator->function_def());
 		pc_ = generator->pc();
-		stack_frame_.set_bottom(stack().Size());
 
-		// 保存当前环境，用于Yield返回
-		stack_frame_.Push(Value(save_func));
-		stack_frame_.Push(Value(save_pc));
-		stack_frame_.Push(Value(save_bottom));
-
-		if (cur_func_val_.IsFunctionObject()) {
-			FunctionEnterInit(cur_func_val_);
+		// next参数入栈
+		if (is_exec) {
+			stack().Push(next_val);
 		}
-
 		break;
 	}
 	default:

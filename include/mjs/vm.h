@@ -48,7 +48,8 @@ private:
 
 	void LoadConst(ConstIndex const_idx);
 
-	Value SaveStackFrame();
+	void SaveStackFrame(FunctionDef** cur_func_def, uint32_t par_count, bool is_generator
+		, const Value& func_val, FunctionDef* func_def);
 	Value RestoreStackFrame(FunctionDef** cur_func_def);
 
 	Stack& stack();

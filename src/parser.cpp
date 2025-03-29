@@ -72,9 +72,6 @@ std::unique_ptr<Stat> Parser::ParseStat() {
 		case TokenType::kKwReturn: {
 			return ParseReturnStat();
 		}
-		case TokenType::kKwYield: {
-			return ParseYieldStat();
-		}
 		case TokenType::kIdentifier: {
 			
 			// break;
@@ -92,7 +89,7 @@ std::unique_ptr<ExpStat> Parser::ParseExpStat() {
 	}
 	auto exp = ParseExp();
 	lexer_->MatchToken(TokenType::kSepSemi);
-	return std::make_unique<ExpStat>(move(exp));
+	return std::make_unique<ExpStat>(std::move(exp));
 }
 
 std::unique_ptr<FuncDeclStat> Parser::ParseFunctionDeclStat() {
@@ -174,7 +171,7 @@ std::unique_ptr<ForStat> Parser::ParseForStat() {
 	auto exp = ParseExp();
 	lexer_->MatchToken(TokenType::kSepRParen);
 	auto block = ParseBlockStat();
-	return  std::make_unique<ForStat>(var_name, move(exp), move(block));
+	return  std::make_unique<ForStat>(var_name, std::move(exp), std::move(block));
 }
 
 std::unique_ptr<WhileStat> Parser::ParseWhileStat() {
@@ -183,7 +180,7 @@ std::unique_ptr<WhileStat> Parser::ParseWhileStat() {
 	auto exp = ParseExp();
 	lexer_->MatchToken(TokenType::kSepRParen);
 	auto block = ParseBlockStat();
-	return std::make_unique<WhileStat>(move(exp), move(block));
+	return std::make_unique<WhileStat>(std::move(exp), std::move(block));
 }
 
 std::unique_ptr<ContinueStat> Parser::ParseContinueStat() {
@@ -205,17 +202,7 @@ std::unique_ptr<ReturnStat> Parser::ParseReturnStat() {
 		exp = ParseExp();
 	}
 	lexer_->MatchToken(TokenType::kSepSemi);
-	return std::make_unique<ReturnStat>(move(exp));
-}
-
-std::unique_ptr<YieldStat> Parser::ParseYieldStat() {
-	lexer_->MatchToken(TokenType::kKwYield);
-	std::unique_ptr<Exp> exp;
-	if (!lexer_->PeekToken().Is(TokenType::kSepSemi)) {
-		exp = ParseExp();
-	}
-	lexer_->MatchToken(TokenType::kSepSemi);
-	return std::make_unique<YieldStat>(move(exp));
+	return std::make_unique<ReturnStat>(std::move(exp));
 }
 
 
@@ -225,26 +212,38 @@ std::unique_ptr<NewVarStat> Parser::ParseNewVarStat() {
 	lexer_->MatchToken(TokenType::kOpAssign);
 	auto exp = ParseExp();
 	lexer_->MatchToken(TokenType::kSepSemi);
-	return  std::make_unique<NewVarStat>(var_name, move(exp));
+	return  std::make_unique<NewVarStat>(var_name, std::move(exp));
 }
 
 
 std::unique_ptr<Exp> Parser::ParseExp() {
-	return ParseExp19();
+	return ParseExp20();
 }
 
-std::unique_ptr<Exp> Parser::ParseExp19() {
-	auto exp = ParseExp18();
+std::unique_ptr<Exp> Parser::ParseExp20() {
+	auto exp = ParseExp19();
 	do {
 		auto type = lexer_->PeekToken().type();
 		if (type != TokenType::kSepComma) {
 			break;
 		}
 		lexer_->NextToken();
-		exp = std::make_unique<BinaryOpExp>(move(exp), type, ParseExp18());
+		exp = std::make_unique<BinaryOpExp>(std::move(exp), type, ParseExp19());
 	} while (true);
 	return exp;
 }
+
+std::unique_ptr<Exp> Parser::ParseExp19() {
+	auto type = lexer_->PeekToken().type();
+	if (type == TokenType::kKwYield) {
+		lexer_->NextToken();
+
+		std::unique_ptr<Exp> yielded_value = ParseExp18();
+		return std::make_unique<YieldExp>(std::move(yielded_value));
+	}
+	return ParseExp18();
+}
+
 
 std::unique_ptr<Exp> Parser::ParseExp18() {
 	// 赋值，右结合
@@ -254,7 +253,7 @@ std::unique_ptr<Exp> Parser::ParseExp18() {
 		return exp;
 	}
 	lexer_->NextToken();
-	exp = std::make_unique<BinaryOpExp>(move(exp), type, ParseExp18());
+	exp = std::make_unique<BinaryOpExp>(std::move(exp), type, ParseExp18());
 	return exp;
 }
 
@@ -269,7 +268,7 @@ std::unique_ptr<Exp> Parser::ParseExp17() {
 	auto exp2 = ParseExp17();
 	lexer_->MatchToken(TokenType::kSepColon);
 	auto exp3 = ParseExp17();
-	exp = std::make_unique<TernaryOpExp>(TokenType::kOpTernary, move(exp), std::move(exp2), std::move(exp3));
+	exp = std::make_unique<TernaryOpExp>(TokenType::kOpTernary, std::move(exp), std::move(exp2), std::move(exp3));
 	return exp;
 }
 
@@ -282,7 +281,7 @@ std::unique_ptr<Exp> Parser::ParseExp16() {
 			break;
 		}
 		lexer_->NextToken();
-		exp = std::make_unique<BinaryOpExp>(move(exp), type, ParseExp15());
+		exp = std::make_unique<BinaryOpExp>(std::move(exp), type, ParseExp15());
 	} while (true);
 	return exp;
 }
@@ -295,7 +294,7 @@ std::unique_ptr<Exp> Parser::ParseExp15() {
 			break;
 		}
 		lexer_->NextToken();
-		exp = std::make_unique<BinaryOpExp>(move(exp), type, ParseExp14());
+		exp = std::make_unique<BinaryOpExp>(std::move(exp), type, ParseExp14());
 	} while (true);
 	return exp;
 }
@@ -308,7 +307,7 @@ std::unique_ptr<Exp> Parser::ParseExp14() {
 			break;
 		}
 		lexer_->NextToken();
-		exp = std::make_unique<BinaryOpExp>(move(exp), type, ParseExp13());
+		exp = std::make_unique<BinaryOpExp>(std::move(exp), type, ParseExp13());
 	} while (true);
 	return exp;
 }
@@ -321,7 +320,7 @@ std::unique_ptr<Exp> Parser::ParseExp13() {
 			break;
 		}
 		lexer_->NextToken();
-		exp = std::make_unique<BinaryOpExp>(move(exp), type, ParseExp12());
+		exp = std::make_unique<BinaryOpExp>(std::move(exp), type, ParseExp12());
 	} while (true);
 	return exp;
 }
@@ -334,7 +333,7 @@ std::unique_ptr<Exp> Parser::ParseExp12() {
 			break;
 		}
 		lexer_->NextToken();
-		exp = std::make_unique<BinaryOpExp>(move(exp), type, ParseExp11());
+		exp = std::make_unique<BinaryOpExp>(std::move(exp), type, ParseExp11());
 	} while (true);
 	return exp;
 }
@@ -350,7 +349,7 @@ std::unique_ptr<Exp> Parser::ParseExp11() {
 			break;
 		}
 		lexer_->NextToken();
-		exp = std::make_unique<BinaryOpExp>(move(exp), type, ParseExp10());
+		exp = std::make_unique<BinaryOpExp>(std::move(exp), type, ParseExp10());
 	} while (true);
 	return exp;
 }
@@ -368,7 +367,7 @@ std::unique_ptr<Exp> Parser::ParseExp10() {
 			break;
 		}
 		lexer_->NextToken();
-		exp = std::make_unique<BinaryOpExp>(move(exp), type, ParseExp9());
+		exp = std::make_unique<BinaryOpExp>(std::move(exp), type, ParseExp9());
 	} while (true);
 	return exp;
 }
@@ -383,7 +382,7 @@ std::unique_ptr<Exp> Parser::ParseExp9() {
 			break;
 		}
 		lexer_->NextToken();
-		exp = std::make_unique<BinaryOpExp>(move(exp), type, ParseExp8());
+		exp = std::make_unique<BinaryOpExp>(std::move(exp), type, ParseExp8());
 	} while (true);
 	return exp;
 }
@@ -397,7 +396,7 @@ std::unique_ptr<Exp> Parser::ParseExp8() {
 			break;
 		}
 		lexer_->NextToken();
-		exp = std::make_unique<BinaryOpExp>(move(exp), type, ParseExp7());
+		exp = std::make_unique<BinaryOpExp>(std::move(exp), type, ParseExp7());
 	} while (true);
 	return exp;
 }
@@ -412,7 +411,7 @@ std::unique_ptr<Exp> Parser::ParseExp7() {
 			break;
 		}
 		lexer_->NextToken();
-		exp = std::make_unique<BinaryOpExp>(move(exp), type, ParseExp6());
+		exp = std::make_unique<BinaryOpExp>(std::move(exp), type, ParseExp6());
 	} while (true);
 	return exp;
 }
@@ -478,7 +477,7 @@ std::unique_ptr<Exp> Parser::ParseExp4() {
 			break;
 		}
 		lexer_->NextToken();
-		exp = std::make_unique<UnaryOpExp>(TokenType::kOpSuffixInc, move(exp));
+		exp = std::make_unique<UnaryOpExp>(TokenType::kOpSuffixInc, std::move(exp));
 	} while (true);
 	return exp;
 }
@@ -503,7 +502,7 @@ std::unique_ptr<Exp> Parser::ParseExp2() {
 			if (exp2->GetType() != ExpType::kIdentifier) {
 				throw ParserException("cannot match identifier.");
 			}
-			exp = std::make_unique<DotExp>(move(exp), std::move(exp2));
+			exp = std::make_unique<DotExp>(std::move(exp), std::move(exp2));
 			exp->value_category = ExpValueCategory::kLeftValue;
 		}
 		else if (type == TokenType::kSepLParen) {
@@ -580,8 +579,8 @@ std::unique_ptr<Exp> Parser::ParseExp0() {
 			do {
 				auto ident = lexer_->MatchToken(TokenType::kIdentifier);
 				lexer_->MatchToken(TokenType::kSepColon);
-				// ParseExp19会解析kSepComma，避免
-				obj_literal.emplace(ident.str(), ParseExp18());
+				// ParseExp20会解析kSepComma，避免
+				obj_literal.emplace(ident.str(), ParseExp19());
 				if (!lexer_->PeekToken().Is(TokenType::kSepComma)) {
 					break;
 				}

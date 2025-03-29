@@ -21,6 +21,7 @@ enum class ExpType {
 	kIndexedExp,
 	kDotExp,
 	kFunctionCall,
+	kYield,
 };
 
 enum class ExpValueCategory {
@@ -183,6 +184,16 @@ struct FunctionCallExp : public Exp {
 
 	std::unique_ptr<Exp> func_obj;
 	std::vector<std::unique_ptr<Exp>> par_list;
+};
+
+struct YieldExp : public Exp {
+	virtual ExpType GetType() const noexcept override {
+		return ExpType::kYield;
+	}
+	YieldExp(std::unique_ptr<Exp> exp)
+		: exp(std::move(exp)) {}
+
+	std::unique_ptr<Exp> exp;
 };
 
 } // namespace mjs

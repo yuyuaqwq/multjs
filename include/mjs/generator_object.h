@@ -10,14 +10,15 @@ namespace mjs {
 class GeneratorObject : public Object {
 public:
     GeneratorObject(const Runtime& runtime, const Value& func)
-        : func_(func)
-        , stack_(kStackDefaultSize)
+        : func_(func), stack_(0)
     {
         NewMethod(Value("next"), Value(ValueType::kGeneratorNext));
     }
 
+    bool IsSuspended() const { return state_ == State::kSuspended; }
+    bool IsExecuting() const { return state_ == State::kExecuting; }
     bool IsClosed() const { return state_ == State::kClosed; }
-
+    
     void SetExecuting() {
         assert(state_ == State::kSuspended || state_ == State::kExecuting);
         state_ = State::kExecuting;
@@ -55,7 +56,6 @@ public:
     void set_pc(Pc pc) { pc_ = pc; }
 
 private:
-    static constexpr size_t kStackDefaultSize = 16;
     Value func_;        // 生成器函数定义/函数对象
     Pc pc_ = 0;         // 当前pc
     Stack stack_;       // 栈

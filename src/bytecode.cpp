@@ -29,11 +29,11 @@ std::map<OpcodeType, InstrInfo> g_instr_symbol{
     {OpcodeType::kVStore_2, {"vstore_2", {}}},
     {OpcodeType::kVStore_3, {"vstore_3", {}}},
 
-    {OpcodeType::kPropertyLoad, {"propertyload", {}}},
-    {OpcodeType::kPropertyStore, {"propertystore", {}}},
+    {OpcodeType::kPropertyLoad, {"property_load", {}}},
+    {OpcodeType::kPropertyStore, {"property_store", {}}},
 
-    {OpcodeType::kIndexedLoad, {"indexedload", {}}},
-    {OpcodeType::kIndexedStore, {"indexedstore", {}}},
+    {OpcodeType::kIndexedLoad, {"indexed_load", {}}},
+    {OpcodeType::kIndexedStore, {"indexed_store", {}}},
     
 
     {OpcodeType::kPop, {"pop", {}}},
@@ -61,9 +61,11 @@ std::map<OpcodeType, InstrInfo> g_instr_symbol{
 
     {OpcodeType::kReturn, {"return", {}}},
 
-    {OpcodeType::kFunctionCall, {"functioncall", {}}},
+    {OpcodeType::kFunctionCall, {"function_call", {}}},
 
     {OpcodeType::kYield, {"yield", {}}},
+    {OpcodeType::kGeneratorReturn, {"generator_return", {}}},
+
 };
 
 
