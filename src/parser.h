@@ -37,6 +37,7 @@ public:
 	std::unique_ptr<ContinueStat> ParseContinueStat();
 	std::unique_ptr<BreakStat> ParseBreakStat();
 	std::unique_ptr<ReturnStat> ParseReturnStat();
+	std::unique_ptr<YieldStat> ParseYieldStat();
 
 	std::unique_ptr<NewVarStat> ParseNewVarStat();
 

@@ -84,7 +84,7 @@ enum class TokenType {
     kKwContinue,      // continue
     kKwBreak,         // break
     kKwReturn,        // return
-    kKwVar,           // var
+    // kKwVar,           // var
     kKwLet,           // let
     kKwConst,         // const
     kKwImport,        // import

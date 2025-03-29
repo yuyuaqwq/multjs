@@ -1,5 +1,6 @@
 #pragma once
 
+#include <string_view>
 #include <map>
 #include <unordered_map>
 
@@ -38,6 +39,9 @@ public:
 		--tag_.ref_count_;
 	}
 
+	
+	void NewMethod(Value&& name, Value func);
+
 	void SetProperty(const Value& key, Value&& val) {
 		if (!property_map_) property_map_ = new PropertyMap();
 		(*property_map_)[key] = std::move(val);
@@ -63,6 +67,15 @@ public:
 	void DelProperty(const Value& key) {
 		if (!property_map_) return;
 		property_map_->erase(key);
+	}
+
+
+	const auto& prototype() const {
+		return prototype_;
+	}
+
+	void set_prototype(Value&& prototype) {
+		prototype_ = prototype;
 	}
 
 private:

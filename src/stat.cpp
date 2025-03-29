@@ -22,10 +22,12 @@ StatType FuncDeclStat::GetType() const noexcept {
 	return StatType::kFunctionDecl;
 }
 
-FuncDeclStat::FuncDeclStat(const std::string& func_name, const std::vector<std::string>& par_list, std::unique_ptr<BlockStat> block)
+FuncDeclStat::FuncDeclStat(const std::string& func_name, const std::vector<std::string>& par_list
+	, std::unique_ptr<BlockStat> block, bool is_generator)
 	: func_name(func_name)
 	, par_list(par_list)
-	, block(std::move(block)) {}
+	, block(std::move(block))
+	, is_generator(is_generator) {}
 
 
 StatType IfStat::GetType() const noexcept {
@@ -82,12 +84,23 @@ StatType BreakStat::GetType() const noexcept {
 	return StatType::kBreak;
 }
 
+ReturnStat::ReturnStat(std::unique_ptr<Exp> exp)
+	: exp(std::move(exp)) {}
+
 StatType ReturnStat::GetType() const noexcept {
 	return StatType::kReturn;
 }
 
-ReturnStat::ReturnStat(std::unique_ptr<Exp> exp) : exp(std::move(exp)) {
+YieldStat::YieldStat(std::unique_ptr<Exp> exp)
+	: exp(std::move(exp)) {}
+
+
+StatType YieldStat::GetType() const noexcept {
+	return StatType::kYield;
 }
+
+
+
 
 StatType NewVarStat::GetType() const noexcept {
 	return StatType::kNewVar;

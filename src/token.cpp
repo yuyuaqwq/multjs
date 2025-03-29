@@ -15,8 +15,9 @@ std::map<std::string, TokenType> g_keywords = {
 	{ "continue", TokenType::kKwContinue },
 	{ "break", TokenType::kKwBreak },
 	{ "return", TokenType::kKwReturn },
-	{ "var", TokenType::kKwVar },
+	// { "var", TokenType::kKwVar },
 	{ "let", TokenType::kKwLet },
+	{ "yield", TokenType::kKwYield, },
 };
 
 } // namespace msj

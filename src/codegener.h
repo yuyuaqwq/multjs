@@ -25,7 +25,7 @@ class CodeGener {
 public:
 	CodeGener(Runtime* runtime);
 
-	void RegistryFunctionBridge(const std::string& func_name, CppFunction func);
+	void RegisterCppFunction(const std::string& func_name, CppFunction func);
 	Value Generate(BlockStat* block);
 
 private:
@@ -43,6 +43,7 @@ private:
 	void GenerateStat(Stat* stat);
 	void GenerateFunctionDeclStat(FuncDeclStat* stat);
 	void GenerateReturnStat(ReturnStat* stat);
+	void GenerateYieldStat(YieldStat* stat);
 	void GenerateNewVarStat(NewVarStat* stat);
 	void GenerateIfStat(IfStat* stat);
 	void GenerateWhileStat(WhileStat* stat);

@@ -1,4 +1,4 @@
-#include "instr.h"
+#include "bytecode.h"
 
 namespace mjs {
 
@@ -62,6 +62,8 @@ std::map<OpcodeType, InstrInfo> g_instr_symbol{
     {OpcodeType::kReturn, {"return", {}}},
 
     {OpcodeType::kFunctionCall, {"functioncall", {}}},
+
+    {OpcodeType::kYield, {"yield", {}}},
 };
 
 

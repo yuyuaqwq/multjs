@@ -72,6 +72,9 @@ std::unique_ptr<Stat> Parser::ParseStat() {
 		case TokenType::kKwReturn: {
 			return ParseReturnStat();
 		}
+		case TokenType::kKwYield: {
+			return ParseYieldStat();
+		}
 		case TokenType::kIdentifier: {
 			
 			// break;
@@ -94,10 +97,16 @@ std::unique_ptr<ExpStat> Parser::ParseExpStat() {
 
 std::unique_ptr<FuncDeclStat> Parser::ParseFunctionDeclStat() {
 	lexer_->MatchToken(TokenType::kKwFunction);
+	bool is_generator = false;
+	if (lexer_->PeekToken().Is(TokenType::kOpMul)) {
+		// Éú³ÉÆ÷º¯Êý
+		lexer_->NextToken();
+		is_generator = true;
+	}
 	auto func_name = lexer_->MatchToken(TokenType::kIdentifier).str();
 	auto par_list = ParseParNameList();
 	auto block = ParseBlockStat();
-	return std::make_unique<FuncDeclStat>(func_name, par_list, std::move(block));
+	return std::make_unique<FuncDeclStat>(func_name, par_list, std::move(block), is_generator);
 }
 
 std::vector<std::string> Parser::ParseParNameList() {
@@ -198,6 +207,17 @@ std::unique_ptr<ReturnStat> Parser::ParseReturnStat() {
 	lexer_->MatchToken(TokenType::kSepSemi);
 	return std::make_unique<ReturnStat>(move(exp));
 }
+
+std::unique_ptr<YieldStat> Parser::ParseYieldStat() {
+	lexer_->MatchToken(TokenType::kKwYield);
+	std::unique_ptr<Exp> exp;
+	if (!lexer_->PeekToken().Is(TokenType::kSepSemi)) {
+		exp = ParseExp();
+	}
+	lexer_->MatchToken(TokenType::kSepSemi);
+	return std::make_unique<YieldStat>(move(exp));
+}
+
 
 std::unique_ptr<NewVarStat> Parser::ParseNewVarStat() {
 	lexer_->MatchToken(TokenType::kKwLet);

@@ -20,6 +20,7 @@ enum class StatType {
 	kContinue,
 	kBreak,
 	kReturn,
+	kYield,
 	kNewVar,
 	kBlock,
 };
@@ -44,11 +45,13 @@ struct ExpStat : public Stat {
 
 struct FuncDeclStat : public Stat {
 	virtual StatType GetType() const noexcept;
-	FuncDeclStat(const std::string& func_name, const std::vector<std::string>& par_list, std::unique_ptr<BlockStat> block);
+	FuncDeclStat(const std::string& func_name, const std::vector<std::string>& par_list
+		, std::unique_ptr<BlockStat> block, bool is_generator);
 
 	std::string func_name;
 	std::vector<std::string> par_list;
 	std::unique_ptr<BlockStat> block;
+	bool is_generator;
 };
 
 struct ElseIfStat;
@@ -113,6 +116,13 @@ struct BreakStat : public Stat {
 struct ReturnStat : public Stat {
 	virtual StatType GetType() const noexcept;
 	ReturnStat(std::unique_ptr<Exp> exp);
+
+	std::unique_ptr<Exp> exp;
+};
+
+struct YieldStat : public Stat {
+	virtual StatType GetType() const noexcept;
+	YieldStat(std::unique_ptr<Exp> exp);
 
 	std::unique_ptr<Exp> exp;
 };

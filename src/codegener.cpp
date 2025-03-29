@@ -89,7 +89,7 @@ VarIndex CodeGener::GetVarByExp(Exp* exp) {
 }
 
 
-void CodeGener::RegistryFunctionBridge(const std::string& func_name, CppFunction func) {
+void CodeGener::RegisterCppFunction(const std::string& func_name, CppFunction func) {
 	auto var_idx = AllocVar(func_name);
 	auto const_idx = AllocConst(Value(func));
 
@@ -109,8 +109,8 @@ Value CodeGener::Generate(BlockStat* block) {
 
 	scopes_.emplace_back(cur_func_);
 
-	RegistryFunctionBridge("println",
-		[](uint32_t par_count, StackFrame* stack) -> Value {
+	RegisterCppFunction("println",
+		[](Context* context, uint32_t par_count, StackFrame* stack) -> Value {
 			for (size_t i = 0; i < par_count; i++) {
 				auto val = stack->Get(i);
 				try
@@ -166,6 +166,10 @@ void CodeGener::GenerateStat(Stat* stat) {
 		GenerateReturnStat(static_cast<ReturnStat*>(stat));
 		break;
 	}
+	case StatType::kYield: {
+		GenerateYieldStat(static_cast<YieldStat*>(stat));
+		break;
+	}
 	case StatType::kNewVar: {
 		GenerateNewVarStat(static_cast<NewVarStat*>(stat));
 		break;
@@ -200,6 +204,8 @@ void CodeGener::GenerateFunctionDeclStat(FuncDeclStat* stat) {
 	auto var_idx = AllocVar(stat->func_name);
 	cur_func_->byte_code.EmitVarStore(var_idx);
 
+	func_def->is_generator = stat->is_generator;
+
 	// 保存环境，以生成新指令流
 	auto savefunc = cur_func_;
 
@@ -220,7 +226,12 @@ void CodeGener::GenerateFunctionDeclStat(FuncDeclStat* stat) {
 			if (stat->GetType() != StatType::kReturn) {
 				// 补全末尾的return
 				cur_func_->byte_code.EmitConstLoad(AllocConst(Value()));
-				cur_func_->byte_code.EmitOpcode(OpcodeType::kReturn);
+				if (cur_func_->is_generator) {
+					cur_func_->byte_code.EmitOpcode(OpcodeType::kGeneratorReturn);
+				}
+				else {
+					cur_func_->byte_code.EmitOpcode(OpcodeType::kReturn);
+				}
 			}
 		}
 	}
@@ -237,8 +248,24 @@ void CodeGener::GenerateReturnStat(ReturnStat* stat) {
 	else {
 		cur_func_->byte_code.EmitConstLoad(AllocConst(Value()));
 	}
-	cur_func_->byte_code.EmitOpcode(OpcodeType::kReturn);
+	if (cur_func_->is_generator) {
+		cur_func_->byte_code.EmitOpcode(OpcodeType::kGeneratorReturn);
+	}
+	else {
+		cur_func_->byte_code.EmitOpcode(OpcodeType::kReturn);
+	}
 }
+
+void CodeGener::GenerateYieldStat(YieldStat* stat) {
+	if (stat->exp.get()) {
+		GenerateExp(stat->exp.get());
+	}
+	else {
+		cur_func_->byte_code.EmitConstLoad(AllocConst(Value()));
+	}
+	cur_func_->byte_code.EmitOpcode(OpcodeType::kYield);
+}
+
 
 void CodeGener::GenerateNewVarStat(NewVarStat* stat) {
 	auto var_idx = AllocVar(stat->var_name);

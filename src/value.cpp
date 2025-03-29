@@ -38,15 +38,8 @@ Value::Value(int32_t i32) {
 }
 
 Value::Value(const char* string_u8) {
-	tag_.type_ = ValueType::kString;
-	value_.string_ = new String(string_u8, strlen(string_u8));
-	value_.string_->Reference();
-}
-
-Value::Value(const char* string_u8, size_t size) {
-	tag_.type_ = ValueType::kString;
-	value_.string_ = new String(string_u8, size);
-	value_.string_->Reference();
+	tag_.type_ = ValueType::kStringView;
+	value_.string_view_ = string_u8;
 }
 
 Value::Value(std::string str) {
@@ -63,6 +56,12 @@ Value::Value(Object* object) {
 
 Value::Value(FunctionObject* ref) {
 	tag_.type_ = ValueType::kFunctionObject;
+	value_.object_ = reinterpret_cast<Object*>(ref);
+	value_.object_->Reference();
+}
+
+Value::Value(GeneratorObject* ref) {
+	tag_.type_ = ValueType::kGeneratorObject;
 	value_.object_ = reinterpret_cast<Object*>(ref);
 	value_.object_->Reference();
 }
@@ -93,12 +92,22 @@ Value::Value(CppFunction cpp_func) {
 	value_.cpp_func_ = cpp_func;
 }
 
+Value::Value(ValueType type) {
+	tag_.type_ = ValueType::kGeneratorNext;
+	value_.full_ = 0;
+}
+
 
 Value::~Value() {
 	if (IsString()) {
-		value_.string_->Dereference();
-		if (value_.string_->ref_count() == 0) {
-			delete value_.string_;
+		if (type() == ValueType::kString) {
+			value_.string_->Dereference();
+			if (value_.string_->ref_count() == 0) {
+				delete value_.string_;
+			}
+		}
+		else if (type() == ValueType::kStringView) {
+
 		}
 	}
 	else if (IsObject()) {
@@ -145,6 +154,11 @@ void Value::operator=(Value&& r) noexcept {
 
 bool Value::operator<(const Value& rhs) const {
 	if (type() != rhs.type()) {
+		if (IsString() && rhs.IsStringView()
+			|| IsStringView() && rhs.IsString()) {
+			return std::strcmp(ToStringView().string_view(), rhs.ToStringView().string_view()) < 0;
+		}
+
 		return type() < rhs.type();
 	}
 	// When types are the same, compare based on the type
@@ -165,6 +179,8 @@ bool Value::operator<(const Value& rhs) const {
 		return i64() < rhs.i64();
 	case ValueType::kU64:
 		return u64() < rhs.u64();
+	case ValueType::kStringView:
+		return std::strcmp(string_view(), rhs.string_view()) < 0;
 	case ValueType::kFunctionDef:
 	case ValueType::kCppFunction:
 	case ValueType::kUpValue:
@@ -176,7 +192,12 @@ bool Value::operator<(const Value& rhs) const {
 
 bool Value::operator>(const Value& rhs) const {
 	if (type() != rhs.type()) {
-		return type() < rhs.type();
+		if (IsString() && rhs.IsStringView()
+			|| IsStringView() && rhs.IsString()) {
+			return std::strcmp(ToStringView().string_view(), rhs.ToStringView().string_view()) > 0;
+		}
+
+		return type() > rhs.type();
 	}
 	// When types are the same, compare based on the type
 	switch (type()) {
@@ -196,9 +217,11 @@ bool Value::operator>(const Value& rhs) const {
 		return i64() > rhs.i64();
 	case ValueType::kU64:
 		return u64() > rhs.u64();
+	case ValueType::kStringView:
+		return std::strcmp(string_view(), rhs.string_view()) > 0;
+	case ValueType::kUpValue:
 	case ValueType::kFunctionDef:
 	case ValueType::kCppFunction:
-	case ValueType::kUpValue:
 		return value_.up_value_.value > rhs.value_.up_value_.value;
 	default:
 		throw std::runtime_error("Incorrect value type.");
@@ -207,6 +230,12 @@ bool Value::operator>(const Value& rhs) const {
 
 bool Value::operator==(const Value& rhs) const {
 	if (type() != rhs.type()) {
+		if (IsString() && rhs.IsStringView()
+			|| IsStringView() && rhs.IsString()) {
+			return std::strcmp(ToStringView().string_view(), rhs.ToStringView().string_view()) == 0;
+		}
+
+
 		return false;
 	}
 	switch (type()) {
@@ -224,6 +253,8 @@ bool Value::operator==(const Value& rhs) const {
 		return &object() == &rhs.object();
 	case ValueType::kI64:
 		return i64() == rhs.i64();
+	case ValueType::kStringView:
+		return std::strcmp(string_view(), rhs.string_view()) == 0;
 	case ValueType::kFunctionDef:
 	case ValueType::kCppFunction:
 	case ValueType::kUpValue:
@@ -237,7 +268,7 @@ Value Value::operator+(const Value& rhs) const {
 	if (IsNumber() && rhs.IsNumber()) {
 		return Value(number() + rhs.number());
 	}
-	else if (IsString() || rhs.IsString()) {
+	else if (IsString() || IsStringView() || rhs.IsString() || rhs.IsStringView()) {
 		// 创建一个新的字符串常量来保存
 		return Value((ToString().string()) + rhs.ToString().string());
 	}
@@ -366,30 +397,29 @@ Object& Value::object() const {
 	return *value_.object_;
 }
 
-
-int64_t Value::i64() const { 
-	assert(IsI64()); 
-	return value_.i64_;
-}
-uint64_t Value::u64() const { 
-	assert(IsU64());
-	return value_.u64_;
-}
-
-
 FunctionObject* Value::function() const {
 	assert(IsFunctionObject());
 	return reinterpret_cast<FunctionObject*>(value_.object_);
 }
 
-FunctionDef* Value::function_def() const {
-	assert(IsFunctionDef());
-	return value_.func_def_;
+GeneratorObject* Value::generator() const {
+	assert(IsGeneratorObject());
+	return reinterpret_cast<GeneratorObject*>(value_.object_);
 }
 
-CppFunction Value::cpp_function() const { 
-	assert(IsCppFunction()); 
-	return value_.cpp_func_;
+
+int64_t Value::i64() const {
+	assert(IsI64());
+	return value_.i64_;
+}
+uint64_t Value::u64() const {
+	assert(IsU64());
+	return value_.u64_;
+}
+
+const char* Value::string_view() const {
+	assert(IsStringView() || IsString());
+	return value_.string_view_;
 }
 
 const UpValue& Value::up_value() const { 
@@ -397,6 +427,15 @@ const UpValue& Value::up_value() const {
 	return value_.up_value_;
 }
 
+FunctionDef* Value::function_def() const {
+	assert(IsFunctionDef());
+	return value_.func_def_;
+}
+
+CppFunction Value::cpp_function() const {
+	assert(IsCppFunction());
+	return value_.cpp_func_;
+}
 
 
 bool Value::IsUndefined() const {
@@ -425,11 +464,16 @@ bool Value::IsObject() const {
 		|| type() == ValueType::kStringObject
 		|| type() == ValueType::kArrayObject
 		|| type() == ValueType::kFunctionObject
+		|| type() == ValueType::kGeneratorObject
 		;
 }
 
 bool Value::IsFunctionObject() const {
 	return type() == ValueType::kFunctionObject;
+}
+
+bool Value::IsGeneratorObject() const {
+	return type() == ValueType::kGeneratorObject;
 }
 
 bool Value::IsI64() const {
@@ -438,6 +482,10 @@ bool Value::IsI64() const {
 
 bool Value::IsU64() const {
 	return type() == ValueType::kU64;
+}
+
+bool Value::IsStringView() const {
+	return type() == ValueType::kStringView;
 }
 
 bool Value::IsFunctionDef() const {
@@ -455,15 +503,18 @@ bool Value::IsCppFunction() const {
 Value Value::ToString() const {
 	switch (type()) {
 	case ValueType::kUndefined:
-		return Value("undefined");
+		return Value(std::string("undefined"));
 	case ValueType::kNull:
-		return Value("null");
+		return Value(std::string("null"));
 	case ValueType::kBoolean:
-		return Value(boolean() ? "true" : "false");
+		return Value(std::string(boolean() ? "true" : "false"));
 	case ValueType::kNumber:
 		return Value(std::format("{}", number()));
 	case ValueType::kString: {
 		return *this;
+	}
+	case ValueType::kStringView: {
+		return Value(std::string(string_view()));
 	}
 	default:
 		throw std::runtime_error("Incorrect value type.");
@@ -486,10 +537,25 @@ Value Value::ToBoolean() const {
 	case ValueType::kString: {
 		return Value(string().empty());
 	}
+	case ValueType::kStringView: {
+		return Value(string_view() != nullptr && string_view()[0] != '\0');
+	}
 	default:
 		throw std::runtime_error("Need to add new types.");
 	}
 }
 
+Value Value::ToStringView() const {
+	switch (type()) {
+	case ValueType::kString: {
+		return Value(string().c_str());
+	}
+	case ValueType::kStringView: {
+		return *this;
+	}
+	default:
+		throw std::runtime_error("Need to add new types.");
+	}
+}
 
 } // namespace mjs

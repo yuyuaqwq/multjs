@@ -5,9 +5,8 @@
 #include <optional>
 
 #include <mjs/object.h>
-#include <mjs/value.h>
 
-#include "instr.h"
+#include "bytecode.h"
 
 namespace mjs {
 
@@ -20,6 +19,8 @@ public:
 	uint32_t par_count;
 	uint32_t var_count = 0;
 	ByteCode byte_code;
+
+	bool is_generator = false;
 
 	// 优化方向：
 	// 如果所有记录都没有捕获外部变量，都是顶级upvalue变量

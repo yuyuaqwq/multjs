@@ -33,8 +33,8 @@ public:
 	void EvalFunction(const Value& func);
 
 private:
-	bool FunctionDefInit(Value* func_val);
-	void FunctionInit(const Value& func_val);
+	bool FunctionDefLoadInit(Value* func_def_val);
+	void FunctionEnterInit(const Value& func_val);
 	void FunctionSwitch(FunctionDef** cur_func_def, const Value& func_val);
 
 	void Run();
@@ -55,6 +55,8 @@ private:
 
 	Value cur_func_val_;
 	uint32_t pc_ = 0;
+
+	Value this_val_;
 
 	StackFrame stack_frame_;
 };

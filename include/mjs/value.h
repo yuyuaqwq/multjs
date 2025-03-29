@@ -7,8 +7,7 @@
 #include <stdexcept>
 
 #include <mjs/const_def.h>
-
-#include "string.h"
+#include <mjs/string.h>
 
 namespace mjs {
 
@@ -26,30 +25,37 @@ enum class ValueType : uint32_t {
 	kStringObject,
 	kArrayObject,
 	kFunctionObject,
+	kGeneratorObject,
 
 	// 内部使用
 	kI64,
 	kU64,
 
+	kStringView, // String优化
+
 	kUpValue,
 	kFunctionDef,
 	kCppFunction,
+	kGeneratorNext,
 };
 
+class Context;
+class StackFrame;
+
 class Value;
+
+class Object;
+class FunctionObject;
+class GeneratorObject;
+
 struct UpValue {
 	Value* value;
 };
-
-class Object;
 class FunctionDef;
-class FunctionObject;
-
-class StackFrame;
 
 class Value {
 public:
-	using CppFunction = Value(*)(uint32_t par_count, StackFrame* stack);
+	using CppFunction = Value(*)(Context* context, uint32_t par_count, StackFrame* stack);
 
 public:
 	Value();
@@ -57,11 +63,11 @@ public:
 	explicit Value(bool boolean);
 	explicit Value(double number);
 	explicit Value(const char* string_u8);
-	explicit Value(const char* string_u8, size_t size);
 	explicit Value(std::string str);
 
 	explicit Value(Object* object);
 	explicit Value(FunctionObject* func);
+	explicit Value(GeneratorObject* generator);
 
 	explicit Value(int64_t i64);
 	explicit Value(int32_t i32);
@@ -72,6 +78,8 @@ public:
 
 	explicit Value(FunctionDef* def);
 	explicit Value(CppFunction bridge);
+
+	explicit Value(ValueType type);
 
 	~Value();
 
@@ -111,9 +119,11 @@ public:
 	}
 
 	FunctionObject* function() const;
+	GeneratorObject* generator() const;
 
 	int64_t i64() const;
 	uint64_t u64() const;
+	const char* string_view() const;
 	const UpValue& up_value() const;
 	FunctionDef* function_def() const;
 	CppFunction cpp_function() const;
@@ -129,9 +139,11 @@ public:
 
 	bool IsObject() const;
 	bool IsFunctionObject() const;
+	bool IsGeneratorObject() const;
 
 	bool IsI64() const;
 	bool IsU64() const;
+	bool IsStringView() const;
 	bool IsFunctionDef() const;
 	bool IsUpValue() const;
 	bool IsCppFunction() const;
@@ -140,11 +152,13 @@ public:
 	Value ToString() const;
 	Value ToBoolean() const;
 
+	Value ToStringView() const;
+
 private:
 	union {
 		uint64_t full_ = 0;
 		struct {
-			ValueType type_ : 4;
+			ValueType type_ : 7;
 			uint32_t read_only_ : 1;	// 用于常量池中的Value，在复制时不会触发引用计数的增加，析构时不会减少引用计数
 
 			// 非0则是来自常量池的value
@@ -152,6 +166,8 @@ private:
 		};
 	} tag_;
 	union {
+		uint64_t full_ = 0;
+
 		bool boolean_;
 		double f64_;
 		String* string_;
@@ -160,6 +176,8 @@ private:
 
 		int64_t i64_;
 		uint64_t u64_;
+		const char* string_view_;
+
 
 		UpValue up_value_;
 		FunctionDef* func_def_;

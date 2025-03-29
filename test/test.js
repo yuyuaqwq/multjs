@@ -1,4 +1,18 @@
 
+function* gen() {
+    yield 1;
+    yield 2;
+    yield 3;
+}
+
+let g = gen();
+println(g.next().value); // 1
+println(g.next().done); // 2
+println(g.next().value); // 3
+println(g.next().value); // undefined
+println(g.next().done); // undefined
+
+
 let cc = 1000;
 
 function add(a, b) {

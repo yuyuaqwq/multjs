@@ -4,10 +4,10 @@
 
 #include <mjs/runtime.h>
 #include <mjs/context.h>
+#include <mjs/opcode_type.h>
 #include <mjs/array_object.h>
 #include <mjs/function_object.h>
-
-#include "instr.h"
+#include <mjs/generator_object.h>
 
 namespace mjs {
 
@@ -25,8 +25,8 @@ void Vm::EvalFunction(const Value& func_val) {
 	stack().Resize(function_def(cur_func_val_)->var_count);
 
 	// 最外层的函数不会通过CLoadFunc加载，所以需要自己初始化
-	FunctionDefInit(&cur_func_val_);
-	FunctionInit(cur_func_val_);
+	FunctionDefLoadInit(&cur_func_val_);
+	FunctionEnterInit(cur_func_val_);
 
 	Run();
 }
@@ -41,15 +41,15 @@ FunctionDef* Vm::function_def(const Value& func_val) const {
 	return nullptr;
 }
 
-bool Vm::FunctionDefInit(Value* func_val) {
-	auto func_def = func_val->function_def();
+bool Vm::FunctionDefLoadInit(Value* func_def_val) {
+	auto func_def = func_def_val->function_def();
 	if (func_def->closure_var_defs_.empty()) {
 		return false;
 	}
 
-	*func_val = Value(new FunctionObject(func_def));
-
-	auto func = func_val->function();
+	*func_def_val = Value(new FunctionObject(func_def));
+	
+	auto func = func_def_val->function();
 	// func->upvalues_.resize(func_def->closure_var_defs_.size());
 
 	auto& arr = func->closure_value_arr_;
@@ -58,12 +58,21 @@ bool Vm::FunctionDefInit(Value* func_val) {
 	return true;
 }
 
-void Vm::FunctionInit(const Value& func_val) {
-	if (!func_val.IsFunctionObject()) {
+void Vm::FunctionEnterInit(const Value& func_val) {
+	FunctionObject* func = nullptr;
+	FunctionDef* func_def = nullptr;
+	if (func_val.IsFunctionObject()) {
+		func = func_val.function();
+		func_def = func->func_def_;
+	}
+	//if (func_val.IsGeneratorObject()) {
+	//	func = func_val.generator();
+	//	func_def = func->func_def_;
+	//}
+
+	if (func == nullptr || func_def == nullptr) {
 		return;
 	}
-	auto func = func_val.function();
-	auto func_def = func->func_def_;
 
 	// 调用的是函数对象，可能需要处理闭包内的upvalue
 	auto& arr = func->closure_value_arr_;
@@ -77,7 +86,7 @@ void Vm::FunctionInit(const Value& func_val) {
 
 Value& Vm::GetVar(VarIndex idx) {
 	auto* var = &stack_frame_.Get(idx);
-	while (var->type() == ValueType::kUpValue) {
+	while (var->IsUpValue()) {
 		var = var->up_value().value;
 	}
 	return *var;
@@ -85,7 +94,7 @@ Value& Vm::GetVar(VarIndex idx) {
 
 void Vm::SetVar(VarIndex idx, Value&& var) {
 	auto* var_ = &stack_frame_.Get(idx);
-	while (var_->type() == ValueType::kUpValue) {
+	while (var_->IsUpValue()) {
 		var_ = var_->up_value().value;
 	}
 	*var_ = std::move(var);
@@ -117,9 +126,9 @@ const Value& Vm::GetConst(ConstIndex idx) {
 void Vm::LoadConst(ConstIndex const_idx) {
 	auto& value = GetGlobalConst(const_idx);
 
-	if (value.type() == ValueType::kFunctionDef) {
+	if (value.IsFunctionDef()) {
 		auto func_val = value;
-		if (FunctionDefInit(&func_val)) {
+		if (FunctionDefLoadInit(&func_val)) {
 			// array需要初始化为upvalue，指向父函数的ArrayValue
 			// 如果没有父函数就不需要，即是顶层函数，默认初始化为未定义
 
@@ -155,7 +164,7 @@ void Vm::Run() {
 	if (!cur_func_def) return;
 
 	do {
-		auto pc = pc_; std::cout << cur_func_def->byte_code.Disassembly(pc) << std::endl;
+		// auto pc = pc_; std::cout << cur_func_def->byte_code.Disassembly(pc) << std::endl;
 		auto opcode = cur_func_def->byte_code.GetOpcode(pc_++);
 		switch (opcode) {
 		//case OpcodeType::kStop:
@@ -224,7 +233,9 @@ void Vm::Run() {
 
 			auto& obj_val = stack_frame_.Get(-1);
 
-			if (obj_val.type() == ValueType::kObject) {
+			this_val_ = obj_val;
+
+			if (obj_val.IsObject()) {
 				auto& obj = obj_val.object();
 				auto prop = obj.GetProperty(key_val);
 				if (!prop) {
@@ -248,7 +259,7 @@ void Vm::Run() {
 			auto key_val = stack_frame_.Pop();
 
 			auto obj_val = stack_frame_.Pop();
-			if (obj_val.type() == ValueType::kObject) {
+			if (obj_val.IsObject()) {
 				auto& obj = obj_val.object();
 				obj.SetProperty(key_val, stack_frame_.Pop());
 			}
@@ -337,7 +348,8 @@ void Vm::Run() {
 			auto save_func = stack_frame_.Pop();
 
 			// 恢复环境和栈帧
-			cur_func_def = save_func.function_def();
+			cur_func_val_ = save_func;
+			cur_func_def = function_def(cur_func_val_);
 			pc_ = save_pc.u64();
 
 			// 设置栈顶和栈底
@@ -346,6 +358,60 @@ void Vm::Run() {
 
 			// 返回位于原本位于栈帧栈顶的返回值
 			stack_frame_.Push(ret_value);
+			break;
+		}
+		case OpcodeType::kGeneratorReturn: {
+			this_val_.generator()->SetClosed();
+
+			auto ret_value = stack_frame_.Pop();
+
+			auto save_bottom = stack_frame_.Pop();
+			auto save_pc = stack_frame_.Pop();
+			auto save_func = stack_frame_.Pop();
+
+			// 恢复环境和栈帧
+			cur_func_val_ = save_func;
+			cur_func_def = function_def(cur_func_val_);
+			pc_ = save_pc.u64();
+
+			// 设置栈顶和栈底
+			stack().Resize(stack_frame_.bottom());
+			stack_frame_.set_bottom(save_bottom.u64());
+
+			// 返回位于原本位于栈帧栈顶的返回值
+			auto ret_obj = Value(new Object());
+			ret_obj.object().SetProperty(Value("value"), std::move(ret_value));
+			ret_obj.object().SetProperty(Value("done"), Value(true));
+			stack_frame_.Push(ret_obj);
+			break;
+		}
+		case OpcodeType::kYield: {
+			// 返回一个对象：
+			// { value: $_, done: $boolean }
+
+			// 要从当前生成器的返回
+
+			this_val_.generator()->set_pc(pc_);
+
+			auto ret_value = stack_frame_.Pop();
+
+			auto save_bottom = stack_frame_.Pop();
+			auto save_pc = stack_frame_.Pop();
+			auto save_func = stack_frame_.Pop();
+
+			cur_func_val_ = save_func;
+			cur_func_def = function_def(cur_func_val_);
+			pc_ = save_pc.u64();
+
+			stack().Resize(stack_frame_.bottom());
+			stack_frame_.set_bottom(save_bottom.u64());
+
+			// 返回位于原本位于栈帧栈顶的返回值
+			auto ret_obj = Value(new Object());
+			ret_obj.object().SetProperty(Value("value"), std::move(ret_value));
+			ret_obj.object().SetProperty(Value("done"), Value(false));
+			stack_frame_.Push(ret_obj);
+
 			break;
 		}
 		case OpcodeType::kNe: {
@@ -408,9 +474,16 @@ void Vm::FunctionSwitch(FunctionDef** cur_func_def, const Value& func_val) {
 	auto par_count = stack_frame_.Pop().u64();
 
 	switch (func_val.type()) {
-	case ValueType::kFunctionObject:
-	case ValueType::kFunctionDef: {
+	case ValueType::kFunctionDef:
+	case ValueType::kFunctionObject: {
 		auto func_def = function_def(func_val);
+
+		if (func_def->is_generator) {
+			// 是生成器函数
+			// 直接返回生成器对象
+			stack_frame_.Push(Value(new GeneratorObject(context_->runtime(), func_val)));
+			return;
+		}
 
 		// printf("%s\n", func_def->Disassembly().c_str());
 
@@ -418,7 +491,7 @@ void Vm::FunctionSwitch(FunctionDef** cur_func_def, const Value& func_val) {
 			throw VmException("Wrong number of parameters passed when calling the function");
 		}
 
-		auto save_func = *cur_func_def;
+		auto save_func = cur_func_val_;
 		auto save_pc = pc_;
 		auto save_bottom = stack_frame_.bottom();
 
@@ -449,8 +522,8 @@ void Vm::FunctionSwitch(FunctionDef** cur_func_def, const Value& func_val) {
 		stack_frame_.Push(Value(save_pc));
 		stack_frame_.Push(Value(save_bottom));
 
-		if (func_val.type() == ValueType::kFunctionObject) {
-			FunctionInit(func_val);
+		if (cur_func_val_.IsFunctionObject()) {
+			FunctionEnterInit(cur_func_val_);
 		}
 
 		break;
@@ -460,12 +533,50 @@ void Vm::FunctionSwitch(FunctionDef** cur_func_def, const Value& func_val) {
 		auto old_bottom = stack_frame_.bottom();
 		stack_frame_.set_bottom(stack().Size() - par_count);
 
-		auto ret = func_val.cpp_function()(par_count, &stack_frame_);
+		auto ret = func_val.cpp_function()(context_, par_count, &stack_frame_);
 
 		// 还原栈帧
 		stack_frame_.set_bottom(old_bottom);
 		stack().Reduce(par_count);
 		stack_frame_.Push(std::move(ret));
+		break;
+	}
+	case ValueType::kGeneratorNext: {
+		auto generator = this_val_.generator();
+		if (generator->IsClosed()) {
+			auto ret_obj = Value(new Object());
+			ret_obj.object().SetProperty(Value("value"), Value());
+			ret_obj.object().SetProperty(Value("done"), Value(true));
+			stack_frame_.Push(ret_obj);
+			break;
+		}
+
+		generator->SetExecuting();
+
+		auto save_func = cur_func_val_;
+		auto save_pc = pc_;
+		auto save_bottom = stack_frame_.bottom();
+
+		// 复制栈帧
+		auto& gen_vector = generator->stack().vector();
+		
+		stack().vector().insert(stack().vector().end(), gen_vector.begin(), gen_vector.end());
+
+		// 切换环境和栈帧
+		*cur_func_def = generator->function_def();
+		cur_func_val_ = generator->function();
+		pc_ = generator->pc();
+		stack_frame_.set_bottom(stack().Size());
+
+		// 保存当前环境，用于Yield返回
+		stack_frame_.Push(Value(save_func));
+		stack_frame_.Push(Value(save_pc));
+		stack_frame_.Push(Value(save_bottom));
+
+		if (cur_func_val_.IsFunctionObject()) {
+			FunctionEnterInit(cur_func_val_);
+		}
+
 		break;
 	}
 	default:

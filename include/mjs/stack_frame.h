@@ -35,14 +35,14 @@ public:
 
 private:
 	Stack* stack_;
-	size_t bottom_ = 0;	// 当前栈帧的栈底
+	size_t bottom_ = 0;	// 当前栈帧的栈底(在栈中的索引)
 };
 
 // 每个线程固定的栈
 class Stack : noncopyable {
 public:
 	Stack(size_t count) {
-		stack_.reserve(count);
+		vector_.reserve(count);
 	}
 
 	void Push(const Value& value);
@@ -59,8 +59,10 @@ public:
 	size_t Size()  const noexcept;
 	void Resize(size_t size);
 
+	auto& vector() { return vector_; }
+
 private:
-	std::vector<Value> stack_;
+	std::vector<Value> vector_;
 };
 
 
