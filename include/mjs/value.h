@@ -110,7 +110,7 @@ public:
 	bool boolean() const;
 	void set_boolean(bool boolean);
 
-	String& string() const;
+	const char* string() const;
 
 	Object& object() const;
 	template<typename ObjectT>
@@ -123,7 +123,7 @@ public:
 
 	int64_t i64() const;
 	uint64_t u64() const;
-	const char* string_view() const;
+	// const char* string_view() const;
 	const UpValue& up_value() const;
 	FunctionDef* function_def() const;
 	CppFunction cpp_function() const;
@@ -143,7 +143,6 @@ public:
 
 	bool IsI64() const;
 	bool IsU64() const;
-	bool IsStringView() const;
 	bool IsFunctionDef() const;
 	bool IsUpValue() const;
 	bool IsCppFunction() const;
@@ -151,8 +150,6 @@ public:
 
 	Value ToString() const;
 	Value ToBoolean() const;
-
-	Value ToStringView() const;
 
 private:
 	union {

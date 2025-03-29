@@ -113,8 +113,7 @@ Value CodeGener::Generate(BlockStat* block) {
 		[](Context* context, uint32_t par_count, StackFrame* stack) -> Value {
 			for (size_t i = 0; i < par_count; i++) {
 				auto val = stack->Get(i);
-				try
-				{
+				try {
 					std::cout << val.ToString().string();
 				}
 				catch (const std::exception&)

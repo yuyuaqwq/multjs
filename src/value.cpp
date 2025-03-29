@@ -137,7 +137,7 @@ void Value::operator=(const Value& r) {
 		value_.object_ = r.value_.object_;
 		object().Reference();
 	}
-	else if (IsString()) {
+	else if (IsString() && type() == ValueType::kString) {
 		value_.string_ = r.value_.string_;
 		value_.string_->Reference();
 	}
@@ -153,12 +153,11 @@ void Value::operator=(Value&& r) noexcept {
 }
 
 bool Value::operator<(const Value& rhs) const {
-	if (type() != rhs.type()) {
-		if (IsString() && rhs.IsStringView()
-			|| IsStringView() && rhs.IsString()) {
-			return std::strcmp(ToStringView().string_view(), rhs.ToStringView().string_view()) < 0;
-		}
+	if (IsString() && rhs.IsString()) {
+		return std::strcmp(string(), rhs.string()) < 0;
+	}
 
+	if (type() != rhs.type()) {
 		return type() < rhs.type();
 	}
 	// When types are the same, compare based on the type
@@ -172,15 +171,14 @@ bool Value::operator<(const Value& rhs) const {
 	case ValueType::kNumber:
 		return number() < rhs.number();
 	case ValueType::kString: 
-		return string() < rhs.string();
+	case ValueType::kStringView:
+		return std::strcmp(string(), rhs.string()) < 0;
 	case ValueType::kObject:
 		return &object() < &rhs.object(); // Compare pointers
 	case ValueType::kI64:
 		return i64() < rhs.i64();
 	case ValueType::kU64:
 		return u64() < rhs.u64();
-	case ValueType::kStringView:
-		return std::strcmp(string_view(), rhs.string_view()) < 0;
 	case ValueType::kFunctionDef:
 	case ValueType::kCppFunction:
 	case ValueType::kUpValue:
@@ -191,12 +189,11 @@ bool Value::operator<(const Value& rhs) const {
 }
 
 bool Value::operator>(const Value& rhs) const {
-	if (type() != rhs.type()) {
-		if (IsString() && rhs.IsStringView()
-			|| IsStringView() && rhs.IsString()) {
-			return std::strcmp(ToStringView().string_view(), rhs.ToStringView().string_view()) > 0;
-		}
+	if (IsString() && rhs.IsString()) {
+		return std::strcmp(string(), rhs.string()) > 0;
+	}
 
+	if (type() != rhs.type()) {
 		return type() > rhs.type();
 	}
 	// When types are the same, compare based on the type
@@ -210,15 +207,14 @@ bool Value::operator>(const Value& rhs) const {
 	case ValueType::kNumber:
 		return number() > rhs.number();
 	case ValueType::kString:
-		return string() > rhs.string();
+	case ValueType::kStringView:
+		return std::strcmp(string(), rhs.string()) > 0;
 	case ValueType::kObject:
 		return &object() > &rhs.object(); // Compare pointers
 	case ValueType::kI64:
 		return i64() > rhs.i64();
 	case ValueType::kU64:
 		return u64() > rhs.u64();
-	case ValueType::kStringView:
-		return std::strcmp(string_view(), rhs.string_view()) > 0;
 	case ValueType::kUpValue:
 	case ValueType::kFunctionDef:
 	case ValueType::kCppFunction:
@@ -229,13 +225,10 @@ bool Value::operator>(const Value& rhs) const {
 }
 
 bool Value::operator==(const Value& rhs) const {
+	if (IsString() && rhs.IsString()) {
+		return std::strcmp(string(), rhs.string()) == 0;
+	}
 	if (type() != rhs.type()) {
-		if (IsString() && rhs.IsStringView()
-			|| IsStringView() && rhs.IsString()) {
-			return std::strcmp(ToStringView().string_view(), rhs.ToStringView().string_view()) == 0;
-		}
-
-
 		return false;
 	}
 	switch (type()) {
@@ -248,13 +241,12 @@ bool Value::operator==(const Value& rhs) const {
 	case ValueType::kNumber:
 		return number() == rhs.number();
 	case ValueType::kString:
-		return string() == rhs.string();
+	case ValueType::kStringView:
+		return std::strcmp(string(), rhs.string()) == 0;
 	case ValueType::kObject:
 		return &object() == &rhs.object();
 	case ValueType::kI64:
 		return i64() == rhs.i64();
-	case ValueType::kStringView:
-		return std::strcmp(string_view(), rhs.string_view()) == 0;
 	case ValueType::kFunctionDef:
 	case ValueType::kCppFunction:
 	case ValueType::kUpValue:
@@ -268,9 +260,14 @@ Value Value::operator+(const Value& rhs) const {
 	if (IsNumber() && rhs.IsNumber()) {
 		return Value(number() + rhs.number());
 	}
-	else if (IsString() || IsStringView() || rhs.IsString() || rhs.IsStringView()) {
-		// 创建一个新的字符串常量来保存
-		return Value((ToString().string()) + rhs.ToString().string());
+	else if (IsString() && !rhs.IsString()) {
+		return Value(std::format("{}{}", string(), rhs.ToString().string()));
+	}
+	else if (!IsString() && rhs.IsString()) {
+		return Value(std::format("{}{}", ToString().string(), rhs.string()));
+	}
+	else if (IsString() && rhs.IsString()) {
+		return Value(std::format("{}{}", string(), string()));
 	}
 	else {
 		throw std::runtime_error("Addition not supported for these Value types.");
@@ -386,9 +383,15 @@ void Value::set_boolean(bool boolean) {
 }
 
 
-String& Value::string() const {
+const char* Value::string() const {
 	assert(IsString());
-	return *value_.string_;
+	if (type() == ValueType::kString) {
+		return value_.string_->c_str();
+	}
+	else if (type() == ValueType::kStringView) {
+		return value_.string_view_;
+	}
+	return nullptr;
 }
 
 
@@ -415,11 +418,6 @@ int64_t Value::i64() const {
 uint64_t Value::u64() const {
 	assert(IsU64());
 	return value_.u64_;
-}
-
-const char* Value::string_view() const {
-	assert(IsStringView() || IsString());
-	return value_.string_view_;
 }
 
 const UpValue& Value::up_value() const { 
@@ -455,7 +453,8 @@ bool Value::IsNumber() const {
 }
 
 bool Value::IsString() const {
-	return type() == ValueType::kString;
+	return type() == ValueType::kString
+		|| type() == ValueType::kStringView;
 }
 
 bool Value::IsObject() const {
@@ -484,10 +483,6 @@ bool Value::IsU64() const {
 	return type() == ValueType::kU64;
 }
 
-bool Value::IsStringView() const {
-	return type() == ValueType::kStringView;
-}
-
 bool Value::IsFunctionDef() const {
 	return type() == ValueType::kFunctionDef;
 }
@@ -514,7 +509,7 @@ Value Value::ToString() const {
 		return *this;
 	}
 	case ValueType::kStringView: {
-		return Value(std::string(string_view()));
+		return Value(std::string(string()));
 	}
 	default:
 		throw std::runtime_error("Incorrect value type.");
@@ -535,27 +530,15 @@ Value Value::ToBoolean() const {
 		}
 		return Value(number() == 0);
 	case ValueType::kString: {
-		return Value(string().empty());
+		return Value(value_.string_->empty());
 	}
 	case ValueType::kStringView: {
-		return Value(string_view() != nullptr && string_view()[0] != '\0');
+		return Value(string() != nullptr && string()[0] != '\0');
 	}
 	default:
 		throw std::runtime_error("Need to add new types.");
 	}
 }
 
-Value Value::ToStringView() const {
-	switch (type()) {
-	case ValueType::kString: {
-		return Value(string().c_str());
-	}
-	case ValueType::kStringView: {
-		return *this;
-	}
-	default:
-		throw std::runtime_error("Need to add new types.");
-	}
-}
 
 } // namespace mjs
