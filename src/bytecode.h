@@ -44,6 +44,9 @@ public:
 	void EmitIndexedLoad();
 	void EmitIndexedStore();
 
+	void EmitReturn(bool is_generator);
+
+
 	void RepairPc(Pc pc_from, Pc pc_to);
 	Pc CalcPc(Pc cur_pc);
 

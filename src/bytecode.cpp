@@ -176,6 +176,14 @@ void ByteCode::EmitIndexedStore() {
     EmitOpcode(OpcodeType::kIndexedStore);
 }
 
+void ByteCode::EmitReturn(bool is_generator) {
+    if (is_generator) {
+        EmitOpcode(OpcodeType::kGeneratorReturn);
+    }
+    else {
+        EmitOpcode(OpcodeType::kReturn);
+    }
+}
 
 void ByteCode::RepairPc(Pc pc_from, Pc pc_to) {
 	// skip opcode

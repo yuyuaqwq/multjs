@@ -226,12 +226,7 @@ void CodeGener::GenerateFunctionDeclStat(FuncDeclStat* stat) {
 			if (stat->GetType() != StatType::kReturn) {
 				// 补全末尾的return
 				cur_func_->byte_code.EmitConstLoad(AllocConst(Value()));
-				if (cur_func_->is_generator) {
-					cur_func_->byte_code.EmitOpcode(OpcodeType::kGeneratorReturn);
-				}
-				else {
-					cur_func_->byte_code.EmitOpcode(OpcodeType::kReturn);
-				}
+				cur_func_->byte_code.EmitReturn(cur_func_->is_generator);
 			}
 		}
 	}
@@ -248,12 +243,7 @@ void CodeGener::GenerateReturnStat(ReturnStat* stat) {
 	else {
 		cur_func_->byte_code.EmitConstLoad(AllocConst(Value()));
 	}
-	if (cur_func_->is_generator) {
-		cur_func_->byte_code.EmitOpcode(OpcodeType::kGeneratorReturn);
-	}
-	else {
-		cur_func_->byte_code.EmitOpcode(OpcodeType::kReturn);
-	}
+	cur_func_->byte_code.EmitReturn(cur_func_->is_generator);
 }
 
 void CodeGener::GenerateYieldStat(YieldStat* stat) {

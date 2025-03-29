@@ -159,6 +159,30 @@ void Vm::LoadConst(ConstIndex const_idx) {
 }
 
 
+Value Vm::RestoreStackFrame(FunctionDef** cur_func_def) {
+	// 将要返回，需要提升当前栈帧上的闭包变量到堆中
+	// 拿到返回之后的函数变量，将其赋值为
+
+	auto ret_value = stack_frame_.Pop();
+
+	auto save_bottom = stack_frame_.Pop();
+	auto save_pc = stack_frame_.Pop();
+	auto save_func = stack_frame_.Pop();
+
+	// 恢复环境和栈帧
+	cur_func_val_ = save_func;
+	*cur_func_def = function_def(cur_func_val_);
+	pc_ = save_pc.u64();
+
+	// 设置栈顶和栈底
+	stack().Resize(stack_frame_.bottom());
+	stack_frame_.set_bottom(save_bottom.u64());
+
+	// 返回位于原本位于栈帧栈顶的返回值
+	return ret_value;
+}
+
+
 void Vm::Run() {
 	auto cur_func_def = function_def(cur_func_val_);
 	if (!cur_func_def) return;
@@ -338,80 +362,26 @@ void Vm::Run() {
 			break;
 		}
 		case OpcodeType::kReturn: {
-			// 将要返回，需要提升当前栈帧上的闭包变量到堆中
-			// 拿到返回之后的函数变量，将其赋值为
-
-			auto ret_value = stack_frame_.Pop();
-
-			auto save_bottom = stack_frame_.Pop();
-			auto save_pc = stack_frame_.Pop();
-			auto save_func = stack_frame_.Pop();
-
-			// 恢复环境和栈帧
-			cur_func_val_ = save_func;
-			cur_func_def = function_def(cur_func_val_);
-			pc_ = save_pc.u64();
-
-			// 设置栈顶和栈底
-			stack().Resize(stack_frame_.bottom());
-			stack_frame_.set_bottom(save_bottom.u64());
-
-			// 返回位于原本位于栈帧栈顶的返回值
-			stack_frame_.Push(ret_value);
+			stack_frame_.Push(RestoreStackFrame(&cur_func_def));
 			break;
 		}
 		case OpcodeType::kGeneratorReturn: {
 			this_val_.generator()->SetClosed();
 
-			auto ret_value = stack_frame_.Pop();
+			auto ret_value = RestoreStackFrame(&cur_func_def);
 
-			auto save_bottom = stack_frame_.Pop();
-			auto save_pc = stack_frame_.Pop();
-			auto save_func = stack_frame_.Pop();
-
-			// 恢复环境和栈帧
-			cur_func_val_ = save_func;
-			cur_func_def = function_def(cur_func_val_);
-			pc_ = save_pc.u64();
-
-			// 设置栈顶和栈底
-			stack().Resize(stack_frame_.bottom());
-			stack_frame_.set_bottom(save_bottom.u64());
-
-			// 返回位于原本位于栈帧栈顶的返回值
-			auto ret_obj = Value(new Object());
-			ret_obj.object().SetProperty(Value("value"), std::move(ret_value));
-			ret_obj.object().SetProperty(Value("done"), Value(true));
-			stack_frame_.Push(ret_obj);
+			auto ret_obj = this_val_.generator()->MakeReturnObject(std::move(ret_value));
+			stack_frame_.Push(std::move(ret_obj));
 			break;
 		}
 		case OpcodeType::kYield: {
-			// 返回一个对象：
-			// { value: $_, done: $boolean }
-
-			// 要从当前生成器的返回
-
+			// 保存当前生成器的pc
 			this_val_.generator()->set_pc(pc_);
 
-			auto ret_value = stack_frame_.Pop();
+			auto ret_value = RestoreStackFrame(&cur_func_def);
 
-			auto save_bottom = stack_frame_.Pop();
-			auto save_pc = stack_frame_.Pop();
-			auto save_func = stack_frame_.Pop();
-
-			cur_func_val_ = save_func;
-			cur_func_def = function_def(cur_func_val_);
-			pc_ = save_pc.u64();
-
-			stack().Resize(stack_frame_.bottom());
-			stack_frame_.set_bottom(save_bottom.u64());
-
-			// 返回位于原本位于栈帧栈顶的返回值
-			auto ret_obj = Value(new Object());
-			ret_obj.object().SetProperty(Value("value"), std::move(ret_value));
-			ret_obj.object().SetProperty(Value("done"), Value(false));
-			stack_frame_.Push(ret_obj);
-
+			auto ret_obj = this_val_.generator()->MakeReturnObject(std::move(ret_value));
+			stack_frame_.Push(std::move(ret_obj));
 			break;
 		}
 		case OpcodeType::kNe: {
@@ -544,10 +514,7 @@ void Vm::FunctionSwitch(FunctionDef** cur_func_def, const Value& func_val) {
 	case ValueType::kGeneratorNext: {
 		auto generator = this_val_.generator();
 		if (generator->IsClosed()) {
-			auto ret_obj = Value(new Object());
-			ret_obj.object().SetProperty(Value("value"), Value());
-			ret_obj.object().SetProperty(Value("done"), Value(true));
-			stack_frame_.Push(ret_obj);
+			stack_frame_.Push(generator->MakeReturnObject(Value()));
 			break;
 		}
 

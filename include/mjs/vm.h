@@ -48,6 +48,9 @@ private:
 
 	void LoadConst(ConstIndex const_idx);
 
+	Value SaveStackFrame();
+	Value RestoreStackFrame(FunctionDef** cur_func_def);
+
 	Stack& stack();
 	FunctionDef* function_def(const Value& func_val) const;
 private:
