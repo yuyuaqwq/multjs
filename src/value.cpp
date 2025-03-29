@@ -508,12 +508,9 @@ Value Value::ToString() const {
 		return Value(boolean() ? "true" : "false");
 	case ValueType::kNumber:
 		return Value(std::format("{}", number()));
-	case ValueType::kString: {
+	case ValueType::kString: 
+	case ValueType::kStringView: 
 		return *this;
-	}
-	case ValueType::kStringView: {
-		return Value(std::string(string()));
-	}
 	default:
 		throw std::runtime_error("Incorrect value type.");
 	}
