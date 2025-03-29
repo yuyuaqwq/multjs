@@ -228,6 +228,7 @@ bool Value::operator==(const Value& rhs) const {
 	if (IsString() && rhs.IsString()) {
 		return std::strcmp(string(), rhs.string()) == 0;
 	}
+
 	if (type() != rhs.type()) {
 		return false;
 	}
