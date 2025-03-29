@@ -154,6 +154,7 @@ void Value::operator=(Value&& r) noexcept {
 
 bool Value::operator<(const Value& rhs) const {
 	if (IsString() && rhs.IsString()) {
+		if (string() == rhs.string()) { return false; }
 		return std::strcmp(string(), rhs.string()) < 0;
 	}
 
@@ -190,6 +191,7 @@ bool Value::operator<(const Value& rhs) const {
 
 bool Value::operator>(const Value& rhs) const {
 	if (IsString() && rhs.IsString()) {
+		if (string() == rhs.string()) { return false; }
 		return std::strcmp(string(), rhs.string()) > 0;
 	}
 
@@ -226,7 +228,7 @@ bool Value::operator>(const Value& rhs) const {
 
 bool Value::operator==(const Value& rhs) const {
 	if (IsString() && rhs.IsString()) {
-		return std::strcmp(string(), rhs.string()) == 0;
+		return string() == rhs.string() || std::strcmp(string(), rhs.string()) == 0;
 	}
 
 	if (type() != rhs.type()) {
@@ -499,11 +501,11 @@ bool Value::IsCppFunction() const {
 Value Value::ToString() const {
 	switch (type()) {
 	case ValueType::kUndefined:
-		return Value(std::string("undefined"));
+		return Value("undefined");
 	case ValueType::kNull:
-		return Value(std::string("null"));
+		return Value("null");
 	case ValueType::kBoolean:
-		return Value(std::string(boolean() ? "true" : "false"));
+		return Value(boolean() ? "true" : "false");
 	case ValueType::kNumber:
 		return Value(std::format("{}", number()));
 	case ValueType::kString: {
