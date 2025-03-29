@@ -161,12 +161,12 @@ bool Value::operator<(const Value& rhs) const {
 	if (type() != rhs.type()) {
 		return type() < rhs.type();
 	}
-	// When types are the same, compare based on the type
+
 	switch (type()) {
 	case ValueType::kUndefined:
-		return false; // Undefined values are considered equal
+		return false;
 	case ValueType::kNull:
-		return false; // Null values are considered equal
+		return false;
 	case ValueType::kBoolean:
 		return boolean() < rhs.boolean();
 	case ValueType::kNumber:
@@ -175,7 +175,7 @@ bool Value::operator<(const Value& rhs) const {
 	case ValueType::kStringView:
 		return std::strcmp(string(), rhs.string()) < 0;
 	case ValueType::kObject:
-		return &object() < &rhs.object(); // Compare pointers
+		return &object() < &rhs.object();
 	case ValueType::kI64:
 		return i64() < rhs.i64();
 	case ValueType::kU64:
@@ -183,7 +183,7 @@ bool Value::operator<(const Value& rhs) const {
 	case ValueType::kFunctionDef:
 	case ValueType::kCppFunction:
 	case ValueType::kUpValue:
-		return value_.up_value_.value < rhs.value_.up_value_.value;
+		return value_.full_ < rhs.value_.full_;
 	default:
 		throw std::runtime_error("Incorrect value type.");
 	}
@@ -198,12 +198,11 @@ bool Value::operator>(const Value& rhs) const {
 	if (type() != rhs.type()) {
 		return type() > rhs.type();
 	}
-	// When types are the same, compare based on the type
 	switch (type()) {
 	case ValueType::kUndefined:
-		return false; // Undefined values are considered equal
+		return false;
 	case ValueType::kNull:
-		return false; // Null values are considered equal
+		return false;
 	case ValueType::kBoolean:
 		return boolean() > rhs.boolean();
 	case ValueType::kNumber:
@@ -212,7 +211,7 @@ bool Value::operator>(const Value& rhs) const {
 	case ValueType::kStringView:
 		return std::strcmp(string(), rhs.string()) > 0;
 	case ValueType::kObject:
-		return &object() > &rhs.object(); // Compare pointers
+		return &object() > &rhs.object();
 	case ValueType::kI64:
 		return i64() > rhs.i64();
 	case ValueType::kU64:
@@ -220,7 +219,7 @@ bool Value::operator>(const Value& rhs) const {
 	case ValueType::kUpValue:
 	case ValueType::kFunctionDef:
 	case ValueType::kCppFunction:
-		return value_.up_value_.value > rhs.value_.up_value_.value;
+		return value_.full_ > rhs.value_.full_;
 	default:
 		throw std::runtime_error("Incorrect value type.");
 	}
@@ -253,7 +252,7 @@ bool Value::operator==(const Value& rhs) const {
 	case ValueType::kFunctionDef:
 	case ValueType::kCppFunction:
 	case ValueType::kUpValue:
-		return value_.object_ == rhs.value_.object_;
+		return value_.full_ == rhs.value_.full_;
 	default:
 		throw std::runtime_error("Incorrect value type.");
 	}
