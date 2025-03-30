@@ -1,5 +1,10 @@
 #include "bytecode.h"
 
+#include <mjs/context.h>
+#include <mjs/runtime.h>
+#include <mjs/function_def.h>
+
+
 namespace mjs {
 
 std::map<OpcodeType, InstrInfo> g_instr_symbol{
@@ -202,27 +207,89 @@ Pc ByteCode::CalcPc(Pc cur_pc) {
     return cur_pc + *reinterpret_cast<int16_t*>(GetPtr(cur_pc) + 1);
 }
 
-std::string ByteCode::Disassembly(Pc& pc) {
+std::string ByteCode::Disassembly(Context* context, Pc& pc, OpcodeType& opcode, uint32_t& par, FunctionDef* func_def) {
     std::string str;
     char buf[16] = { 0 };
     sprintf_s(buf, "%04d\t", pc);
-    const auto& info = g_instr_symbol.find(GetOpcode(pc++));
+    opcode = GetOpcode(pc++);
+    const auto& info = g_instr_symbol.find(opcode);
     str += buf + info->second.str + "\t";
     for (const auto& par_size : info->second.par_size_list) {
         if (par_size == 1) {
-            auto ki = GetU8(pc);
-            str += std::to_string(ki) + " ";
+            par = GetU8(pc);
+            str += std::to_string(par) + "\t";
         }
         else if (par_size == 2) {
-            auto ki = GetU16(pc);
-            str += std::to_string(ki) + " ";
+            par = GetU16(pc);
+            str += std::to_string(par) + "\t";
         }
         else if (par_size == 4) {
-            auto ki = GetU32(pc);
-            str += std::to_string(ki) + " ";
+            par = GetU32(pc);
+            str += std::to_string(par) + "\t";
         }
+
         pc += par_size;
     }
+
+    if (info->second.par_size_list.empty()) {
+        str += "\t";
+    }
+
+    if (opcode >= OpcodeType::kCLoad_0 && opcode <= OpcodeType::kCLoad_5) {
+        auto idx = opcode - OpcodeType::kCLoad_0;
+        const auto& val = context->runtime().const_pool().get(idx);
+        if (val.IsString()) {
+            str += "\"";
+        }
+        str += val.ToString().string();
+        if (val.IsString()) {
+            str += "\"";
+        }
+        str += "\t";
+    }
+    else if (opcode == OpcodeType::kCLoad) {
+        auto idx = par;
+        const auto& val = context->runtime().const_pool().get(idx);
+        if (val.IsString()) {
+            str += "\"";
+        }
+        str += val.ToString().string();
+        if (val.IsString()) {
+            str += "\"";
+        }
+        str += "\t";
+    }
+
+    if (opcode >= OpcodeType::kVLoad_0 && opcode <= OpcodeType::kVLoad_3) {
+        auto idx = opcode - OpcodeType::kVLoad_0;
+        auto& info = func_def->GetVarInfo(idx);
+        str += "$";
+        str += info.name;
+        str += "\t";
+    }
+    if (opcode == OpcodeType::kVLoad) {
+        auto idx = par;
+        auto& info = func_def->GetVarInfo(idx);
+        str += "$";
+        str += info.name;
+        str += "\t";
+    }
+
+    if (opcode >= OpcodeType::kVStore_0 && opcode <= OpcodeType::kVStore_3) {
+        auto idx = opcode - OpcodeType::kVStore_0;
+        auto& info = func_def->GetVarInfo(idx);
+        str += "$";
+        str += info.name;
+        str += "\t";
+    }
+    if (opcode == OpcodeType::kVStore) {
+        auto idx = par;
+        auto& info = func_def->GetVarInfo(idx);
+        str += "$";
+        str += info.name;
+        str += "\t";
+    }
+
     return str;
 }
 

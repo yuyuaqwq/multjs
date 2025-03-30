@@ -7,7 +7,7 @@
 namespace mjs {
 
 // 常量池、字节码、栈等共享资源位于Runtime
-class Runtime : noncopyable {
+class Runtime : public noncopyable {
 public:
 	const GlobalConstPool& const_pool() const { return const_pool_; }
 	GlobalConstPool& const_pool() { return const_pool_; }

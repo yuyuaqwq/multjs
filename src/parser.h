@@ -4,6 +4,8 @@
 #include <memory>
 #include <vector>
 
+#include <mjs/noncopyable.h>
+
 #include "lexer.h"
 #include "stat.h"
 #include "exp.h"
@@ -16,7 +18,7 @@ public:
 	using Base::Base;
 };
 
-class Parser {
+class Parser : public noncopyable {
 public:
 	Parser(Lexer* t_lexer);
 

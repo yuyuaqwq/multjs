@@ -3,6 +3,8 @@
 #include <string>
 #include <stdexcept>
 
+#include <mjs/noncopyable.h>
+
 #include "token.h"
 
 namespace mjs {
@@ -13,7 +15,7 @@ public:
 	using Base::Base;
 };
 
-class Lexer {
+class Lexer : public noncopyable {
 public:
 	Lexer(const char* src);
 	~Lexer() noexcept;

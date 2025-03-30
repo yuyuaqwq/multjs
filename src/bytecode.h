@@ -4,6 +4,7 @@
 #include <vector>
 #include <string>
 
+#include <mjs/noncopyable.h>
 #include <mjs/const_def.h>
 #include <mjs/var_def.h>
 #include <mjs/opcode.h>
@@ -18,7 +19,9 @@ inline static size_t operator-(OpcodeType a, OpcodeType b) {
 	return static_cast<size_t>(a) - static_cast<size_t>(b);
 }
 
-class ByteCode {
+class Context;
+class FunctionDef;
+class ByteCode : public noncopyable {
 public:
 	OpcodeType GetOpcode(Pc pc);
 	Pc GetPc(Pc* pc);
@@ -50,7 +53,7 @@ public:
 	void RepairPc(Pc pc_from, Pc pc_to);
 	Pc CalcPc(Pc cur_pc);
 
-	std::string Disassembly(Pc& pc);
+	std::string Disassembly(Context* context, Pc& pc, OpcodeType& opcode, uint32_t& par, FunctionDef* func_def);
 
 	Pc Size() { return bytes_.size(); }
 
@@ -61,8 +64,6 @@ public:
 	uint16_t GetU16(Pc pc);
 	int32_t GetI32(Pc pc);
 	uint32_t GetU32(Pc pc);
-
-
 
 private:
 	uint8_t* GetPtr(Pc pc);

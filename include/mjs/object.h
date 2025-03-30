@@ -27,10 +27,6 @@ public:
 		assert(tag_.ref_count_ == 0);
 	}
 
-	uint32_t ref_count() const {
-		return tag_.ref_count_;
-	}
-
 	void Reference() {
 		++tag_.ref_count_;
 	}
@@ -70,13 +66,10 @@ public:
 	}
 
 
-	const auto& prototype() const {
-		return prototype_;
-	}
+	auto ref_count() const { return tag_.ref_count_; }
 
-	void set_prototype(Value&& prototype) {
-		prototype_ = prototype;
-	}
+	const auto& prototype() const { return prototype_; }
+	void set_prototype(Value prototype) { prototype_ = std::move(prototype); }
 
 private:
 	union {

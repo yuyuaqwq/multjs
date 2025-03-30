@@ -2,84 +2,84 @@
 
 namespace mjs {
 
-void Stack::Push(const Value& value) {
+void Stack::push(const Value& value) {
 	vector_.emplace_back(value);
 }
 
-void Stack::Push(Value&& value) {
+void Stack::push(Value&& value) {
 	vector_.emplace_back(std::move(value));
 }
 
-Value Stack::Pop() {
+Value Stack::pop() {
 	auto value = std::move(vector_.back());
 	vector_.pop_back();
 	return value;
 }
 
-Value& Stack::Get(size_t index) {
+Value& Stack::get(size_t index) {
 	return vector_[index];
 }
 
-void Stack::Set(size_t index, const Value& value) {
+void Stack::set(size_t index, const Value& value) {
 	vector_[index] = value;
 }
 
-void Stack::Set(size_t index, Value&& value) {
+void Stack::set(size_t index, Value&& value) {
 	vector_[index] = std::move(value);
 }
 
-void Stack::Upgrade(size_t size) {
+void Stack::upgrade(size_t size) {
 	vector_.resize(vector_.size() + size);
 }
 
-void Stack::Reduce(size_t size) {
+void Stack::reduce(size_t size) {
 	vector_.resize(vector_.size() - size);
 }
 
 
-size_t Stack::Size() const noexcept {
+size_t Stack::size() const noexcept {
 	return vector_.size();
 }
 
-void Stack::Resize(size_t size) {
+void Stack::resize(size_t size) {
 	vector_.resize(size);
 }
 
 
 
-void StackFrame::Push(const Value& value) {
-	stack_->Push(value);
+void StackFrame::push(const Value& value) {
+	stack_->push(value);
 }
 
-void StackFrame::Push(Value&& value) {
-	stack_->Push(std::move(value));
+void StackFrame::push(Value&& value) {
+	stack_->push(std::move(value));
 }
 
-Value StackFrame::Pop() {
-	return stack_->Pop();
+Value StackFrame::pop() {
+	return stack_->pop();
 }
 
 // 负数表示从栈顶向下索引
-Value& StackFrame::Get(ptrdiff_t index) {
+Value& StackFrame::get(ptrdiff_t index) {
 	if (index >= 0) {
-		return stack_->Get(bottom_ + index);
+		return stack_->get(bottom_ + index);
 	}
 	else {
-		return stack_->Get(stack_->Size() + index);
+		return stack_->get(stack_->size() + index);
 	}
 }
 
-void StackFrame::Set(ptrdiff_t index, const Value& value) {
+void StackFrame::set(ptrdiff_t index, const Value& value) {
 	auto value_ = value;
-	Set(index, std::move(value_));
+	set(index, std::move(value_));
 }
 
-void StackFrame::Set(ptrdiff_t index, Value&& value) {
+void StackFrame::set(ptrdiff_t index, Value&& value) {
 	if (index >= 0) {
-		stack_->Set(bottom_ + index, value);
+		stack_->set(bottom_ + index, value);
 	}
 	else {
-		stack_->Set(stack_->Size() + index, value);
+		stack_->set(stack_->size() + index, value);
 	}
 }
 

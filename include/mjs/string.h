@@ -4,12 +4,6 @@
 
 namespace mjs {
 
-class StringView : public std::string_view {
-public:
-	using Base = std::string_view;
-	using Base::Base;
-};
-
 // String不会有循环引用问题，仅使用引用计数管理
 class String : public std::string {
 public:

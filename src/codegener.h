@@ -4,6 +4,7 @@
 #include <unordered_map>
 #include <string>
 
+#include <mjs/noncopyable.h>
 #include <mjs/value.h>
 #include <mjs/function_object.h>
 
@@ -21,7 +22,7 @@ public:
 };
 
 class Runtime;
-class CodeGener {
+class CodeGener : public noncopyable {
 public:
 	CodeGener(Runtime* runtime);
 
@@ -58,7 +59,7 @@ private:
 	Runtime* runtime_;
 
 	// 函数
-	FunctionDef* cur_func_ = nullptr;				// 当前生成函数
+	FunctionDef* cur_func_def_ = nullptr;				// 当前生成函数
 
 	// 作用域
 	std::vector<Scope> scopes_;

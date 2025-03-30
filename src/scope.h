@@ -3,6 +3,7 @@
 #include <string>
 #include <optional>
 
+#include <mjs/noncopyable.h>
 #include <mjs/function_object.h>
 
 namespace mjs {
@@ -13,16 +14,25 @@ public:
 	using Base::Base;
 };
 
-class Scope {
+class Scope : public noncopyable {
 public:
-	Scope(FunctionDef* func)
-		: func_def_(func) {}
+	explicit Scope(FunctionDef* function_def)
+		: function_def_(function_def) {}
+
+	Scope(Scope&& other) noexcept {
+		operator=(std::move(other));
+	}
+	void operator=(Scope&& other) noexcept {
+		function_def_ = other.function_def_;
+		var_table_ = std::move(other.var_table_);
+	}
 
 	VarIndex AllocVar(const std::string& var_name) {
 		if (var_table_.find(var_name) != var_table_.end()) {
 			throw ScopeException("local var redefinition");
 		}
-		auto var_idx = func_def_->var_count++;
+		auto var_idx = function_def_->var_count();
+		function_def_->AddVar(var_name);
 		var_table_.emplace(var_name, var_idx);
 		return var_idx;
 	}
@@ -35,10 +45,10 @@ public:
 		return it->second.var_idx;
 	}
 
-	FunctionDef* func_def() const { return func_def_; }
+	FunctionDef* function_def() const { return function_def_; }
 
 private:
-	FunctionDef* func_def_; // 所属函数
+	FunctionDef* function_def_; // 所属函数
 	struct VarInfo {
 		VarIndex var_idx;
 	};

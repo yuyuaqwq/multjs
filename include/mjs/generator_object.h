@@ -10,8 +10,8 @@ namespace mjs {
 
 class GeneratorObject : public Object {
 public:
-    GeneratorObject(const Runtime& runtime, const Value& func)
-        : func_(func), stack_(0)
+    GeneratorObject(const Runtime& runtime, const Value& function)
+        : function_(function), stack_(0)
     {
         NewMethod(Value("next"), Value(ValueType::kGeneratorNext, this));
     }
@@ -44,20 +44,20 @@ public:
 
     auto& stack() { return stack_; }
 
-    auto function_def() { 
-        if (func_.IsFunctionDef()) {
-            return func_.function_def();
+    auto& function_def() { 
+        if (function_.IsFunctionDef()) {
+            return function_.function_def();
         }
-        return func_.function()->func_def_;
+        return function_.function().function_def();
     }
 
-    auto function() { return func_; }
+    auto function() { return function_; }
 
     auto pc() const { return pc_; }
     void set_pc(Pc pc) { pc_ = pc; }
 
 private:
-    Value func_;        // 生成器函数定义/函数对象
+    Value function_;        // 生成器函数定义/函数对象
     Pc pc_ = 0;         // 当前pc
     Stack stack_;       // 栈
 

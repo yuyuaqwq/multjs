@@ -4,6 +4,7 @@
 #include <mjs/object.h>
 
 #include <mjs/function_def.h>
+#include <mjs/function_object.h>
 
 namespace mjs {
 
@@ -405,14 +406,14 @@ Object& Value::object() const {
 	return *value_.object_;
 }
 
-FunctionObject* Value::function() const {
+FunctionObject& Value::function() const {
 	assert(IsFunctionObject());
-	return reinterpret_cast<FunctionObject*>(value_.object_);
+	return *reinterpret_cast<FunctionObject*>(value_.object_);
 }
 
-GeneratorObject* Value::generator() const {
+GeneratorObject& Value::generator() const {
 	assert(IsGeneratorObject() || IsGeneratorNext());
-	return reinterpret_cast<GeneratorObject*>(value_.object_);
+	return *reinterpret_cast<GeneratorObject*>(value_.object_);
 }
 
 
@@ -430,9 +431,9 @@ const UpValue& Value::up_value() const {
 	return value_.up_value_;
 }
 
-FunctionDef* Value::function_def() const {
+FunctionDef& Value::function_def() const {
 	assert(IsFunctionDef());
-	return value_.func_def_;
+	return *value_.func_def_;
 }
 
 CppFunction Value::cpp_function() const {
@@ -517,8 +518,23 @@ Value Value::ToString() const {
 	case ValueType::kString: 
 	case ValueType::kStringView: 
 		return *this;
+	case ValueType::kObject:
+		return Value("object");
+	case ValueType::kFunctionObject:
+		return Value("functionobject");
+	case ValueType::kFunctionDef:
+		return Value("function");
+	case ValueType::kCppFunction:
+		return Value("cppfunction");
+
+	case ValueType::kI64:
+		return Value(std::format("{}", i64()));
+	case ValueType::kU64:
+		return Value(std::format("{}", u64()));
+
 	default:
-		throw std::runtime_error("Incorrect value type.");
+		return Value("unknown");
+		// throw std::runtime_error("Incorrect value type.");
 	}
 }
 

@@ -6,12 +6,12 @@ GlobalConstPool::GlobalConstPool() {
 	pool_[0] = std::make_unique<StaticArray>();
 }
 
-ConstIndex GlobalConstPool::New(const Value& value) {
+ConstIndex GlobalConstPool::insert(const Value& value) {
 	auto value_ = value;
-	return New(std::move(value_));
+	return insert(std::move(value_));
 }
 
-ConstIndex GlobalConstPool::New(Value&& value) {
+ConstIndex GlobalConstPool::insert(Value&& value) {
 	auto lock = std::lock_guard(mutex_);
 	auto it = const_map_.find(value);
 	if (it != const_map_.end()) {
@@ -25,7 +25,7 @@ ConstIndex GlobalConstPool::New(Value&& value) {
 		pool_[i1] = std::make_unique<StaticArray>();
 	}
 	auto const_idx = ConstToGlobalIndex(const_index_++);
-	auto& val = Get(const_idx);
+	auto& val = get(const_idx);
 	val = std::move(value);
 	val.set_const_index(const_idx);
 
@@ -33,18 +33,18 @@ ConstIndex GlobalConstPool::New(Value&& value) {
 	return const_idx;
 }
 
-const Value& GlobalConstPool::Get(ConstIndex index) const {
-	return const_cast<GlobalConstPool*>(this)->Get(index);
+const Value& GlobalConstPool::get(ConstIndex index) const {
+	return const_cast<GlobalConstPool*>(this)->get(index);
 }
 
-Value& GlobalConstPool::Get(ConstIndex index) {
+Value& GlobalConstPool::get(ConstIndex index) {
 	index = GlobalToConstIndex(index);
 	auto i1 = index / kStaticArraySize;
 	auto i2 = index % kStaticArraySize;
 	return (*pool_[i1])[i2];
 }
 
-std::optional<ConstIndex> GlobalConstPool::Find(const Value& value) {
+std::optional<ConstIndex> GlobalConstPool::find(const Value& value) {
 	auto lock = std::lock_guard(mutex_);
 	auto it = const_map_.find(value);
 	if (it != const_map_.end()) {
@@ -58,12 +58,12 @@ LocalConstPool::LocalConstPool() {
 	pool_.resize(1);
 }
 
-ConstIndex LocalConstPool::New(const Value& value) {
+ConstIndex LocalConstPool::insert(const Value& value) {
 	auto value_ = value;
-	return New(std::move(value_));
+	return insert(std::move(value_));
 }
 
-ConstIndex LocalConstPool::New(Value&& value) {
+ConstIndex LocalConstPool::insert(Value&& value) {
 	auto it = const_map_.find(value);
 	if (it != const_map_.end()) {
 		return it->second;
@@ -75,11 +75,11 @@ ConstIndex LocalConstPool::New(Value&& value) {
 	return const_idx;
 }
 
-const Value& LocalConstPool::Get(ConstIndex index) const {
-	return const_cast<LocalConstPool*>(this)->Get(index);
+const Value& LocalConstPool::get(ConstIndex index) const {
+	return const_cast<LocalConstPool*>(this)->get(index);
 }
 
-Value& LocalConstPool::Get(ConstIndex index) {
+Value& LocalConstPool::get(ConstIndex index) {
 	index = LocalToConstIndex(index);
 	return *pool_[index];
 }

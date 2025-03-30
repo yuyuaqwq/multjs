@@ -3,12 +3,18 @@
 namespace mjs {
 
 FunctionDef::FunctionDef(uint32_t par_count) noexcept
-	: par_count(par_count) {}
+	: par_count_(par_count) {}
 
-std::string FunctionDef::Disassembly() {
+std::string FunctionDef::Disassembly(Context* context) {
 	std::string str;
-	for (uint32_t pc = 0; pc < byte_code.Size(); ) {
-		str += byte_code.Disassembly(pc) + "\n";
+	for (uint32_t pc = 0; pc < byte_code_.Size(); ) {
+        OpcodeType opcode;
+        uint32_t par;
+
+		str += byte_code_.Disassembly(context, pc, opcode, par, this);
+
+
+        str += "\n";
 	}
 	return str;
 }

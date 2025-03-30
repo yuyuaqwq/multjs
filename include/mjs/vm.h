@@ -22,7 +22,7 @@ public:
 };
 
 class Context;
-class Vm {
+class Vm : public noncopyable {
 public:
 	friend class CodeGener;
 
@@ -53,7 +53,7 @@ private:
 	Value RestoreStackFrame(FunctionDef** cur_func_def);
 
 	Stack& stack();
-	FunctionDef* function_def(const Value& func_val) const;
+	FunctionDef& function_def(const Value& func_val) const;
 private:
 	Context* context_;
 

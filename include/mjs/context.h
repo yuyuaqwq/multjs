@@ -8,7 +8,7 @@
 namespace mjs {
 
 class Runtime;
-class Context : noncopyable {
+class Context : public noncopyable {
 public:
 	Context(Runtime* runtime)
 		: runtime_(runtime)

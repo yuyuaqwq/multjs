@@ -118,14 +118,14 @@ public:
 		return static_cast<ObjectT&>(object());
 	}
 
-	FunctionObject* function() const;
-	GeneratorObject* generator() const;
+	FunctionObject& function() const;
+	GeneratorObject& generator() const;
 
 	int64_t i64() const;
 	uint64_t u64() const;
 	// const char* string_view() const;
 	const UpValue& up_value() const;
-	FunctionDef* function_def() const;
+	FunctionDef& function_def() const;
 	CppFunction cpp_function() const;
 
 	ConstIndex const_index() const { return tag_.const_index_; }

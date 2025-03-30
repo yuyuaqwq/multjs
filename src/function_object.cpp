@@ -2,7 +2,7 @@
 
 namespace mjs {
 
-FunctionObject::FunctionObject(FunctionDef* func_def) noexcept
-	: func_def_(func_def) {}
+FunctionObject::FunctionObject(FunctionDef* function_def) noexcept
+	: function_def_(function_def) {}
 
 } // namespace mjs

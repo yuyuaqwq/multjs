@@ -15,20 +15,20 @@ namespace mjs {
 // 调用时，因为旧的StackFrame不再增长
 // 新的StackFrame的指针，直接指向该内存的未使用部分(底下是旧的StackFrame)，然后使用新的StackFrame即可
 class Stack;
-class StackFrame {
+class StackFrame : public noncopyable {
 public:
 	StackFrame(Stack* stack)
 		: stack_(stack){}
 
-	void Push(const Value& value);
-	void Push(Value&& value);
-	Value Pop();
+	void push(const Value& value);
+	void push(Value&& value);
+	Value pop();
 
 	// 正数表示从栈帧底向上索引，0开始
 	// 负数表示从栈帧顶向下索引，-1开始
-	Value& Get(ptrdiff_t index);
-	void Set(ptrdiff_t index, const Value& value);
-	void Set(ptrdiff_t index, Value&& value);
+	Value& get(ptrdiff_t index);
+	void set(ptrdiff_t index, const Value& value);
+	void set(ptrdiff_t index, Value&& value);
 
 	size_t bottom() const { return bottom_; }
 	void set_bottom(size_t bottom) { bottom_ = bottom; }
@@ -43,25 +43,25 @@ private:
 };
 
 // 每个线程固定的栈
-class Stack : noncopyable {
+class Stack : public noncopyable {
 public:
 	Stack(size_t count) {
 		vector_.reserve(count);
 	}
 
-	void Push(const Value& value);
-	void Push(Value&& value);
-	Value Pop();
+	void push(const Value& value);
+	void push(Value&& value);
+	Value pop();
 
-	Value& Get(size_t index);
-	void Set(size_t index, const Value& value);
-	void Set(size_t index, Value&& value);
+	Value& get(size_t index);
+	void set(size_t index, const Value& value);
+	void set(size_t index, Value&& value);
 
-	void Upgrade(size_t size);
-	void Reduce(size_t size);
+	void upgrade(size_t size);
+	void reduce(size_t size);
 
-	size_t Size()  const noexcept;
-	void Resize(size_t size);
+	size_t size()  const noexcept;
+	void resize(size_t size);
 
 	auto& vector() { return vector_; }
 
