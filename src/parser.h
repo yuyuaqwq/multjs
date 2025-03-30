@@ -60,10 +60,19 @@ public:
 	std::unique_ptr<Exp> ParseExp6();
 	std::unique_ptr<Exp> ParseExp5();
 	std::unique_ptr<Exp> ParseExp4();
+
+	
+	std::unique_ptr<Exp> ParseNewExp();
 	std::unique_ptr<Exp> ParseExp3();
+	
+	std::unique_ptr<Exp> ParseCallExp();
+	std::unique_ptr<Exp> ParseMemberExp();
 	std::unique_ptr<Exp> ParseExp2();
+
 	std::unique_ptr<Exp> ParseExp1();
-	std::unique_ptr<Exp> ParseExp0();
+
+	std::unique_ptr<Exp> ParsePrimaryExp();
+
 	std::vector<std::unique_ptr<Exp>> ParseExpList(TokenType begin, TokenType end, bool allow_comma_end);
 
 private:

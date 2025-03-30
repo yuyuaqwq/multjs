@@ -465,7 +465,7 @@ void CodeGener::GenerateExp(Exp* exp) {
 		break;
 	}
 	case ExpType::kDotExp: {
-		auto dot_exp = static_cast<DotExp*>(exp);
+		auto dot_exp = static_cast<MemberExp*>(exp);
 
 		// 成员访问表达式
 		auto prop_exp = dot_exp->prop_exp.get();
@@ -550,7 +550,7 @@ void CodeGener::GenerateExp(Exp* exp) {
 				break;
 			}
 			case ExpType::kDotExp: {
-				auto dot_exp = static_cast<DotExp*>(lvalue_exp);
+				auto dot_exp = static_cast<MemberExp*>(lvalue_exp);
 
 				// 设置对象的属性
 				// 如：obj.a.b = 100;
@@ -622,11 +622,11 @@ void CodeGener::GenerateExp(Exp* exp) {
 	case ExpType::kNew: {
 		auto new_exp = static_cast<NewExp*>(exp);
 		GenerateParList(new_exp->par_list);
-		if (new_exp->class_name.get()->GetType() != ExpType::kIndexedExp) {
+		if (new_exp->callee.get()->GetType() != ExpType::kIdentifier) {
 			// 实际上需要支持的是任何可以被解析为构造函数的表达式
 			throw CodeGenerException("");
 		}
-		auto ident_exp = static_cast<IdentifierExp*>(new_exp->class_name.get());
+		auto ident_exp = static_cast<IdentifierExp*>(new_exp->callee.get());
 
 		auto const_idx = AllocConst(Value(ident_exp->name));
 		cur_func_def_->byte_code().EmitConstLoad(const_idx);

@@ -491,52 +491,43 @@ std::unique_ptr<Exp> Parser::ParseExp4() {
 	return exp;
 }
 
-std::unique_ptr<Exp> Parser::ParseExp3() {
-	auto type = lexer_->PeekToken().type();
-	if (type != TokenType::kKwNew) {
-		return ParseExp2();
-	}
+std::unique_ptr<Exp> Parser::ParseNewExp() {
 	lexer_->NextToken();
-	auto exp = ParseExp2();
-	auto par_list = ParseExpList(TokenType::kSepLParen, TokenType::kSepRParen, false);
-	exp = std::make_unique<NewExp>(std::move(exp), std::move(par_list));
+	std::unique_ptr<Exp> callee;
+
+	auto type = lexer_->PeekToken().type();
+	if (type == TokenType::kKwNew) {
+		callee = ParseNewExp();
+	}
+	else {
+		callee = ParseMemberExp();
+	}
+
+	std::vector<std::unique_ptr<Exp>> args;
+	if (lexer_->PeekToken().Is(TokenType::kSepLParen)) {
+		args = ParseExpList(TokenType::kSepLParen, TokenType::kSepRParen, false);
+	}
+	auto exp = std::make_unique<NewExp>(std::move(callee), std::move(args));
+
 	return exp;
 }
 
-std::unique_ptr<Exp> Parser::ParseExp2() {
-	auto exp = ParseExp1();
+std::unique_ptr<Exp> Parser::ParseExp3() {
+	auto type = lexer_->PeekToken().type();
+	if (type == TokenType::kKwNew) {
+		return ParseNewExp();
+	}
+	return ParseExp2();
+}
+
+
+std::unique_ptr<Exp> Parser::ParseCallExp() {
+	auto exp = ParseMemberExp();
 	do {
 		auto type = lexer_->PeekToken().type();
-		if (type == TokenType::kSepDot) {
-			lexer_->NextToken();
-			auto exp2 = ParseExp0();
-			if (exp2->GetType() != ExpType::kIdentifier) {
-				throw ParserException("cannot match identifier.");
-			}
-
-			bool is_method_call = false;
-			if (lexer_->PeekToken().type() == TokenType::kSepLParen) {
-				is_method_call = true;
-			}
-
-			exp = std::make_unique<DotExp>(std::move(exp), std::move(exp2), is_method_call);
-			exp->value_category = ExpValueCategory::kLeftValue;
-		}
-		else if (type == TokenType::kSepLBrack) {
-			lexer_->NextToken();
-			auto index_exp = ParseExp();
-			lexer_->MatchToken(TokenType::kSepRBrack);
-			
-			bool is_method_call = false;
-			if (lexer_->PeekToken().type() == TokenType::kSepLParen) {
-				is_method_call = true;
-			}
-			exp = std::make_unique<IndexedExp>(std::move(exp), std::move(index_exp), is_method_call);
-			exp->value_category = ExpValueCategory::kLeftValue;
-		}
-		else if (type == TokenType::kSepLParen) {
-			auto par_list = ParseExpList(TokenType::kSepLParen, TokenType::kSepRParen, false);
-			exp = std::make_unique<FunctionCallExp>(std::move(exp), std::move(par_list));
+		if (type == TokenType::kSepLParen) {
+			auto args = ParseExpList(TokenType::kSepLParen, TokenType::kSepRParen, false);
+			exp = std::make_unique<FunctionCallExp>(std::move(exp), std::move(args));
 		}
 		else {
 			break;
@@ -544,6 +535,44 @@ std::unique_ptr<Exp> Parser::ParseExp2() {
 	} while (true);
 	return exp;
 }
+
+std::unique_ptr<Exp> Parser::ParseMemberExp() {
+	auto exp = ParsePrimaryExp(); // 解析基本表达式（标识符、字面量等）
+	do {
+		auto type = lexer_->PeekToken().type();
+		if (type == TokenType::kSepDot) {
+			lexer_->NextToken();
+			auto member = ParsePrimaryExp();
+
+			bool is_method_call = false;
+			if (lexer_->PeekToken().type() == TokenType::kSepLParen) {
+				is_method_call = true;
+			}
+			exp = std::make_unique<MemberExp>(std::move(exp), std::move(member), is_method_call);
+		}
+		else if (type == TokenType::kSepLBrack) {
+			lexer_->NextToken();
+			auto index = ParseExp();
+			lexer_->MatchToken(TokenType::kSepRBrack);
+
+			bool is_method_call = false;
+			if (lexer_->PeekToken().type() == TokenType::kSepLParen) {
+				is_method_call = true;
+			}
+			exp = std::make_unique<IndexedExp>(std::move(exp), std::move(index), is_method_call);
+		}
+		else {
+			break;
+		}
+	} while (true);
+	return exp;
+}
+
+std::unique_ptr<Exp> Parser::ParseExp2() {
+	return ParseCallExp();
+}
+
+
 
 std::unique_ptr<Exp> Parser::ParseExp1() {
 	auto type = lexer_->PeekToken().type();
@@ -554,11 +583,11 @@ std::unique_ptr<Exp> Parser::ParseExp1() {
 		return exp;
 	}
 	else {
-		return ParseExp0();
+		return ParsePrimaryExp();
 	}
 }
 
-std::unique_ptr<Exp> Parser::ParseExp0() {
+std::unique_ptr<Exp> Parser::ParsePrimaryExp() {
 	auto token = lexer_->PeekToken();
 	std::unique_ptr<Exp> exp;
 	switch (token.type()) {

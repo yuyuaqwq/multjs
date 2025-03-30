@@ -138,11 +138,11 @@ struct ThisExp : public Exp {
 	}
 };
 
-struct DotExp : public Exp {
+struct MemberExp : public Exp {
 	virtual ExpType GetType() const noexcept override {
 		return ExpType::kDotExp;
 	}
-	DotExp(std::unique_ptr<Exp> exp, std::unique_ptr<Exp> prop_exp, bool is_method_call)
+	MemberExp(std::unique_ptr<Exp> exp, std::unique_ptr<Exp> prop_exp, bool is_method_call)
 		: exp(std::move(exp))
 		, prop_exp(std::move(prop_exp))
 		, is_method_call(is_method_call) {}
@@ -187,15 +187,15 @@ struct ObjectLiteralExp : public Exp {
 };
 
 struct NewExp : public Exp {
-	NewExp(std::unique_ptr<Exp> exp, std::vector<std::unique_ptr<Exp>>&& par_list)
-		: exp(std::move(exp))
+	NewExp(std::unique_ptr<Exp> callee, std::vector<std::unique_ptr<Exp>>&& par_list)
+		: callee(std::move(callee))
 		, par_list(std::move(par_list)){}
 
 	virtual ExpType GetType() const noexcept override {
 		return ExpType::kNew;
 	}
 
-	std::unique_ptr<Exp> exp;
+	std::unique_ptr<Exp> callee;
 	std::vector<std::unique_ptr<Exp>> par_list;
 };
 
