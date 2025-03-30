@@ -75,6 +75,9 @@ std::map<OpcodeType, InstrInfo> g_instr_symbol{
 
     {OpcodeType::kYield, {"yield", {}}},
     {OpcodeType::kGeneratorReturn, {"generator_return", {}}},
+    {OpcodeType::kAwait, {"await", {}}},
+
+    {OpcodeType::kNew, {"new", {}}},
 
 };
 

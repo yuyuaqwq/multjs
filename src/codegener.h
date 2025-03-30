@@ -53,7 +53,7 @@ private:
 	void GenerateIfEq(Exp* exp);
 
 	Value MakeValue(Exp* exp);
-	void GenerateFunctionCallPar(FunctionCallExp* func_call_exp);
+	void GenerateParList(const std::vector<std::unique_ptr<Exp>>& par_list);
 
 private:
 	Runtime* runtime_;

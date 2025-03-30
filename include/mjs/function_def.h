@@ -10,7 +10,7 @@
 
 namespace mjs {
 
-enum class FuncType {
+enum class FunctionType {
 	kNormal,
 	kAsync,
 	kGenerator,
@@ -36,23 +36,23 @@ public:
 	std::string Disassembly(Context* context);
 
 	void SetGenerator() {
-		type_ = FuncType::kGenerator;
+		type_ = FunctionType::kGenerator;
 	}
 
 	void SetAsync() {
-		type_ = FuncType::kAsync;
+		type_ = FunctionType::kAsync;
 	}
 
 	bool IsNormal() {
-		return type_ == FuncType::kNormal;
+		return type_ == FunctionType::kNormal;
 	}
 
 	bool IsGenerator() {
-		return type_ == FuncType::kGenerator;
+		return type_ == FunctionType::kGenerator;
 	}
 
 	bool IsAsync() {
-		return type_ == FuncType::kAsync;
+		return type_ == FunctionType::kAsync;
 	}
 
 	void AddVar(std::string name) {
@@ -76,7 +76,7 @@ private:
 	uint32_t var_count_ = 0;		// 包括par_count
 	ByteCode byte_code_;
 
-	FuncType type_ = FuncType::kNormal;
+	FunctionType type_ = FunctionType::kNormal;
 
 	// 优化方向：
 	// 如果所有记录都没有捕获外部变量，都是顶级upvalue变量

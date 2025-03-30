@@ -88,6 +88,9 @@ enum class OpcodeType {
 	kGeneratorReturn = 0xc1,
 	kAwait = 0xc2,
 
+	// new
+	kNew = 0xc8,
+
 	// 0xf0 ~ 0xff ±£¡Ù
 };
 

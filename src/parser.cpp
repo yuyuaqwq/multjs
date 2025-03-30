@@ -94,19 +94,19 @@ std::unique_ptr<ExpStat> Parser::ParseExpStat() {
 }
 
 std::unique_ptr<FuncDeclStat> Parser::ParseFunctionDeclStat() {
-	FuncType type = FuncType::kNormal;
+	FunctionType type = FunctionType::kNormal;
 	if (lexer_->PeekToken().Is(TokenType::kKwAsync)) {
 		lexer_->NextToken();
-		type = FuncType::kAsync;
+		type = FunctionType::kAsync;
 	}
 	lexer_->MatchToken(TokenType::kKwFunction);
 	if (lexer_->PeekToken().Is(TokenType::kOpMul)) {
-		if (type != FuncType::kNormal) {
+		if (type != FunctionType::kNormal) {
 			throw ParserException("Does not support asynchronous generator function.");
 		}
 		// 生成器函数
 		lexer_->NextToken();
-		type = FuncType::kGenerator;
+		type = FunctionType::kGenerator;
 	}
 	auto func_name = lexer_->MatchToken(TokenType::kIdentifier).str();
 	auto par_list = ParseParNameList();
@@ -492,8 +492,15 @@ std::unique_ptr<Exp> Parser::ParseExp4() {
 }
 
 std::unique_ptr<Exp> Parser::ParseExp3() {
-	// 这里不支持不带参数列表的new语法
-	return ParseExp2();
+	auto type = lexer_->PeekToken().type();
+	if (type != TokenType::kKwNew) {
+		return ParseExp2();
+	}
+	lexer_->NextToken();
+	auto exp = ParseExp2();
+	auto par_list = ParseExpList(TokenType::kSepLParen, TokenType::kSepRParen, false);
+	exp = std::make_unique<NewExp>(std::move(exp), std::move(par_list));
+	return exp;
 }
 
 std::unique_ptr<Exp> Parser::ParseExp2() {
@@ -526,12 +533,6 @@ std::unique_ptr<Exp> Parser::ParseExp2() {
 			}
 			exp = std::make_unique<IndexedExp>(std::move(exp), std::move(index_exp), is_method_call);
 			exp->value_category = ExpValueCategory::kLeftValue;
-		}
-		else if (type == TokenType::kKwNew) {
-			lexer_->NextToken();
-			auto ident_exp = ParseExp();
-			auto par_list = ParseExpList(TokenType::kSepLParen, TokenType::kSepRParen, false);
-			exp = std::make_unique<FunctionCallExp>(std::move(ident_exp), std::move(par_list));
 		}
 		else if (type == TokenType::kSepLParen) {
 			auto par_list = ParseExpList(TokenType::kSepLParen, TokenType::kSepRParen, false);

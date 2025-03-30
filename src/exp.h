@@ -187,15 +187,15 @@ struct ObjectLiteralExp : public Exp {
 };
 
 struct NewExp : public Exp {
-	NewExp(std::unique_ptr<Exp> class_name, std::vector<std::unique_ptr<Exp>>&& par_list)
-		: class_name(std::move(class_name))
+	NewExp(std::unique_ptr<Exp> exp, std::vector<std::unique_ptr<Exp>>&& par_list)
+		: exp(std::move(exp))
 		, par_list(std::move(par_list)){}
 
 	virtual ExpType GetType() const noexcept override {
 		return ExpType::kNew;
 	}
 
-	std::unique_ptr<Exp> class_name;
+	std::unique_ptr<Exp> exp;
 	std::vector<std::unique_ptr<Exp>> par_list;
 };
 

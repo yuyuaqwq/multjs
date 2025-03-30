@@ -10,7 +10,7 @@
 
 namespace mjs {
 
-// 
+
 using PropertyMap = std::map<Value, Value>;// std::unordered_map<Value, Value>;
 class Object : public noncopyable {
 public:

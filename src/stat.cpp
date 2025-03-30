@@ -23,7 +23,7 @@ StatType FuncDeclStat::GetType() const noexcept {
 }
 
 FuncDeclStat::FuncDeclStat(const std::string& func_name, const std::vector<std::string>& par_list
-	, std::unique_ptr<BlockStat> block, FuncType func_type)
+	, std::unique_ptr<BlockStat> block, FunctionType func_type)
 	: func_name(func_name)
 	, par_list(par_list)
 	, block(std::move(block))

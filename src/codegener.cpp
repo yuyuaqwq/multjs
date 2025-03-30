@@ -198,7 +198,7 @@ void CodeGener::GenerateFunctionDeclStat(FuncDeclStat* stat) {
 	auto var_idx = AllocVar(stat->func_name);
 	cur_func_def_->byte_code().EmitVarStore(var_idx);
 
-	if (stat->func_type == FuncType::kGenerator) {
+	if (stat->func_type == FunctionType::kGenerator) {
 		func_def.SetGenerator();
 	}
 
@@ -619,6 +619,21 @@ void CodeGener::GenerateExp(Exp* exp) {
 		}
 		break;
 	}
+	case ExpType::kNew: {
+		auto new_exp = static_cast<NewExp*>(exp);
+		GenerateParList(new_exp->par_list);
+		if (new_exp->class_name.get()->GetType() != ExpType::kIndexedExp) {
+			// 实际上需要支持的是任何可以被解析为构造函数的表达式
+			throw CodeGenerException("");
+		}
+		auto ident_exp = static_cast<IdentifierExp*>(new_exp->class_name.get());
+
+		auto const_idx = AllocConst(Value(ident_exp->name));
+		cur_func_def_->byte_code().EmitConstLoad(const_idx);
+
+		cur_func_def_->byte_code().EmitOpcode(OpcodeType::kNew);
+		break;
+	}
 	case ExpType::kFunctionCall: {
 		auto func_call_exp = static_cast<FunctionCallExp*>(exp);
 
@@ -626,7 +641,7 @@ void CodeGener::GenerateExp(Exp* exp) {
 		//	throw CodeGenerException("Wrong number of parameters passed during function call");
 		//}
 
-		GenerateFunctionCallPar(func_call_exp);
+		GenerateParList(func_call_exp->par_list);
 		GenerateExp(func_call_exp->func_obj.get());
 
 		// 将this置于栈顶
@@ -654,9 +669,6 @@ void CodeGener::GenerateExp(Exp* exp) {
 
 		cur_func_def_->byte_code().EmitOpcode(OpcodeType::kYield);
 		break;
-	}
-	case ExpType::kNew: {
-
 	}
 	default:
 		throw CodeGenerException("Unrecognized exp");
@@ -715,13 +727,13 @@ Value CodeGener::MakeValue(Exp* exp) {
 	}
 }
 
-void CodeGener::GenerateFunctionCallPar(FunctionCallExp* func_call_exp) {
+void CodeGener::GenerateParList(const std::vector<std::unique_ptr<Exp>>& par_list) {
 	// 参数正序入栈
-	for (size_t i = 0; i < func_call_exp->par_list.size(); ++i) {
-		GenerateExp(func_call_exp->par_list[i].get());
+	for (size_t i = 0; i < par_list.size(); ++i) {
+		GenerateExp(par_list[i].get());
 	}
 
-	auto const_idx = AllocConst(Value(func_call_exp->par_list.size()));
+	auto const_idx = AllocConst(Value(par_list.size()));
 	cur_func_def_->byte_code().EmitConstLoad(const_idx);
 }
 
