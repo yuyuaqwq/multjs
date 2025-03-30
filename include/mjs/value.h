@@ -26,6 +26,7 @@ enum class ValueType : uint32_t {
 	kArrayObject,
 	kFunctionObject,
 	kGeneratorObject,
+	kPromiseObject,
 
 	// 内部使用
 	kI64,
@@ -37,6 +38,7 @@ enum class ValueType : uint32_t {
 	kFunctionDef,
 	kCppFunction,
 	kGeneratorNext,
+	// kPromiseThen,
 };
 
 class Context;
@@ -47,6 +49,7 @@ class Value;
 class Object;
 class FunctionObject;
 class GeneratorObject;
+class PromiseObject;
 
 struct UpValue {
 	Value* value;
@@ -55,7 +58,7 @@ class FunctionDef;
 
 class Value {
 public:
-	using CppFunction = Value(*)(Context* context, uint32_t par_count, StackFrame* stack);
+	using CppFunction = Value(*)(Context* context, const Value& this_val, uint32_t par_count, StackFrame* stack);
 
 public:
 	Value();
@@ -68,6 +71,7 @@ public:
 	explicit Value(Object* object);
 	explicit Value(FunctionObject* func);
 	explicit Value(GeneratorObject* generator);
+	explicit Value(PromiseObject* promise);
 
 	explicit Value(int64_t i64);
 	explicit Value(int32_t i32);
@@ -79,7 +83,8 @@ public:
 	explicit Value(FunctionDef* def);
 	explicit Value(CppFunction bridge);
 
-	explicit Value(ValueType type, GeneratorObject* generator);
+	Value(ValueType type, GeneratorObject* generator);
+	Value(ValueType type, PromiseObject* promise);
 
 	~Value();
 
@@ -120,6 +125,7 @@ public:
 
 	FunctionObject& function() const;
 	GeneratorObject& generator() const;
+	PromiseObject& promise() const;
 
 	int64_t i64() const;
 	uint64_t u64() const;
@@ -140,6 +146,7 @@ public:
 	bool IsObject() const;
 	bool IsFunctionObject() const;
 	bool IsGeneratorObject() const;
+	bool IsPromiseObject() const;
 
 	bool IsI64() const;
 	bool IsU64() const;
@@ -147,7 +154,6 @@ public:
 	bool IsUpValue() const;
 	bool IsCppFunction() const;
 	bool IsGeneratorNext() const;
-
 
 	Value ToString() const;
 	Value ToBoolean() const;

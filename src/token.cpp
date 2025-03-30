@@ -18,7 +18,10 @@ std::map<std::string, TokenType> g_keywords = {
 	// { "var", TokenType::kKwVar },
 	{ "let", TokenType::kKwLet },
 	{ "yield", TokenType::kKwYield, },
+	{ "async", TokenType::kKwAsync },
+	{ "await", TokenType::kKwAwait },
 	{ "this", TokenType::kKwThis, },
+	{ "new", TokenType::kKwNew, },
 };
 
 } // namespace msj

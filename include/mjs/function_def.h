@@ -10,6 +10,12 @@
 
 namespace mjs {
 
+enum class FuncType {
+	kNormal,
+	kAsync,
+	kGenerator,
+};
+
 struct ClosureVarDef {
 	// upvalue在closure_value_arr_的索引
 	int32_t arr_idx;
@@ -30,15 +36,23 @@ public:
 	std::string Disassembly(Context* context);
 
 	void SetGenerator() {
-		type_ = Type::kGenerator;
+		type_ = FuncType::kGenerator;
+	}
+
+	void SetAsync() {
+		type_ = FuncType::kAsync;
+	}
+
+	bool IsNormal() {
+		return type_ == FuncType::kNormal;
 	}
 
 	bool IsGenerator() {
-		return type_ == Type::kGenerator;
+		return type_ == FuncType::kGenerator;
 	}
 
 	bool IsAsync() {
-		return type_ == Type::kAsync;
+		return type_ == FuncType::kAsync;
 	}
 
 	void AddVar(std::string name) {
@@ -62,11 +76,7 @@ private:
 	uint32_t var_count_ = 0;		// 包括par_count
 	ByteCode byte_code_;
 
-	enum class Type {
-		kNormal,
-		kGenerator,
-		kAsync,
-	} type_ = Type::kNormal;
+	FuncType type_ = FuncType::kNormal;
 
 	// 优化方向：
 	// 如果所有记录都没有捕获外部变量，都是顶级upvalue变量

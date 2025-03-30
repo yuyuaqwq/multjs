@@ -21,6 +21,7 @@ enum class ExpType {
 	kObjectLiteralExp,
 	kIndexedExp,
 	kDotExp,
+	kNew,
 	kFunctionCall,
 	kYield,
 };
@@ -71,6 +72,8 @@ struct StringExp : public Exp {
 
 	std::string value;
 };
+
+
 
 struct UnaryOpExp : public Exp {
 	UnaryOpExp(TokenType oper, std::unique_ptr<Exp> operand)
@@ -183,6 +186,18 @@ struct ObjectLiteralExp : public Exp {
 	std::unordered_map<std::string, std::unique_ptr<Exp>> obj_litera;
 };
 
+struct NewExp : public Exp {
+	NewExp(std::unique_ptr<Exp> class_name, std::vector<std::unique_ptr<Exp>>&& par_list)
+		: class_name(std::move(class_name))
+		, par_list(std::move(par_list)){}
+
+	virtual ExpType GetType() const noexcept override {
+		return ExpType::kNew;
+	}
+
+	std::unique_ptr<Exp> class_name;
+	std::vector<std::unique_ptr<Exp>> par_list;
+};
 
 struct FunctionCallExp : public Exp {
 	virtual ExpType GetType() const noexcept override {

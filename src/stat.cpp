@@ -23,11 +23,11 @@ StatType FuncDeclStat::GetType() const noexcept {
 }
 
 FuncDeclStat::FuncDeclStat(const std::string& func_name, const std::vector<std::string>& par_list
-	, std::unique_ptr<BlockStat> block, bool is_generator)
+	, std::unique_ptr<BlockStat> block, FuncType func_type)
 	: func_name(func_name)
 	, par_list(par_list)
 	, block(std::move(block))
-	, is_generator(is_generator) {}
+	, func_type(func_type) {}
 
 
 StatType IfStat::GetType() const noexcept {

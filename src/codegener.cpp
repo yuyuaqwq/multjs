@@ -109,21 +109,20 @@ Value CodeGener::Generate(BlockStat* block) {
 
 	scopes_.emplace_back(cur_func_def_);
 
-	RegisterCppFunction("println",
-		[](Context* context, uint32_t par_count, StackFrame* stack) -> Value {
-			for (size_t i = 0; i < par_count; i++) {
-				auto val = stack->get(i);
-				try {
-					std::cout << val.ToString().string();
-				}
-				catch (const std::exception&)
-				{
-					std::cout << "unknown";
-				}
+	RegisterCppFunction("println", [](Context* context, const Value& this_val, uint32_t par_count, StackFrame* stack) -> Value {
+		for (size_t i = 0; i < par_count; i++) {
+			auto val = stack->get(i);
+			try {
+				std::cout << val.ToString().string();
 			}
-			printf("\n");
-			return Value();
-		});
+			catch (const std::exception&)
+			{
+				std::cout << "unknown";
+			}
+		}
+		printf("\n");
+		return Value();
+	});
 
 	for (auto& stat : block->stat_list) {
 		GenerateStat(stat.get());
@@ -199,7 +198,7 @@ void CodeGener::GenerateFunctionDeclStat(FuncDeclStat* stat) {
 	auto var_idx = AllocVar(stat->func_name);
 	cur_func_def_->byte_code().EmitVarStore(var_idx);
 
-	if (stat->is_generator) {
+	if (stat->func_type == FuncType::kGenerator) {
 		func_def.SetGenerator();
 	}
 
@@ -501,14 +500,11 @@ void CodeGener::GenerateExp(Exp* exp) {
 		case TokenType::kOpSub:
 			cur_func_def_->byte_code().EmitOpcode(OpcodeType::kNeg);
 			break;
-		case TokenType::kOpPrefixInc: {
-
+		case TokenType::kKwAwait:
+			cur_func_def_->byte_code().EmitOpcode(OpcodeType::kAwait);
 			break;
-		}
-		case TokenType::kOpSuffixInc: {
-
-			break;
-		}
+		case TokenType::kOpPrefixInc:
+		case TokenType::kOpSuffixInc:
 		default:
 			throw CodeGenerException("Unrecognized unary operator");
 		}
@@ -658,6 +654,9 @@ void CodeGener::GenerateExp(Exp* exp) {
 
 		cur_func_def_->byte_code().EmitOpcode(OpcodeType::kYield);
 		break;
+	}
+	case ExpType::kNew: {
+
 	}
 	default:
 		throw CodeGenerException("Unrecognized exp");

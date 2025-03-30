@@ -45,6 +45,7 @@ std::unique_ptr<BlockStat> Parser::ParseBlockStat() {
 std::unique_ptr<Stat> Parser::ParseStat() {
 	auto token = lexer_->PeekToken();
 	switch (token.type()) {
+		case TokenType::kKwAsync:
 		case TokenType::kKwFunction: {
 			return ParseFunctionDeclStat();
 		}
@@ -93,17 +94,24 @@ std::unique_ptr<ExpStat> Parser::ParseExpStat() {
 }
 
 std::unique_ptr<FuncDeclStat> Parser::ParseFunctionDeclStat() {
+	FuncType type = FuncType::kNormal;
+	if (lexer_->PeekToken().Is(TokenType::kKwAsync)) {
+		lexer_->NextToken();
+		type = FuncType::kAsync;
+	}
 	lexer_->MatchToken(TokenType::kKwFunction);
-	bool is_generator = false;
 	if (lexer_->PeekToken().Is(TokenType::kOpMul)) {
+		if (type != FuncType::kNormal) {
+			throw ParserException("Does not support asynchronous generator function.");
+		}
 		// 生成器函数
 		lexer_->NextToken();
-		is_generator = true;
+		type = FuncType::kGenerator;
 	}
 	auto func_name = lexer_->MatchToken(TokenType::kIdentifier).str();
 	auto par_list = ParseParNameList();
 	auto block = ParseBlockStat();
-	return std::make_unique<FuncDeclStat>(func_name, par_list, std::move(block), is_generator);
+	return std::make_unique<FuncDeclStat>(func_name, par_list, std::move(block), type);
 }
 
 std::vector<std::string> Parser::ParseParNameList() {
@@ -241,6 +249,7 @@ std::unique_ptr<Exp> Parser::ParseExp19() {
 		std::unique_ptr<Exp> yielded_value = ParseExp18();
 		return std::make_unique<YieldExp>(std::move(yielded_value));
 	}
+
 	return ParseExp18();
 }
 
@@ -483,13 +492,8 @@ std::unique_ptr<Exp> Parser::ParseExp4() {
 }
 
 std::unique_ptr<Exp> Parser::ParseExp3() {
-	auto type = lexer_->PeekToken().type();
-	if (type != TokenType::kKwNew) {
-		return ParseExp2();
-	}
-	lexer_->NextToken();
-	auto exp = std::make_unique<UnaryOpExp>(type, ParseExp3());
-	return exp;
+	// 这里不支持不带参数列表的new语法
+	return ParseExp2();
 }
 
 std::unique_ptr<Exp> Parser::ParseExp2() {
@@ -511,10 +515,6 @@ std::unique_ptr<Exp> Parser::ParseExp2() {
 			exp = std::make_unique<DotExp>(std::move(exp), std::move(exp2), is_method_call);
 			exp->value_category = ExpValueCategory::kLeftValue;
 		}
-		else if (type == TokenType::kSepLParen) {
-			auto par_list = ParseExpList(TokenType::kSepLParen, TokenType::kSepRParen, false);
-			exp = std::make_unique<FunctionCallExp>(std::move(exp), std::move(par_list));
-		}
 		else if (type == TokenType::kSepLBrack) {
 			lexer_->NextToken();
 			auto index_exp = ParseExp();
@@ -524,9 +524,18 @@ std::unique_ptr<Exp> Parser::ParseExp2() {
 			if (lexer_->PeekToken().type() == TokenType::kSepLParen) {
 				is_method_call = true;
 			}
-
 			exp = std::make_unique<IndexedExp>(std::move(exp), std::move(index_exp), is_method_call);
 			exp->value_category = ExpValueCategory::kLeftValue;
+		}
+		else if (type == TokenType::kKwNew) {
+			lexer_->NextToken();
+			auto ident_exp = ParseExp();
+			auto par_list = ParseExpList(TokenType::kSepLParen, TokenType::kSepRParen, false);
+			exp = std::make_unique<FunctionCallExp>(std::move(ident_exp), std::move(par_list));
+		}
+		else if (type == TokenType::kSepLParen) {
+			auto par_list = ParseExpList(TokenType::kSepLParen, TokenType::kSepRParen, false);
+			exp = std::make_unique<FunctionCallExp>(std::move(exp), std::move(par_list));
 		}
 		else {
 			break;

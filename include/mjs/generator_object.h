@@ -1,6 +1,5 @@
 #pragma once
 
-#include <mjs/runtime.h>
 #include <mjs/opcode.h>
 #include <mjs/object.h>
 #include <mjs/stack_frame.h>
@@ -8,9 +7,10 @@
 
 namespace mjs {
 
+class Context;
 class GeneratorObject : public Object {
 public:
-    GeneratorObject(const Runtime& runtime, const Value& function)
+    GeneratorObject(Context* context, const Value& function)
         : function_(function), stack_(0)
     {
         NewMethod(Value("next"), Value(ValueType::kGeneratorNext, this));
@@ -40,6 +40,11 @@ public:
         ret_obj.object().SetProperty(Value("value"), std::move(ret_value));
         ret_obj.object().SetProperty(Value("done"), Value(IsClosed()));
         return ret_obj;
+    }
+
+    void Next(Context* context) {
+        // Ö´ÐÐNext
+
     }
 
     auto& stack() { return stack_; }

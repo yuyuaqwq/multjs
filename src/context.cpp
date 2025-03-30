@@ -9,7 +9,7 @@
 
 namespace mjs {
 
-void Context::Eval(std::string_view script) {
+Value Context::Eval(std::string_view script) {
 	auto lexer = Lexer(script.data());
 
 	auto parser = Parser(&lexer);
@@ -18,9 +18,17 @@ void Context::Eval(std::string_view script) {
 	auto codegener = CodeGener(runtime_);
 	auto func = codegener.Generate(src.get());
 
+	Call(func);
+
+	return func;
+}
+
+void Context::Call(const Value& func) {
 	std::cout << func.function_def().Disassembly(this);
 
 	vm_.EvalFunction(func);
 }
+
+
 
 } // namespace mjs

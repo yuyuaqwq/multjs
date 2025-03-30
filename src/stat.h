@@ -4,6 +4,8 @@
 #include <memory>
 #include <string>
 
+#include <mjs/function_def.h>
+
 #include "token.h"
 #include "exp.h"
 
@@ -45,12 +47,13 @@ struct ExpStat : public Stat {
 struct FuncDeclStat : public Stat {
 	virtual StatType GetType() const noexcept;
 	FuncDeclStat(const std::string& func_name, const std::vector<std::string>& par_list
-		, std::unique_ptr<BlockStat> block, bool is_generator);
+		, std::unique_ptr<BlockStat> block, FuncType func_type);
 
 	std::string func_name;
 	std::vector<std::string> par_list;
 	std::unique_ptr<BlockStat> block;
-	bool is_generator;
+
+	FuncType func_type;
 };
 
 struct ElseIfStat;

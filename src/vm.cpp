@@ -513,7 +513,7 @@ void Vm::FunctionSwitch(FunctionDef** cur_func_def, Value&& this_val, Value&& fu
 			// 直接返回生成器对象
 			
 			// 提前分配参数和局部变量栈空间
-			auto generator = new GeneratorObject(context_->runtime(), func_val);
+			auto generator = new GeneratorObject(context_, func_val);
 			generator->stack().upgrade(func_def.var_count());
 
 			// 弹出多余参数
@@ -544,7 +544,7 @@ void Vm::FunctionSwitch(FunctionDef** cur_func_def, Value&& this_val, Value&& fu
 		auto old_bottom = stack_frame_.bottom();
 		stack_frame_.set_bottom(stack().size() - par_count);
 
-		auto ret = func_val.cpp_function()(context_, par_count, &stack_frame_);
+		auto ret = func_val.cpp_function()(context_, this_val, par_count, &stack_frame_);
 
 		// 还原栈帧
 		stack_frame_.set_bottom(old_bottom);
@@ -586,7 +586,7 @@ void Vm::FunctionSwitch(FunctionDef** cur_func_def, Value&& this_val, Value&& fu
 		break;
 	}
 	default:
-		throw VmException("Non callable types.");
+		throw VmException("Non callable type.");
 	}
 }
 

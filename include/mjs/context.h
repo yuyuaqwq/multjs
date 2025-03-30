@@ -4,6 +4,7 @@
 
 #include <mjs/noncopyable.h>
 #include <mjs/vm.h>
+#include <mjs/job_queue.h>
 
 namespace mjs {
 
@@ -14,7 +15,9 @@ public:
 		: runtime_(runtime)
 		, vm_(this) {}
 
-	void Eval(std::string_view script);
+	Value Eval(std::string_view script);
+
+	void Call(const Value& func);
 
 	void Gc() {
 		// 第一趟将孩子解引用为0的挂入tmp，因为该孩子节点只被当前节点引用
@@ -24,15 +27,18 @@ public:
 		// 如果没有被挂回链表的节点，那就是垃圾了，没有被根节点自下的路径引用
 	}
 
-	Runtime& runtime() const { return *runtime_; }
+
+	auto& runtime() const { return *runtime_; }
 	// LocalConstPool& const_pool() { return local_const_pool_; }
+
+	const auto& microtask_queue() const { return microtask_queue_; }
+	auto& microtask_queue() { return microtask_queue_; }
 
 private:
 	Runtime* runtime_;
-
 	// LocalConstPool local_const_pool_;
-
 	Vm vm_;
+	JobQueue microtask_queue_;
 };
 
 } // namespace mjs

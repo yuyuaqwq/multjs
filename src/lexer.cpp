@@ -403,14 +403,14 @@ Token Lexer::ReadNextToken() {
         }
 
         // 是否是关键字
-        auto keyword = g_keywords.find(ident);
-        if (keyword != g_keywords.end()) {
-            token.set_type(keyword->second);
+        auto keyword_it = g_keywords.find(ident);
+        if (keyword_it != g_keywords.end()) {
+            token.set_type(keyword_it->second);
+            return token;
         }
-        else {
-            token.set_type(TokenType::kIdentifier);
-            token.set_str(ident);
-        }
+        
+        token.set_type(TokenType::kIdentifier);
+        token.set_str(ident);
         return token;
     }
 

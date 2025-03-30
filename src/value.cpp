@@ -55,15 +55,21 @@ Value::Value(Object* object) {
 	value_.object_->Reference();
 }
 
-Value::Value(FunctionObject* ref) {
+Value::Value(FunctionObject* function) {
 	tag_.type_ = ValueType::kFunctionObject;
-	value_.object_ = reinterpret_cast<Object*>(ref);
+	value_.object_ = reinterpret_cast<Object*>(function);
 	value_.object_->Reference();
 }
 
-Value::Value(GeneratorObject* ref) {
+Value::Value(GeneratorObject* generator) {
 	tag_.type_ = ValueType::kGeneratorObject;
-	value_.object_ = reinterpret_cast<Object*>(ref);
+	value_.object_ = reinterpret_cast<Object*>(generator);
+	value_.object_->Reference();
+}
+
+Value::Value(PromiseObject* promise) {
+	tag_.type_ = ValueType::kPromiseObject;
+	value_.object_ = reinterpret_cast<Object*>(promise);
 	value_.object_->Reference();
 }
 
@@ -94,11 +100,25 @@ Value::Value(CppFunction cpp_func) {
 }
 
 Value::Value(ValueType type, GeneratorObject* generator) {
+	tag_.type_ = type;
 	if (type == ValueType::kGeneratorNext) {
-		tag_.type_ = ValueType::kGeneratorNext;
 		value_.object_ = reinterpret_cast<Object*>(generator);
 		value_.object_->Reference();
 	}
+	else {
+		assert(0);
+	}
+}
+
+Value::Value(ValueType type, PromiseObject* promise) {
+	tag_.type_ = type;
+	//if (type == ValueType::kPromiseThen) {
+	//	value_.object_ = reinterpret_cast<Object*>(promise);
+	//	value_.object_->Reference();
+	//}
+	//else {
+	//	assert(0);
+	//}
 }
 
 
@@ -416,6 +436,10 @@ GeneratorObject& Value::generator() const {
 	return *reinterpret_cast<GeneratorObject*>(value_.object_);
 }
 
+PromiseObject& Value::promise() const {
+	assert(IsPromiseObject());
+	return *reinterpret_cast<PromiseObject*>(value_.object_);
+}
 
 int64_t Value::i64() const {
 	assert(IsI64());
@@ -479,6 +503,10 @@ bool Value::IsFunctionObject() const {
 
 bool Value::IsGeneratorObject() const {
 	return type() == ValueType::kGeneratorObject;
+}
+
+bool Value::IsPromiseObject() const {
+	return type() == ValueType::kPromiseObject;
 }
 
 bool Value::IsI64() const {
