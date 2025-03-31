@@ -622,14 +622,8 @@ void CodeGener::GenerateExp(Exp* exp) {
 	case ExpType::kNew: {
 		auto new_exp = static_cast<NewExp*>(exp);
 		GenerateParList(new_exp->par_list);
-		if (new_exp->callee.get()->GetType() != ExpType::kIdentifier) {
-			// 实际上需要支持的是任何可以被解析为构造函数的表达式
-			throw CodeGenerException("");
-		}
-		auto ident_exp = static_cast<IdentifierExp*>(new_exp->callee.get());
-
-		auto const_idx = AllocConst(Value(ident_exp->name));
-		cur_func_def_->byte_code().EmitConstLoad(const_idx);
+		
+		GenerateExp(new_exp->callee.get());
 
 		cur_func_def_->byte_code().EmitOpcode(OpcodeType::kNew);
 		break;
