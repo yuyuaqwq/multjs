@@ -10,16 +10,12 @@ namespace mjs {
 // 常量池、字节码、栈等共享资源位于Runtime
 class Runtime : public noncopyable {
 public:
-
-	void NewClass(ClassId type) {
-		// 是否是注册类，在发现编译时
-		//auto class_it = g_classes.find(ident);
-		//if (class_it != g_classes.end()) {
-		//	token.set_type(class_it->second);
-		//	return token;
-		//}
-
-
+	Runtime() {
+		class_def_table_.Register(std::make_unique<ClassDef>(ClassId::kBase, "Object"));
+		class_def_table_.Register(std::make_unique<ClassDef>(ClassId::kNumber, "Number"));
+		class_def_table_.Register(std::make_unique<ClassDef>(ClassId::kString, "String"));
+		class_def_table_.Register(std::make_unique<ClassDef>(ClassId::kArray, "Array"));
+		class_def_table_.Register(std::make_unique<GeneratorClassDef>());
 	}
 
 

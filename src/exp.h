@@ -145,7 +145,12 @@ struct MemberExp : public Exp {
 	MemberExp(std::unique_ptr<Exp> exp, std::unique_ptr<Exp> prop_exp, bool is_method_call)
 		: exp(std::move(exp))
 		, prop_exp(std::move(prop_exp))
-		, is_method_call(is_method_call) {}
+		, is_method_call(is_method_call)
+	{
+		if (!is_method_call) {
+			value_category = ExpValueCategory::kLeftValue;
+		}
+	}
 
 	std::unique_ptr<Exp> exp;
 	std::unique_ptr<Exp> prop_exp;
@@ -159,7 +164,12 @@ struct IndexedExp : public Exp {
 	IndexedExp(std::unique_ptr<Exp> exp, std::unique_ptr<Exp> index_exp, bool is_method_call)
 		: exp(std::move(exp))
 		, index_exp(std::move(index_exp))
-		, is_method_call(is_method_call) {}
+		, is_method_call(is_method_call)
+	{
+		if (!is_method_call) {
+			value_category = ExpValueCategory::kLeftValue;
+		}
+	}
 
 	std::unique_ptr<Exp> exp;
 	std::unique_ptr<Exp> index_exp;

@@ -223,7 +223,7 @@ void Vm::Run() {
 	auto cur_func_def = &function_def(cur_func_val_);
 	
 	do {
-		// OpcodeType opcode_; uint32_t par; auto pc = pc_; std::cout << cur_func_def->byte_code().Disassembly(context_, pc, opcode_, par, cur_func_def) << std::endl;
+		OpcodeType opcode_; uint32_t par; auto pc = pc_; std::cout << cur_func_def->byte_code().Disassembly(context_, pc, opcode_, par, cur_func_def) << std::endl;
 		auto opcode = cur_func_def->byte_code().GetOpcode(pc_++);
 		switch (opcode) {
 		//case OpcodeType::kStop:

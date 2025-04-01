@@ -1,9 +1,9 @@
 
-let promise = new Promise();
+// let promise = new Promise();
 
-async function asyncfunc() {
-    let res = await 123;
-}
+// async function asyncfunc() {
+//     let res = await 123;
+// }
 
 function* gen(a, b, c) {
     let ttt = this;

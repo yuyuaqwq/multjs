@@ -47,6 +47,8 @@ public:
 
     }
 
+    virtual ClassId class_id() const override { return ClassId::kGenerator; }
+
     auto& stack() { return stack_; }
 
     auto& function_def() { 
