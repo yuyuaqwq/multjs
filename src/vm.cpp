@@ -93,7 +93,7 @@ void Vm::SetVar(VarIndex idx, Value&& var) {
 }
 
 const Value& Vm::GetGlobalConst(ConstIndex idx) {
-	auto& var = context_->runtime().const_pool().get(idx);
+	auto& var = context_->runtime().const_pool().at(idx);
 	return var;
 }
 
@@ -304,7 +304,7 @@ void Vm::Run() {
 			auto& obj_val = stack_frame_.get(-1);
 			if (obj_val.IsObject()) {
 				auto& obj = obj_val.object();
-				auto prop = obj.GetProperty(key_val);
+				auto prop = obj.GetProperty(&context_->runtime(), key_val);
 				if (!prop) {
 					obj_val = Value();
 				}
@@ -328,7 +328,7 @@ void Vm::Run() {
 			auto obj_val = stack_frame_.pop();
 			if (obj_val.IsObject()) {
 				auto& obj = obj_val.object();
-				obj.SetProperty(key_val, stack_frame_.pop());
+				obj.SetProperty(&context_->runtime(), key_val, stack_frame_.pop());
 			}
 			else {
 				// 非Object类型，根据类型来处理
@@ -346,7 +346,7 @@ void Vm::Run() {
 			auto& obj_val = stack_frame_.get(-1);
 			auto& obj = obj_val.object();
 			
-			auto prop = obj.GetProperty(idx_val);
+			auto prop = obj.GetProperty(&context_->runtime(), idx_val);
 			if (!prop) {
 				obj_val = Value();
 			}
@@ -362,7 +362,7 @@ void Vm::Run() {
 			auto obj_val = stack_frame_.pop();
 			auto& obj = obj_val.object();
 
-			obj.SetProperty(idx_val, stack_frame_.pop());
+			obj.SetProperty(&context_->runtime(), idx_val, stack_frame_.pop());
 			break;
 		}
 		case OpcodeType::kAdd: {
@@ -423,7 +423,7 @@ void Vm::Run() {
 			generator.SetClosed();
 
 			auto ret_value = RestoreStackFrame(&cur_func_def);
-			auto ret_obj = generator.MakeReturnObject(std::move(ret_value));
+			auto ret_obj = generator.MakeReturnObject(&context_->runtime(), std::move(ret_value));
 			stack_frame_.push(std::move(ret_obj));
 			break;
 		}
@@ -440,7 +440,7 @@ void Vm::Run() {
 			}
 
 			auto ret_value = RestoreStackFrame(&cur_func_def);
-			auto ret_obj = generator.MakeReturnObject(std::move(ret_value));
+			auto ret_obj = generator.MakeReturnObject(&context_->runtime(), std::move(ret_value));
 			stack_frame_.push(std::move(ret_obj));
 			break;
 		}
@@ -553,7 +553,7 @@ void Vm::FunctionSwitch(FunctionDef** cur_func_def, Value&& this_val, Value&& fu
 		break;
 	}
 	case ValueType::kGeneratorNext: {
-		auto& generator = func_val.generator();
+		auto& generator = this_val.generator();
 
 		auto next_val = Value();
 		if (par_count > 0) {
@@ -561,7 +561,7 @@ void Vm::FunctionSwitch(FunctionDef** cur_func_def, Value&& this_val, Value&& fu
 			next_val = stack().pop();
 		}
 		if (generator.IsClosed()) {
-			stack_frame_.push(generator.MakeReturnObject(Value()));
+			stack_frame_.push(generator.MakeReturnObject(&context_->runtime(), Value()));
 			break;
 		}
 

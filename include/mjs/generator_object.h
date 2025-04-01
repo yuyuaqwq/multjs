@@ -13,7 +13,7 @@ public:
     GeneratorObject(Context* context, const Value& function)
         : function_(function), stack_(0)
     {
-        NewMethod(Value("next"), Value(ValueType::kGeneratorNext, this));
+        
     }
 
     bool IsSuspended() const { return state_ == State::kSuspended; }
@@ -29,7 +29,7 @@ public:
         state_ = State::kClosed;
     }
 
-    Value MakeReturnObject(Value&& ret_value) {
+    Value MakeReturnObject(Runtime* runtime, Value&& ret_value) {
         // { value: $_, done: $boolean }
         //if (ret_obj_.IsUndefined()) {
         //    ret_obj_ = Value(new Object());
@@ -37,8 +37,8 @@ public:
 
         // 每次都得new
         auto ret_obj = Value(new Object());
-        ret_obj.object().SetProperty(Value("value"), std::move(ret_value));
-        ret_obj.object().SetProperty(Value("done"), Value(IsClosed()));
+        ret_obj.object().SetProperty(runtime, Value("value"), std::move(ret_value));
+        ret_obj.object().SetProperty(runtime, Value("done"), Value(IsClosed()));
         return ret_obj;
     }
 

@@ -1,42 +1,57 @@
 #pragma once
 
 #include <vector>
-#include <array>
-#include <string>
 #include <map>
 #include <memory>
 #include <mutex>
-#include <optional>
 
 #include <mjs/noncopyable.h>
 #include <mjs/const_def.h>
 #include <mjs/value.h>
+#include <mjs/segmented_array.h>
 
 namespace mjs {
 
-// 使用分段静态数组，避免resize使得其他运行Context的线程访问const
-// 每块静态数组有1024个元素，满了就new新1级数组
-class GlobalConstPool : public noncopyable {
+class GlobalConstPool : public SegmentedArray<Value, ConstIndex, 1024> {
 private:
-	static constexpr size_t kStaticArraySize = 1024;
-	using StaticArray = std::array<Value, kStaticArraySize>;
+	using Base = SegmentedArray<Value, ConstIndex, 1024>;
 
 public:
-	GlobalConstPool();
+	ConstIndex insert(const Value& value) {
+		auto value_ = value;
+		return insert(std::move(value_));
+	}
 
-	ConstIndex insert(const Value& value);
-	ConstIndex insert(Value&& value);
+	ConstIndex insert(Value&& value) {
+		auto lock = std::lock_guard(mutex_);
 
-	const Value& get(ConstIndex index) const;
-	Value& get(ConstIndex index);
+		auto it = map_.find(value);
+		if (it != map_.end()) {
+			return it->second;
+		}
 
-	std::optional<ConstIndex> find(const Value& value);
+		auto idx = Base::insert(std::move(value));
+		auto& val = operator[](idx);
+
+		val.set_const_index(idx);
+		auto res = map_.emplace(val, idx);
+
+		//idx = ConstToGlobalIndex(idx);
+		return idx;
+	}
+
+	std::optional<ConstIndex> find(const Value& value) {
+		auto lock = std::lock_guard(mutex_);
+		auto it = map_.find(value);
+		if (it != map_.end()) {
+			return it->second;
+		}
+		return std::nullopt;
+	}
 
 private:
 	std::mutex mutex_;
-	std::map<Value, ConstIndex> const_map_;
-	std::array<std::unique_ptr<StaticArray>, kStaticArraySize> pool_;
-	uint32_t const_index_ = 1;
+	std::map<Value, ConstIndex> map_;
 };
 
 class LocalConstPool : public noncopyable {

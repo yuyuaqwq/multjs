@@ -83,7 +83,7 @@ public:
 	explicit Value(FunctionDef* def);
 	explicit Value(CppFunction bridge);
 
-	Value(ValueType type, GeneratorObject* generator);
+	Value(ValueType type);
 	Value(ValueType type, PromiseObject* promise);
 
 	~Value();
@@ -129,7 +129,6 @@ public:
 
 	int64_t i64() const;
 	uint64_t u64() const;
-	// const char* string_view() const;
 	const UpValue& up_value() const;
 	FunctionDef& function_def() const;
 	CppFunction cpp_function() const;

@@ -99,11 +99,10 @@ Value::Value(CppFunction cpp_func) {
 	value_.cpp_func_ = cpp_func;
 }
 
-Value::Value(ValueType type, GeneratorObject* generator) {
+Value::Value(ValueType type) {
 	tag_.type_ = type;
 	if (type == ValueType::kGeneratorNext) {
-		value_.object_ = reinterpret_cast<Object*>(generator);
-		value_.object_->Reference();
+		
 	}
 	else {
 		assert(0);
@@ -432,7 +431,7 @@ FunctionObject& Value::function() const {
 }
 
 GeneratorObject& Value::generator() const {
-	assert(IsGeneratorObject() || IsGeneratorNext());
+	assert(IsGeneratorObject());
 	return *reinterpret_cast<GeneratorObject*>(value_.object_);
 }
 

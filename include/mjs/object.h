@@ -6,12 +6,12 @@
 
 #include <mjs/noncopyable.h>
 #include <mjs/const_def.h>
+#include <mjs/class_def.h>
 #include <mjs/value.h>
 
 namespace mjs {
 
-
-using PropertyMap = std::map<Value, Value>;// std::unordered_map<Value, Value>;
+class Runtime;
 class Object : public noncopyable {
 public:
 	Object() {
@@ -35,43 +35,21 @@ public:
 		--tag_.ref_count_;
 	}
 
-	
-	void NewMethod(Value&& name, Value func);
+	void SetProperty(Runtime* runtime, const Value& key, Value&& val);
 
-	void SetProperty(const Value& key, Value&& val) {
-		if (!property_map_) property_map_ = new PropertyMap();
-		(*property_map_)[key] = std::move(val);
-	}
+	Value* GetProperty(Runtime* runtime, const Value& key);
 
-	Value* GetProperty(const Value& key) {
-		// 1. 查找自身属性
-		if (property_map_) {
-			auto iter = property_map_->find(key);
-			if (iter != property_map_->end()) {
-				return &iter->second;
-			}
-		}
+	void DelProperty(Context* context, const Value& key);
 
-		// 2. 原型链查找
-		if (prototype_.IsObject()) {
-			return prototype_.object().GetProperty(key);
-		}
 
-		return nullptr;
-	}
-
-	void DelProperty(const Value& key) {
-		if (!property_map_) return;
-		property_map_->erase(key);
-	}
-
+	virtual ClassId class_id() const { return ClassId::kBase; }
 
 	auto ref_count() const { return tag_.ref_count_; }
 
 	const auto& prototype() const { return prototype_; }
 	void set_prototype(Value prototype) { prototype_ = std::move(prototype); }
 
-private:
+protected:
 	union {
 		uint64_t full_;
 		uint32_t ref_count_;

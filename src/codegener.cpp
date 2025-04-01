@@ -24,7 +24,7 @@ ConstIndex CodeGener::AllocConst(Value&& value) {
 }
 
 const Value& CodeGener::FindConstValueByIndex(ConstIndex idx) {
-	return runtime_->const_pool().get(idx);
+	return runtime_->const_pool().at(idx);
 }
 
 
@@ -105,7 +105,7 @@ Value CodeGener::Generate(BlockStat* block) {
 
 	// 创建顶层函数(模块)
 	auto const_idx = AllocConst(Value(new FunctionDef(0)));
-	cur_func_def_ = &runtime_->const_pool().get(const_idx).function_def();
+	cur_func_def_ = &runtime_->const_pool().at(const_idx).function_def();
 
 	scopes_.emplace_back(cur_func_def_);
 
@@ -193,7 +193,7 @@ void CodeGener::GenerateFunctionDeclStat(FuncDeclStat* stat) {
 	auto const_idx = AllocConst(Value(new FunctionDef(stat->par_list.size())));
 	cur_func_def_->byte_code().EmitConstLoad(const_idx);
 
-	auto& func_def = runtime_->const_pool().get(const_idx).function_def();
+	auto& func_def = runtime_->const_pool().at(const_idx).function_def();
 
 	auto var_idx = AllocVar(stat->func_name);
 	cur_func_def_->byte_code().EmitVarStore(var_idx);
@@ -703,7 +703,7 @@ Value CodeGener::MakeValue(Exp* exp) {
 		for (auto& exp : arr_exp->arr_litera) {
 			// arr_obj->mutale_values().emplace_back(MakeValue(exp.get()));
 			auto const_idx = AllocConst(Value(i++).ToString());
-			arr_obj->SetProperty(FindConstValueByIndex(const_idx), MakeValue(exp.get()));
+			arr_obj->SetProperty(runtime_, FindConstValueByIndex(const_idx), MakeValue(exp.get()));
 		}
 		return Value(arr_obj);
 	}
@@ -712,7 +712,7 @@ Value CodeGener::MakeValue(Exp* exp) {
 		Object* obj = new Object();
 		for (auto& exp : obj_exp->obj_litera) {
 			auto const_idx = AllocConst(Value(exp.first));
-			obj->SetProperty(FindConstValueByIndex(const_idx), MakeValue(exp.second.get()));
+			obj->SetProperty(runtime_, FindConstValueByIndex(const_idx), MakeValue(exp.second.get()));
 		}
 		return Value(obj);
 	}

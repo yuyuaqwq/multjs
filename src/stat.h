@@ -5,7 +5,7 @@
 #include <string>
 
 #include <mjs/function_def.h>
-#include <mjs/class.h>
+#include <mjs/class_def.h>
 
 #include "token.h"
 #include "exp.h"
