@@ -89,9 +89,14 @@ Value::Value(const UpValue& up_value) {
 	value_.up_value_ = up_value;
 }
 
-Value::Value(FunctionDef* func_def) {
+Value::Value(ClassDef* class_def) {
+	tag_.type_ = ValueType::kClassDef;
+	value_.class_def_ = class_def;
+}
+
+Value::Value(FunctionDef* function_def) {
 	tag_.type_ = ValueType::kFunctionDef;
-	value_.func_def_ = func_def;
+	value_.function_def_ = function_def;
 }
 
 Value::Value(CppFunction cpp_func) {
@@ -141,7 +146,7 @@ Value::~Value() {
 		}
 	}
 	else if (IsFunctionDef() && const_index() != 0) {
-		delete value_.func_def_;
+		delete value_.function_def_;
 	}
 }
 
@@ -449,6 +454,11 @@ uint64_t Value::u64() const {
 	return value_.u64_;
 }
 
+ClassDef& Value::class_def() const {
+	assert(IsClassDef());
+	return *value_.class_def_;
+}
+
 const UpValue& Value::up_value() const { 
 	assert(IsUpValue()); 
 	return value_.up_value_;
@@ -456,7 +466,7 @@ const UpValue& Value::up_value() const {
 
 FunctionDef& Value::function_def() const {
 	assert(IsFunctionDef());
-	return *value_.func_def_;
+	return *value_.function_def_;
 }
 
 CppFunction Value::cpp_function() const {
@@ -493,6 +503,7 @@ bool Value::IsObject() const {
 		|| type() == ValueType::kArrayObject
 		|| type() == ValueType::kFunctionObject
 		|| type() == ValueType::kGeneratorObject
+		|| type() == ValueType::kPromiseObject
 		;
 }
 
@@ -516,12 +527,16 @@ bool Value::IsU64() const {
 	return type() == ValueType::kU64;
 }
 
-bool Value::IsFunctionDef() const {
-	return type() == ValueType::kFunctionDef;
+bool Value::IsClassDef() const {
+	return type() == ValueType::kClassDef;
 }
 
 bool Value::IsUpValue() const {
 	return type() == ValueType::kUpValue;
+}
+
+bool Value::IsFunctionDef() const {
+	return type() == ValueType::kFunctionDef;
 }
 
 bool Value::IsCppFunction() const {
@@ -549,16 +564,16 @@ Value Value::ToString() const {
 		return Value("object");
 	case ValueType::kFunctionObject:
 		return Value("functionobject");
-	case ValueType::kFunctionDef:
-		return Value("function");
-	case ValueType::kCppFunction:
-		return Value("cppfunction");
-
 	case ValueType::kI64:
 		return Value(std::format("{}", i64()));
 	case ValueType::kU64:
 		return Value(std::format("{}", u64()));
-
+	case ValueType::kFunctionDef:
+		return Value("function");
+	case ValueType::kCppFunction:
+		return Value("cppfunction");
+	case ValueType::kClassDef:
+		return Value("class");
 	default:
 		return Value("unknown");
 		// throw std::runtime_error("Incorrect value type.");

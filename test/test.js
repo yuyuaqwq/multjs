@@ -1,5 +1,7 @@
 
-// let promise = new Promise();
+let promise = new Promise();
+
+promise.then();
 
 // async function asyncfunc() {
 //     let res = await 123;

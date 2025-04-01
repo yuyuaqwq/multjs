@@ -32,8 +32,17 @@ PromiseClassDef::PromiseClassDef()
 	}));
 }
 
-//Value PromiseClassDef::Constructor(Context* context, uint32_t par_count, StackFrame* stack) {
-//	return Value(new PromiseObject());
-//}
+Value PromiseClassDef::Constructor(Context* context, uint32_t par_count, StackFrame* stack) {
+	Value resolve_func;
+	Value reject_func;
+	if (par_count > 0) {
+		resolve_func = stack->get(0);
+	}
+	if (par_count > 1) {
+		reject_func = stack->get(1);
+	}
+	stack->reduce(par_count);
+	return Value(new PromiseObject(context, std::move(resolve_func), std::move(reject_func)));
+}
 
 } // namespace mjs

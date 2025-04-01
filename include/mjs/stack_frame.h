@@ -24,6 +24,8 @@ public:
 	void push(Value&& value);
 	Value pop();
 
+	void reduce(size_t count);
+
 	// 正数表示从栈帧底向上索引，0开始
 	// 负数表示从栈帧顶向下索引，-1开始
 	Value& get(ptrdiff_t index);

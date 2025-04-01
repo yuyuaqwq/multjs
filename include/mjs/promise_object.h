@@ -27,6 +27,7 @@ public:
         return state_ == State::kRejected;
     }
 
+    virtual ClassId class_id() const override { return ClassId::kPromise; }
 
 private:
     Value resolve_func_;

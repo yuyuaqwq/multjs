@@ -3,6 +3,7 @@
 #include <mjs/noncopyable.h>
 #include <mjs/class_def.h>
 #include <mjs/generator_class_def.h>
+#include <mjs/promise_class_def.h>
 #include <mjs/const_pool.h>
 #include <mjs/stack_frame.h>
 
@@ -17,6 +18,8 @@ public:
 		class_def_table_.Register(std::make_unique<ClassDef>(ClassId::kString, "String"));
 		class_def_table_.Register(std::make_unique<ClassDef>(ClassId::kArray, "Array"));
 		class_def_table_.Register(std::make_unique<GeneratorClassDef>());
+		class_def_table_.Register(std::make_unique<PromiseClassDef>());
+
 	}
 
 

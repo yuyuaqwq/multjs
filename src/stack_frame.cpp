@@ -33,6 +33,7 @@ void Stack::upgrade(size_t size) {
 }
 
 void Stack::reduce(size_t size) {
+	assert(vector_.size() >= size);
 	vector_.resize(vector_.size() - size);
 }
 
@@ -57,6 +58,10 @@ void StackFrame::push(Value&& value) {
 
 Value StackFrame::pop() {
 	return stack_->pop();
+}
+
+void StackFrame::reduce(size_t count) {
+	stack_->reduce(count);
 }
 
 // 负数表示从栈顶向下索引

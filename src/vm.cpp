@@ -223,7 +223,7 @@ void Vm::Run() {
 	auto cur_func_def = &function_def(cur_func_val_);
 	
 	do {
-		OpcodeType opcode_; uint32_t par; auto pc = pc_; std::cout << cur_func_def->byte_code().Disassembly(context_, pc, opcode_, par, cur_func_def) << std::endl;
+		// OpcodeType opcode_; uint32_t par; auto pc = pc_; std::cout << cur_func_def->byte_code().Disassembly(context_, pc, opcode_, par, cur_func_def) << std::endl;
 		auto opcode = cur_func_def->byte_code().GetOpcode(pc_++);
 		switch (opcode) {
 		//case OpcodeType::kStop:
@@ -324,7 +324,6 @@ void Vm::Run() {
 		}
 		case OpcodeType::kPropertyStore: {
 			auto key_val = stack_frame_.pop();
-
 			auto obj_val = stack_frame_.pop();
 			if (obj_val.IsObject()) {
 				auto& obj = obj_val.object();
@@ -490,12 +489,26 @@ void Vm::Run() {
 			}
 			break;
 		}
+		case OpcodeType::kNew: {
+			auto value = stack_frame_.pop();
+			auto par_count = stack_frame_.pop().u64();
+
+			if (value.IsClassDef()) {
+				auto obj = value.class_def().Constructor(context_, par_count, &stack_frame_);
+				stack_frame_.push(std::move(obj));
+			}
+			else {
+				throw VmException("Currently does not support other types of construction.");
+			}
+
+			break;
+		}
 		case OpcodeType::kGoto: {
 			pc_ = cur_func_def->byte_code().CalcPc(--pc_);
 			break;
 		}
 		default:
-			throw VmException("Unknown instruction");
+			throw VmException("Unknown instruction.");
 		}
 	} while (pc_ >= 0 && pc_ < cur_func_def->byte_code().Size());
 }

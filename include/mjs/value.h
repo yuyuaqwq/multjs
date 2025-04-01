@@ -34,6 +34,7 @@ enum class ValueType : uint32_t {
 
 	kStringView, // String”≈ªØ
 
+	kClassDef,
 	kUpValue,
 	kFunctionDef,
 	kCppFunction,
@@ -51,6 +52,7 @@ class FunctionObject;
 class GeneratorObject;
 class PromiseObject;
 
+class ClassDef;
 struct UpValue {
 	Value* value;
 };
@@ -80,7 +82,8 @@ public:
 
 	explicit Value(const UpValue& up_value);
 
-	explicit Value(FunctionDef* def);
+	explicit Value(ClassDef* class_def);
+	explicit Value(FunctionDef* function_def);
 	explicit Value(CppFunction bridge);
 
 	Value(ValueType type);
@@ -129,6 +132,8 @@ public:
 
 	int64_t i64() const;
 	uint64_t u64() const;
+
+	ClassDef& class_def() const;
 	const UpValue& up_value() const;
 	FunctionDef& function_def() const;
 	CppFunction cpp_function() const;
@@ -149,8 +154,9 @@ public:
 
 	bool IsI64() const;
 	bool IsU64() const;
-	bool IsFunctionDef() const;
+	bool IsClassDef() const;
 	bool IsUpValue() const;
+	bool IsFunctionDef() const;
 	bool IsCppFunction() const;
 	bool IsGeneratorNext() const;
 
@@ -181,9 +187,9 @@ private:
 		uint64_t u64_;
 		const char* string_view_;
 
-
+		ClassDef* class_def_;
 		UpValue up_value_;
-		FunctionDef* func_def_;
+		FunctionDef* function_def_;
 		CppFunction cpp_func_;
 	} value_;
 };

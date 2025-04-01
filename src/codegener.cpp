@@ -623,7 +623,22 @@ void CodeGener::GenerateExp(Exp* exp) {
 		auto new_exp = static_cast<NewExp*>(exp);
 		GenerateParList(new_exp->par_list);
 		
-		GenerateExp(new_exp->callee.get());
+		// 如果是标识符的话，找下ClassDefTable
+		if (new_exp->callee->GetType() == ExpType::kIdentifier) {
+			auto ident_exp = static_cast<IdentifierExp*>(new_exp->callee.get());
+			auto class_def = runtime_->class_def_table().find(ident_exp->name);
+
+			// 先不考虑js里定义的类
+			if (!class_def) {
+				throw CodeGenerException("Undefined class.");
+			}
+
+			auto const_idx = AllocConst(Value(class_def));
+			cur_func_def_->byte_code().EmitConstLoad(const_idx);
+		}
+		else {
+			GenerateExp(new_exp->callee.get());
+		}
 
 		cur_func_def_->byte_code().EmitOpcode(OpcodeType::kNew);
 		break;
