@@ -19,7 +19,7 @@ Value* Object::GetProperty(Runtime* runtime, const Value& key) {
 		}
 	}
 		
-	// 2. class²éÕÒ
+	// 2. class def²éÕÒ
 	auto& class_def = runtime->class_def_table().at(class_id());
 	auto iter = class_def.property_map().find(key);
 	if (iter != class_def.property_map().end()) {
