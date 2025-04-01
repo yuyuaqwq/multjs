@@ -109,20 +109,12 @@ Value::Value(ValueType type) {
 	if (type == ValueType::kGeneratorNext) {
 		
 	}
+	//if (type == ValueType::kPromiseThen) {
+
+	//}
 	else {
 		assert(0);
 	}
-}
-
-Value::Value(ValueType type, PromiseObject* promise) {
-	tag_.type_ = type;
-	//if (type == ValueType::kPromiseThen) {
-	//	value_.object_ = reinterpret_cast<Object*>(promise);
-	//	value_.object_->Reference();
-	//}
-	//else {
-	//	assert(0);
-	//}
 }
 
 

@@ -87,7 +87,6 @@ public:
 	explicit Value(CppFunction bridge);
 
 	Value(ValueType type);
-	Value(ValueType type, PromiseObject* promise);
 
 	~Value();
 
