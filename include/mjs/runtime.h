@@ -2,6 +2,7 @@
 
 #include <mjs/noncopyable.h>
 #include <mjs/class_def.h>
+#include <mjs/generator_class_def.h>
 #include <mjs/const_pool.h>
 #include <mjs/stack_frame.h>
 

@@ -65,49 +65,6 @@ protected:
 	PropertyMap property_map_;
 };
 
-class GeneratorClassDef : public ClassDef {
-public:
-	GeneratorClassDef()
-		: ClassDef(ClassId::kGenerator, "Generator")
-	{
-		// key到时候优化到runtime的const pool里
-		property_map_.NewMethod(Value("next"), Value(ValueType::kGeneratorNext));
-	}
-};
-
-//class PromiseClassDef : public ClassDef {
-//	PromiseClassDef()
-//		: ClassDef(ClassId::kPromise, "Promise")
-//	{
-//		property_map_.NewMethod(Value("resolve"), Value([](Context* context, const Value& this_val, uint32_t par_count, StackFrame* stack) -> Value {
-//			auto& promise = this_val.promise();
-//			promise.Resolve(context);
-//			return Value();
-//		}));
-//		property_map_.NewMethod(Value("reject"), Value([](Context* context, const Value& this_val, uint32_t par_count, StackFrame* stack) -> Value {
-//			auto& promise = this_val.promise();
-//			promise.Reject(context);
-//			return Value();
-//		}));
-//		property_map_.NewMethod(Value("then"), Value([](Context* context, const Value& this_val, uint32_t par_count, StackFrame* stack) -> Value {
-//			auto& promise = this_val.promise();
-//			Value on_fulfilled;
-//			Value on_rejected;
-//			if (par_count > 0) {
-//				on_fulfilled = stack->pop();
-//			}
-//			if (par_count > 1) {
-//				on_rejected = stack->pop();
-//			}
-//			return promise.Then(context, on_fulfilled, on_rejected);
-//		}));
-//	}
-//
-//	virtual Value Constructor(Context* context, uint32_t par_count, StackFrame* stack) override {
-//		return Value(new PromiseObject());
-//	}
-//};
-
 using ClassDefUnique = std::unique_ptr<ClassDef>;
 
 class ClassDefTable : public noncopyable {
