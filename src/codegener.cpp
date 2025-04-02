@@ -128,6 +128,7 @@ Value CodeGener::Generate(BlockStat* block) {
 		GenerateStat(stat.get());
 	}
 
+	cur_func_def_->byte_code().EmitOpcode(OpcodeType::kUndefined);
 	cur_func_def_->byte_code().EmitOpcode(OpcodeType::kReturn);
 	return Value(cur_func_def_);
 	
@@ -190,7 +191,7 @@ void CodeGener::GenerateReturnStat(ReturnStat* stat) {
 		GenerateExp(stat->exp.get());
 	}
 	else {
-		cur_func_def_->byte_code().EmitConstLoad(AllocConst(Value()));
+		cur_func_def_->byte_code().EmitOpcode(OpcodeType::kUndefined);
 	}
 	cur_func_def_->byte_code().EmitReturn(cur_func_def_->IsGenerator());
 }
@@ -678,7 +679,7 @@ void CodeGener::GenerateFunctionDeclExp(FuncDeclExp* exp) {
 		if (i == block->stat_list.size() - 1) {
 			if (stat->GetType() != StatType::kReturn) {
 				// 补全末尾的return
-				cur_func_def_->byte_code().EmitConstLoad(AllocConst(Value()));
+				cur_func_def_->byte_code().EmitOpcode(OpcodeType::kUndefined);
 				cur_func_def_->byte_code().EmitReturn(cur_func_def_->IsGenerator());
 			}
 		}

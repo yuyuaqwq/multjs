@@ -22,10 +22,10 @@ Stack& Vm::stack() {
 Value Vm::EvalFunction(Value func_val, Value this_val, const std::vector<Value>& argv) {
 	// 参数正序入栈
 	for (auto& v : argv) {
-		stack().push(v);
+		stack_frame_.push(v);
 	}
 	// par_count
-	stack().push(Value(argv.size()));
+	stack_frame_.push(Value(argv.size()));
 
 	FunctionSwitch(std::move(this_val), std::move(func_val));
 
@@ -37,9 +37,7 @@ Value Vm::EvalFunction(Value func_val, Value this_val, const std::vector<Value>&
 
 	Run();
 
-	auto ret = stack().pop();
-
-	return ret;
+	return stack_frame_.pop();
 }
 
 FunctionDef* Vm::function_def(const Value& func_val) const {
@@ -233,7 +231,7 @@ Value Vm::RestoreStackFrame() {
 
 void Vm::Run() {
 	do {
-		// OpcodeType opcode_; uint32_t par; auto pc = pc_; std::cout << cur_func_def_->byte_code().Disassembly(context_, pc, opcode_, par, cur_func_def) << std::endl;
+		OpcodeType opcode_; uint32_t par; auto pc = pc_; std::cout << cur_func_def_->byte_code().Disassembly(context_, pc, opcode_, par, cur_func_def_) << std::endl;
 		auto opcode = cur_func_def_->byte_code().GetOpcode(pc_++);
 		switch (opcode) {
 		//case OpcodeType::kStop:
@@ -335,17 +333,18 @@ void Vm::Run() {
 		case OpcodeType::kPropertyStore: {
 			auto key_val = stack_frame_.pop();
 			auto obj_val = stack_frame_.pop();
+			auto val = stack_frame_.pop();
 			if (obj_val.IsObject()) {
 				auto& obj = obj_val.object();
-				obj.SetProperty(&context_->runtime(), key_val, stack_frame_.pop());
+				obj.SetProperty(&context_->runtime(), key_val, std::move(val));
 			}
 			else {
 				// 非Object类型，根据类型来处理
 				// 如undefined需要报错
 				// number等需要转成临时Number Object
 				// throw std::runtime_error("unrealized.");
+
 			}
-			
 			break;
 		}
 		case OpcodeType::kIndexedLoad: {

@@ -23,12 +23,12 @@ Value Context::Eval(std::string_view script) {
 	return func;
 }
 
-void Context::Call(Value func, Value this_val, const std::vector<Value>& argv) {
-	// std::cout << func.function_def().Disassembly(this);
+Value Context::Call(Value func, Value this_val, const std::vector<Value>& argv) {
+	if (func.IsFunctionDef()) {
+		std::cout << func.function_def().Disassembly(this);
+	}
 
-	vm_.EvalFunction(std::move(func), std::move(this_val), argv);
+	return vm_.EvalFunction(std::move(func), std::move(this_val), argv);
 }
-
-
 
 } // namespace mjs
