@@ -495,6 +495,7 @@ void Vm::Run() {
 
 			if (value.IsClassDef()) {
 				auto obj = value.class_def().Constructor(context_, par_count, &stack_frame_);
+				stack().reduce(par_count);
 				stack_frame_.push(std::move(obj));
 			}
 			else {

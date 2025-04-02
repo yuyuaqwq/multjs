@@ -35,10 +35,12 @@ public:
 			pool_[i1] = std::make_unique<StaticArray>();
 		}
 
-		auto idx = size_++;
+		auto idx = size_;
 		auto& val = operator[](idx);
 		val = std::move(value);
 
+		// 最后再++，但是因为get不加锁，这里不确定会不会被重排到上面，有可能需要使用原子
+		++size_;
 		return idx;
 	}
 
