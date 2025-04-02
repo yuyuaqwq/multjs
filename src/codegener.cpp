@@ -109,9 +109,9 @@ Value CodeGener::Generate(BlockStat* block) {
 
 	scopes_.emplace_back(cur_func_def_);
 
-	RegisterCppFunction("println", [](Context* context, const Value& this_val, uint32_t par_count, StackFrame* stack) -> Value {
+	RegisterCppFunction("println", [](Context* context, const Value& this_val, uint32_t par_count, const StackFrame& stack) -> Value {
 		for (size_t i = 0; i < par_count; i++) {
-			auto val = stack->get(i);
+			auto val = stack.get(i);
 			try {
 				std::cout << val.ToString().string();
 			}
@@ -128,7 +128,7 @@ Value CodeGener::Generate(BlockStat* block) {
 		GenerateStat(stat.get());
 	}
 
-	// cur_func_->byte_code().EmitOpcode(OpcodeType::kStop);
+	cur_func_def_->byte_code().EmitOpcode(OpcodeType::kReturn);
 	return Value(cur_func_def_);
 	
 }

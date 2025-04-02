@@ -53,7 +53,7 @@ public:
 	virtual ~ClassDef() = default;
 
 	// 如果允许被new构造，重写该函数，new相关对象并返回，如new ArrayObject()
-	virtual Value Constructor(Context* context, uint32_t par_count, StackFrame* stack) { throw std::runtime_error("Types that are not allowed to be constructed."); }
+	virtual Value Constructor(Context* context, uint32_t par_count, const StackFrame& stack) { throw std::runtime_error("Types that are not allowed to be constructed."); }
 
 	ClassId id() const { return id_; }
 	const auto& name() const { return name_; }

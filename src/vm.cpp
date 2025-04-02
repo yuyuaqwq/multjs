@@ -19,25 +19,37 @@ Stack& Vm::stack() {
 	return context_->runtime().stack();
 }
 
-void Vm::EvalFunction(const Value& func_val) {
-	pc_ = 0;
-	cur_func_val_ = func_val;
-	stack().resize(function_def(cur_func_val_).var_count());
+Value Vm::EvalFunction(Value func_val, Value this_val, const std::vector<Value>& argv) {
+	// 参数正序入栈
+	for (auto& v : argv) {
+		stack().push(v);
+	}
+	// par_count
+	stack().push(Value(argv.size()));
+
+	FunctionSwitch(std::move(this_val), std::move(func_val));
 
 	// 最外层的函数不会通过CLoadFunc加载，所以需要自己初始化
-	FunctionDefLoadInit(&cur_func_val_);
+	if (cur_func_val_.IsFunctionDef()) {
+		FunctionDefLoadInit(&cur_func_val_);
+	}
 	FunctionEnterInit(cur_func_val_);
 
 	Run();
+
+	auto ret = stack().pop();
+
+	return ret;
 }
 
-FunctionDef& Vm::function_def(const Value& func_val) const {
+FunctionDef* Vm::function_def(const Value& func_val) const {
 	if (func_val.IsFunctionObject()) {
-		return func_val.function().function_def();
+		return &func_val.function().function_def();
 	}
-	else if  (func_val.IsFunctionDef()) {
-		return func_val.function_def();
+	else if (func_val.IsFunctionDef()) {
+		return &func_val.function_def();
 	}
+	return nullptr;
 	throw std::runtime_error("Unavailable function definition.");
 }
 
@@ -150,7 +162,7 @@ void Vm::LoadConst(ConstIndex const_idx) {
 	stack_frame_.push(value);
 }
 
-void Vm::SaveStackFrame(FunctionDef** cur_func_def, const Value& func_val, FunctionDef* func_def
+void Vm::SaveStackFrame(const Value& func_val, FunctionDef* func_def
 	, Value&& this_val, uint32_t par_count, bool is_generator
 	)
 {
@@ -167,19 +179,19 @@ void Vm::SaveStackFrame(FunctionDef** cur_func_def, const Value& func_val, Funct
 		// 上一栈帧
 
 	// 切换环境和栈帧
-	*cur_func_def = func_def;
+	cur_func_def_ = func_def;
 	cur_func_val_ = func_val;
 
 	// 参数已经入栈了，再分配局部变量部分
 	if (!is_generator) {
-		assert(stack().size() >= (*cur_func_def)->par_count());
-		stack_frame_.set_bottom(stack().size() - (*cur_func_def)->par_count());
+		assert(stack().size() >= cur_func_def_->par_count());
+		stack_frame_.set_bottom(stack().size() - cur_func_def_->par_count());
 
-		assert((*cur_func_def)->var_count() >= (*cur_func_def)->par_count());
-		stack().upgrade((*cur_func_def)->var_count() - (*cur_func_def)->par_count());
+		assert(cur_func_def_->var_count() >= cur_func_def_->par_count());
+		stack().upgrade(cur_func_def_->var_count() - cur_func_def_->par_count());
 	}
 	else {
-		stack_frame_.set_bottom(stack().size() - (*cur_func_def)->var_count());
+		stack_frame_.set_bottom(stack().size() - cur_func_def_->var_count());
 	}
 
 	// 保存当前环境，用于Ret返回
@@ -195,7 +207,7 @@ void Vm::SaveStackFrame(FunctionDef** cur_func_def, const Value& func_val, Funct
 }
 
 
-Value Vm::RestoreStackFrame(FunctionDef** cur_func_def) {
+Value Vm::RestoreStackFrame() {
 	// 将要返回，需要提升当前栈帧上的闭包变量到堆中
 	// 拿到返回之后的函数变量，将其赋值为
 
@@ -207,7 +219,7 @@ Value Vm::RestoreStackFrame(FunctionDef** cur_func_def) {
 
 	// 恢复环境和栈帧
 	cur_func_val_ = save_func;
-	*cur_func_def = &function_def(cur_func_val_);
+	cur_func_def_ = function_def(cur_func_val_);
 	pc_ = save_pc.u64();
 
 	// 设置栈顶和栈底
@@ -220,11 +232,9 @@ Value Vm::RestoreStackFrame(FunctionDef** cur_func_def) {
 
 
 void Vm::Run() {
-	auto cur_func_def = &function_def(cur_func_val_);
-	
 	do {
-		// OpcodeType opcode_; uint32_t par; auto pc = pc_; std::cout << cur_func_def->byte_code().Disassembly(context_, pc, opcode_, par, cur_func_def) << std::endl;
-		auto opcode = cur_func_def->byte_code().GetOpcode(pc_++);
+		// OpcodeType opcode_; uint32_t par; auto pc = pc_; std::cout << cur_func_def_->byte_code().Disassembly(context_, pc, opcode_, par, cur_func_def) << std::endl;
+		auto opcode = cur_func_def_->byte_code().GetOpcode(pc_++);
 		switch (opcode) {
 		//case OpcodeType::kStop:
 		//	return;
@@ -238,25 +248,25 @@ void Vm::Run() {
 			break;
 		}
 		case OpcodeType::kCLoad: {
-			auto const_idx = cur_func_def->byte_code().GetI8(pc_);
+			auto const_idx = cur_func_def_->byte_code().GetI8(pc_);
 			pc_ += 1;
 			LoadConst(const_idx);
 			break;
 		}
 		case OpcodeType::kCLoadW: {
-			auto const_idx = cur_func_def->byte_code().GetI16(pc_);
+			auto const_idx = cur_func_def_->byte_code().GetI16(pc_);
 			pc_ += 2;
 			LoadConst(const_idx);
 			break;
 		}
 		case OpcodeType::kCLoadD: {
-			auto const_idx = cur_func_def->byte_code().GetI32(pc_);
+			auto const_idx = cur_func_def_->byte_code().GetI32(pc_);
 			pc_ += 4;
 			LoadConst(const_idx);
 			break;
 		}
 		case OpcodeType::kVLoad: {
-			auto var_idx = cur_func_def->byte_code().GetU8(pc_);
+			auto var_idx = cur_func_def_->byte_code().GetU8(pc_);
 			pc_ += 1;
 			stack_frame_.push(GetVar(var_idx));
 			break;
@@ -286,7 +296,7 @@ void Vm::Run() {
 			break;
 		}
 		case OpcodeType::kVStore: {
-			auto var_idx = cur_func_def->byte_code().GetU8(pc_);
+			auto var_idx = cur_func_def_->byte_code().GetU8(pc_);
 			pc_ += 1;
 			SetVar(var_idx, stack_frame_.pop());
 			break;
@@ -394,14 +404,14 @@ void Vm::Run() {
 			break;
 		}		 
 		case OpcodeType::kFunctionCall: {
-			//auto var_idx = cur_func_def->byte_code().GetU16(pc_);
+			//auto var_idx = cur_func_def_->byte_code().GetU16(pc_);
 			//pc_ += 2;
 
 			// auto& func_val = GetVar(var_idx);
 
 			auto this_val = stack_frame_.pop();
 			auto func_val = stack_frame_.pop();
-			FunctionSwitch(&cur_func_def, std::move(this_val), std::move(func_val));
+			FunctionSwitch(std::move(this_val), std::move(func_val));
 			break;
 		}
 		case OpcodeType::kGetThis: {
@@ -413,7 +423,7 @@ void Vm::Run() {
 			break;
 		}
 		case OpcodeType::kReturn: {
-			stack_frame_.push(RestoreStackFrame(&cur_func_def));
+			stack_frame_.push(RestoreStackFrame());
 			break;
 		}
 		case OpcodeType::kGeneratorReturn: {
@@ -421,7 +431,7 @@ void Vm::Run() {
 
 			generator.SetClosed();
 
-			auto ret_value = RestoreStackFrame(&cur_func_def);
+			auto ret_value = RestoreStackFrame();
 			auto ret_obj = generator.MakeReturnObject(&context_->runtime(), std::move(ret_value));
 			stack_frame_.push(std::move(ret_obj));
 			break;
@@ -438,7 +448,7 @@ void Vm::Run() {
 				gen_vector[i] = std::move(stack_frame_.get(i));
 			}
 
-			auto ret_value = RestoreStackFrame(&cur_func_def);
+			auto ret_value = RestoreStackFrame();
 			auto ret_obj = generator.MakeReturnObject(&context_->runtime(), std::move(ret_value));
 			stack_frame_.push(std::move(ret_obj));
 			break;
@@ -482,7 +492,7 @@ void Vm::Run() {
 		case OpcodeType::kIfEq: {
 			auto boolean_val = stack_frame_.pop().ToBoolean();
 			if (boolean_val.boolean() == false) {
-				pc_ = cur_func_def->byte_code().CalcPc(--pc_);
+				pc_ = cur_func_def_->byte_code().CalcPc(--pc_);
 			}
 			else {
 				pc_ += 2;
@@ -494,7 +504,7 @@ void Vm::Run() {
 			auto par_count = stack_frame_.pop().u64();
 
 			if (value.IsClassDef()) {
-				auto obj = value.class_def().Constructor(context_, par_count, &stack_frame_);
+				auto obj = value.class_def().Constructor(context_, par_count, stack_frame_);
 				stack().reduce(par_count);
 				stack_frame_.push(std::move(obj));
 			}
@@ -505,36 +515,36 @@ void Vm::Run() {
 			break;
 		}
 		case OpcodeType::kGoto: {
-			pc_ = cur_func_def->byte_code().CalcPc(--pc_);
+			pc_ = cur_func_def_->byte_code().CalcPc(--pc_);
 			break;
 		}
 		default:
 			throw VmException("Unknown instruction.");
 		}
-	} while (pc_ >= 0 && pc_ < cur_func_def->byte_code().Size());
+	} while (pc_ >= 0 && cur_func_def_ && pc_ < cur_func_def_->byte_code().Size());
 }
 
-void Vm::FunctionSwitch(FunctionDef** cur_func_def, Value&& this_val, Value&& func_val) {
+void Vm::FunctionSwitch(Value&& this_val, Value&& func_val) {
 	auto par_count = stack_frame_.pop().u64();
 
 	switch (func_val.type()) {
 	case ValueType::kFunctionDef:
 	case ValueType::kFunctionObject: {
-		auto& func_def = function_def(func_val);
+		auto func_def = function_def(func_val);
 
-		if (func_def.IsGenerator()) {
+		if (func_def->IsGenerator()) {
 			// 是生成器函数
 			// 直接返回生成器对象
 			
 			// 提前分配参数和局部变量栈空间
 			auto generator = new GeneratorObject(context_, func_val);
-			generator->stack().upgrade(func_def.var_count());
+			generator->stack().upgrade(func_def->var_count());
 
 			// 弹出多余参数
-			stack().reduce(par_count - func_def.par_count());
+			stack().reduce(par_count - func_def->par_count());
 
 			// 复制参数
-			for (int32_t i = func_def.par_count() - 1; i >= 0; --i) {
+			for (int32_t i = func_def->par_count() - 1; i >= 0; --i) {
 				generator->stack().set(i, std::move(stack().pop()));
 			}
 
@@ -543,13 +553,13 @@ void Vm::FunctionSwitch(FunctionDef** cur_func_def, Value&& this_val, Value&& fu
 		}
 		// printf("%s\n", func_def->Disassembly().c_str());
 
-		if (par_count < func_def.par_count()) {
+		if (par_count < func_def->par_count()) {
 			throw VmException("Wrong number of parameters passed when calling the function");
 		}
 
 		// 把多余的参数弹出
-		stack().reduce(par_count - func_def.par_count());
-		SaveStackFrame(cur_func_def, func_val, &func_def, std::move(this_val), par_count, false);
+		stack().reduce(par_count - func_def->par_count());
+		SaveStackFrame(func_val, func_def, std::move(this_val), par_count, false);
 		pc_ = 0;
 		break;
 	}
@@ -558,7 +568,7 @@ void Vm::FunctionSwitch(FunctionDef** cur_func_def, Value&& this_val, Value&& fu
 		auto old_bottom = stack_frame_.bottom();
 		stack_frame_.set_bottom(stack().size() - par_count);
 
-		auto ret = func_val.cpp_function()(context_, this_val, par_count, &stack_frame_);
+		auto ret = func_val.cpp_function()(context_, this_val, par_count, stack_frame_);
 
 		// 还原栈帧
 		stack_frame_.set_bottom(old_bottom);
@@ -588,7 +598,7 @@ void Vm::FunctionSwitch(FunctionDef** cur_func_def, Value&& this_val, Value&& fu
 
 		generator.SetExecuting();
 		
-		SaveStackFrame(cur_func_def, generator.function(), &generator.function_def()
+		SaveStackFrame(generator.function(), &generator.function_def()
 			, std::move(this_val), 0, true);
 		pc_ = generator.pc();
 

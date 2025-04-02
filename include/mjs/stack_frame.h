@@ -28,7 +28,7 @@ public:
 
 	// 正数表示从栈帧底向上索引，0开始
 	// 负数表示从栈帧顶向下索引，-1开始
-	Value& get(ptrdiff_t index);
+	Value& get(ptrdiff_t index) const;
 	void set(ptrdiff_t index, const Value& value);
 	void set(ptrdiff_t index, Value&& value);
 

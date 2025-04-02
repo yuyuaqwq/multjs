@@ -22,6 +22,11 @@ public:
 		argv_ = std::move(other.argv_);
 	}
 
+	const auto& func() const { return func_; }
+	const auto& this_val() const { return this_val_; }
+	const auto& argv() const { return argv_; }
+
+
 private:
 	Value func_;
 	Value this_val_;

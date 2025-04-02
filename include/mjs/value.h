@@ -60,7 +60,7 @@ class FunctionDef;
 
 class Value {
 public:
-	using CppFunction = Value(*)(Context* context, const Value& this_val, uint32_t par_count, StackFrame* stack);
+	using CppFunction = Value(*)(Context* context, const Value& this_val, uint32_t par_count, const StackFrame& stack);
 
 public:
 	Value();

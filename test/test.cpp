@@ -21,6 +21,8 @@ int main() {
     auto ctx = Context(&rt);
     ctx.Eval(content);
 
+    ctx.ExecuteMicrotasks();
+
     auto start = std::chrono::high_resolution_clock::now();
 
 

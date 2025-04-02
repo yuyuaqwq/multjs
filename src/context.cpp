@@ -18,15 +18,15 @@ Value Context::Eval(std::string_view script) {
 	auto codegener = CodeGener(runtime_);
 	auto func = codegener.Generate(src.get());
 
-	Call(func);
+	Call(func, Value(), {});
 
 	return func;
 }
 
-void Context::Call(const Value& func) {
-	std::cout << func.function_def().Disassembly(this);
+void Context::Call(Value func, Value this_val, const std::vector<Value>& argv) {
+	// std::cout << func.function_def().Disassembly(this);
 
-	vm_.EvalFunction(func);
+	vm_.EvalFunction(std::move(func), std::move(this_val), argv);
 }
 
 

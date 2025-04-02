@@ -9,7 +9,13 @@ anonymousfunc();
 
 let promise = new Promise();
 
-promise.then();
+promise.then(function() {
+    println("sb666");
+    return;
+});
+
+promise.resolve();
+promise.resolve();
 
 // async function asyncfunc() {
 //     let res = await 123;

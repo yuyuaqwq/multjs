@@ -29,13 +29,12 @@ public:
 public:
 	explicit Vm(Context* context);
 
-public:
-	void EvalFunction(const Value& func);
+	Value EvalFunction(Value func, Value this_val, const std::vector<Value>& argv);
 
 private:
 	bool FunctionDefLoadInit(Value* func_def_val);
 	void FunctionEnterInit(const Value& func_val);
-	void FunctionSwitch(FunctionDef** cur_func_def, Value&& this_val, Value&& func_val);
+	void FunctionSwitch(Value&& this_val, Value&& func_val);
 
 	void Run();
 
@@ -48,16 +47,17 @@ private:
 
 	void LoadConst(ConstIndex const_idx);
 
-	void SaveStackFrame(FunctionDef** cur_func_def, const Value& func_val, FunctionDef* func_def
+	void SaveStackFrame(const Value& func_val, FunctionDef* func_def
 		, Value&& this_val, uint32_t par_count, bool is_generator);
-	Value RestoreStackFrame(FunctionDef** cur_func_def);
+	Value RestoreStackFrame();
 
 	Stack& stack();
-	FunctionDef& function_def(const Value& func_val) const;
+	FunctionDef* function_def(const Value& func_val) const;
 private:
 	Context* context_;
 
 	Value cur_func_val_;
+	FunctionDef* cur_func_def_;
 	uint32_t pc_ = 0;
 
 	StackFrame stack_frame_;

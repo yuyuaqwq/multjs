@@ -17,7 +17,7 @@ public:
 
 	Value Eval(std::string_view script);
 
-	void Call(const Value& func);
+	void Call(Value func, Value this_val, const std::vector<Value>& argv);
 
 	void Gc() {
 		// 第一趟将孩子解引用为0的挂入tmp，因为该孩子节点只被当前节点引用
@@ -27,6 +27,13 @@ public:
 		// 如果没有被挂回链表的节点，那就是垃圾了，没有被根节点自下的路径引用
 	}
 
+	void ExecuteMicrotasks() {
+		while (!microtask_queue_.empty()) {
+			auto& task = microtask_queue_.front();
+			Call(task.func(), task.this_val(), task.argv());
+			microtask_queue_.pop();
+		}
+	}
 
 	auto& runtime() const { return *runtime_; }
 	// LocalConstPool& const_pool() { return local_const_pool_; }

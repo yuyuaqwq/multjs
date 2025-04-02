@@ -65,7 +65,7 @@ void StackFrame::reduce(size_t count) {
 }
 
 // 负数表示从栈顶向下索引
-Value& StackFrame::get(ptrdiff_t index) {
+Value& StackFrame::get(ptrdiff_t index) const {
 	if (index >= 0) {
 		return stack_->get(bottom_ + index);
 	}
