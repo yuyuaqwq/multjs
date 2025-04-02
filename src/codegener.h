@@ -42,7 +42,6 @@ private:
 
 	void GenerateBlock(BlockStat* block);
 	void GenerateStat(Stat* stat);
-	void GenerateFunctionDeclStat(FuncDeclStat* stat);
 	void GenerateReturnStat(ReturnStat* stat);
 	void GenerateNewVarStat(NewVarStat* stat);
 	void GenerateIfStat(IfStat* stat);
@@ -51,6 +50,8 @@ private:
 	void GenerateBreakStat(BreakStat* stat);
 	void GenerateExp(Exp* exp);
 	void GenerateIfEq(Exp* exp);
+
+	void GenerateFunctionDeclExp(FuncDeclExp* exp);
 
 	Value MakeValue(Exp* exp);
 	void GenerateParList(const std::vector<std::unique_ptr<Exp>>& par_list);

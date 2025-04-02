@@ -28,7 +28,6 @@ public:
 
 	std::unique_ptr<ExpStat> ParseExpStat();
 
-	std::unique_ptr<FuncDeclStat> ParseFunctionDeclStat();
 	std::vector<std::string> ParseParNameList();
 	std::unique_ptr<IfStat> ParseIfStat();
 	std::unique_ptr<ElseIfStat> ParseElseIfStat();
@@ -73,6 +72,7 @@ public:
 
 	std::unique_ptr<Exp> ParsePrimaryExp();
 
+	std::unique_ptr<FuncDeclExp> ParseFunctionDeclExp();
 	std::vector<std::unique_ptr<Exp>> ParseExpList(TokenType begin, TokenType end, bool allow_comma_end);
 
 private:

@@ -11,6 +11,11 @@
 
 namespace mjs {
 
+// 未来考虑优化
+// 数组+哈希表
+// .方式访问，编译成类似局部变量的数组idx访问
+// []方式访问，走哈希表查询得到idx，再查数组
+
 class Runtime;
 class Object : public noncopyable {
 public:

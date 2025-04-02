@@ -22,6 +22,7 @@ enum class ExpType {
 	kIndexedExp,
 	kDotExp,
 	kNew,
+	kFunctionDecl,
 	kFunctionCall,
 	kYield,
 };
@@ -207,6 +208,26 @@ struct NewExp : public Exp {
 
 	std::unique_ptr<Exp> callee;
 	std::vector<std::unique_ptr<Exp>> par_list;
+};
+
+struct BlockStat;
+struct FuncDeclExp : public Exp {
+	virtual ExpType GetType() const noexcept {
+		return ExpType::kFunctionDecl;
+	}
+
+	FuncDeclExp(const std::string& func_name, const std::vector<std::string>& par_list
+		, std::unique_ptr<BlockStat> block, FunctionType func_type) 
+		: func_name(func_name)
+		, par_list(par_list)
+		, block(std::move(block))
+		, func_type(func_type) {}
+
+	std::string func_name;
+	std::vector<std::string> par_list;
+	std::unique_ptr<BlockStat> block;
+
+	FunctionType func_type;
 };
 
 struct FunctionCallExp : public Exp {

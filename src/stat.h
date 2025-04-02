@@ -14,7 +14,6 @@ namespace mjs {
 
 enum class StatType {
 	kExp,
-	kFunctionDecl,
 	kIf,
 	kElseIf,
 	kElse,
@@ -43,18 +42,6 @@ struct ExpStat : public Stat {
 	ExpStat(std::unique_ptr<Exp> exp);
 
 	std::unique_ptr<Exp> exp;
-};
-
-struct FuncDeclStat : public Stat {
-	virtual StatType GetType() const noexcept;
-	FuncDeclStat(const std::string& func_name, const std::vector<std::string>& par_list
-		, std::unique_ptr<BlockStat> block, FunctionType func_type);
-
-	std::string func_name;
-	std::vector<std::string> par_list;
-	std::unique_ptr<BlockStat> block;
-
-	FunctionType func_type;
 };
 
 struct ElseIfStat;

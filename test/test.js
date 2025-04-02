@@ -1,4 +1,12 @@
 
+let anonymousfunc = function() {
+    println("anonymousfunc");
+    return;
+};
+
+anonymousfunc();
+anonymousfunc();
+
 let promise = new Promise();
 
 promise.then();

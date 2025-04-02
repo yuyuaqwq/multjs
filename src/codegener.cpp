@@ -156,10 +156,6 @@ void CodeGener::GenerateStat(Stat* stat) {
 		}
 		break;
 	}
-	case StatType::kFunctionDecl: {
-		GenerateFunctionDeclStat(static_cast<FuncDeclStat*>(stat));
-		break;
-	}
 	case StatType::kReturn: {
 		GenerateReturnStat(static_cast<ReturnStat*>(stat));
 		break;
@@ -187,49 +183,6 @@ void CodeGener::GenerateStat(Stat* stat) {
 	default:
 		throw CodeGenerException("Unknown statement type");
 	}
-}
-
-void CodeGener::GenerateFunctionDeclStat(FuncDeclStat* stat) {
-	auto const_idx = AllocConst(Value(new FunctionDef(stat->par_list.size())));
-	cur_func_def_->byte_code().EmitConstLoad(const_idx);
-
-	auto& func_def = runtime_->const_pool().at(const_idx).function_def();
-
-	auto var_idx = AllocVar(stat->func_name);
-	cur_func_def_->byte_code().EmitVarStore(var_idx);
-
-	if (stat->func_type == FunctionType::kGenerator) {
-		func_def.SetGenerator();
-	}
-
-	// 保存环境，以生成新指令流
-	auto savefunc = cur_func_def_;
-
-	// 切换环境
-	EntryScope(&func_def);
-	cur_func_def_ = &func_def;
-
-	// 参数正序分配
-	for (size_t i = 0; i < cur_func_def_->par_count(); ++i) {
-		AllocVar(stat->par_list[i]);
-	}
-
-	auto block = stat->block.get();
-	for (size_t i = 0; i < block->stat_list.size(); i++) {
-		auto& stat = block->stat_list[i];
-		GenerateStat(stat.get());
-		if (i == block->stat_list.size() - 1) {
-			if (stat->GetType() != StatType::kReturn) {
-				// 补全末尾的return
-				cur_func_def_->byte_code().EmitConstLoad(AllocConst(Value()));
-				cur_func_def_->byte_code().EmitReturn(cur_func_def_->IsGenerator());
-			}
-		}
-	}
-
-	// 恢复环境
-	ExitScope();
-	cur_func_def_ = savefunc;
 }
 
 void CodeGener::GenerateReturnStat(ReturnStat* stat) {
@@ -419,6 +372,9 @@ void CodeGener::GenerateBreakStat(BreakStat* stat) {
 
 void CodeGener::GenerateExp(Exp* exp) {
 	switch (exp->GetType()) {
+	case ExpType::kFunctionDecl:
+		GenerateFunctionDeclExp(static_cast<FuncDeclExp*>(exp));
+		break;
 	case ExpType::kNull:
 	case ExpType::kBool:
 	case ExpType::kNumber:
@@ -683,6 +639,54 @@ void CodeGener::GenerateExp(Exp* exp) {
 		throw CodeGenerException("Unrecognized exp");
 		break;
 	}
+}
+
+void CodeGener::GenerateFunctionDeclExp(FuncDeclExp* exp) {
+	auto const_idx = AllocConst(Value(new FunctionDef(exp->par_list.size())));
+	auto& func_def = runtime_->const_pool().at(const_idx).function_def();
+	if (exp->func_type == FunctionType::kGenerator) {
+		func_def.SetGenerator();
+	}
+	cur_func_def_->byte_code().EmitConstLoad(const_idx);
+
+	if (!exp->func_name.empty()) {
+		// 非匿名函数分配变量来装，这里其实有个没考虑的地方
+		// 如果外层还有一层赋值，那么该函数的名字应该只在函数内作用域有效
+		auto var_idx = AllocVar(exp->func_name);
+		cur_func_def_->byte_code().EmitVarStore(var_idx);
+
+		// 栈顶的被赋值消耗了，再push一个
+		cur_func_def_->byte_code().EmitConstLoad(const_idx);
+	}
+
+	// 保存环境，以生成新指令流
+	auto savefunc = cur_func_def_;
+
+	// 切换环境
+	EntryScope(&func_def);
+	cur_func_def_ = &func_def;
+
+	// 参数正序分配
+	for (size_t i = 0; i < cur_func_def_->par_count(); ++i) {
+		AllocVar(exp->par_list[i]);
+	}
+
+	auto block = exp->block.get();
+	for (size_t i = 0; i < block->stat_list.size(); i++) {
+		auto& stat = block->stat_list[i];
+		GenerateStat(stat.get());
+		if (i == block->stat_list.size() - 1) {
+			if (stat->GetType() != StatType::kReturn) {
+				// 补全末尾的return
+				cur_func_def_->byte_code().EmitConstLoad(AllocConst(Value()));
+				cur_func_def_->byte_code().EmitReturn(cur_func_def_->IsGenerator());
+			}
+		}
+	}
+
+	// 恢复环境
+	ExitScope();
+	cur_func_def_ = savefunc;
 }
 
 void CodeGener::GenerateIfEq(Exp* exp) {

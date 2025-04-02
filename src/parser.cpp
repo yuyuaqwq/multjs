@@ -45,10 +45,6 @@ std::unique_ptr<BlockStat> Parser::ParseBlockStat() {
 std::unique_ptr<Stat> Parser::ParseStat() {
 	auto token = lexer_->PeekToken();
 	switch (token.type()) {
-		case TokenType::kKwAsync:
-		case TokenType::kKwFunction: {
-			return ParseFunctionDeclStat();
-		}
 		case TokenType::kKwLet: {
 			return ParseNewVarStat();
 		}
@@ -73,8 +69,12 @@ std::unique_ptr<Stat> Parser::ParseStat() {
 		case TokenType::kKwReturn: {
 			return ParseReturnStat();
 		}
+		case TokenType::kKwAsync:
+		case TokenType::kKwFunction: {
+			// 如果是直接定义，就不需要添加分号
+			return std::make_unique<ExpStat>(ParseFunctionDeclExp());
+		}
 		case TokenType::kIdentifier: {
-			
 			// break;
 		}
 		default: {
@@ -91,27 +91,6 @@ std::unique_ptr<ExpStat> Parser::ParseExpStat() {
 	auto exp = ParseExp();
 	lexer_->MatchToken(TokenType::kSepSemi);
 	return std::make_unique<ExpStat>(std::move(exp));
-}
-
-std::unique_ptr<FuncDeclStat> Parser::ParseFunctionDeclStat() {
-	FunctionType type = FunctionType::kNormal;
-	if (lexer_->PeekToken().Is(TokenType::kKwAsync)) {
-		lexer_->NextToken();
-		type = FunctionType::kAsync;
-	}
-	lexer_->MatchToken(TokenType::kKwFunction);
-	if (lexer_->PeekToken().Is(TokenType::kOpMul)) {
-		if (type != FunctionType::kNormal) {
-			throw ParserException("Does not support asynchronous generator function.");
-		}
-		// 生成器函数
-		lexer_->NextToken();
-		type = FunctionType::kGenerator;
-	}
-	auto func_name = lexer_->MatchToken(TokenType::kIdentifier).str();
-	auto par_list = ParseParNameList();
-	auto block = ParseBlockStat();
-	return std::make_unique<FuncDeclStat>(func_name, par_list, std::move(block), type);
 }
 
 std::vector<std::string> Parser::ParseParNameList() {
@@ -591,6 +570,10 @@ std::unique_ptr<Exp> Parser::ParsePrimaryExp() {
 	auto token = lexer_->PeekToken();
 	std::unique_ptr<Exp> exp;
 	switch (token.type()) {
+	case TokenType::kKwAsync:
+	case TokenType::kKwFunction:
+		exp = ParseFunctionDeclExp();
+		break;
 	case TokenType::kNull: {
 		lexer_->NextToken();
 		exp = std::make_unique<NullExp>();
@@ -662,6 +645,30 @@ std::unique_ptr<Exp> Parser::ParsePrimaryExp() {
 		throw ParserException("Unable to parse expression.");
 	}
 	return exp;
+}
+
+std::unique_ptr<FuncDeclExp> Parser::ParseFunctionDeclExp() {
+	FunctionType type = FunctionType::kNormal;
+	if (lexer_->PeekToken().Is(TokenType::kKwAsync)) {
+		lexer_->NextToken();
+		type = FunctionType::kAsync;
+	}
+	lexer_->MatchToken(TokenType::kKwFunction);
+	if (lexer_->PeekToken().Is(TokenType::kOpMul)) {
+		if (type != FunctionType::kNormal) {
+			throw ParserException("Does not support asynchronous generator function.");
+		}
+		// 生成器函数
+		lexer_->NextToken();
+		type = FunctionType::kGenerator;
+	}
+	std::string func_name;
+	if (lexer_->PeekToken().Is(TokenType::kIdentifier)) {
+		func_name = lexer_->NextToken().str();
+	}
+	auto par_list = ParseParNameList();
+	auto block = ParseBlockStat();
+	return std::make_unique<FuncDeclExp>(func_name, par_list, std::move(block), type);
 }
 
 std::vector<std::unique_ptr<Exp>> Parser::ParseExpList(TokenType begin, TokenType end, bool allow_comma_end) {

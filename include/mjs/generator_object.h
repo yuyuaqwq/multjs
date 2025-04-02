@@ -11,10 +11,7 @@ class Context;
 class GeneratorObject : public Object {
 public:
     GeneratorObject(Context* context, const Value& function)
-        : function_(function), stack_(0)
-    {
-        
-    }
+        : function_(function), stack_(0) {}
 
     bool IsSuspended() const { return state_ == State::kSuspended; }
     bool IsExecuting() const { return state_ == State::kExecuting; }

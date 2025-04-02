@@ -6,11 +6,7 @@ namespace mjs {
 
 PromiseObject::PromiseObject(Context* context, Value resolve_func, Value reject_func)
     : resolve_func_(std::move(resolve_func))
-    , reject_func_(std::move(reject_func))
-{
-    
-}
-
+    , reject_func_(std::move(reject_func)) {}
 
 void PromiseObject::Resolve(Context* context) {
     if (!IsPending()) {
