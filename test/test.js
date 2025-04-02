@@ -10,7 +10,7 @@ anonymousfunc();
 let promise = new Promise();
 
 promise.then(function() {
-    println("sb666");
+    println("promise!!");
     return;
 });
 

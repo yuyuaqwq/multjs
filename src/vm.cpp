@@ -231,7 +231,7 @@ Value Vm::RestoreStackFrame() {
 
 void Vm::Run() {
 	do {
-		OpcodeType opcode_; uint32_t par; auto pc = pc_; std::cout << cur_func_def_->byte_code().Disassembly(context_, pc, opcode_, par, cur_func_def_) << std::endl;
+		//OpcodeType opcode_; uint32_t par; auto pc = pc_; std::cout << cur_func_def_->byte_code().Disassembly(context_, pc, opcode_, par, cur_func_def_) << std::endl;
 		auto opcode = cur_func_def_->byte_code().GetOpcode(pc_++);
 		switch (opcode) {
 		//case OpcodeType::kStop:
