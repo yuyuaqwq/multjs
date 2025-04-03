@@ -12,7 +12,6 @@ PromiseObject::PromiseObject(Context* context, Value executor) {
     Reference();
 
     // 传递两个参数，resolve和reject
-    // 看上去得做成一个对象，其value指向promise
     context->Call(executor, Value(), {
         Value(ValueType::kPromiseResolve, this),
         Value(ValueType::kPromiseReject, this)
