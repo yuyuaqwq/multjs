@@ -73,16 +73,34 @@ public:
 		property_map_.erase(key);
 	}
 
+	void SetStaticProperty(Runtime* runtime, const Value& key, Value&& val) {
+		static_property_map_[key] = std::move(val);
+	}
+
+	Value* GetStaticProperty(Runtime* runtime, const Value& key) {
+		auto iter = static_property_map_.find(key);
+		if (iter != static_property_map_.end()) {
+			return &iter->second;
+		}
+		return nullptr;
+	}
+
+	void DelStaticProperty(Context* context, const Value& key) {
+		static_property_map_.erase(key);
+	}
+
+
 	ClassId id() const { return id_; }
 	const auto& name() const { return name_; }
 
-	const auto& property_map() const { return property_map_; }
-	auto& property_map() { return property_map_; }
+	//const auto& property_map() const { return property_map_; }
+	//auto& property_map() { return property_map_; }
 
 protected:
 	ClassId id_;
 	std::string name_;
 	PropertyMap property_map_;
+	PropertyMap static_property_map_;
 };
 
 using ClassDefUnique = std::unique_ptr<ClassDef>;

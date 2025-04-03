@@ -317,7 +317,7 @@ void Vm::Run() {
 			}
 			else if (obj_val.IsClassDef()) {
 				auto& class_def = obj_val.class_def();
-				prop = class_def.GetProperty(&context_->runtime(), key_val);
+				prop = class_def.GetStaticProperty(&context_->runtime(), key_val);
 			}
 			else {
 				// 非Object类型，根据类型来处理
