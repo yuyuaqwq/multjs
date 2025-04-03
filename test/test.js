@@ -27,11 +27,11 @@ promise.then(function(val) {
 // promise.resolve();
 
 
-// async function asyncfunc() {
-//     let res = await new Promise();
-// }
+async function asyncfunc() {
+    let res = await new Promise();
+}
 
-// let res_promise = asyncfunc();
+let res_promise = asyncfunc();
 
 function* gen(a, b, c) {
     let ttt = this;

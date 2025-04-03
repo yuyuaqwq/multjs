@@ -456,6 +456,19 @@ void Vm::CallInternal(Value func_val, Value this_val) {
 			// 表达式如果是一个promise对象，判断状态，如果是pending，则走yield流程
 			// 否则继续执行
 
+			auto& obj = stack_frame_.get(-1);
+
+			if (obj.IsPromiseObject()) {
+				auto& promise = obj.promise();
+				if (promise.IsPending()) {
+					// yield流程
+
+				}
+			}
+
+			auto ret_value = RestoreStackFrame();
+			stack_frame_.push(std::move(ret_value));
+
 			goto exit_;
 
 			break;
@@ -656,7 +669,6 @@ bool Vm::FunctionSwitch(Value func_val, Value this_val) {
 	    if (par_count > 0) {
 	        value = stack_frame_.get(-1);
 	    }
-
 		stack().reduce(par_count);
 
 		if (func_val.type() == ValueType::kPromiseResolve) {
