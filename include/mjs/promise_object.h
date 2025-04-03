@@ -10,8 +10,8 @@ class PromiseObject : public Object {
 public:
     PromiseObject(Context* context, Value resolve_func, Value reject_func);
 
-    void Resolve(Context* context);
-    void Reject(Context* context);
+    void Resolve(Context* context, Value value);
+    void Reject(Context* context, Value value);
     Value Then(Context* context, Value on_fulfilled, Value on_rejected);
 
     bool IsPending() {
@@ -25,6 +25,9 @@ public:
     bool IsRejected() {
         return state_ == State::kRejected;
     }
+
+    const auto& result() const { return result_; }
+    void set_result(Value value) { result_ = std::move(value); }
 
     virtual ClassId class_id() const override { return ClassId::kPromise; }
 

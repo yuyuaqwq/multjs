@@ -13,12 +13,12 @@ anonymousfunc();
 
 let promise = new Promise();
 
-promise.then(function() {
-    println("promise!!");
+promise.then(function(val) {
+    println("promise!! ", val);
     return;
 });
 
-promise.resolve();
+promise.resolve(1);
 promise.resolve();
 
 

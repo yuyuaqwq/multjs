@@ -10,12 +10,20 @@ PromiseClassDef::PromiseClassDef()
 {
 	property_map_.NewMethod(Value("resolve"), Value([](Context* context, const Value& this_val, uint32_t par_count, const StackFrame& stack) -> Value {
 		auto& promise = this_val.promise();
-		promise.Resolve(context);
+		Value value;
+		if (par_count > 0) {
+			value = stack.get(0);
+		}
+		promise.Resolve(context, value);
 		return Value();
 	}));
 	property_map_.NewMethod(Value("reject"), Value([](Context* context, const Value& this_val, uint32_t par_count, const StackFrame& stack) -> Value {
 		auto& promise = this_val.promise();
-		promise.Reject(context);
+		Value value;
+		if (par_count > 0) {
+			value = stack.get(0);
+		}
+		promise.Reject(context, value);
 		return Value();
 	}));
 	property_map_.NewMethod(Value("then"), Value([](Context* context, const Value& this_val, uint32_t par_count, const StackFrame& stack) -> Value {
@@ -32,6 +40,16 @@ PromiseClassDef::PromiseClassDef()
 	}));
 
 	static_property_map_.NewMethod(Value("resolve"), Value([](Context* context, const Value& this_val, uint32_t par_count, const StackFrame& stack) -> Value {
+		auto promise = new PromiseObject(context, Value(), Value());
+		Value value;
+		if (par_count > 0) {
+			value = stack.get(0);
+		}
+		promise->Resolve(context, value);
+		return Value(promise);
+	}));
+
+	static_property_map_.NewMethod(Value("reject"), Value([](Context* context, const Value& this_val, uint32_t par_count, const StackFrame& stack) -> Value {
 		return Value();
 	}));
 }

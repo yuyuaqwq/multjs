@@ -8,40 +8,63 @@ PromiseObject::PromiseObject(Context* context, Value resolve_func, Value reject_
     : resolve_func_(std::move(resolve_func))
     , reject_func_(std::move(reject_func)) {}
 
-void PromiseObject::Resolve(Context* context) { // , Value value
+void PromiseObject::Resolve(Context* context, Value value) {
     if (!IsPending()) {
         return;
     }
+
     state_ = State::kFulfilled;
+    result_ = value;
+
     auto& microtask_queue = context->microtask_queue();
     while (!on_fulfill_callbacks_.empty()) {
-        microtask_queue.emplace(std::move(on_fulfill_callbacks_.front()));
+        auto& job = on_fulfill_callbacks_.front();
+        job.AddArg(value);
+        microtask_queue.emplace(std::move(job));
         on_fulfill_callbacks_.pop();
     }
 
-    //if (value.IsPromiseObject()) {
-    //    return value;
-    //}
-    //auto promise_obj = new PromiseObject(context, Value(), Value());
-
-    //promise_obj->set_result();
-    //return Value(promise_obj);
+    while (!on_reject_callbacks_.empty()) {
+        on_reject_callbacks_.pop();
+    }
 }
 
-void PromiseObject::Reject(Context* context) {
+void PromiseObject::Reject(Context* context, Value value) {
     if (!IsPending()) {
         return;
     }
+
     state_ = State::kRejected;
+    result_ = value;
+
     auto& microtask_queue = context->microtask_queue();
     while (!on_reject_callbacks_.empty()) {
-        microtask_queue.emplace(std::move(on_reject_callbacks_.front()));
+        auto& job = on_reject_callbacks_.front();
+        job.AddArg(value);
+        microtask_queue.emplace(std::move(job));
         on_reject_callbacks_.pop();
+    }
+
+    while (!on_fulfill_callbacks_.empty()) {
+        on_fulfill_callbacks_.pop();
     }
 }
 
 Value PromiseObject::Then(Context* context, Value on_fulfilled, Value on_rejected) {
     auto& microtask_queue = context->microtask_queue();
+    if (IsFulfilled()) {
+        auto job = Job(std::move(on_fulfilled), Value());
+        job.AddArg(result_);
+        microtask_queue.emplace(std::move(job));
+        return Value(this);
+    }
+    if (IsRejected()) {
+        auto job = Job(std::move(on_rejected), Value());
+        job.AddArg(result_);
+        microtask_queue.emplace(std::move(job));
+        return Value(this);
+    }
+
     if (on_fulfilled.IsFunctionObject()) {
         auto on_fulfill_job = Job(on_fulfilled, Value());
         if (IsPending()) {
@@ -60,6 +83,7 @@ Value PromiseObject::Then(Context* context, Value on_fulfilled, Value on_rejecte
             microtask_queue.emplace(std::move(on_reject_job));
         }
     }
+
     return Value(this);
 }
 
