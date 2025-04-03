@@ -5,10 +5,19 @@
 namespace mjs {
 
 PromiseObject::PromiseObject(Context* context, Value executor) {
+    if (executor.IsUndefined()) return;
+
+    // 避免kPromiseResolve和kPromiseReject的析构导致当前对象释放，先引用
+    Reference();
+
     // 传递两个参数，resolve和reject
+    // 看上去得做成一个对象，其value指向promise
     context->Call(executor, Value(), {
-        Value(), Value()
+        Value(ValueType::kPromiseResolve, this),
+        Value(ValueType::kPromiseReject, this)
     });
+
+    Dereference();
 }
 
 void PromiseObject::Resolve(Context* context, Value value) {

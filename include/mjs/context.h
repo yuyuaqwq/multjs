@@ -17,7 +17,7 @@ public:
 
 	Value Eval(std::string_view script);
 
-	Value Call(Value func, Value this_val, const std::vector<Value>& argv);
+	Value Call(Value func_val, Value this_val, const std::vector<Value>& argv);
 
 	void Gc() {
 		// 第一趟将孩子解引用为0的挂入tmp，因为该孩子节点只被当前节点引用

@@ -19,12 +19,6 @@ namespace mjs {
 class Runtime;
 class Object : public noncopyable {
 public:
-	Object() {
-		tag_.full_ = 0;
-		tag_.ref_count_ = 0;
-
-		property_map_ = nullptr;
-	}
 	virtual ~Object() {
 		if (property_map_) {
 			delete property_map_;
@@ -56,11 +50,11 @@ public:
 
 protected:
 	union {
-		uint64_t full_;
+		uint64_t full_ = 0;
 		uint32_t ref_count_;
 	} tag_;
 	Value prototype_;
-	PropertyMap* property_map_;
+	PropertyMap* property_map_ = nullptr;
 };
 
 } // namespace mjs

@@ -39,7 +39,8 @@ enum class ValueType : uint32_t {
 	kFunctionDef,
 	kCppFunction,
 	kGeneratorNext,
-	// kPromiseThen,
+	kPromiseResolve,
+	kPromiseReject,
 };
 
 class Context;
@@ -87,6 +88,7 @@ public:
 	explicit Value(CppFunction bridge);
 
 	Value(ValueType type);
+	Value(ValueType type, PromiseObject* promise);
 
 	~Value();
 
@@ -150,6 +152,8 @@ public:
 	bool IsFunctionObject() const;
 	bool IsGeneratorObject() const;
 	bool IsPromiseObject() const;
+	bool IsPromiseResolve() const;
+	bool IsPromiseReject() const;
 
 	bool IsI64() const;
 	bool IsU64() const;

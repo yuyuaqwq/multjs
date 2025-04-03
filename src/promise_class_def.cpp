@@ -9,24 +9,6 @@ namespace mjs {
 PromiseClassDef::PromiseClassDef()
 	: ClassDef(ClassId::kPromise, "Promise")
 {
-	property_map_.NewMethod(Value("resolve"), Value([](Context* context, const Value& this_val, uint32_t par_count, const StackFrame& stack) -> Value {
-		auto& promise = this_val.promise();
-		Value value;
-		if (par_count > 0) {
-			value = stack.get(0);
-		}
-		promise.Resolve(context, value);
-		return Value();
-	}));
-	property_map_.NewMethod(Value("reject"), Value([](Context* context, const Value& this_val, uint32_t par_count, const StackFrame& stack) -> Value {
-		auto& promise = this_val.promise();
-		Value value;
-		if (par_count > 0) {
-			value = stack.get(0);
-		}
-		promise.Reject(context, value);
-		return Value();
-	}));
 	property_map_.NewMethod(Value("then"), Value([](Context* context, const Value& this_val, uint32_t par_count, const StackFrame& stack) -> Value {
 		auto& promise = this_val.promise();
 		Value on_fulfilled;

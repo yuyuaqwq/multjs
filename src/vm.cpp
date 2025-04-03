@@ -8,6 +8,7 @@
 #include <mjs/array_object.h>
 #include <mjs/function_object.h>
 #include <mjs/generator_object.h>
+#include <mjs/promise_object.h>
 
 namespace mjs {
 
@@ -646,6 +647,28 @@ bool Vm::FunctionSwitch(Value func_val, Value this_val) {
 			stack().push(next_val);
 		}
 		return true;
+	}
+	case ValueType::kPromiseResolve:
+	case ValueType::kPromiseReject: {
+		auto& promise = func_val.promise();
+
+	    Value value;
+	    if (par_count > 0) {
+	        value = stack_frame_.get(-1);
+	    }
+
+		stack().reduce(par_count);
+
+		if (func_val.type() == ValueType::kPromiseResolve) {
+			promise.Resolve(context_, value);
+		}
+		else if (func_val.type() == ValueType::kPromiseReject) {
+			promise.Reject(context_, value);
+		}
+
+		stack_frame_.push(Value());
+
+		return false;
 	}
 	default:
 		throw VmException("Non callable type.");

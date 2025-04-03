@@ -109,9 +109,17 @@ Value::Value(ValueType type) {
 	if (type == ValueType::kGeneratorNext) {
 		
 	}
-	//if (type == ValueType::kPromiseThen) {
+	else {
+		assert(0);
+	}
+}
 
-	//}
+Value::Value(ValueType type, PromiseObject* promise) {
+	tag_.type_ = type;
+	if (type == ValueType::kPromiseResolve || type == ValueType::kPromiseReject) {
+		value_.object_ = reinterpret_cast<Object*>(promise);
+		value_.object_->Reference();
+	}
 	else {
 		assert(0);
 	}
@@ -434,7 +442,7 @@ GeneratorObject& Value::generator() const {
 }
 
 PromiseObject& Value::promise() const {
-	assert(IsPromiseObject());
+	assert(IsPromiseObject() || IsPromiseResolve() || IsPromiseReject());
 	return *reinterpret_cast<PromiseObject*>(value_.object_);
 }
 
@@ -497,6 +505,8 @@ bool Value::IsObject() const {
 		|| type() == ValueType::kFunctionObject
 		|| type() == ValueType::kGeneratorObject
 		|| type() == ValueType::kPromiseObject
+		|| type() == ValueType::kPromiseResolve
+		|| type() == ValueType::kPromiseReject
 		;
 }
 
@@ -511,6 +521,15 @@ bool Value::IsGeneratorObject() const {
 bool Value::IsPromiseObject() const {
 	return type() == ValueType::kPromiseObject;
 }
+
+bool Value::IsPromiseResolve() const {
+	return type() == ValueType::kPromiseResolve;
+}
+
+bool Value::IsPromiseReject() const {
+	return type() == ValueType::kPromiseReject;
+}
+
 
 bool Value::IsI64() const {
 	return type() == ValueType::kI64;
