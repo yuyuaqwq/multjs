@@ -14,7 +14,6 @@ public:
     void Reject(Context* context);
     Value Then(Context* context, Value on_fulfilled, Value on_rejected);
 
-
     bool IsPending() {
         return state_ == State::kPending;
     }
@@ -42,6 +41,8 @@ private:
     // pending job queue
     JobQueue on_fulfill_callbacks_;
     JobQueue on_reject_callbacks_;
+
+    Value result_;
 };
 
 } // namespace mjs

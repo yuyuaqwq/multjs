@@ -9,6 +9,12 @@ PromiseClassDef::PromiseClassDef()
 	: ClassDef(ClassId::kPromise, "Promise")
 {
 	property_map_.NewMethod(Value("resolve"), Value([](Context* context, const Value& this_val, uint32_t par_count, const StackFrame& stack) -> Value {
+		if (this_val.IsClassDef()) {
+			// ¾²Ì¬µ÷ÓÃ
+
+			return Value();
+		}
+		
 		auto& promise = this_val.promise();
 		promise.Resolve(context);
 		return Value();

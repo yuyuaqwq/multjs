@@ -21,10 +21,8 @@ Value* Object::GetProperty(Runtime* runtime, const Value& key) {
 		
 	// 2. class def查找
 	auto& class_def = runtime->class_def_table().at(class_id());
-	auto iter = class_def.property_map().find(key);
-	if (iter != class_def.property_map().end()) {
-		return &iter->second;
-	}
+	auto val = class_def.GetProperty(runtime, key);
+	if (val) return val;
 
 	// 3. 原型链查找
 	if (prototype_.IsObject()) {

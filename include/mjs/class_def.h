@@ -39,11 +39,13 @@ enum class ClassId {
 	kArray,
 	kGenerator,
 	kPromise,
+	kAsync,
 
 	// 未来可以考虑把js里通过class定义的类也放到这里做优化
 	kCustom,
 };
 
+class Runtime;
 class Object;
 class ClassDef : public noncopyable {
 public:
@@ -54,6 +56,22 @@ public:
 
 	// 如果允许被new构造，重写该函数，new相关对象并返回，如new ArrayObject()
 	virtual Value Constructor(Context* context, uint32_t par_count, const StackFrame& stack) { throw std::runtime_error("Types that are not allowed to be constructed."); }
+
+	void SetProperty(Runtime* runtime, const Value& key, Value&& val) {
+		property_map_[key] = std::move(val);
+	}
+
+	Value* GetProperty(Runtime* runtime, const Value& key) {
+		auto iter = property_map_.find(key);
+		if (iter != property_map_.end()) {
+			return &iter->second;
+		}
+		return nullptr;
+	}
+
+	void DelProperty(Context* context, const Value& key) {
+		property_map_.erase(key);
+	}
 
 	ClassId id() const { return id_; }
 	const auto& name() const { return name_; }

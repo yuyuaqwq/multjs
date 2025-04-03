@@ -63,7 +63,7 @@ public:
 private:
     Value function_;        // 生成器函数定义/函数对象
     Pc pc_ = 0;         // 当前pc
-    Stack stack_;       // 栈
+    Stack stack_;       // 保存的栈
 
     // Value ret_obj_;
 
@@ -73,7 +73,5 @@ private:
         kClosed,
     } state_ = State::kSuspended;
 };
-
-
 
 } // namespace mjs

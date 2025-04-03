@@ -203,6 +203,7 @@ bool Value::operator<(const Value& rhs) const {
 	case ValueType::kFunctionDef:
 	case ValueType::kCppFunction:
 	case ValueType::kUpValue:
+	case ValueType::kClassDef:
 		return value_.full_ < rhs.value_.full_;
 	default:
 		throw std::runtime_error("Incorrect value type.");

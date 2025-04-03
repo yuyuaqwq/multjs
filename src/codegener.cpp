@@ -387,9 +387,21 @@ void CodeGener::GenerateExp(Exp* exp) {
 		break;
 	}
 	case ExpType::kIdentifier: {
-		// 是取变量值的话，查找到对应的变量编号，将其入栈
-		auto var_idx = GetVarByExp(exp);
-		cur_func_def_->byte_code().EmitVarLoad(var_idx);	// 从变量中获取
+
+		// 如果是标识符的话，找下ClassDefTable
+		auto ident_exp = static_cast<IdentifierExp*>(exp);
+		auto class_def = runtime_->class_def_table().find(ident_exp->name);
+		// 先不考虑js里定义的类
+		if (class_def) {
+			auto const_idx = AllocConst(Value(class_def));
+			cur_func_def_->byte_code().EmitConstLoad(const_idx);
+		}
+		else {
+			// throw CodeGenerException("Undefined class.");
+			// 是取变量值的话，查找到对应的变量编号，将其入栈
+			auto var_idx = GetVarByExp(exp);
+			cur_func_def_->byte_code().EmitVarLoad(var_idx);	// 从变量中获取
+		}
 		break;
 	}
 	case ExpType::kThis: {
@@ -580,23 +592,8 @@ void CodeGener::GenerateExp(Exp* exp) {
 		auto new_exp = static_cast<NewExp*>(exp);
 		GenerateParList(new_exp->par_list);
 		
-		// 如果是标识符的话，找下ClassDefTable
-		if (new_exp->callee->GetType() == ExpType::kIdentifier) {
-			auto ident_exp = static_cast<IdentifierExp*>(new_exp->callee.get());
-			auto class_def = runtime_->class_def_table().find(ident_exp->name);
-
-			// 先不考虑js里定义的类
-			if (!class_def) {
-				throw CodeGenerException("Undefined class.");
-			}
-
-			auto const_idx = AllocConst(Value(class_def));
-			cur_func_def_->byte_code().EmitConstLoad(const_idx);
-		}
-		else {
-			GenerateExp(new_exp->callee.get());
-		}
-
+		GenerateExp(new_exp->callee.get());
+		
 		cur_func_def_->byte_code().EmitOpcode(OpcodeType::kNew);
 		break;
 	}

@@ -8,7 +8,7 @@ PromiseObject::PromiseObject(Context* context, Value resolve_func, Value reject_
     : resolve_func_(std::move(resolve_func))
     , reject_func_(std::move(reject_func)) {}
 
-void PromiseObject::Resolve(Context* context) {
+void PromiseObject::Resolve(Context* context) { // , Value value
     if (!IsPending()) {
         return;
     }
@@ -18,6 +18,14 @@ void PromiseObject::Resolve(Context* context) {
         microtask_queue.emplace(std::move(on_fulfill_callbacks_.front()));
         on_fulfill_callbacks_.pop();
     }
+
+    //if (value.IsPromiseObject()) {
+    //    return value;
+    //}
+    //auto promise_obj = new PromiseObject(context, Value(), Value());
+
+    //promise_obj->set_result();
+    //return Value(promise_obj);
 }
 
 void PromiseObject::Reject(Context* context) {

@@ -310,24 +310,28 @@ void Vm::Run() {
 		case OpcodeType::kPropertyLoad: {
 			auto key_val = stack_frame_.pop();
 			auto& obj_val = stack_frame_.get(-1);
+			Value* prop = nullptr;
 			if (obj_val.IsObject()) {
 				auto& obj = obj_val.object();
-				auto prop = obj.GetProperty(&context_->runtime(), key_val);
-				if (!prop) {
-					obj_val = Value();
-				}
-				else {
-					obj_val = *prop;
-				}
+				prop = obj.GetProperty(&context_->runtime(), key_val);
+			}
+			else if (obj_val.IsClassDef()) {
+				auto& class_def = obj_val.class_def();
+				prop = class_def.GetProperty(&context_->runtime(), key_val);
 			}
 			else {
 				// 非Object类型，根据类型来处理
 				// 如undefined需要报错
 				// number等需要转成临时Number Object
+			}
 
+			if (!prop) {
 				obj_val = Value();
 			}
-			
+			else {
+				obj_val = *prop;
+			}
+
 			break;
 		}
 		case OpcodeType::kPropertyStore: {
@@ -452,6 +456,12 @@ void Vm::Run() {
 			stack_frame_.push(std::move(ret_obj));
 			break;
 		}
+		case OpcodeType::kAwait: {
+			// 表达式如果是一个promise对象，判断状态，如果是pending，则走yield流程
+			// 否则继续执行
+
+			break;
+		}
 		case OpcodeType::kNe: {
 			auto a = stack_frame_.pop();
 			auto& b = stack_frame_.get(-1);
@@ -531,33 +541,37 @@ void Vm::FunctionSwitch(Value&& this_val, Value&& func_val) {
 	case ValueType::kFunctionObject: {
 		auto func_def = function_def(func_val);
 
-		if (func_def->IsGenerator()) {
-			// 是生成器函数
-			// 直接返回生成器对象
-			
-			// 提前分配参数和局部变量栈空间
-			auto generator = new GeneratorObject(context_, func_val);
-			generator->stack().upgrade(func_def->var_count());
-
-			// 弹出多余参数
-			stack().reduce(par_count - func_def->par_count());
-
-			// 复制参数
-			for (int32_t i = func_def->par_count() - 1; i >= 0; --i) {
-				generator->stack().set(i, std::move(stack().pop()));
-			}
-
-			stack_frame_.push(Value(generator));
-			return;
-		}
 		// printf("%s\n", func_def->Disassembly().c_str());
 
 		if (par_count < func_def->par_count()) {
 			throw VmException("Wrong number of parameters passed when calling the function");
 		}
 
-		// 把多余的参数弹出
+		// 弹出多余参数
 		stack().reduce(par_count - func_def->par_count());
+
+		if (func_def->IsGenerator() || func_def->IsAsync()) {
+			// 提前分配参数和局部变量栈空间
+			auto generator = new GeneratorObject(context_, func_val);
+			generator->stack().upgrade(func_def->var_count());
+
+			// 复制参数
+			for (int32_t i = func_def->par_count() - 1; i >= 0; --i) {
+				generator->stack().set(i, std::move(stack().pop()));
+			}
+
+			if (func_def->IsGenerator()) {
+				// 是生成器函数
+				// 则直接返回生成器对象
+				stack_frame_.push(Value(generator));
+				return;
+			}
+			else {
+				// 是异步函数
+				// 开始执行
+			}
+		}
+		
 		SaveStackFrame(func_val, func_def, std::move(this_val), par_count, false);
 		pc_ = 0;
 		break;

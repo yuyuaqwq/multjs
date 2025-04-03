@@ -1,3 +1,7 @@
+let p = Promise.resolve(42);
+p.then(function(val) { println(val); });
+
+
 
 let anonymousfunc = function() {
     println("anonymousfunc");
@@ -17,9 +21,12 @@ promise.then(function() {
 promise.resolve();
 promise.resolve();
 
-// async function asyncfunc() {
-//     let res = await 123;
-// }
+
+async function asyncfunc() {
+    let res = await 123;
+}
+
+let res_promise = asyncfunc();
 
 function* gen(a, b, c) {
     let ttt = this;
