@@ -64,9 +64,7 @@ public:
 	std::unique_ptr<Exp> ParseNewExp();
 	std::unique_ptr<Exp> ParseExp3();
 	
-	std::unique_ptr<Exp> ParseCallExp();
-	std::unique_ptr<Exp> ParseMemberExp();
-	std::unique_ptr<Exp> ParseExp2();
+	std::unique_ptr<Exp> ParseExp2(bool match_lparen);
 
 	std::unique_ptr<Exp> ParseExp1();
 

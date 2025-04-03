@@ -479,7 +479,7 @@ std::unique_ptr<Exp> Parser::ParseNewExp() {
 		callee = ParseNewExp();
 	}
 	else {
-		callee = ParseMemberExp();
+		callee = ParseExp2(false);
 	}
 
 	std::vector<std::unique_ptr<Exp>> args;
@@ -496,26 +496,11 @@ std::unique_ptr<Exp> Parser::ParseExp3() {
 	if (type == TokenType::kKwNew) {
 		return ParseNewExp();
 	}
-	return ParseExp2();
+	return ParseExp2(true);
 }
 
 
-std::unique_ptr<Exp> Parser::ParseCallExp() {
-	auto exp = ParseMemberExp();
-	do {
-		auto type = lexer_->PeekToken().type();
-		if (type == TokenType::kSepLParen) {
-			auto args = ParseExpList(TokenType::kSepLParen, TokenType::kSepRParen, false);
-			exp = std::make_unique<FunctionCallExp>(std::move(exp), std::move(args));
-		}
-		else {
-			break;
-		}
-	} while (true);
-	return exp;
-}
-
-std::unique_ptr<Exp> Parser::ParseMemberExp() {
+std::unique_ptr<Exp> Parser::ParseExp2(bool match_lparen) {
 	auto exp = ParsePrimaryExp(); // 解析基本表达式（标识符、字面量等）
 	do {
 		auto type = lexer_->PeekToken().type();
@@ -540,15 +525,15 @@ std::unique_ptr<Exp> Parser::ParseMemberExp() {
 			}
 			exp = std::make_unique<IndexedExp>(std::move(exp), std::move(index), is_method_call);
 		}
+		else if (match_lparen && type == TokenType::kSepLParen) {
+			auto args = ParseExpList(TokenType::kSepLParen, TokenType::kSepRParen, false);
+			exp = std::make_unique<FunctionCallExp>(std::move(exp), std::move(args));
+		}
 		else {
 			break;
 		}
 	} while (true);
 	return exp;
-}
-
-std::unique_ptr<Exp> Parser::ParseExp2() {
-	return ParseCallExp();
 }
 
 

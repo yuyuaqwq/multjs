@@ -230,7 +230,7 @@ Value Vm::RestoreStackFrame() {
 
 
 void Vm::Run() {
-	do {
+	while (pc_ >= 0 && cur_func_def_ && pc_ < cur_func_def_->byte_code().Size()) {
 		//OpcodeType opcode_; uint32_t par; auto pc = pc_; std::cout << cur_func_def_->byte_code().Disassembly(context_, pc, opcode_, par, cur_func_def_) << std::endl;
 		auto opcode = cur_func_def_->byte_code().GetOpcode(pc_++);
 		switch (opcode) {
@@ -439,6 +439,12 @@ void Vm::Run() {
 			stack_frame_.push(std::move(ret_obj));
 			break;
 		}
+		case OpcodeType::kAwait: {
+			// 表达式如果是一个promise对象，判断状态，如果是pending，则走yield流程
+			// 否则继续执行
+
+			break;
+		}
 		case OpcodeType::kYield: {
 			auto& generator = stack_frame_.this_val().generator();
 
@@ -454,12 +460,6 @@ void Vm::Run() {
 			auto ret_value = RestoreStackFrame();
 			auto ret_obj = generator.MakeReturnObject(&context_->runtime(), std::move(ret_value));
 			stack_frame_.push(std::move(ret_obj));
-			break;
-		}
-		case OpcodeType::kAwait: {
-			// 表达式如果是一个promise对象，判断状态，如果是pending，则走yield流程
-			// 否则继续执行
-
 			break;
 		}
 		case OpcodeType::kNe: {
@@ -530,7 +530,7 @@ void Vm::Run() {
 		default:
 			throw VmException("Unknown instruction.");
 		}
-	} while (pc_ >= 0 && cur_func_def_ && pc_ < cur_func_def_->byte_code().Size());
+	}
 }
 
 void Vm::FunctionSwitch(Value&& this_val, Value&& func_val) {

@@ -51,44 +51,67 @@ void PromiseObject::Reject(Context* context, Value value) {
 }
 
 Value PromiseObject::Then(Context* context, Value on_fulfilled, Value on_rejected) {
-    // todo
     auto* new_promise = new PromiseObject(context, Value(), Value());
 
+    // 如果当前then的回调被执行，还需要执行new_promise中的Resolve/Reject
+    auto fulfilled_handler = Value([](Context* context, const Value& this_val, uint32_t par_count, const StackFrame& stack) -> Value {
+        auto& new_promise = this_val.promise();
+        // 首先拿到on_fulfilled执行的返回值
+        assert(par_count == 2);
+        Value on_fulfilled = stack.get(0);
+        Value result = stack.get(1);
+
+        auto on_fulfilled_result = context->Call(on_fulfilled, Value(), { result });
+
+        // 然后传递给new_promise
+        new_promise.Resolve(context, on_fulfilled_result);
+
+        return Value();
+    });
+
+    auto rejected_handler = Value([](Context* context, const Value& this_val, uint32_t par_count, const StackFrame& stack) -> Value {
+        auto& new_promise = this_val.promise();
+        // 首先拿到on_rejected执行的返回值
+        assert(par_count == 2);
+        Value on_rejected = stack.get(0);
+        Value result = stack.get(1);
+
+        auto on_rejected_result = context->Call(on_rejected, Value(), { result });
+
+        // 然后传递给new_promise
+        new_promise.Reject(context, on_rejected_result);
+
+        return Value();
+    });
+
     auto& microtask_queue = context->microtask_queue();
-    if (IsFulfilled()) {
-        auto job = Job(std::move(on_fulfilled), Value());
-        job.AddArg(result_);
-        microtask_queue.emplace(std::move(job));
-        return Value(new_promise);
-    }
-    if (IsRejected()) {
-        auto job = Job(std::move(on_rejected), Value());
-        job.AddArg(result_);
-        microtask_queue.emplace(std::move(job));
-        return Value(new_promise);
-    }
 
     if (on_fulfilled.IsFunctionObject()) {
-        auto on_fulfill_job = Job(on_fulfilled, Value());
+        auto fulfill_job = Job(std::move(fulfilled_handler), Value(new_promise));
+        fulfill_job.AddArg(on_fulfilled);
+
         if (IsPending()) {
-            on_fulfill_callbacks_.emplace(std::move(on_fulfill_job));
+            on_fulfill_callbacks_.emplace(std::move(fulfill_job));
         }
-        else {
-            microtask_queue.emplace(std::move(on_fulfill_job));
+        else if (IsFulfilled()) {
+            fulfill_job.AddArg(result_);
+            microtask_queue.emplace(std::move(fulfill_job));
         }
     }
     if (on_rejected.IsFunctionObject()) {
-        auto on_reject_job = Job(on_rejected, Value());
+        auto reject_job = Job(std::move(rejected_handler), Value(new_promise));
+        reject_job.AddArg(on_rejected);
+
         if (IsPending()) {
-            on_reject_callbacks_.emplace(std::move(on_reject_job));
+            on_reject_callbacks_.emplace(std::move(reject_job));
         }
-        else {
-            microtask_queue.emplace(std::move(on_reject_job));
+        else if (IsRejected()) {
+            reject_job.AddArg(result_);
+            microtask_queue.emplace(std::move(reject_job));
         }
     }
 
     return Value(new_promise);
 }
-
 
 } // namespace mjs
