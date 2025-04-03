@@ -28,7 +28,7 @@ Value Context::Call(Value func, Value this_val, const std::vector<Value>& argv) 
 		std::cout << func.function_def().Disassembly(this);
 	}
 
-	return vm_.EvalFunction(std::move(func), std::move(this_val), argv);
+	return vm_.CallFunction(std::move(func), std::move(this_val), argv);
 }
 
 } // namespace mjs

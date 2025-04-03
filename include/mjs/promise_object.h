@@ -8,7 +8,7 @@ namespace mjs {
 class Context;
 class PromiseObject : public Object {
 public:
-    PromiseObject(Context* context, Value resolve_func, Value reject_func);
+    PromiseObject(Context* context, Value executor);
 
     void Resolve(Context* context, Value value);
     void Reject(Context* context, Value value);
@@ -32,9 +32,6 @@ public:
     virtual ClassId class_id() const override { return ClassId::kPromise; }
 
 private:
-    Value resolve_func_;
-    Value reject_func_;
-
     enum class State {
         kPending = 0,
         kFulfilled = 1,

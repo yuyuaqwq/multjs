@@ -29,17 +29,19 @@ public:
 public:
 	explicit Vm(Context* context);
 
-	Value EvalFunction(Value func, Value this_val, const std::vector<Value>& argv);
+	Value CallFunction(Value func, Value this_val, const std::vector<Value>& argv);
+
+	Value& GetVar(VarIndex idx);
+	void SetVar(VarIndex idx, Value&& var);
 
 private:
 	bool FunctionDefLoadInit(Value* func_def_val);
 	void FunctionEnterInit(const Value& func_val);
-	void FunctionSwitch(Value&& this_val, Value&& func_val);
 
-	void Run();
+	// 返回是否需要继续执行字节码
+	bool FunctionSwitch(Value func_val, Value this_val);
 
-	Value& GetVar(VarIndex idx);
-	void SetVar(VarIndex idx, Value&& var);
+	void CallInternal(Value func_val, Value this_val);
 
 	const Value& GetGlobalConst(ConstIndex idx);
 	const Value& GetLocalConst(ConstIndex idx);

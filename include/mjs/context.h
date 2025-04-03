@@ -35,6 +35,10 @@ public:
 		}
 	}
 
+	const Value& GetVar(VarIndex idx) {
+		return vm_.GetVar(idx);
+	}
+
 	auto& runtime() const { return *runtime_; }
 	// LocalConstPool& const_pool() { return local_const_pool_; }
 

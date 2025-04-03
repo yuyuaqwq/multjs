@@ -2,6 +2,7 @@
 
 #include <mjs/promise_object.h>
 #include <mjs/stack_frame.h>
+#include <mjs/context.h>
 
 namespace mjs {
 
@@ -40,7 +41,7 @@ PromiseClassDef::PromiseClassDef()
 	}));
 
 	static_property_map_.NewMethod(Value("resolve"), Value([](Context* context, const Value& this_val, uint32_t par_count, const StackFrame& stack) -> Value {
-		auto promise = new PromiseObject(context, Value(), Value());
+		auto promise = new PromiseObject(context, Value());
 		Value value;
 		if (par_count > 0) {
 			value = stack.get(0);
@@ -55,15 +56,11 @@ PromiseClassDef::PromiseClassDef()
 }
 
 Value PromiseClassDef::Constructor(Context* context, uint32_t par_count, const StackFrame& stack) {
-	Value resolve_func;
-	Value reject_func;
+	Value executor;
 	if (par_count > 0) {
-		resolve_func = stack.get(0);
+		executor = stack.get(0);
 	}
-	if (par_count > 1) {
-		reject_func = stack.get(1);
-	}
-	return Value(new PromiseObject(context, std::move(resolve_func), std::move(reject_func)));
+	return Value(new PromiseObject(context, std::move(executor)));
 }
 
 } // namespace mjs

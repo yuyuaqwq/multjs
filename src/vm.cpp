@@ -19,7 +19,7 @@ Stack& Vm::stack() {
 	return context_->runtime().stack();
 }
 
-Value Vm::EvalFunction(Value func_val, Value this_val, const std::vector<Value>& argv) {
+Value Vm::CallFunction(Value func_val, Value this_val, const std::vector<Value>& argv) {
 	// 参数正序入栈
 	for (auto& v : argv) {
 		stack_frame_.push(v);
@@ -27,15 +27,12 @@ Value Vm::EvalFunction(Value func_val, Value this_val, const std::vector<Value>&
 	// par_count
 	stack_frame_.push(Value(argv.size()));
 
-	FunctionSwitch(std::move(this_val), std::move(func_val));
-
-	// 最外层的函数不会通过CLoadFunc加载，所以需要自己初始化
-	if (cur_func_val_.IsFunctionDef()) {
-		FunctionDefLoadInit(&cur_func_val_);
+	// 如果传入的是一个func_def，那么需要加载为func_obj
+	if (func_val.IsFunctionDef()) {
+		FunctionDefLoadInit(&func_val);
 	}
-	FunctionEnterInit(cur_func_val_);
 
-	Run();
+	CallInternal(std::move(func_val), std::move(this_val));
 
 	return stack_frame_.pop();
 }
@@ -228,8 +225,16 @@ Value Vm::RestoreStackFrame() {
 	return ret_value;
 }
 
+// Run改成CallInternal，调用函数会递归调用CallInternal
+// CallInternal发现cur_func_def_不是参数execute_func_def_，就返回到上一层
+// 在函数头尾处理栈帧
+void Vm::CallInternal(Value func_val, Value this_val) {
+	if (!FunctionSwitch(func_val, this_val)) {
+		return;
+	}
+	FunctionEnterInit(cur_func_val_);
 
-void Vm::Run() {
+	auto* exec_func_def = function_def(func_val);
 	while (pc_ >= 0 && cur_func_def_ && pc_ < cur_func_def_->byte_code().Size()) {
 		//OpcodeType opcode_; uint32_t par; auto pc = pc_; std::cout << cur_func_def_->byte_code().Disassembly(context_, pc, opcode_, par, cur_func_def_) << std::endl;
 		auto opcode = cur_func_def_->byte_code().GetOpcode(pc_++);
@@ -414,7 +419,7 @@ void Vm::Run() {
 
 			auto this_val = stack_frame_.pop();
 			auto func_val = stack_frame_.pop();
-			FunctionSwitch(std::move(this_val), std::move(func_val));
+			CallInternal(func_val, this_val);
 			break;
 		}
 		case OpcodeType::kGetThis: {
@@ -427,6 +432,9 @@ void Vm::Run() {
 		}
 		case OpcodeType::kReturn: {
 			stack_frame_.push(RestoreStackFrame());
+
+			goto exit_;
+
 			break;
 		}
 		case OpcodeType::kGeneratorReturn: {
@@ -437,11 +445,16 @@ void Vm::Run() {
 			auto ret_value = RestoreStackFrame();
 			auto ret_obj = generator.MakeReturnObject(&context_->runtime(), std::move(ret_value));
 			stack_frame_.push(std::move(ret_obj));
+
+			goto exit_;
+
 			break;
 		}
 		case OpcodeType::kAwait: {
 			// 表达式如果是一个promise对象，判断状态，如果是pending，则走yield流程
 			// 否则继续执行
+
+			goto exit_;
 
 			break;
 		}
@@ -460,6 +473,9 @@ void Vm::Run() {
 			auto ret_value = RestoreStackFrame();
 			auto ret_obj = generator.MakeReturnObject(&context_->runtime(), std::move(ret_value));
 			stack_frame_.push(std::move(ret_obj));
+
+			goto exit_;
+
 			break;
 		}
 		case OpcodeType::kNe: {
@@ -513,7 +529,13 @@ void Vm::Run() {
 			auto par_count = stack_frame_.pop().u64();
 
 			if (value.IsClassDef()) {
+				auto old_bottom = stack_frame_.bottom();
+				stack_frame_.set_bottom(stack().size() - par_count);
+
 				auto obj = value.class_def().Constructor(context_, par_count, stack_frame_);
+
+				// 还原栈帧
+				stack_frame_.set_bottom(old_bottom);
 				stack().reduce(par_count);
 				stack_frame_.push(std::move(obj));
 			}
@@ -531,9 +553,11 @@ void Vm::Run() {
 			throw VmException("Unknown instruction.");
 		}
 	}
+exit_:
+	return;
 }
 
-void Vm::FunctionSwitch(Value&& this_val, Value&& func_val) {
+bool Vm::FunctionSwitch(Value func_val, Value this_val) {
 	auto par_count = stack_frame_.pop().u64();
 
 	switch (func_val.type()) {
@@ -564,7 +588,7 @@ void Vm::FunctionSwitch(Value&& this_val, Value&& func_val) {
 				// 是生成器函数
 				// 则直接返回生成器对象
 				stack_frame_.push(Value(generator));
-				return;
+				return false;
 			}
 			else {
 				// 是异步函数
@@ -574,7 +598,8 @@ void Vm::FunctionSwitch(Value&& this_val, Value&& func_val) {
 		
 		SaveStackFrame(func_val, func_def, std::move(this_val), par_count, false);
 		pc_ = 0;
-		break;
+
+		return true;
 	}
 	case ValueType::kCppFunction: {
 		// 切换栈帧
@@ -587,7 +612,7 @@ void Vm::FunctionSwitch(Value&& this_val, Value&& func_val) {
 		stack_frame_.set_bottom(old_bottom);
 		stack().reduce(par_count);
 		stack_frame_.push(std::move(ret));
-		break;
+		return false;
 	}
 	case ValueType::kGeneratorNext: {
 		auto& generator = this_val.generator();
@@ -619,8 +644,7 @@ void Vm::FunctionSwitch(Value&& this_val, Value&& func_val) {
 		if (!is_first) {
 			stack().push(next_val);
 		}
-
-		break;
+		return true;
 	}
 	default:
 		throw VmException("Non callable type.");

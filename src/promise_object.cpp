@@ -4,9 +4,12 @@
 
 namespace mjs {
 
-PromiseObject::PromiseObject(Context* context, Value resolve_func, Value reject_func)
-    : resolve_func_(std::move(resolve_func))
-    , reject_func_(std::move(reject_func)) {}
+PromiseObject::PromiseObject(Context* context, Value executor) {
+    // 传递两个参数，resolve和reject
+    context->Call(executor, Value(), {
+        Value(), Value()
+    });
+}
 
 void PromiseObject::Resolve(Context* context, Value value) {
     if (!IsPending()) {
@@ -51,7 +54,7 @@ void PromiseObject::Reject(Context* context, Value value) {
 }
 
 Value PromiseObject::Then(Context* context, Value on_fulfilled, Value on_rejected) {
-    auto* new_promise = new PromiseObject(context, Value(), Value());
+    auto* new_promise = new PromiseObject(context, Value());
 
     // 如果当前then的回调被执行，还需要执行new_promise中的Resolve/Reject
     auto fulfilled_handler = Value([](Context* context, const Value& this_val, uint32_t par_count, const StackFrame& stack) -> Value {
