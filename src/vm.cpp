@@ -29,7 +29,7 @@ Value Vm::CallFunction(Value func_val, Value this_val, const std::vector<Value>&
 
 	// 如果传入的是一个func_def，那么需要加载为func_obj
 	if (func_val.IsFunctionDef()) {
-		FunctionDefLoadInit(&func_val);
+		InitClosure(&func_val);
 	}
 
 	CallInternal(std::move(func_val), std::move(this_val));
@@ -48,7 +48,7 @@ FunctionDef* Vm::function_def(const Value& func_val) const {
 	throw std::runtime_error("Unavailable function definition.");
 }
 
-bool Vm::FunctionDefLoadInit(Value* func_def_val) {
+bool Vm::InitClosure(Value* func_def_val) {
 	auto& func_def = func_def_val->function_def();
 	if (func_def.closure_var_defs().empty()) {
 		return false;
@@ -62,10 +62,33 @@ bool Vm::FunctionDefLoadInit(Value* func_def_val) {
 	auto& arr = func.closure_value_arr();
 	arr.resize(func_def.closure_var_defs().size());
 
+	// array需要初始化为upvalue，指向父函数的ArrayValue
+	// 如果没有父函数就不需要，即是顶层函数，默认初始化为未定义
+	if (!cur_func_val_.IsFunctionObject()) {
+		return true;
+	}
+
+	auto& parent_func = cur_func_val_.function();
+
+	// 递增父函数的引用计数，用于延长父函数中的ArrayValue的生命周期
+	func.set_parent_function(cur_func_val_);
+
+	// 引用到父函数的ArrayValue
+	auto& parent_arr = parent_func.closure_value_arr();
+
+	for (auto& def : func.function_def().closure_var_defs()) {
+		if (!def.second.parent_var_idx) {
+			// 当前是顶级变量
+			continue;
+		}
+		auto parent_arr_idx = parent_func.function_def().closure_var_defs()[*def.second.parent_var_idx].arr_idx;
+		arr[def.second.arr_idx] = Value(UpValue(&parent_arr[parent_arr_idx]));
+	}
+
 	return true;
 }
 
-void Vm::FunctionEnterInit(const Value& func_val) {
+void Vm::BindClosureVars(const Value& func_val) {
 	if (!func_val.IsFunctionObject()) {
 		return;
 	}
@@ -127,29 +150,7 @@ void Vm::LoadConst(ConstIndex const_idx) {
 
 	if (value.IsFunctionDef()) {
 		auto func_val = value;
-		if (FunctionDefLoadInit(&func_val)) {
-			// array需要初始化为upvalue，指向父函数的ArrayValue
-			// 如果没有父函数就不需要，即是顶层函数，默认初始化为未定义
-
-			auto& func = func_val.function();
-			auto& parent_func = cur_func_val_.function();
-
-			// 递增父函数的引用计数，用于延长父函数中的ArrayValue的生命周期
-			func.set_parent_function(cur_func_val_);
-
-			// 引用到父函数的ArrayValue
-			auto& arr = func.closure_value_arr();
-			auto& parent_arr = parent_func.closure_value_arr();
-
-			for (auto& def : func.function_def().closure_var_defs()) {
-				if (!def.second.parent_var_idx) {
-					// 当前是顶级变量
-					continue;
-				}
-				auto parent_arr_idx = parent_func.function_def().closure_var_defs()[*def.second.parent_var_idx].arr_idx;
-				arr[def.second.arr_idx] = Value(UpValue(&parent_arr[parent_arr_idx]));
-			}
-		}
+		InitClosure(&func_val);
 		stack_frame_.push(std::move(func_val));
 		return;
 	}
@@ -197,7 +198,7 @@ void Vm::SaveStackFrame(const Value& func_val, FunctionDef* func_def
 	stack_frame_.set_this_val(std::move(this_val));
 
 	if (cur_func_val_.IsFunctionObject()) {
-		FunctionEnterInit(cur_func_val_);
+		BindClosureVars(cur_func_val_);
 	}
 }
 
@@ -232,7 +233,7 @@ void Vm::CallInternal(Value func_val, Value this_val) {
 	if (!FunctionSwitch(func_val, this_val)) {
 		return;
 	}
-	FunctionEnterInit(cur_func_val_);
+	BindClosureVars(cur_func_val_);
 
 	auto* exec_func_def = function_def(func_val);
 	while (pc_ >= 0 && cur_func_def_ && pc_ < cur_func_def_->byte_code().Size()) {

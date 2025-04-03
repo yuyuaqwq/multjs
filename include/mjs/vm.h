@@ -35,8 +35,8 @@ public:
 	void SetVar(VarIndex idx, Value&& var);
 
 private:
-	bool FunctionDefLoadInit(Value* func_def_val);
-	void FunctionEnterInit(const Value& func_val);
+	bool InitClosure(Value* func_def_val);
+	void BindClosureVars(const Value& func_val);
 
 	// 返回是否需要继续执行字节码
 	bool FunctionSwitch(Value func_val, Value this_val);
