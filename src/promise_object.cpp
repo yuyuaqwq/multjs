@@ -7,7 +7,8 @@ namespace mjs {
 PromiseObject::PromiseObject(Context* context, Value executor) {
     if (executor.IsUndefined()) return;
 
-    // 避免kPromiseResolve和kPromiseReject的析构导致当前对象释放，先引用
+    // 在构造函数中使用当前this是危险行为，需要注意
+    // 避免Value(kPromiseResolve) 和 Value(kPromiseReject) 的析构导致当前对象释放，先引用
     Reference();
 
     // 传递两个参数，resolve和reject
