@@ -8,6 +8,7 @@ using ExceptionIdx = uint32_t;
 constexpr ExceptionIdx kExceptionInvalidIdx = 0xffffffff;
 
 struct ExceptionEntry{
+    // 左开右开
     Pc try_start_pc = kInvalidPc;
     Pc try_end_pc = kInvalidPc;
     Pc catch_start_pc = kInvalidPc;
@@ -18,7 +19,7 @@ struct ExceptionEntry{
 
     // 辅助方法：检查PC是否在try块范围内
     bool Contains(Pc pc) const {
-        return pc >= try_start_pc && pc < finally_end_pc;  // 左开右闭
+        return pc >= try_start_pc && pc <= finally_end_pc; 
     }
 
     // 检查是否有catch处理程序
@@ -32,15 +33,15 @@ struct ExceptionEntry{
     }
 
     bool LocatedInTry(Pc pc) const {
-        return pc >= try_start_pc && pc < try_end_pc;
+        return pc >= try_start_pc && pc <= try_end_pc;
     }
 
     bool LocatedInCatch(Pc pc) const {
-        return pc >= catch_start_pc && pc < catch_end_pc;
+        return pc >= catch_start_pc && pc <= catch_end_pc;
     }
 
     bool LocatedInFinally(Pc pc) const {
-        return pc >= finally_start_pc && pc < finally_end_pc;
+        return pc >= finally_start_pc && pc <= finally_end_pc;
     }
 };
 
@@ -63,24 +64,6 @@ public:
             }
         }
         return nullptr; // 未找到匹配的try块
-    }
-
-#undef max
-    // 查找特定PC范围内的最内层条目
-    ExceptionEntry* FindInnermostEntry(Pc start_pc, Pc end_pc) {
-        ExceptionEntry* innermost = nullptr;
-        size_t min_range = std::numeric_limits<size_t>::max();
-
-        for (auto& entry : entries_) {
-            if (entry.try_start_pc >= start_pc && entry.try_end_pc <= end_pc) {
-                size_t range = entry.try_end_pc - entry.try_start_pc;
-                if (range < min_range) {
-                    min_range = range;
-                    innermost = &entry;
-                }
-            }
-        }
-        return innermost;
     }
 
     // 获取所有条目（只读）

@@ -2,50 +2,65 @@
     let a = 100;
 }
 
+
 let anonymousfunc = function() {
     try {
-        return;
-        println("inner try");
-        throw "inner error";
-    }
-    catch (e) {
-        println("anonymousfunc");
-    }
-};
-
-anonymousfunc();
-
-try {
-    println("outer try");
-    try {
-        println("inner try");
-        throw "inner error";
-    }
-    catch (e) {
         try {
-            println("inner catch:", e);
-            throw "new error from catch"; // 重新抛出
-        }
-        catch (e) {
-            println("inner2 catch:", e);
-            throw "new error from inner catch"; // 重新抛出
+            {
+                return 123321;
+            }
         }
         finally {
-            println("inner2 finally");
-            throw "sbsb";
+            println("inner finally2");
+            return 8888;
         }
+        println("inner try");
+        throw "inner error";
+    }
+    catch (e) {
+        println("inner catch:", e);
     }
     finally {
         println("inner finally");
+        return 6666;
     }
-}
-catch (e) {
-    println("outer catch:", e);
-}
-finally {
-    println("outer finally");
-    throw "2b";
-}
+};
+
+let res = anonymousfunc();
+println("res:", res);
+
+
+// try {
+//     println("outer try");
+//     try {
+//         println("inner try");
+//         throw "inner error";
+//     }
+//     catch (e) {
+//         try {
+//             println("inner catch:", e);
+//             throw "new error from catch"; // 重新抛出
+//         }
+//         catch (e) {
+//             println("inner2 catch:", e);
+//             throw "new error from inner catch"; // 重新抛出
+//         }
+//         finally {
+//             println("inner2 finally");
+//             throw "sbsb";
+//         }
+//     }
+//     finally {
+//         println("inner finally");
+//     }
+// }
+// catch (e) {
+//     println("outer catch:", e);
+// }
+// finally {
+//     println("outer finally");
+//     throw "2b";
+// }
 
 println("end");
 

@@ -30,7 +30,7 @@ public:
 	Value Generate(BlockStat* block);
 
 private:
-	void EntryScope(FunctionDef* sub_func = nullptr);
+	void EntryScope(FunctionDef* sub_func = nullptr, bool has_finally = false);
 	void ExitScope();
 
 	ConstIndex AllocConst(Value&& value);
@@ -38,9 +38,11 @@ private:
 
 	VarIndex AllocVar(const std::string& name);
 	std::optional<VarIndex> FindVarIndexByName(const std::string& name);
+	bool HasFinally();
+	
 	VarIndex GetVarByExp(Exp* exp);
 
-	void GenerateBlock(BlockStat* block, bool entry_scope = true);
+	void GenerateBlock(BlockStat* block, bool entry_scope = true, bool has_finally = false);
 	void GenerateStat(Stat* stat);
 	void GenerateReturnStat(ReturnStat* stat);
 	void GenerateNewVarStat(NewVarStat* stat);
@@ -72,6 +74,9 @@ private:
 	// 循环
 	uint32_t cur_loop_start_pc_ = 0;
 	std::vector<uint32_t>* cur_loop_repair_end_pc_list_ = nullptr;
+
+	// 异常
+	bool has_finally_ = false;  // 当前作用域是否关联finally块
 };
 
 } // namespace mjs

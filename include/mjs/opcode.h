@@ -95,6 +95,7 @@ enum class OpcodeType {
 	kTryBegin = 0xd0,
 	kThrow = 0xd3,
 	kTryEnd = 0xd4,
+	kFinallyReturn = 0xd5,
 
 	// 0xf0 ~ 0xff ±£¡Ù
 };

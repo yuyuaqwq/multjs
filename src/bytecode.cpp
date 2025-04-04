@@ -82,6 +82,7 @@ std::map<OpcodeType, InstrInfo> g_instr_symbol{
     {OpcodeType::kTryBegin, {"try_begin", {}}},
     {OpcodeType::kThrow, {"throw", {}}},
     {OpcodeType::kTryEnd, {"try_end", {}}},
+    {OpcodeType::kFinallyReturn, {"finally_return", {}}},
 };
 
 

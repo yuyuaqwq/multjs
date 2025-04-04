@@ -434,9 +434,7 @@ void Vm::CallInternal(Value func_val, Value this_val) {
 		}
 		case OpcodeType::kReturn: {
 			stack_frame_.push(RestoreStackFrame());
-
 			goto exit_;
-
 			break;
 		}
 		case OpcodeType::kGeneratorReturn: {
@@ -582,6 +580,37 @@ void Vm::CallInternal(Value func_val, Value this_val) {
 				if (!ThrowExecption(std::move(error_val))) {
 					goto exit_;
 				}
+			}
+			if (cur_return_val_) {
+				// finally完成了，有保存的返回值
+				auto& table = cur_func_def_->exception_table();
+				auto* entry = table.FindEntry(pc_);
+				if (entry && entry->HasFinally()) {
+					// 上层还存在finally，继续执行上层finally
+					JumpTo(entry->finally_start_pc);
+					break;
+				}
+				stack_frame_.push(std::move(*cur_return_val_));
+				stack_frame_.push(RestoreStackFrame());
+				cur_return_val_.reset();
+				goto exit_;
+			}
+			break;
+		}
+		case OpcodeType::kFinallyReturn: {
+			// 存在finally的return语句，先跳转到finally
+			auto& table = cur_func_def_->exception_table();
+			auto* entry = table.FindEntry(pc_);
+			if (!entry || !entry->HasFinally()) {
+				throw VmException("Incorrect finally return.");
+			}
+			cur_return_val_ = stack_frame_.pop();
+			if (entry->LocatedInFinally(pc_)) {
+				// 位于finally的返回，覆盖掉原先的返回，跳转到TryEnd
+				JumpTo(entry->finally_end_pc);
+			}
+			else {
+				JumpTo(entry->finally_start_pc);
 			}
 			break;
 		}

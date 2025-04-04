@@ -10,11 +10,11 @@ namespace mjs {
 CodeGener::CodeGener(Runtime* runtime)
 	: runtime_(runtime) {}
 
-void CodeGener::EntryScope(FunctionDef* sub_func) {
+void CodeGener::EntryScope(FunctionDef* sub_func, bool has_finally) {
 	if (sub_func == nullptr) {
 		sub_func = cur_func_def_;
 	}
-	scopes_.emplace_back(sub_func);
+	scopes_.emplace_back(sub_func, has_finally);
 }
 
 void CodeGener::ExitScope() {
@@ -81,6 +81,19 @@ std::optional<VarIndex> CodeGener::FindVarIndexByName(const std::string& var_nam
 	return find_var_idx;
 }
 
+bool CodeGener::HasFinally() {
+	for (ptrdiff_t i = scopes_.size() - 1; i >= 0; --i) {
+		if (scopes_[i].function_def() != cur_func_def_) {
+			return false;
+		}
+		if (scopes_[i].has_finally()) {
+			return true;
+		}
+	}
+	return false;
+}
+
+
 VarIndex CodeGener::GetVarByExp(Exp* exp) {
 	assert(exp->GetType() == ExpType::kIdentifier);
 	auto var_exp = static_cast<IdentifierExp*>(exp);
@@ -110,7 +123,7 @@ Value CodeGener::Generate(BlockStat* block) {
 	auto const_idx = AllocConst(Value(new FunctionDef(0)));
 	cur_func_def_ = &runtime_->const_pool().at(const_idx).function_def();
 
-	scopes_.emplace_back(cur_func_def_);
+	EntryScope();
 
 	RegisterCppFunction("println", [](Context* context, const Value& this_val, uint32_t par_count, const StackFrame& stack) -> Value {
 		for (size_t i = 0; i < par_count; i++) {
@@ -133,13 +146,16 @@ Value CodeGener::Generate(BlockStat* block) {
 
 	cur_func_def_->byte_code().EmitOpcode(OpcodeType::kUndefined);
 	cur_func_def_->byte_code().EmitOpcode(OpcodeType::kReturn);
+
+	ExitScope();
+
 	return Value(cur_func_def_);
 	
 }
 
-void CodeGener::GenerateBlock(BlockStat* block, bool entry_scope) {
+void CodeGener::GenerateBlock(BlockStat* block, bool entry_scope, bool has_finally) {
 	if (entry_scope) {
-		EntryScope();
+		EntryScope(nullptr, has_finally);
 	}
 	for (auto& stat : block->stat_list) {
 		GenerateStat(stat.get());
@@ -208,7 +224,12 @@ void CodeGener::GenerateReturnStat(ReturnStat* stat) {
 	else {
 		cur_func_def_->byte_code().EmitOpcode(OpcodeType::kUndefined);
 	}
-	cur_func_def_->byte_code().EmitReturn(cur_func_def_->IsGenerator());
+	if (HasFinally()) {
+		cur_func_def_->byte_code().EmitOpcode(OpcodeType::kFinallyReturn);
+	}
+	else {
+		cur_func_def_->byte_code().EmitReturn(cur_func_def_->IsGenerator());
+	}
 }
 
 
@@ -386,14 +407,15 @@ void CodeGener::GenerateBreakStat(BreakStat* stat) {
 }
 
 void CodeGener::GenerateTryStat(TryStat* stat) {
+	auto has_finally = bool(stat->finally_stat);
+
 	auto try_start_pc = cur_func_def_->byte_code().Size();
 
-	// 压入kExceptionIdx
 	cur_func_def_->byte_code().EmitOpcode(OpcodeType::kTryBegin);
 
-	GenerateBlock(stat->block.get());
+	GenerateBlock(stat->block.get(), true, has_finally);
 
-	auto try_end_pc = cur_func_def_->byte_code().Size(); // 左开右闭
+	auto try_end_pc = cur_func_def_->byte_code().Size();
 
 	// 这里需要生成跳向finally的指令
 	auto repair_end_pc = try_end_pc;
@@ -406,7 +428,7 @@ void CodeGener::GenerateTryStat(TryStat* stat) {
 
 	if (stat->catch_stat) {
 		catch_start_pc = cur_func_def_->byte_code().Size();
-		EntryScope();
+		EntryScope(nullptr, has_finally);
 
 		// 加载error参数到变量
 		catch_err_var_idx = AllocVar(stat->catch_stat->exp->name);
@@ -428,7 +450,7 @@ void CodeGener::GenerateTryStat(TryStat* stat) {
 	auto finally_end_pc = kInvalidPc;
 	if (stat->finally_stat) {
 		finally_start_pc = cur_func_def_->byte_code().Size();
-		GenerateBlock(stat->finally_stat->block.get());
+		GenerateBlock(stat->finally_stat->block.get(), true, has_finally);
 		finally_end_pc = cur_func_def_->byte_code().Size();
 	}
 
@@ -449,7 +471,6 @@ void CodeGener::GenerateTryStat(TryStat* stat) {
 	entry.catch_err_var_idx = catch_err_var_idx;
 	entry.finally_start_pc = finally_start_pc;
 	entry.finally_end_pc = finally_end_pc;
-
 }
 
 void CodeGener::GenerateThrowStat(ThrowStat* stat) {
