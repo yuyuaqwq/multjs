@@ -38,6 +38,10 @@ public:
 	std::unique_ptr<ContinueStat> ParseContinueStat();
 	std::unique_ptr<BreakStat> ParseBreakStat();
 	std::unique_ptr<ReturnStat> ParseReturnStat();
+	std::unique_ptr<TryStat> ParseTryStat();
+	std::unique_ptr<CatchStat> ParseCatchStat();
+	std::unique_ptr<FinallyStat> ParseFinallyStat();
+	std::unique_ptr<ThrowStat> ParseThrowStat();
 
 	std::unique_ptr<NewVarStat> ParseNewVarStat();
 
@@ -68,6 +72,7 @@ public:
 
 	std::unique_ptr<Exp> ParseExp1();
 
+	std::unique_ptr<IdentifierExp> ParseIdentifierExp();
 	std::unique_ptr<Exp> ParsePrimaryExp();
 
 	std::unique_ptr<FuncDeclExp> ParseFunctionDeclExp();

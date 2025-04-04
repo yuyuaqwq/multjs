@@ -217,7 +217,7 @@ Value Vm::RestoreStackFrame() {
 	// 恢复环境和栈帧
 	cur_func_val_ = save_func;
 	cur_func_def_ = function_def(cur_func_val_);
-	pc_ = save_pc.u64();
+	JumpTo(save_pc.u64());
 
 	// 设置栈顶和栈底
 	stack().resize(stack_frame_.bottom());
@@ -532,10 +532,10 @@ void Vm::CallInternal(Value func_val, Value this_val) {
 		case OpcodeType::kIfEq: {
 			auto boolean_val = stack_frame_.pop().ToBoolean();
 			if (boolean_val.boolean() == false) {
-				pc_ = cur_func_def_->byte_code().CalcPc(--pc_);
+				JumpTo(cur_func_def_->byte_code().CalcPc(--pc_));
 			}
 			else {
-				pc_ += 2;
+				JumpTo(pc_ + 2);
 			}
 			break;
 		}
@@ -561,7 +561,28 @@ void Vm::CallInternal(Value func_val, Value this_val) {
 			break;
 		}
 		case OpcodeType::kGoto: {
-			pc_ = cur_func_def_->byte_code().CalcPc(--pc_);
+			JumpTo(cur_func_def_->byte_code().CalcPc(--pc_));
+			break;
+		}
+		case OpcodeType::kTryBegin: {
+			break;
+		}
+		case OpcodeType::kThrow: {
+			--pc_;
+			auto error_val = stack_frame_.pop();
+			ThrowExecption(std::move(error_val));
+			break;
+		}
+		case OpcodeType::kTryEnd: {
+			// 如果还有记录的异常，就重抛
+			if (cur_error_val_) {
+				--pc_;
+				auto error_val = std::move(*cur_error_val_);
+				cur_error_val_.reset();
+				if (!ThrowExecption(std::move(error_val))) {
+					goto exit_;
+				}
+			}
 			break;
 		}
 		default:
@@ -612,7 +633,7 @@ bool Vm::FunctionSwitch(Value func_val, Value this_val) {
 		}
 		
 		SaveStackFrame(func_val, func_def, std::move(this_val), par_count, false);
-		pc_ = 0;
+		JumpTo(0);
 
 		return true;
 	}
@@ -653,7 +674,7 @@ bool Vm::FunctionSwitch(Value func_val, Value this_val) {
 		
 		SaveStackFrame(generator.function(), &generator.function_def()
 			, std::move(this_val), 0, true);
-		pc_ = generator.pc();
+		JumpTo(generator.pc());
 
 		// next参数入栈
 		if (!is_first) {
@@ -685,6 +706,49 @@ bool Vm::FunctionSwitch(Value func_val, Value this_val) {
 	default:
 		throw VmException("Non callable type.");
 	}
+}
+
+
+bool Vm::ThrowExecption(Value&& error_val) {
+	auto& table = cur_func_def_->exception_table();
+
+	auto* entry = table.FindEntry(pc_);
+	if (!entry) {
+		return false;
+	}
+
+	if (entry->LocatedInTry(pc_)) {
+		// 位于try中抛出的异常
+		if (entry->HasCatch()) {
+			// 进了catch，catch可能会异常，如果异常了要先执行finally，然后继续上抛
+			SetVar(entry->catch_err_var_idx, std::move(error_val));
+			JumpTo(entry->catch_start_pc);
+		}
+		else {
+			// 没有catch，保存error_val，等finally末尾的rethrow重抛
+			cur_error_val_ = std::move(error_val);
+			JumpTo(entry->finally_start_pc);
+		}
+	}
+	else if (entry->HasCatch() && entry->LocatedInCatch(pc_)) {
+		cur_error_val_ = std::move(error_val);
+		if (entry->HasFinally()) {
+			JumpTo(entry->finally_start_pc);
+		}
+	}
+	else if (entry->HasFinally() && entry->LocatedInFinally(pc_)) {
+		// finally抛出异常，覆盖错误并且跳转到最后的TryEnd
+		cur_error_val_ = std::move(error_val);
+		JumpTo(entry->finally_end_pc);
+	}
+	else {
+		throw VmException("Incorrect execption address.");
+	}
+	return true;
+}
+
+void Vm::JumpTo(Pc pc) {
+	pc_ = pc;
 }
 
 } // namespace mjs

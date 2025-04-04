@@ -79,6 +79,9 @@ std::map<OpcodeType, InstrInfo> g_instr_symbol{
 
     {OpcodeType::kNew, {"new", {}}},
 
+    {OpcodeType::kTryBegin, {"try_begin", {}}},
+    {OpcodeType::kThrow, {"throw", {}}},
+    {OpcodeType::kTryEnd, {"try_end", {}}},
 };
 
 
@@ -217,6 +220,7 @@ std::string ByteCode::Disassembly(Context* context, Pc& pc, OpcodeType& opcode, 
     opcode = GetOpcode(pc++);
     const auto& info = g_instr_symbol.find(opcode);
     str += buf + info->second.str + "\t";
+    auto last_par = 0;
     for (const auto& par_size : info->second.par_size_list) {
         if (par_size == 1) {
             par = GetU8(pc);
@@ -230,6 +234,8 @@ std::string ByteCode::Disassembly(Context* context, Pc& pc, OpcodeType& opcode, 
             par = GetU32(pc);
             str += std::to_string(par) + "\t";
         }
+
+        last_par = par;
 
         pc += par_size;
     }
@@ -290,6 +296,12 @@ std::string ByteCode::Disassembly(Context* context, Pc& pc, OpcodeType& opcode, 
         auto& info = func_def->GetVarInfo(idx);
         str += "$";
         str += info.name;
+        str += "\t";
+    }
+
+    if (opcode == OpcodeType::kGoto) {
+        str += "To:";
+        str += std::to_string(pc - 3 + last_par);
         str += "\t";
     }
 

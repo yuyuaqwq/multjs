@@ -5,6 +5,7 @@
 #include <optional>
 
 #include <mjs/object.h>
+#include <mjs/exception.h>
 
 #include "bytecode.h"
 
@@ -66,14 +67,20 @@ public:
 
 	auto par_count() const { return par_count_; }
 	auto var_count() const { return var_count_; }
+
 	const auto& byte_code() const { return byte_code_; }
 	auto& byte_code() { return byte_code_; }
+
 	const auto& closure_var_defs() const { return closure_var_defs_; }
 	auto& closure_var_defs() { return closure_var_defs_; }
+
+	const auto& exception_table() const { return exception_table_; }
+	auto& exception_table() { return exception_table_; }
 
 private:
 	uint32_t par_count_;
 	uint32_t var_count_ = 0;		// °üÀ¨par_count
+
 	ByteCode byte_code_;
 
 	FunctionType type_ = FunctionType::kNormal;
@@ -89,6 +96,9 @@ private:
 	std::unordered_map<VarIndex, ClosureVarDef> closure_var_defs_;
 
 	std::vector<VarInfo> var_info_;
+
+	// Òì³£
+	ExceptionTable exception_table_;
 };
 
 } // namespace mjs

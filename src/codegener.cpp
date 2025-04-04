@@ -11,6 +11,9 @@ CodeGener::CodeGener(Runtime* runtime)
 	: runtime_(runtime) {}
 
 void CodeGener::EntryScope(FunctionDef* sub_func) {
+	if (sub_func == nullptr) {
+		sub_func = cur_func_def_;
+	}
 	scopes_.emplace_back(sub_func);
 }
 
@@ -134,12 +137,16 @@ Value CodeGener::Generate(BlockStat* block) {
 	
 }
 
-void CodeGener::GenerateBlock(BlockStat* block) {
-	EntryScope();
+void CodeGener::GenerateBlock(BlockStat* block, bool entry_scope) {
+	if (entry_scope) {
+		EntryScope();
+	}
 	for (auto& stat : block->stat_list) {
 		GenerateStat(stat.get());
 	}
-	ExitScope();
+	if (entry_scope) {
+		ExitScope();
+	}
 }
 
 void CodeGener::GenerateStat(Stat* stat) {
@@ -179,6 +186,14 @@ void CodeGener::GenerateStat(Stat* stat) {
 	}
 	case StatType::kBreak: {
 		GenerateBreakStat(static_cast<BreakStat*>(stat));
+		break;
+	}
+	case StatType::kTry: {
+		GenerateTryStat(static_cast<TryStat*>(stat));
+		break;
+	}
+	case StatType::kThrow: {
+		GenerateThrowStat(static_cast<ThrowStat*>(stat));
 		break;
 	}
 	default:
@@ -310,8 +325,8 @@ void CodeGener::GenerateIfStat(IfStat* stat) {
 	}
 
 	// 至此if分支结构结束，修复所有退出分支结构的地址
-	for (auto repair_pnd_pc : repair_end_pc_list) {
-		cur_func_def_->byte_code().RepairPc(repair_pnd_pc, cur_func_def_->byte_code().Size());
+	for (auto repair_end_pc : repair_end_pc_list) {
+		cur_func_def_->byte_code().RepairPc(repair_end_pc, cur_func_def_->byte_code().Size());
 	}
 }
 
@@ -323,7 +338,7 @@ void CodeGener::GenerateWhileStat(WhileStat* stat) {
 	cur_loop_repair_end_pc_list_ = &loop_repair_end_pc_list;
 
 	// 记录重新循环的pc
-	Pc loop_start_pc = cur_func_def_->byte_code().Size();
+	auto loop_start_pc = cur_func_def_->byte_code().Size();
 	cur_loop_start_pc_ = loop_start_pc;
 
 	// 表达式结果压栈
@@ -369,6 +384,79 @@ void CodeGener::GenerateBreakStat(BreakStat* stat) {
 	cur_func_def_->byte_code().EmitOpcode(OpcodeType::kGoto);
 	cur_func_def_->byte_code().EmitPcOffset(0);
 }
+
+void CodeGener::GenerateTryStat(TryStat* stat) {
+	auto try_start_pc = cur_func_def_->byte_code().Size();
+
+	// 压入kExceptionIdx
+	cur_func_def_->byte_code().EmitOpcode(OpcodeType::kTryBegin);
+
+	GenerateBlock(stat->block.get());
+
+	auto try_end_pc = cur_func_def_->byte_code().Size(); // 左开右闭
+
+	// 这里需要生成跳向finally的指令
+	auto repair_end_pc = try_end_pc;
+	cur_func_def_->byte_code().EmitOpcode(OpcodeType::kGoto);
+	cur_func_def_->byte_code().EmitPcOffset(0);
+
+	auto catch_start_pc = kInvalidPc;
+	auto catch_end_pc = kInvalidPc;
+	auto catch_err_var_idx = kVarInvaildIndex;
+
+	if (stat->catch_stat) {
+		catch_start_pc = cur_func_def_->byte_code().Size();
+		EntryScope();
+
+		// 加载error参数到变量
+		catch_err_var_idx = AllocVar(stat->catch_stat->exp->name);
+
+		GenerateBlock(stat->catch_stat->block.get(), false);
+
+		ExitScope();
+		catch_end_pc = cur_func_def_->byte_code().Size();
+	}
+	else {
+		catch_end_pc = try_end_pc;
+	}
+
+	// 修复pc
+	cur_func_def_->byte_code().RepairPc(repair_end_pc, cur_func_def_->byte_code().Size());
+
+	// finally是必定会执行的
+	auto finally_start_pc = kInvalidPc;
+	auto finally_end_pc = kInvalidPc;
+	if (stat->finally_stat) {
+		finally_start_pc = cur_func_def_->byte_code().Size();
+		GenerateBlock(stat->finally_stat->block.get());
+		finally_end_pc = cur_func_def_->byte_code().Size();
+	}
+
+	cur_func_def_->byte_code().EmitOpcode(OpcodeType::kTryEnd);
+
+	if (!stat->catch_stat && !stat->finally_stat) {
+		throw CodeGenerException("There cannot be a statement with only try.");
+	}
+
+	// 添加到异常表
+	auto& exception_table = cur_func_def_->exception_table();
+	auto exception_idx = exception_table.AddEntry({});
+	auto& entry = exception_table.GetEntry(exception_idx);
+	entry.try_start_pc = try_start_pc;
+	entry.try_end_pc = try_end_pc;
+	entry.catch_start_pc = catch_start_pc;
+	entry.catch_end_pc = catch_end_pc;
+	entry.catch_err_var_idx = catch_err_var_idx;
+	entry.finally_start_pc = finally_start_pc;
+	entry.finally_end_pc = finally_end_pc;
+
+}
+
+void CodeGener::GenerateThrowStat(ThrowStat* stat) {
+	GenerateExp(stat->exp.get());
+	cur_func_def_->byte_code().EmitOpcode(OpcodeType::kThrow);
+}
+
 
 
 void CodeGener::GenerateExp(Exp* exp) {

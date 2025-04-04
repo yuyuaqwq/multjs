@@ -8,6 +8,7 @@
 
 #include <mjs/const_def.h>
 #include <mjs/string.h>
+#include <mjs/exception.h>
 
 namespace mjs {
 
@@ -35,12 +36,18 @@ enum class ValueType : uint32_t {
 	kStringView, // String”≈ªØ
 
 	kClassDef,
+
 	kUpValue,
+
 	kFunctionDef,
 	kCppFunction,
+
 	kGeneratorNext,
+
 	kPromiseResolve,
 	kPromiseReject,
+
+	kTry,
 };
 
 class Context;
@@ -89,6 +96,7 @@ public:
 
 	Value(ValueType type);
 	Value(ValueType type, PromiseObject* promise);
+	Value(ValueType type, ExceptionIdx idx);
 
 	~Value();
 
@@ -138,6 +146,7 @@ public:
 	const UpValue& up_value() const;
 	FunctionDef& function_def() const;
 	CppFunction cpp_function() const;
+	ExceptionIdx exception_idx() const;
 
 	ConstIndex const_index() const { return tag_.const_index_; }
 	void set_const_index(ConstIndex const_index) { tag_.const_index_ = const_index; }
@@ -162,6 +171,7 @@ public:
 	bool IsFunctionDef() const;
 	bool IsCppFunction() const;
 	bool IsGeneratorNext() const;
+	bool IsExceptionIdx() const;
 
 	Value ToString() const;
 	Value ToBoolean() const;
@@ -191,9 +201,13 @@ private:
 		const char* string_view_;
 
 		ClassDef* class_def_;
+
 		UpValue up_value_;
+
 		FunctionDef* function_def_;
 		CppFunction cpp_func_;
+
+		ExceptionIdx exception_idx_;
 	} value_;
 };
 

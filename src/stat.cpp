@@ -89,6 +89,4 @@ NewVarStat::NewVarStat(const std::string& var_name, std::unique_ptr<Exp> exp)
 	, exp(std::move(exp)) {}
 
 
-
-
 } // namespace mjs

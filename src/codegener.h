@@ -40,7 +40,7 @@ private:
 	std::optional<VarIndex> FindVarIndexByName(const std::string& name);
 	VarIndex GetVarByExp(Exp* exp);
 
-	void GenerateBlock(BlockStat* block);
+	void GenerateBlock(BlockStat* block, bool entry_scope = true);
 	void GenerateStat(Stat* stat);
 	void GenerateReturnStat(ReturnStat* stat);
 	void GenerateNewVarStat(NewVarStat* stat);
@@ -48,6 +48,10 @@ private:
 	void GenerateWhileStat(WhileStat* stat);
 	void GenerateContinueStat(ContinueStat* stat);
 	void GenerateBreakStat(BreakStat* stat);
+
+	void GenerateTryStat(TryStat* stat);
+	void GenerateThrowStat(ThrowStat* stat);
+
 	void GenerateExp(Exp* exp);
 	void GenerateIfEq(Exp* exp);
 

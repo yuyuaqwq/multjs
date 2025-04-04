@@ -69,6 +69,12 @@ std::unique_ptr<Stat> Parser::ParseStat() {
 		case TokenType::kKwReturn: {
 			return ParseReturnStat();
 		}
+		case TokenType::kKwTry: {
+			return ParseTryStat();
+		}
+		case TokenType::kKwThrow: {
+			return ParseThrowStat();
+		}
 		case TokenType::kKwAsync:
 		case TokenType::kKwFunction: {
 			// 如果是直接定义，就不需要添加分号
@@ -132,6 +138,7 @@ std::unique_ptr<IfStat> Parser::ParseIfStat() {
 			continue;
 		}
 		else_stat = ParseElseStat();
+		break;
 	}
 	return std::make_unique<IfStat>(std::move(exp), std::move(block), std::move(else_if_stat_list), std::move(else_stat));
 }
@@ -190,6 +197,51 @@ std::unique_ptr<ReturnStat> Parser::ParseReturnStat() {
 	}
 	lexer_->MatchToken(TokenType::kSepSemi);
 	return std::make_unique<ReturnStat>(std::move(exp));
+}
+
+std::unique_ptr<TryStat> Parser::ParseTryStat() {
+	lexer_->MatchToken(TokenType::kKwTry);
+
+	auto block = ParseBlockStat();
+
+	auto token = lexer_->PeekToken();
+
+	std::unique_ptr<CatchStat> catch_stat;
+	if (token.Is(TokenType::kKwCatch)) {
+		catch_stat = ParseCatchStat();
+		token = lexer_->PeekToken();
+	}
+
+	std::unique_ptr<FinallyStat> finally_stat;
+	if (token.Is(TokenType::kKwFinally)) {
+		finally_stat = ParseFinallyStat();
+	}
+
+	return std::make_unique<TryStat>(std::move(block), std::move(catch_stat), std::move(finally_stat));
+}
+
+std::unique_ptr<CatchStat> Parser::ParseCatchStat() {
+	lexer_->MatchToken(TokenType::kKwCatch);
+
+	lexer_->MatchToken(TokenType::kSepLParen);
+	auto exp = ParseIdentifierExp();
+	lexer_->MatchToken(TokenType::kSepRParen);
+
+	auto block = ParseBlockStat();
+
+	return std::make_unique<CatchStat>(std::move(exp), std::move(block));
+}
+
+std::unique_ptr<FinallyStat> Parser::ParseFinallyStat() {
+	lexer_->MatchToken(TokenType::kKwFinally);
+	auto block = ParseBlockStat();
+	return std::make_unique<FinallyStat>(std::move(block));
+}
+
+std::unique_ptr<ThrowStat> Parser::ParseThrowStat() {
+	lexer_->MatchToken(TokenType::kKwThrow);
+	auto exp = ParseExp();
+	return std::make_unique<ThrowStat>(std::move(exp));
 }
 
 
@@ -551,6 +603,14 @@ std::unique_ptr<Exp> Parser::ParseExp1() {
 	}
 }
 
+
+std::unique_ptr<IdentifierExp> Parser::ParseIdentifierExp() {
+	auto token = lexer_->MatchToken(TokenType::kIdentifier);
+	auto exp = std::make_unique<IdentifierExp>(token.str());
+	exp->value_category = ExpValueCategory::kLeftValue;
+	return exp;
+}
+
 std::unique_ptr<Exp> Parser::ParsePrimaryExp() {
 	auto token = lexer_->PeekToken();
 	std::unique_ptr<Exp> exp;
@@ -614,9 +674,7 @@ std::unique_ptr<Exp> Parser::ParsePrimaryExp() {
 		break;
 	}
 	case TokenType::kIdentifier: {
-		lexer_->NextToken();
-		exp = std::make_unique<IdentifierExp>(token.str());
-		exp->value_category = ExpValueCategory::kLeftValue;
+		exp = ParseIdentifierExp();
 		break;
 	case TokenType::kKwThis: {
 		lexer_->NextToken();

@@ -22,6 +22,10 @@ enum class StatType {
 	kContinue,
 	kBreak,
 	kReturn,
+	kTry,
+	kCatch,
+	kFinally,
+	kThrow,
 	kNewVar,
 	kBlock,
 };
@@ -110,6 +114,56 @@ struct ReturnStat : public Stat {
 	std::unique_ptr<Exp> exp;
 };
 
+struct CatchStat : public Stat {
+	CatchStat(std::unique_ptr<IdentifierExp> exp, std::unique_ptr<BlockStat> block)
+		: exp(std::move(exp))
+		, block(std::move(block)) {}
+
+	virtual StatType GetType() const noexcept override {
+		return StatType::kCatch;
+	}
+
+	std::unique_ptr<IdentifierExp> exp;
+	std::unique_ptr<BlockStat> block;
+};
+
+struct FinallyStat : public Stat {
+	FinallyStat(std::unique_ptr<BlockStat> block)
+		: block(std::move(block)) {}
+
+	virtual StatType GetType() const noexcept override {
+		return StatType::kFinally;
+	}
+
+	std::unique_ptr<BlockStat> block;
+};
+
+struct TryStat : public Stat {
+	TryStat(std::unique_ptr<BlockStat> block, std::unique_ptr<CatchStat> catch_stat
+		, std::unique_ptr<FinallyStat> finally_stat)
+		: block(std::move(block))
+		, catch_stat(std::move(catch_stat))
+		, finally_stat(std::move(finally_stat)) {}
+
+	virtual StatType GetType() const noexcept override {
+		return StatType::kTry;
+	}
+
+	std::unique_ptr<BlockStat> block;
+	std::unique_ptr<CatchStat> catch_stat;
+	std::unique_ptr<FinallyStat> finally_stat;
+};
+
+struct ThrowStat : public Stat {
+	ThrowStat(std::unique_ptr<Exp> exp)
+		: exp(std::move(exp)) {}
+
+	virtual StatType GetType() const noexcept override {
+		return StatType::kThrow;
+	}
+
+	std::unique_ptr<Exp> exp;
+};
 
 struct NewVarStat : public Stat {
 	virtual StatType GetType() const noexcept;

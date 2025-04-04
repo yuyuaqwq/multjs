@@ -91,6 +91,11 @@ enum class OpcodeType {
 	// new
 	kNew = 0xc8,
 
+	// error
+	kTryBegin = 0xd0,
+	kThrow = 0xd3,
+	kTryEnd = 0xd4,
+
 	// 0xf0 ~ 0xff ±£¡Ù
 };
 
@@ -101,6 +106,8 @@ struct InstrInfo {
 
 using Pc = uint32_t;
 using PcOffset = uint16_t;
+
+constexpr Pc kInvalidPc = 0xffffffff;
 
 extern std::map<OpcodeType, InstrInfo> g_instr_symbol;
 

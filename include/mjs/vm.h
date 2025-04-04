@@ -53,6 +53,10 @@ private:
 		, Value&& this_val, uint32_t par_count, bool is_generator);
 	Value RestoreStackFrame();
 
+	bool ThrowExecption(Value&& error_val);
+
+	void JumpTo(Pc pc);
+
 	Stack& stack();
 	FunctionDef* function_def(const Value& func_val) const;
 private:
@@ -63,6 +67,8 @@ private:
 	uint32_t pc_ = 0;
 
 	StackFrame stack_frame_;
+
+	std::optional<Value> cur_error_val_;
 };
 
 } // namespace mjs
