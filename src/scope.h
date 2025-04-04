@@ -16,9 +16,9 @@ public:
 
 class Scope : public noncopyable {
 public:
-	Scope(FunctionDef* function_def, bool has_finally)
+	Scope(FunctionDef* function_def, bool has_try_finally)
 		: function_def_(function_def)
-		, has_finally_(has_finally) {}
+		, has_try_finally_(has_try_finally) {}
 
 	Scope(Scope&& other) noexcept {
 		operator=(std::move(other));
@@ -26,7 +26,7 @@ public:
 	void operator=(Scope&& other) noexcept {
 		function_def_ = other.function_def_;
 		var_table_ = std::move(other.var_table_);
-		has_finally_ = other.has_finally_;
+		has_try_finally_ = other.has_try_finally_;
 	}
 
 	VarIndex AllocVar(const std::string& var_name) {
@@ -49,7 +49,7 @@ public:
 
 	FunctionDef* function_def() const { return function_def_; }
 
-	bool has_finally() const { return has_finally_; }
+	bool has_try_finally() const { return has_try_finally_; }
 
 private:
 	FunctionDef* function_def_; // 所属函数
@@ -58,7 +58,7 @@ private:
 	};
 	std::unordered_map<std::string, VarInfo> var_table_; // 变量表
 
-	bool has_finally_;
+	bool has_try_finally_;
 };
 
 } // namespace mjs

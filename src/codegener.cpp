@@ -81,12 +81,12 @@ std::optional<VarIndex> CodeGener::FindVarIndexByName(const std::string& var_nam
 	return find_var_idx;
 }
 
-bool CodeGener::HasFinally() {
+bool CodeGener::HasTryFinally() {
 	for (ptrdiff_t i = scopes_.size() - 1; i >= 0; --i) {
 		if (scopes_[i].function_def() != cur_func_def_) {
 			return false;
 		}
-		if (scopes_[i].has_finally()) {
+		if (scopes_[i].has_try_finally()) {
 			return true;
 		}
 	}
@@ -224,7 +224,7 @@ void CodeGener::GenerateReturnStat(ReturnStat* stat) {
 	else {
 		cur_func_def_->byte_code().EmitOpcode(OpcodeType::kUndefined);
 	}
-	if (HasFinally()) {
+	if (HasTryFinally()) {
 		cur_func_def_->byte_code().EmitOpcode(OpcodeType::kFinallyReturn);
 	}
 	else {

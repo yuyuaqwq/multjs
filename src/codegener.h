@@ -38,7 +38,7 @@ private:
 
 	VarIndex AllocVar(const std::string& name);
 	std::optional<VarIndex> FindVarIndexByName(const std::string& name);
-	bool HasFinally();
+	bool HasTryFinally();
 	
 	VarIndex GetVarByExp(Exp* exp);
 
