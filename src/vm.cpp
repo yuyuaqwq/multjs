@@ -232,7 +232,7 @@ void Vm::CallInternal(Value func_val, Value this_val) {
 	//	std::cout << func_val.function().function_def().Disassembly(context_);
 	//}
 
-	auto save_cur_func = cur_func_val_;
+	auto save_cur_func = std::move(cur_func_val_);
 	auto save_cur_func_def = cur_func_def_;
 	auto save_pc = pc_;
 	auto save_bottom = stack_frame_.bottom();
@@ -676,9 +676,9 @@ void Vm::CallInternal(Value func_val, Value this_val) {
 	}
 
 exit_:
-	pc_ = save_pc;
 	cur_func_def_ = save_cur_func_def;
-	cur_func_val_ = save_cur_func;
+	cur_func_val_ = std::move(save_cur_func);
+	pc_ = save_pc;
 	// stack().resize(stack_frame_.bottom());
 	stack_frame_.set_bottom(save_bottom);
 

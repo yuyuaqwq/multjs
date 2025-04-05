@@ -179,11 +179,12 @@ private:
 		uint64_t full_ = 0;
 		struct {
 			ValueType type_ : 15;
-			uint32_t exception_ : 1;	// 是否是异常
+			uint32_t exception_ : 1;	// 是否是异常返回
+
+			// 常量池
 			uint32_t read_only_ : 1;	// 用于常量池中的Value，在复制时不会触发引用计数的增加，析构时不会减少引用计数
 			
-			// 非0则是来自常量池的value
-			ConstIndex const_index_;
+			ConstIndex const_index_;	// 非0则是来自常量池的value
 		};
 	} tag_;
 	union {
