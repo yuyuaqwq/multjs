@@ -43,6 +43,10 @@ struct ExceptionEntry{
     bool LocatedInFinally(Pc pc) const {
         return pc >= finally_start_pc && pc < finally_end_pc;
     }
+
+    bool LocatedInTryEnd(Pc pc) const {
+        return pc == finally_end_pc;
+    }
 };
 
 class ExceptionTable {

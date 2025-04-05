@@ -575,9 +575,12 @@ void Vm::CallInternal(Value func_val, Value this_val) {
 			break;
 		}
 		case OpcodeType::kTryEnd: {
-			// 如果还有记录的异常，就重抛
+			// 先回到try end
+			--pc_;
+			bool need_inc_pc = true;
 			if (cur_error_val_) {
-				--pc_;
+				need_inc_pc = false;
+				// 如果还有记录的异常，就重抛
 				auto error_val = std::move(*cur_error_val_);
 				cur_error_val_.reset();
 				if (!ThrowExecption(std::move(error_val))) {
@@ -585,6 +588,7 @@ void Vm::CallInternal(Value func_val, Value this_val) {
 				}
 			}
 			if (pending_return_val_) {
+				need_inc_pc = false;
 				// finally完成了，有保存的返回值
 				auto& table = cur_func_def_->exception_table();
 				auto* entry = table.FindEntry(pc_);
@@ -599,9 +603,12 @@ void Vm::CallInternal(Value func_val, Value this_val) {
 				goto exit_;
 			}
 			if (pending_goto_pc_ != kInvalidPc) {
+				need_inc_pc = false;
+				// finally完成了，有未完成的跳转
 				auto& table = cur_func_def_->exception_table();
 				auto* entry = table.FindEntry(pc_);
 				auto* goto_entry = table.FindEntry(pending_goto_pc_);
+				// Goto是否跳过上层finally
 				if (!goto_entry || entry == goto_entry) {
 					JumpTo(pending_goto_pc_);
 					pending_goto_pc_ = kInvalidPc;
@@ -610,6 +617,7 @@ void Vm::CallInternal(Value func_val, Value this_val) {
 					JumpTo(entry->finally_start_pc);
 				}
 			}
+			if (need_inc_pc) ++pc_;
 			break;
 		}
 		case OpcodeType::kFinallyReturn: {
