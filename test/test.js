@@ -12,12 +12,12 @@ let anonymousfunc = function() {
                 try {
                     try {
                         println("inner try while try2");
-                        throw "sbsb666";
                         continue;
                         break;
                     }
                     finally {
                         println("inner try while finally2");
+                        throw "sbsb666";
                         // break;
                     }
                 }

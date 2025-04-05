@@ -24,10 +24,6 @@ Value Context::Eval(std::string_view script) {
 }
 
 Value Context::Call(Value func_val, Value this_val, const std::vector<Value>& argv) {
-	if (func_val.IsFunctionDef()) {
-		std::cout << func_val.function_def().Disassembly(this);
-	}
-
 	return vm_.CallFunction(std::move(func_val), std::move(this_val), argv);
 }
 

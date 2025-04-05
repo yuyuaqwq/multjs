@@ -231,6 +231,10 @@ Value Vm::RestoreStackFrame() {
 // CallInternal发现cur_func_def_不是参数execute_func_def_，就返回到上一层
 // 在函数头尾处理栈帧
 void Vm::CallInternal(Value func_val, Value this_val) {
+	if (func_val.IsFunctionObject()) {
+		std::cout << func_val.function().function_def().Disassembly(context_);
+	}
+
 	if (!FunctionSwitch(func_val, this_val)) {
 		return;
 	}
@@ -577,18 +581,15 @@ void Vm::CallInternal(Value func_val, Value this_val) {
 		case OpcodeType::kTryEnd: {
 			// 先回到try end
 			--pc_;
-			bool need_inc_pc = true;
 			if (cur_error_val_) {
-				need_inc_pc = false;
-				// 如果还有记录的异常，就重抛
+				// 如果还有记录的异常，就重抛，这里的重抛是直接到上层抛的，因为try end不属于当前层
 				auto error_val = std::move(*cur_error_val_);
 				cur_error_val_.reset();
 				if (!ThrowExecption(std::move(error_val))) {
 					goto exit_;
 				}
 			}
-			if (pending_return_val_) {
-				need_inc_pc = false;
+			else if (pending_return_val_) {
 				// finally完成了，有保存的返回值
 				auto& table = cur_func_def_->exception_table();
 				auto* entry = table.FindEntry(pc_);
@@ -602,8 +603,7 @@ void Vm::CallInternal(Value func_val, Value this_val) {
 				pending_return_val_.reset();
 				goto exit_;
 			}
-			if (pending_goto_pc_ != kInvalidPc) {
-				need_inc_pc = false;
+			else if (pending_goto_pc_ != kInvalidPc) {
 				// finally完成了，有未完成的跳转
 				auto& table = cur_func_def_->exception_table();
 				auto* entry = table.FindEntry(pc_);
@@ -617,7 +617,10 @@ void Vm::CallInternal(Value func_val, Value this_val) {
 					JumpTo(entry->finally_start_pc);
 				}
 			}
-			if (need_inc_pc) ++pc_;
+			else {
+				++pc_;
+			}
+
 			break;
 		}
 		case OpcodeType::kFinallyReturn: {
