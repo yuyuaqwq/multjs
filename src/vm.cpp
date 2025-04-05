@@ -424,12 +424,11 @@ void Vm::CallInternal(Value func_val, Value this_val) {
 				a = -a;
 				break;
 			}
+			case OpcodeType::kNew: {
+				// this，然后让function call处理
+				stack_frame_.push(Value());
+			}
 			case OpcodeType::kFunctionCall: {
-				//auto var_idx = cur_func_def_->byte_code().GetU16(pc_);
-				//pc_ += 2;
-
-				// auto& func_val = GetVar(var_idx);
-
 				auto this_val = stack_frame_.pop();
 				auto func_val = stack_frame_.pop();
 
@@ -465,7 +464,6 @@ void Vm::CallInternal(Value func_val, Value this_val) {
 				stack_frame_.push(std::move(ret_obj));
 
 				goto exit_;
-
 				break;
 			}
 			case OpcodeType::kAwait: {
@@ -486,7 +484,6 @@ void Vm::CallInternal(Value func_val, Value this_val) {
 				//stack_frame_.push(std::move(ret_value));
 
 				goto exit_;
-
 				break;
 			}
 			case OpcodeType::kYield: {
@@ -506,7 +503,6 @@ void Vm::CallInternal(Value func_val, Value this_val) {
 				stack_frame_.push(std::move(ret_obj));
 
 				goto exit_;
-
 				break;
 			}
 			case OpcodeType::kNe: {
@@ -553,23 +549,6 @@ void Vm::CallInternal(Value func_val, Value this_val) {
 				else {
 					JumpTo(pc_ + 2);
 				}
-				break;
-			}
-			case OpcodeType::kNew: {
-				auto value = stack_frame_.pop();
-				auto par_count = stack_frame_.pop().u64();
-
-				if (value.IsClassDef()) {
-					stack_frame_.set_bottom(stack().size() - par_count);
-					auto obj = value.class_def().Constructor(context_, par_count, stack_frame_);
-					// 还原栈帧
-					stack().reduce(par_count);
-					stack_frame_.push(std::move(obj));
-				}
-				else {
-					throw VmException("Currently does not support other types of construction.");
-				}
-
 				break;
 			}
 			case OpcodeType::kGoto: {
@@ -691,7 +670,6 @@ exit_:
 }
 
 bool Vm::FunctionSwitch(Value func_val, Value this_val, uint32_t par_count) {
-
 	switch (func_val.type()) {
 	case ValueType::kFunctionDef:
 	case ValueType::kFunctionObject: {
@@ -793,6 +771,13 @@ bool Vm::FunctionSwitch(Value func_val, Value this_val, uint32_t par_count) {
 
 		stack_frame_.push(Value());
 
+		return false;
+	}
+	case ValueType::kClassDef: {
+		auto obj = func_val.class_def().Constructor(context_, par_count, stack_frame_);
+		// 还原栈帧
+		stack().reduce(par_count);
+		stack_frame_.push(std::move(obj));
 		return false;
 	}
 	default:
