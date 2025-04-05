@@ -41,7 +41,7 @@ private:
 	// 返回是否需要继续执行字节码
 	bool FunctionSwitch(Value func_val, Value this_val);
 
-	void CallInternal(Value func_val, Value this_val);
+	Value CallInternal(Value func_val, Value this_val);
 
 	const Value& GetGlobalConst(ConstIndex idx);
 	const Value& GetLocalConst(ConstIndex idx);
@@ -49,16 +49,16 @@ private:
 
 	void LoadConst(ConstIndex const_idx);
 
-	void SaveStackFrame(const Value& func_val, FunctionDef* func_def
+	void SwitchStackFrame(const Value& func_val, FunctionDef* func_def
 		, Value&& this_val, uint32_t par_count, bool is_generator);
-	Value RestoreStackFrame();
 
-	bool ThrowExecption(Value&& error_val);
+	bool ThrowExecption(std::optional<Value>* error_val);
 
 	void JumpTo(Pc pc);
 
 	Stack& stack();
 	FunctionDef* function_def(const Value& func_val) const;
+
 private:
 	Context* context_;
 
@@ -67,8 +67,6 @@ private:
 	uint32_t pc_ = 0;
 
 	StackFrame stack_frame_;
-
-	std::optional<Value> cur_error_val_;
 };
 
 } // namespace mjs

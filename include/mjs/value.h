@@ -46,8 +46,6 @@ enum class ValueType : uint32_t {
 
 	kPromiseResolve,
 	kPromiseReject,
-
-	kTry,
 };
 
 class Context;
@@ -96,7 +94,6 @@ public:
 
 	Value(ValueType type);
 	Value(ValueType type, PromiseObject* promise);
-	Value(ValueType type, ExceptionIdx idx);
 
 	~Value();
 
@@ -146,7 +143,6 @@ public:
 	const UpValue& up_value() const;
 	FunctionDef& function_def() const;
 	CppFunction cpp_function() const;
-	ExceptionIdx exception_idx() const;
 
 	ConstIndex const_index() const { return tag_.const_index_; }
 	void set_const_index(ConstIndex const_index) { tag_.const_index_ = const_index; }
@@ -171,18 +167,21 @@ public:
 	bool IsFunctionDef() const;
 	bool IsCppFunction() const;
 	bool IsGeneratorNext() const;
-	bool IsExceptionIdx() const;
 
 	Value ToString() const;
 	Value ToBoolean() const;
+
+	bool IsException() const { return tag_.exception_; }
+	void SetException() { tag_.exception_ = 1; }
 
 private:
 	union {
 		uint64_t full_ = 0;
 		struct {
-			ValueType type_ : 7;
+			ValueType type_ : 15;
+			uint32_t exception_ : 1;	// 是否是异常
 			uint32_t read_only_ : 1;	// 用于常量池中的Value，在复制时不会触发引用计数的增加，析构时不会减少引用计数
-
+			
 			// 非0则是来自常量池的value
 			ConstIndex const_index_;
 		};

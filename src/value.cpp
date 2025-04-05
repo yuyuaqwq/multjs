@@ -125,16 +125,6 @@ Value::Value(ValueType type, PromiseObject* promise) {
 	}
 }
 
-Value::Value(ValueType type, ExceptionIdx exception_idx) {
-	tag_.type_ = type;
-	if (type == ValueType::kTry) {
-		value_.exception_idx_ = exception_idx;
-	}
-	else {
-		assert(0);
-	}
-}
-
 
 Value::~Value() {
 	if (IsString()) {
@@ -222,7 +212,6 @@ bool Value::operator<(const Value& rhs) const {
 	case ValueType::kCppFunction:
 	case ValueType::kUpValue:
 	case ValueType::kClassDef:
-	case ValueType::kTry:
 		return value_.full_ < rhs.value_.full_;
 	default:
 		throw std::runtime_error("Incorrect value type.");
@@ -259,7 +248,6 @@ bool Value::operator>(const Value& rhs) const {
 	case ValueType::kUpValue:
 	case ValueType::kFunctionDef:
 	case ValueType::kCppFunction:
-	case ValueType::kTry:
 		return value_.full_ > rhs.value_.full_;
 	default:
 		throw std::runtime_error("Incorrect value type.");
@@ -293,7 +281,6 @@ bool Value::operator==(const Value& rhs) const {
 	case ValueType::kFunctionDef:
 	case ValueType::kCppFunction:
 	case ValueType::kUpValue:
-	case ValueType::kTry:
 		return value_.full_ == rhs.value_.full_;
 	default:
 		throw std::runtime_error("Incorrect value type.");
@@ -488,11 +475,6 @@ CppFunction Value::cpp_function() const {
 	return value_.cpp_func_;
 }
 
-ExceptionIdx Value::exception_idx() const {
-	assert(IsExceptionIdx());
-	return value_.exception_idx_;
-}
-
 
 bool Value::IsUndefined() const {
 	return type() == ValueType::kUndefined;
@@ -576,11 +558,6 @@ bool Value::IsCppFunction() const {
 bool Value::IsGeneratorNext() const {
 	return type() == ValueType::kGeneratorNext;
 }
-
-bool Value::IsExceptionIdx() const {
-	return type() == ValueType::kTry;
-}
-
 
 Value Value::ToString() const {
 	switch (type()) {

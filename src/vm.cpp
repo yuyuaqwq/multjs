@@ -159,16 +159,16 @@ void Vm::LoadConst(ConstIndex const_idx) {
 	stack_frame_.push(value);
 }
 
-void Vm::SaveStackFrame(const Value& func_val, FunctionDef* func_def
+void Vm::SwitchStackFrame(const Value& func_val, FunctionDef* func_def
 	, Value&& this_val, uint32_t par_count, bool is_generator
 	)
 {
-	auto save_func = cur_func_val_;
-	auto save_pc = pc_;
-	auto save_bottom = stack_frame_.bottom();
+	//auto save_func = cur_func_val_;
+	//auto save_pc = pc_;
+	//auto save_bottom = stack_frame_.bottom();
 
 	// 栈帧布局：
-		// 返回信息
+		//// 返回信息 // 弃用
 		// 局部变量
 		// 参数1
 		// ...
@@ -192,56 +192,58 @@ void Vm::SaveStackFrame(const Value& func_val, FunctionDef* func_def
 	}
 
 	// 保存当前环境，用于Ret返回
-	stack_frame_.push(Value(save_func));
-	stack_frame_.push(Value(save_pc));
-	stack_frame_.push(Value(save_bottom));
+	//stack_frame_.push(Value(save_func));
+	//stack_frame_.push(Value(save_pc));
+	//stack_frame_.push(Value(save_bottom));
 
 	stack_frame_.set_this_val(std::move(this_val));
 
-	if (cur_func_val_.IsFunctionObject()) {
-		BindClosureVars(cur_func_val_);
-	}
+	//if (cur_func_val_.IsFunctionObject()) {
+	//	BindClosureVars(cur_func_val_);
+	//}
 }
 
 
-Value Vm::RestoreStackFrame() {
-	// 将要返回，需要提升当前栈帧上的闭包变量到堆中
-	// 拿到返回之后的函数变量，将其赋值为
-
-	auto ret_value = stack_frame_.pop();
-
-	auto save_bottom = stack_frame_.pop();
-	auto save_pc = stack_frame_.pop();
-	auto save_func = stack_frame_.pop();
-
-	// 恢复环境和栈帧
-	cur_func_val_ = save_func;
-	cur_func_def_ = function_def(cur_func_val_);
-	JumpTo(save_pc.u64());
-
-	// 设置栈顶和栈底
-	stack().resize(stack_frame_.bottom());
-	stack_frame_.set_bottom(save_bottom.u64());
-
-	// 返回位于原本位于栈帧栈顶的返回值
-	return ret_value;
-}
+//Value Vm::RestoreStackFrame() {
+//	// 将要返回，需要提升当前栈帧上的闭包变量到堆中
+//	// 拿到返回之后的函数变量，将其赋值为
+//
+//	auto ret_value = stack_frame_.pop();
+//
+//	auto save_bottom = stack_frame_.pop();
+//	auto save_pc = stack_frame_.pop();
+//	auto save_func = stack_frame_.pop();
+//
+//	// 恢复环境和栈帧
+//	cur_func_val_ = save_func;
+//	cur_func_def_ = function_def(cur_func_val_);
+//	JumpTo(save_pc.u64());
+//
+//	// 设置栈顶和栈底
+//	stack().resize(stack_frame_.bottom());
+//	stack_frame_.set_bottom(save_bottom.u64());
+//
+//	// 返回位于原本位于栈帧栈顶的返回值
+//	return ret_value;
+//}
 
 // Run改成CallInternal，调用函数会递归调用CallInternal
 // CallInternal发现cur_func_def_不是参数execute_func_def_，就返回到上一层
 // 在函数头尾处理栈帧
-void Vm::CallInternal(Value func_val, Value this_val) {
+Value Vm::CallInternal(Value func_val, Value this_val) {
 	if (func_val.IsFunctionObject()) {
 		std::cout << func_val.function().function_def().Disassembly(context_);
 	}
 
 	if (!FunctionSwitch(func_val, this_val)) {
-		return;
+		return Value();
 	}
 	BindClosureVars(cur_func_val_);
 
-	std::optional<Value> pending_return_val_;
-	Pc pending_goto_pc_ = kInvalidPc;
+	std::optional<Value> pending_return_val;
+	std::optional<Value> pending_error_val;
+	Pc pending_goto_pc = kInvalidPc;
+
 
 	auto* exec_func_def = function_def(func_val);
 	while (pc_ >= 0 && cur_func_def_ && pc_ < cur_func_def_->byte_code().Size()) {
@@ -428,7 +430,24 @@ void Vm::CallInternal(Value func_val, Value this_val) {
 
 			auto this_val = stack_frame_.pop();
 			auto func_val = stack_frame_.pop();
-			CallInternal(func_val, this_val);
+			
+			auto save_cur_func = cur_func_val_;
+			auto save_cur_func_def = cur_func_def_;
+			auto save_pc = pc_;
+			auto save_bottom = stack_frame_.bottom();
+			auto ret_err = CallInternal(func_val, this_val);
+			pc_ = save_pc;
+			cur_func_def_ = save_cur_func_def;
+			cur_func_val_ = save_cur_func;
+			// stack().resize(stack_frame_.bottom());
+			stack_frame_.set_bottom(save_bottom);
+
+			if (ret_err.IsException()) {
+				pending_error_val = std::move(ret_err);
+				if (!ThrowExecption(&pending_error_val)) {
+					goto exit_;
+				}
+			}
 			break;
 		}
 		case OpcodeType::kGetThis: {
@@ -440,7 +459,6 @@ void Vm::CallInternal(Value func_val, Value this_val) {
 			break;
 		}
 		case OpcodeType::kReturn: {
-			stack_frame_.push(RestoreStackFrame());
 			goto exit_;
 			break;
 		}
@@ -449,7 +467,7 @@ void Vm::CallInternal(Value func_val, Value this_val) {
 
 			generator.SetClosed();
 
-			auto ret_value = RestoreStackFrame();
+			auto ret_value = stack_frame_.pop();
 			auto ret_obj = generator.MakeReturnObject(&context_->runtime(), std::move(ret_value));
 			stack_frame_.push(std::move(ret_obj));
 
@@ -471,8 +489,8 @@ void Vm::CallInternal(Value func_val, Value this_val) {
 				}
 			}
 
-			auto ret_value = RestoreStackFrame();
-			stack_frame_.push(std::move(ret_value));
+			//auto ret_value = stack_frame_.pop();
+			//stack_frame_.push(std::move(ret_value));
 
 			goto exit_;
 
@@ -490,7 +508,7 @@ void Vm::CallInternal(Value func_val, Value this_val) {
 				gen_vector[i] = std::move(stack_frame_.get(i));
 			}
 
-			auto ret_value = RestoreStackFrame();
+			auto ret_value = stack_frame_.pop();
 			auto ret_obj = generator.MakeReturnObject(&context_->runtime(), std::move(ret_value));
 			stack_frame_.push(std::move(ret_obj));
 
@@ -549,13 +567,11 @@ void Vm::CallInternal(Value func_val, Value this_val) {
 			auto par_count = stack_frame_.pop().u64();
 
 			if (value.IsClassDef()) {
-				auto old_bottom = stack_frame_.bottom();
 				stack_frame_.set_bottom(stack().size() - par_count);
 
 				auto obj = value.class_def().Constructor(context_, par_count, stack_frame_);
 
 				// 还原栈帧
-				stack_frame_.set_bottom(old_bottom);
 				stack().reduce(par_count);
 				stack_frame_.push(std::move(obj));
 			}
@@ -574,22 +590,20 @@ void Vm::CallInternal(Value func_val, Value this_val) {
 		}
 		case OpcodeType::kThrow: {
 			--pc_;
-			auto error_val = stack_frame_.pop();
-			ThrowExecption(std::move(error_val));
+			pending_error_val = stack_frame_.pop();
+			ThrowExecption(&pending_error_val);
 			break;
 		}
 		case OpcodeType::kTryEnd: {
 			// 先回到try end
 			--pc_;
-			if (cur_error_val_) {
+			if (pending_error_val) {
 				// 如果还有记录的异常，就重抛，这里的重抛是直接到上层抛的，因为try end不属于当前层
-				auto error_val = std::move(*cur_error_val_);
-				cur_error_val_.reset();
-				if (!ThrowExecption(std::move(error_val))) {
+				if (!ThrowExecption(&pending_error_val)) {
 					goto exit_;
 				}
 			}
-			else if (pending_return_val_) {
+			else if (pending_return_val) {
 				// finally完成了，有保存的返回值
 				auto& table = cur_func_def_->exception_table();
 				auto* entry = table.FindEntry(pc_);
@@ -598,20 +612,20 @@ void Vm::CallInternal(Value func_val, Value this_val) {
 					JumpTo(entry->finally_start_pc);
 					break;
 				}
-				stack_frame_.push(std::move(*pending_return_val_));
-				stack_frame_.push(RestoreStackFrame());
-				pending_return_val_.reset();
+				stack_frame_.push(std::move(*pending_return_val));
+				stack_frame_.push(stack_frame_.pop());
+				pending_return_val.reset();
 				goto exit_;
 			}
-			else if (pending_goto_pc_ != kInvalidPc) {
+			else if (pending_goto_pc != kInvalidPc) {
 				// finally完成了，有未完成的跳转
 				auto& table = cur_func_def_->exception_table();
 				auto* entry = table.FindEntry(pc_);
-				auto* goto_entry = table.FindEntry(pending_goto_pc_);
+				auto* goto_entry = table.FindEntry(pending_goto_pc);
 				// Goto是否跳过上层finally
 				if (!goto_entry || entry == goto_entry) {
-					JumpTo(pending_goto_pc_);
-					pending_goto_pc_ = kInvalidPc;
+					JumpTo(pending_goto_pc);
+					pending_goto_pc = kInvalidPc;
 				}
 				else {
 					JumpTo(entry->finally_start_pc);
@@ -631,7 +645,7 @@ void Vm::CallInternal(Value func_val, Value this_val) {
 			if (!entry || !entry->HasFinally()) {
 				throw VmException("Incorrect finally return.");
 			}
-			pending_return_val_ = stack_frame_.pop();
+			pending_return_val = stack_frame_.pop();
 			if (entry->LocatedInFinally(pc_)) {
 				// 位于finally的返回，覆盖掉原先的返回，跳转到TryEnd
 				JumpTo(entry->finally_end_pc);
@@ -649,7 +663,7 @@ void Vm::CallInternal(Value func_val, Value this_val) {
 			if (!entry || !entry->HasFinally()) {
 				throw VmException("Incorrect finally return.");
 			}
-			pending_goto_pc_ = cur_func_def_->byte_code().CalcPc(pc_);
+			pending_goto_pc = cur_func_def_->byte_code().CalcPc(pc_);
 			if (entry->LocatedInFinally(pc_)) {
 				// 位于finally的goto
 				JumpTo(entry->finally_end_pc);
@@ -664,9 +678,8 @@ void Vm::CallInternal(Value func_val, Value this_val) {
 		}
 	}
 exit_:
-	//pending_return_val_.reset();
-	//pending_goto_pc_ = kInvalidPc;
-	return;
+	// auto ret_val = stack_frame_.pop();
+	return Value();// *pending_return_val;
 }
 
 bool Vm::FunctionSwitch(Value func_val, Value this_val) {
@@ -708,20 +721,17 @@ bool Vm::FunctionSwitch(Value func_val, Value this_val) {
 			}
 		}
 		
-		SaveStackFrame(func_val, func_def, std::move(this_val), par_count, false);
+		SwitchStackFrame(func_val, func_def, std::move(this_val), par_count, false);
 		JumpTo(0);
 
 		return true;
 	}
 	case ValueType::kCppFunction: {
 		// 切换栈帧
-		auto old_bottom = stack_frame_.bottom();
 		stack_frame_.set_bottom(stack().size() - par_count);
 
 		auto ret = func_val.cpp_function()(context_, this_val, par_count, stack_frame_);
 
-		// 还原栈帧
-		stack_frame_.set_bottom(old_bottom);
 		stack().reduce(par_count);
 		stack_frame_.push(std::move(ret));
 		return false;
@@ -748,7 +758,7 @@ bool Vm::FunctionSwitch(Value func_val, Value this_val) {
 
 		generator.SetExecuting();
 		
-		SaveStackFrame(generator.function(), &generator.function_def()
+		SwitchStackFrame(generator.function(), &generator.function_def()
 			, std::move(this_val), 0, true);
 		JumpTo(generator.pc());
 
@@ -785,7 +795,7 @@ bool Vm::FunctionSwitch(Value func_val, Value this_val) {
 }
 
 
-bool Vm::ThrowExecption(Value&& error_val) {
+bool Vm::ThrowExecption(std::optional<Value>* error_val) {
 	auto& table = cur_func_def_->exception_table();
 
 	auto* entry = table.FindEntry(pc_);
@@ -797,24 +807,22 @@ bool Vm::ThrowExecption(Value&& error_val) {
 		// 位于try中抛出的异常
 		if (entry->HasCatch()) {
 			// 进了catch，catch可能会异常，如果异常了要先执行finally，然后继续上抛
-			SetVar(entry->catch_err_var_idx, std::move(error_val));
+			SetVar(entry->catch_err_var_idx, std::move(**error_val));
+			error_val->reset();
 			JumpTo(entry->catch_start_pc);
 		}
 		else {
 			// 没有catch，保存error_val，等finally末尾的rethrow重抛
-			cur_error_val_ = std::move(error_val);
 			JumpTo(entry->finally_start_pc);
 		}
 	}
 	else if (entry->HasCatch() && entry->LocatedInCatch(pc_)) {
-		cur_error_val_ = std::move(error_val);
 		if (entry->HasFinally()) {
 			JumpTo(entry->finally_start_pc);
 		}
 	}
 	else if (entry->HasFinally() && entry->LocatedInFinally(pc_)) {
 		// finally抛出异常，覆盖错误并且跳转到最后的TryEnd
-		cur_error_val_ = std::move(error_val);
 		JumpTo(entry->finally_end_pc);
 	}
 	else {
