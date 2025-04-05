@@ -11,18 +11,18 @@ let anonymousfunc = function() {
                 i = i + 1;
                 try {
                     try {
-                        println("inner try while try2");
+                        // println("inner try while try2");
                         continue;
                         break;
                     }
                     finally {
-                        println("inner try while finally2");
+                        // println("inner try while finally2");
                         throw "sbsb666";
                         // break;
                     }
                 }
                 finally {
-                    println("inner try while finally");
+                    // println("inner try while finally");
                     // break;
                 }
             }
@@ -31,17 +31,17 @@ let anonymousfunc = function() {
             }
         }
         finally {
-            println("inner finally2");
+            // println("inner finally2");
             return 8888;
         }
-        println("inner try");
+        // println("inner try");
         throw "inner error";
     }
     // catch (e) {
     //     println("inner catch:", e);
     // }
     finally {
-        println("inner finally");
+        // println("inner finally");
         return 6666;
     }
 };

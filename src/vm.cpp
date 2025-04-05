@@ -228,10 +228,6 @@ void Vm::SwitchStackFrame(const Value& func_val, FunctionDef* func_def
 //}
 
 void Vm::CallInternal(Value func_val, Value this_val) {
-	//if (func_val.IsFunctionObject()) {
-	//	std::cout << func_val.function().function_def().Disassembly(context_);
-	//}
-
 	auto save_cur_func = std::move(cur_func_val_);
 	auto save_cur_func_def = cur_func_def_;
 	auto save_pc = pc_;
@@ -242,6 +238,11 @@ void Vm::CallInternal(Value func_val, Value this_val) {
 	if (!FunctionSwitch(func_val, this_val)) {
 		goto exit_;
 	}
+
+	if (cur_func_def_) {
+		std::cout << cur_func_def_->Disassembly(context_);
+	}
+
 
 	{
 		BindClosureVars(cur_func_val_);
@@ -676,16 +677,22 @@ void Vm::CallInternal(Value func_val, Value this_val) {
 	}
 
 exit_:
+	if (!pending_return_val) {
+		pending_return_val = stack_frame_.pop();
+	}
+	else {
+		pending_return_val->SetException();
+	}
+
 	cur_func_def_ = save_cur_func_def;
 	cur_func_val_ = std::move(save_cur_func);
 	pc_ = save_pc;
-	// stack().resize(stack_frame_.bottom());
+
+	// »¹Ô­Õ»Ö¡
+	stack().resize(stack_frame_.bottom());
 	stack_frame_.set_bottom(save_bottom);
 
-	if (pending_return_val) {
-		pending_return_val->SetException();
-		stack_frame_.push(*pending_return_val);
-	}
+	stack_frame_.push(std::move(*pending_return_val));
 	return;
 }
 

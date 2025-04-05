@@ -63,7 +63,7 @@ private:
 	Context* context_;
 
 	Value cur_func_val_;
-	FunctionDef* cur_func_def_;
+	FunctionDef* cur_func_def_ = nullptr;
 	uint32_t pc_ = 0;
 
 	StackFrame stack_frame_;
