@@ -39,7 +39,7 @@ private:
 	void BindClosureVars(const Value& func_val);
 
 	// 返回是否需要继续执行字节码
-	bool FunctionSwitch(Value func_val, Value this_val);
+	bool FunctionSwitch(Value func_val, Value this_val, uint32_t par_count);
 
 	void CallInternal(Value func_val, Value this_val);
 

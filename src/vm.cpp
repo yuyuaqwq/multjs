@@ -181,14 +181,8 @@ void Vm::SwitchStackFrame(const Value& func_val, FunctionDef* func_def
 
 	// 参数已经入栈了，再分配局部变量部分
 	if (!is_generator) {
-		assert(stack().size() >= cur_func_def_->par_count());
-		stack_frame_.set_bottom(stack().size() - cur_func_def_->par_count());
-
 		assert(cur_func_def_->var_count() >= cur_func_def_->par_count());
 		stack().upgrade(cur_func_def_->var_count() - cur_func_def_->par_count());
-	}
-	else {
-		stack_frame_.set_bottom(stack().size() - cur_func_def_->var_count());
 	}
 
 	// 保存当前环境，用于Ret返回
@@ -233,16 +227,18 @@ void Vm::CallInternal(Value func_val, Value this_val) {
 	auto save_pc = pc_;
 	auto save_bottom = stack_frame_.bottom();
 
+	auto par_count = stack_frame_.pop().u64();
+	stack_frame_.set_bottom(stack().size() - par_count);
+
 	std::optional<Value> pending_return_val;
 
-	if (!FunctionSwitch(func_val, this_val)) {
+	if (!FunctionSwitch(func_val, this_val, par_count)) {
 		goto exit_;
 	}
 
-	if (cur_func_def_) {
-		std::cout << cur_func_def_->Disassembly(context_);
-	}
-
+	//if (cur_func_def_) {
+	//	std::cout << cur_func_def_->Disassembly(context_);
+	//}
 
 	{
 		BindClosureVars(cur_func_val_);
@@ -565,9 +561,7 @@ void Vm::CallInternal(Value func_val, Value this_val) {
 
 				if (value.IsClassDef()) {
 					stack_frame_.set_bottom(stack().size() - par_count);
-
 					auto obj = value.class_def().Constructor(context_, par_count, stack_frame_);
-
 					// 还原栈帧
 					stack().reduce(par_count);
 					stack_frame_.push(std::move(obj));
@@ -691,13 +685,12 @@ exit_:
 	// 还原栈帧
 	stack().resize(stack_frame_.bottom());
 	stack_frame_.set_bottom(save_bottom);
-
+	
 	stack_frame_.push(std::move(*pending_return_val));
 	return;
 }
 
-bool Vm::FunctionSwitch(Value func_val, Value this_val) {
-	auto par_count = stack_frame_.pop().u64();
+bool Vm::FunctionSwitch(Value func_val, Value this_val, uint32_t par_count) {
 
 	switch (func_val.type()) {
 	case ValueType::kFunctionDef:
@@ -716,6 +709,7 @@ bool Vm::FunctionSwitch(Value func_val, Value this_val) {
 		if (func_def->IsGenerator() || func_def->IsAsync()) {
 			// 提前分配参数和局部变量栈空间
 			auto generator = new GeneratorObject(context_, func_val);
+
 			generator->stack().upgrade(func_def->var_count());
 
 			// 复制参数
@@ -742,10 +736,7 @@ bool Vm::FunctionSwitch(Value func_val, Value this_val) {
 	}
 	case ValueType::kCppFunction: {
 		// 切换栈帧
-		stack_frame_.set_bottom(stack().size() - par_count);
-
 		auto ret = func_val.cpp_function()(context_, this_val, par_count, stack_frame_);
-
 		stack().reduce(par_count);
 		stack_frame_.push(std::move(ret));
 		return false;
@@ -760,7 +751,8 @@ bool Vm::FunctionSwitch(Value func_val, Value this_val) {
 		}
 		if (generator.IsClosed()) {
 			stack_frame_.push(generator.MakeReturnObject(&context_->runtime(), Value()));
-			break;
+			// 已完成，不再需要执行
+			return false;
 		}
 
 		bool is_first = !generator.IsExecuting();
