@@ -6,6 +6,25 @@
 let anonymousfunc = function() {
     try {
         try {
+            let i = 0;
+            while (i < 5) {
+                i = i + 1;
+                try {
+                    try {
+                        println("inner try while try2");
+                        // continue;
+                        break;
+                    }
+                    finally {
+                        println("inner try while finally2");
+                        // break;
+                    }
+                }
+                finally {
+                    println("inner try while finally");
+                    // break;
+                }
+            }
             {
                 return 123321;
             }
@@ -26,7 +45,13 @@ let anonymousfunc = function() {
     }
 };
 
-let res = anonymousfunc();
+let res = undefined;
+try {
+    res = anonymousfunc();
+}
+finally {
+    println("call finally");
+}
 println("res:", res);
 
 

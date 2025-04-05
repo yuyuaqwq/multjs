@@ -8,6 +8,7 @@
 namespace mjs {
 
 enum class ExpType {
+	kUndefined,
 	kNull,
 	kBool,
 	kNumber,
@@ -35,6 +36,13 @@ enum class ExpValueCategory {
 struct Exp {
 	virtual ExpType GetType() const noexcept = 0;
 	ExpValueCategory value_category = ExpValueCategory::kRightValue;
+};
+
+
+struct UndefinedExp : public Exp {
+	virtual ExpType GetType() const noexcept override {
+		return ExpType::kUndefined;
+	}
 };
 
 struct NullExp : public Exp {

@@ -1,7 +1,7 @@
 #pragma once
 
 #include <string>
-#include <map>
+#include <unordered_map>
 
 namespace mjs {
 
@@ -9,9 +9,12 @@ enum class TokenType {
     kNil = 0,      // 空token
 
     kEof,          // 文件结束符
+    kUndefined,    // undefined
     kNull,         // null
     kFalse,        // false
     kTrue,         // true
+    //kNan,          // Nan
+    //kInfinity,     // Infinity
     kNumber,       // 通用数字类型
     kString,       // 字符串
     kIdentifier,   // [a-zA-Z_][a-zA-Z0-9_]*
@@ -137,6 +140,7 @@ private:
 	std::string str_;	// 保存必要的信息
 };
 
-extern std::map<std::string, TokenType> g_keywords;
+extern std::unordered_map<std::string, TokenType> g_operators;
+extern std::unordered_map<std::string, TokenType> g_keywords;
 
 } // namespace msj

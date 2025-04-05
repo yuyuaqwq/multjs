@@ -97,6 +97,8 @@ enum class OpcodeType {
 	kTryEnd = 0xd4,
 	kFinallyReturn = 0xd5,
 
+	kFinallyGoto = 0xd6,
+
 	// 0xf0 ~ 0xff ±£¡Ù
 };
 

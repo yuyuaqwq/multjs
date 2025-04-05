@@ -6,7 +6,45 @@ bool Token::Is(TokenType type) const noexcept {
 	return type_ == type;
 }
 
-std::map<std::string, TokenType> g_keywords = {
+
+std::unordered_map<std::string, TokenType> g_operators = {
+	{ ";", TokenType::kSepSemi },
+	{ ":", TokenType::kSepColon },
+	{ ",", TokenType::kSepComma },
+	{ ".", TokenType::kSepDot },
+	{ "(", TokenType::kSepLParen },
+	{ ")", TokenType::kSepRParen },
+	{ "[", TokenType::kSepLBrack },
+	{ "]", TokenType::kSepRBrack },
+	{ "{", TokenType::kSepLCurly },
+	{ "}", TokenType::kSepRCurly },
+	{ "+", TokenType::kOpAdd },
+	{ "++", TokenType::kOpInc },
+	{ "-", TokenType::kOpDec },
+	{ "--", TokenType::kOpSub },
+	{ "*", TokenType::kOpMul },
+	{ "**", TokenType::kOpPower },
+	{ "/", TokenType::kOpDiv },
+	{ "%", TokenType::kOpMod },
+	{ "!", TokenType::kOpNot },
+	{ "=", TokenType::kOpAssign },
+	{ "==", TokenType::kOpEq },
+	{ "===", TokenType::kOpStrictEq },
+	{ "!=", TokenType::kOpNe },
+	{ "!==", TokenType::kOpStrictNe },
+	{ "<", TokenType::kOpLt },
+	{ "<=", TokenType::kOpLe },
+	{ ">", TokenType::kOpGt },
+	{ ">=", TokenType::kOpGe },
+
+};
+
+std::unordered_map<std::string, TokenType> g_keywords = {
+	{ "undefined", TokenType::kUndefined },
+	{ "true", TokenType::kTrue },
+	{ "false", TokenType::kFalse },
+	{ "null", TokenType::kNull },
+
 	{ "if", TokenType::kKwIf },
 	{ "else", TokenType::kKwElse },
 	{ "function", TokenType::kKwFunction },

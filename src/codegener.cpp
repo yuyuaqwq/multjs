@@ -10,11 +10,11 @@ namespace mjs {
 CodeGener::CodeGener(Runtime* runtime)
 	: runtime_(runtime) {}
 
-void CodeGener::EntryScope(FunctionDef* sub_func, bool has_finally) {
+void CodeGener::EntryScope(FunctionDef* sub_func, ScopeType type) {
 	if (sub_func == nullptr) {
 		sub_func = cur_func_def_;
 	}
-	scopes_.emplace_back(sub_func, has_finally);
+	scopes_.emplace_back(sub_func, type);
 }
 
 void CodeGener::ExitScope() {
@@ -81,13 +81,18 @@ std::optional<VarIndex> CodeGener::FindVarIndexByName(const std::string& var_nam
 	return find_var_idx;
 }
 
-bool CodeGener::HasTryFinally() {
+bool CodeGener::IsInTypeScope(std::initializer_list<ScopeType> types, std::initializer_list<ScopeType> end_types) {
 	for (ptrdiff_t i = scopes_.size() - 1; i >= 0; --i) {
-		if (scopes_[i].function_def() != cur_func_def_) {
-			return false;
+		for (auto end_type : end_types) {
+			if (scopes_[i].type() == end_type) {
+				return false;
+			}
 		}
-		if (scopes_[i].has_try_finally()) {
-			return true;
+		
+		for (auto type : types) {
+			if (scopes_[i].type() == type) {
+				return true;
+			}
 		}
 	}
 	return false;
@@ -153,9 +158,9 @@ Value CodeGener::Generate(BlockStat* block) {
 	
 }
 
-void CodeGener::GenerateBlock(BlockStat* block, bool entry_scope, bool has_finally) {
+void CodeGener::GenerateBlock(BlockStat* block, bool entry_scope, ScopeType type) {
 	if (entry_scope) {
-		EntryScope(nullptr, has_finally);
+		EntryScope(nullptr, type);
 	}
 	for (auto& stat : block->stat_list) {
 		GenerateStat(stat.get());
@@ -224,7 +229,7 @@ void CodeGener::GenerateReturnStat(ReturnStat* stat) {
 	else {
 		cur_func_def_->byte_code().EmitOpcode(OpcodeType::kUndefined);
 	}
-	if (HasTryFinally()) {
+	if (IsInTypeScope({ ScopeType::kTryFinally,ScopeType::kCatchFinally, ScopeType::kFinally }, { ScopeType::kFunction })) {
 		cur_func_def_->byte_code().EmitOpcode(OpcodeType::kFinallyReturn);
 	}
 	else {
@@ -370,7 +375,7 @@ void CodeGener::GenerateWhileStat(WhileStat* stat) {
 	// 提前写入跳转的指令
 	GenerateIfEq(stat->exp.get());
 
-	GenerateBlock(stat->block.get());
+	GenerateBlock(stat->block.get(), true, ScopeType::kWhile);
 
 	// 重新回去看是否需要循环
 	cur_func_def_->byte_code().EmitOpcode(OpcodeType::kGoto);
@@ -391,7 +396,12 @@ void CodeGener::GenerateContinueStat(ContinueStat* stat) {
 		throw CodeGenerException("Cannot use break in acyclic scope");
 	}
 	// 跳回当前循环的起始pc
-	cur_func_def_->byte_code().EmitOpcode(OpcodeType::kGoto);
+	if (IsInTypeScope({ ScopeType::kTryFinally,ScopeType::kCatchFinally, ScopeType::kFinally }, { ScopeType::kWhile, ScopeType::kFunction })) {
+		cur_func_def_->byte_code().EmitOpcode(OpcodeType::kFinallyGoto);
+	}
+	else {
+		cur_func_def_->byte_code().EmitOpcode(OpcodeType::kGoto);
+	}
 	cur_func_def_->byte_code().EmitPcOffset(0);
 	cur_func_def_->byte_code().RepairPc(cur_func_def_->byte_code().Size() - 3, cur_loop_start_pc_);
 }
@@ -402,7 +412,12 @@ void CodeGener::GenerateBreakStat(BreakStat* stat) {
 	}
 	cur_loop_repair_end_pc_list_->push_back(cur_func_def_->byte_code().Size());
 	// 无法提前得知结束pc，保存待修复pc，等待修复
-	cur_func_def_->byte_code().EmitOpcode(OpcodeType::kGoto);
+	if (IsInTypeScope({ ScopeType::kTryFinally,ScopeType::kCatchFinally, ScopeType::kFinally }, { ScopeType::kWhile, ScopeType::kFunction })) {
+		cur_func_def_->byte_code().EmitOpcode(OpcodeType::kFinallyGoto);
+	}
+	else {
+		cur_func_def_->byte_code().EmitOpcode(OpcodeType::kGoto);
+	}
 	cur_func_def_->byte_code().EmitPcOffset(0);
 }
 
@@ -413,7 +428,7 @@ void CodeGener::GenerateTryStat(TryStat* stat) {
 
 	cur_func_def_->byte_code().EmitOpcode(OpcodeType::kTryBegin);
 
-	GenerateBlock(stat->block.get(), true, has_finally);
+	GenerateBlock(stat->block.get(), true, has_finally ? ScopeType::kTryFinally : ScopeType::kTry);
 
 	auto try_end_pc = cur_func_def_->byte_code().Size();
 
@@ -428,7 +443,7 @@ void CodeGener::GenerateTryStat(TryStat* stat) {
 
 	if (stat->catch_stat) {
 		catch_start_pc = cur_func_def_->byte_code().Size();
-		EntryScope(nullptr, has_finally);
+		EntryScope(nullptr, has_finally ? ScopeType::kCatchFinally : ScopeType::kCatch);
 
 		// 加载error参数到变量
 		catch_err_var_idx = AllocVar(stat->catch_stat->exp->name);
@@ -450,7 +465,7 @@ void CodeGener::GenerateTryStat(TryStat* stat) {
 	auto finally_end_pc = kInvalidPc;
 	if (stat->finally_stat) {
 		finally_start_pc = cur_func_def_->byte_code().Size();
-		GenerateBlock(stat->finally_stat->block.get(), true, has_finally);
+		GenerateBlock(stat->finally_stat->block.get(), true, ScopeType::kFinally);
 		finally_end_pc = cur_func_def_->byte_code().Size();
 	}
 
@@ -485,6 +500,7 @@ void CodeGener::GenerateExp(Exp* exp) {
 	case ExpType::kFunctionDecl:
 		GenerateFunctionDeclExp(static_cast<FuncDeclExp*>(exp));
 		break;
+	case ExpType::kUndefined:
 	case ExpType::kNull:
 	case ExpType::kBool:
 	case ExpType::kNumber:
@@ -770,7 +786,7 @@ void CodeGener::GenerateFunctionDeclExp(FuncDeclExp* exp) {
 	auto savefunc = cur_func_def_;
 
 	// 切换环境
-	EntryScope(&func_def);
+	EntryScope(&func_def, ScopeType::kFunction);
 	cur_func_def_ = &func_def;
 
 	// 参数正序分配
@@ -803,6 +819,9 @@ void CodeGener::GenerateIfEq(Exp* exp) {
 
 Value CodeGener::MakeValue(Exp* exp) {
 	switch (exp->GetType()) {
+	case ExpType::kUndefined:{
+		return Value();
+	}
 	case ExpType::kNull: {
 		return Value(nullptr);
 	}

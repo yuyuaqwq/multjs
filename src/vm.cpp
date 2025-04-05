@@ -236,6 +236,9 @@ void Vm::CallInternal(Value func_val, Value this_val) {
 	}
 	BindClosureVars(cur_func_val_);
 
+	std::optional<Value> pending_return_val_;
+	Pc pending_goto_pc_ = kInvalidPc;
+
 	auto* exec_func_def = function_def(func_val);
 	while (pc_ >= 0 && cur_func_def_ && pc_ < cur_func_def_->byte_code().Size()) {
 		//OpcodeType opcode_; uint32_t par; auto pc = pc_; std::cout << cur_func_def_->byte_code().Disassembly(context_, pc, opcode_, par, cur_func_def_) << std::endl;
@@ -581,7 +584,7 @@ void Vm::CallInternal(Value func_val, Value this_val) {
 					goto exit_;
 				}
 			}
-			if (cur_return_val_) {
+			if (pending_return_val_) {
 				// finally完成了，有保存的返回值
 				auto& table = cur_func_def_->exception_table();
 				auto* entry = table.FindEntry(pc_);
@@ -590,10 +593,22 @@ void Vm::CallInternal(Value func_val, Value this_val) {
 					JumpTo(entry->finally_start_pc);
 					break;
 				}
-				stack_frame_.push(std::move(*cur_return_val_));
+				stack_frame_.push(std::move(*pending_return_val_));
 				stack_frame_.push(RestoreStackFrame());
-				cur_return_val_.reset();
+				pending_return_val_.reset();
 				goto exit_;
+			}
+			if (pending_goto_pc_ != kInvalidPc) {
+				auto& table = cur_func_def_->exception_table();
+				auto* entry = table.FindEntry(pc_);
+				auto* goto_entry = table.FindEntry(pending_goto_pc_);
+				if (!goto_entry || entry == goto_entry) {
+					JumpTo(pending_goto_pc_);
+					pending_goto_pc_ = kInvalidPc;
+				}
+				else {
+					JumpTo(entry->finally_start_pc);
+				}
 			}
 			break;
 		}
@@ -604,9 +619,26 @@ void Vm::CallInternal(Value func_val, Value this_val) {
 			if (!entry || !entry->HasFinally()) {
 				throw VmException("Incorrect finally return.");
 			}
-			cur_return_val_ = stack_frame_.pop();
+			pending_return_val_ = stack_frame_.pop();
 			if (entry->LocatedInFinally(pc_)) {
 				// 位于finally的返回，覆盖掉原先的返回，跳转到TryEnd
+				JumpTo(entry->finally_end_pc);
+			}
+			else {
+				JumpTo(entry->finally_start_pc);
+			}
+			break;
+		}
+		case OpcodeType::kFinallyGoto: {
+			// goto会跳过finally，先执行finally
+			auto& table = cur_func_def_->exception_table();
+			auto* entry = table.FindEntry(pc_);
+			if (!entry || !entry->HasFinally()) {
+				throw VmException("Incorrect finally return.");
+			}
+			pending_goto_pc_ = cur_func_def_->byte_code().CalcPc(--pc_);
+			if (entry->LocatedInFinally(pc_)) {
+				// 位于finally的goto
 				JumpTo(entry->finally_end_pc);
 			}
 			else {
@@ -619,6 +651,8 @@ void Vm::CallInternal(Value func_val, Value this_val) {
 		}
 	}
 exit_:
+	//pending_return_val_.reset();
+	//pending_goto_pc_ = kInvalidPc;
 	return;
 }
 

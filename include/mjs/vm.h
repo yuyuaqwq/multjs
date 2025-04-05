@@ -69,8 +69,6 @@ private:
 	StackFrame stack_frame_;
 
 	std::optional<Value> cur_error_val_;
-	std::optional<Value> cur_return_val_;
-
 };
 
 } // namespace mjs

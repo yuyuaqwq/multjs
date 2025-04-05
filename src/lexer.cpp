@@ -150,126 +150,26 @@ Token Lexer::ReadNextToken() {
         return token;
     }
 
-    // 根据字符返回对应类型的Token
-    switch (c) {
-    case ';':
-        token.set_type(TokenType::kSepSemi);
-        return token;
-    case ':':
-        token.set_type(TokenType::kSepColon);
-        return token;
-    case ',':
-        token.set_type(TokenType::kSepComma);
-        return token;
-    case '.':
-        token.set_type(TokenType::kSepDot);
-        return token;
-    case '(':
-        token.set_type(TokenType::kSepLParen);
-        return token;
-    case ')':
-        token.set_type(TokenType::kSepRParen);
-        return token;
-    case '[':
-        token.set_type(TokenType::kSepLBrack);
-        return token;
-    case ']':
-        token.set_type(TokenType::kSepRBrack);
-        return token;
-    case '{':
-        token.set_type(TokenType::kSepLCurly);
-        return token;
-    case '}':
-        token.set_type(TokenType::kSepRCurly);
-        return token;
+    // 根据符号返回对应类型的Token
+    // 目前没有一个字符找不到但是两个能找到的类型
+    auto c_str = std::string(1, c);
+    decltype(g_operators)::iterator op_it = g_operators.end();
+    do {
+        auto it = g_operators.find(c_str);
+        if (it == g_operators.end()) {
+            break;
+        }
+        if (c_str.size() > 1) {
+            SkipChar(1);
+        }
+        auto next_c = PeekChar();
+        c_str = c_str + std::string(1, next_c);
+        op_it = it;
 
-    case '+':
-        if (TestChar('+')) {
-            SkipChar(1);
-            token.set_type(TokenType::kOpInc);
-            return token;
-        }
-        token.set_type(TokenType::kOpAdd);
+    } while (true);
+    if (op_it != g_operators.end()) {
+        token.set_type(op_it->second);
         return token;
-    case '-':
-        if (TestChar('-')) {
-            SkipChar(1);
-            token.set_type(TokenType::kOpDec);
-            return token;
-        }
-        token.set_type(TokenType::kOpSub);
-        return token;
-    case '*':
-        if (TestChar('*')) {
-            SkipChar(1);
-            token.set_type(TokenType::kOpPower);
-            return token;
-        }
-        token.set_type(TokenType::kOpMul);
-        return token;
-    case '/':
-        token.set_type(TokenType::kOpDiv);
-        return token;
-    case '%':
-        token.set_type(TokenType::kOpMod);
-        return token;
-    case '!':
-        if (TestChar('=')) {
-            SkipChar(1);
-            if (TestChar('=')) {
-                SkipChar(1);
-                token.set_type(TokenType::kOpStrictNe);
-                return token;
-            }
-            token.set_type(TokenType::kOpNe);
-            return token;
-        }
-        token.set_type(TokenType::kOpNot);
-        return token;
-        break;
-    case '=':
-        if (TestChar('=')) {
-            SkipChar(1);
-            if (TestChar('=')) {
-                SkipChar(1);
-                token.set_type(TokenType::kOpStrictEq);
-                return token;
-            }
-            token.set_type(TokenType::kOpEq);
-            return token;
-        }
-        token.set_type(TokenType::kOpAssign);
-        return token;
-    case '<':
-        if (TestChar('=')) {
-            SkipChar(1);
-            token.set_type(TokenType::kOpLe);
-            return token;
-        }
-        token.set_type(TokenType::kOpLt);
-        return token;
-
-    case '>':
-        if (TestChar('=')) {
-            SkipChar(1);
-            token.set_type(TokenType::kOpGe);
-            return token;
-        }
-        token.set_type(TokenType::kOpGt);
-        return token;
-    }
-
-    if (c == 'n' && TestStr("ull")) {
-        SkipChar(3);
-        token.set_type(TokenType::kNull);
-    }
-    if (c == 'f' && TestStr("alse")) {
-        SkipChar(4);
-        token.set_type(TokenType::kFalse);
-    }
-    if (c == 't' && TestStr("rue")) {
-        SkipChar(3);
-        token.set_type(TokenType::kFalse);
     }
 
     // Number

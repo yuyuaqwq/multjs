@@ -3,6 +3,7 @@
 #include <vector>
 #include <unordered_map>
 #include <string>
+#include <initializer_list>
 
 #include <mjs/noncopyable.h>
 #include <mjs/value.h>
@@ -30,7 +31,7 @@ public:
 	Value Generate(BlockStat* block);
 
 private:
-	void EntryScope(FunctionDef* sub_func = nullptr, bool has_finally = false);
+	void EntryScope(FunctionDef* sub_func = nullptr, ScopeType type = ScopeType::kNone);
 	void ExitScope();
 
 	ConstIndex AllocConst(Value&& value);
@@ -38,11 +39,11 @@ private:
 
 	VarIndex AllocVar(const std::string& name);
 	std::optional<VarIndex> FindVarIndexByName(const std::string& name);
-	bool HasTryFinally();
+	bool IsInTypeScope(std::initializer_list<ScopeType> types, std::initializer_list<ScopeType> end_types);
 	
 	VarIndex GetVarByExp(Exp* exp);
 
-	void GenerateBlock(BlockStat* block, bool entry_scope = true, bool has_finally = false);
+	void GenerateBlock(BlockStat* block, bool entry_scope = true, ScopeType type = ScopeType::kNone);
 	void GenerateStat(Stat* stat);
 	void GenerateReturnStat(ReturnStat* stat);
 	void GenerateNewVarStat(NewVarStat* stat);

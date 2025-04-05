@@ -619,6 +619,10 @@ std::unique_ptr<Exp> Parser::ParsePrimaryExp() {
 	case TokenType::kKwFunction:
 		exp = ParseFunctionDeclExp();
 		break;
+	case TokenType::kUndefined:
+		lexer_->NextToken();
+		exp = std::make_unique<UndefinedExp>();
+		break;
 	case TokenType::kNull: {
 		lexer_->NextToken();
 		exp = std::make_unique<NullExp>();

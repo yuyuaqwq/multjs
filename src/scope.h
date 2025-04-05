@@ -14,11 +14,27 @@ public:
 	using Base::Base;
 };
 
+enum class ScopeType {
+	kNone = 0,
+	kIf,
+	kElseIf,
+	kElse,
+	kWhile,
+	kFor,
+	kFunction,
+
+	kTry,
+	kTryFinally,
+	kCatch,
+	kCatchFinally,
+	kFinally,
+};
+
 class Scope : public noncopyable {
 public:
-	Scope(FunctionDef* function_def, bool has_try_finally)
+	Scope(FunctionDef* function_def, ScopeType type)
 		: function_def_(function_def)
-		, has_try_finally_(has_try_finally) {}
+		, type_(type) {}
 
 	Scope(Scope&& other) noexcept {
 		operator=(std::move(other));
@@ -26,7 +42,7 @@ public:
 	void operator=(Scope&& other) noexcept {
 		function_def_ = other.function_def_;
 		var_table_ = std::move(other.var_table_);
-		has_try_finally_ = other.has_try_finally_;
+		type_ = other.type_;
 	}
 
 	VarIndex AllocVar(const std::string& var_name) {
@@ -49,7 +65,7 @@ public:
 
 	FunctionDef* function_def() const { return function_def_; }
 
-	bool has_try_finally() const { return has_try_finally_; }
+	ScopeType type() const { return type_; }
 
 private:
 	FunctionDef* function_def_; // 所属函数
@@ -58,7 +74,7 @@ private:
 	};
 	std::unordered_map<std::string, VarInfo> var_table_; // 变量表
 
-	bool has_try_finally_;
+	ScopeType type_;
 };
 
 } // namespace mjs
