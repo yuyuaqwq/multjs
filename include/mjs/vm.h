@@ -41,7 +41,7 @@ private:
 	// 返回是否需要继续执行字节码
 	bool FunctionSwitch(Value func_val, Value this_val);
 
-	Value CallInternal(Value func_val, Value this_val);
+	void CallInternal(Value func_val, Value this_val);
 
 	const Value& GetGlobalConst(ConstIndex idx);
 	const Value& GetLocalConst(ConstIndex idx);

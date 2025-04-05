@@ -172,6 +172,7 @@ void Value::operator=(const Value& r) {
 	else {
 		value_ = r.value_;
 	}
+	tag_.exception_ = r.tag_.exception_;
 }
 
 void Value::operator=(Value&& r) noexcept {
