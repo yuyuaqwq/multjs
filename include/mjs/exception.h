@@ -8,7 +8,7 @@ using ExceptionIdx = uint32_t;
 constexpr ExceptionIdx kExceptionInvalidIdx = 0xffffffff;
 
 struct ExceptionEntry{
-    // 左开右开
+    // 左开右闭
     Pc try_start_pc = kInvalidPc;
     Pc try_end_pc = kInvalidPc;
     Pc catch_start_pc = kInvalidPc;
@@ -17,9 +17,9 @@ struct ExceptionEntry{
     Pc finally_start_pc = kInvalidPc;
     Pc finally_end_pc = kInvalidPc;
 
-    // 辅助方法：检查PC是否在try块范围内
+    // 辅助方法：检查PC是否在try块范围内，不包括末尾的try_end
     bool Contains(Pc pc) const {
-        return pc >= try_start_pc && pc <= finally_end_pc; 
+        return pc >= try_start_pc && pc < finally_end_pc;
     }
 
     // 检查是否有catch处理程序
@@ -33,15 +33,15 @@ struct ExceptionEntry{
     }
 
     bool LocatedInTry(Pc pc) const {
-        return pc >= try_start_pc && pc <= try_end_pc;
+        return pc >= try_start_pc && pc < try_end_pc;
     }
 
     bool LocatedInCatch(Pc pc) const {
-        return pc >= catch_start_pc && pc <= catch_end_pc;
+        return pc >= catch_start_pc && pc < catch_end_pc;
     }
 
     bool LocatedInFinally(Pc pc) const {
-        return pc >= finally_start_pc && pc <= finally_end_pc;
+        return pc >= finally_start_pc && pc < finally_end_pc;
     }
 };
 

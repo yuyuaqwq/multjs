@@ -613,6 +613,7 @@ void Vm::CallInternal(Value func_val, Value this_val) {
 			break;
 		}
 		case OpcodeType::kFinallyReturn: {
+			--pc_;
 			// 存在finally的return语句，先跳转到finally
 			auto& table = cur_func_def_->exception_table();
 			auto* entry = table.FindEntry(pc_);
@@ -630,13 +631,14 @@ void Vm::CallInternal(Value func_val, Value this_val) {
 			break;
 		}
 		case OpcodeType::kFinallyGoto: {
+			--pc_;
 			// goto会跳过finally，先执行finally
 			auto& table = cur_func_def_->exception_table();
 			auto* entry = table.FindEntry(pc_);
 			if (!entry || !entry->HasFinally()) {
 				throw VmException("Incorrect finally return.");
 			}
-			pending_goto_pc_ = cur_func_def_->byte_code().CalcPc(--pc_);
+			pending_goto_pc_ = cur_func_def_->byte_code().CalcPc(pc_);
 			if (entry->LocatedInFinally(pc_)) {
 				// 位于finally的goto
 				JumpTo(entry->finally_end_pc);

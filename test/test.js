@@ -12,7 +12,8 @@ let anonymousfunc = function() {
                 try {
                     try {
                         println("inner try while try2");
-                        // continue;
+                        throw "sbsb666";
+                        continue;
                         break;
                     }
                     finally {
@@ -31,7 +32,7 @@ let anonymousfunc = function() {
         }
         finally {
             println("inner finally2");
-            return 8888;
+            // return 8888;
         }
         println("inner try");
         throw "inner error";
