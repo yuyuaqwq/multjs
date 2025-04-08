@@ -477,13 +477,17 @@ void Vm::CallInternal(Value func_val, Value this_val) {
 					if (promise.IsPending()) {
 						// yield流程
 
+						// 怎么拿到自己的generator？
+
+
+						goto exit_;
 					}
 				}
 
 				//auto ret_value = stack_frame_.pop();
 				//stack_frame_.push(std::move(ret_value));
 
-				goto exit_;
+				
 				break;
 			}
 			case OpcodeType::kYield: {

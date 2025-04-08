@@ -3,6 +3,29 @@
 }
 
 
+let promise = new Promise(function(resolve, reject) {
+    println("constructor");
+    resolve(1);
+});
+
+promise.then(function(val) {
+    println("promise1!! ", val);
+    return 2;
+}).then(function(val) {
+    println("promise2!! ", val);
+});
+
+// // promise.resolve(1);
+// // promise.resolve();
+
+
+async function asyncfunc() {
+    let res = await new Promise();
+}
+
+let res_promise = asyncfunc();
+
+
 let anonymousfunc = function() {
     try {
         try {
@@ -102,27 +125,7 @@ println("res:", res);
 // anonymousfunc();
 // anonymousfunc();
 
-let promise = new Promise(function(resolve, reject) {
-    println("constructor");
-    resolve(1);
-});
 
-promise.then(function(val) {
-    println("promise1!! ", val);
-    return 2;
-}).then(function(val) {
-    println("promise2!! ", val);
-});
-
-// // promise.resolve(1);
-// // promise.resolve();
-
-
-// async function asyncfunc() {
-//     let res = await new Promise();
-// }
-
-// let res_promise = asyncfunc();
 
 function* gen(a, b, c) {
     let ttt = this;
