@@ -32,17 +32,17 @@ println(n5.value, " ", n5.done);
 }
 
 
-// let promise = new Promise(function(resolve, reject) {
-//     println("constructor");
-//     resolve(1);
-// });
+let promise = new Promise(function(resolve, reject) {
+    println("constructor");
+    resolve(1);
+});
 
-// promise.then(function(val) {
-//     println("promise1!! ", val);
-//     return 2;
-// }).then(function(val) {
-//     println("promise2!! ", val);
-// });
+promise.then(function(val) {
+    println("promise1!! ", val);
+    return 2;
+}).then(function(val) {
+    println("promise2!! ", val);
+});
 
 // // promise.resolve(1);
 // // promise.resolve();
