@@ -168,7 +168,6 @@ void Vm::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 	if (!FunctionScheduling(stack_frame, param_count)) {
 		goto exit_;
 	}
-	// BindClosureVars(stack_frame);
 
 	//if (cur_func_def_) {
 	//	std::cout << cur_func_def_->Disassembly(context_);
