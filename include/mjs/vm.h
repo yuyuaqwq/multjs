@@ -36,12 +36,12 @@ public:
 
 private:
 	bool InitClosure(const StackFrame& upper_stack_frame, Value* func_def_val);
-	void BindClosureVars(StackFrame* stack_frame, const Value& func_val);
+	void BindClosureVars(StackFrame* stack_frame);
 
 	// 返回是否需要继续执行字节码
-	bool FunctionSwitch(StackFrame* stack_frame, Value* func_val, Value this_val, uint32_t par_count);
+	bool FunctionScheduling(StackFrame* stack_frame, uint32_t par_count);
 
-	void CallInternal(StackFrame* stack_frame, Value func_val, Value this_val);
+	void CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, uint32_t param_count);
 
 	const Value& GetGlobalConst(ConstIndex idx);
 	const Value& GetLocalConst(ConstIndex idx);
@@ -49,10 +49,7 @@ private:
 
 	void LoadConst(StackFrame* stack_frame, ConstIndex const_idx);
 
-	void SwitchStackFrame(const Value& func_val, FunctionDef* func_def
-		, Value&& this_val, uint32_t par_count, bool is_generator);
-
-	bool ThrowExecption(FunctionDef* cur_func_def, Pc* pc, std::optional<Value>* error_val);
+	bool ThrowExecption(StackFrame* stack_frame, std::optional<Value>* error_val);
 
 	Stack& stack();
 	FunctionDef* function_def(const Value& func_val) const;

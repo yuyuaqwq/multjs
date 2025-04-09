@@ -3,6 +3,8 @@
 #include <iostream>
 #include <string_view>
 
+#include <mjs/runtime.h>
+
 #include "lexer.h"
 #include "parser.h"
 #include "codegener.h"
@@ -24,7 +26,7 @@ Value Context::Eval(std::string_view script) {
 }
 
 Value Context::Call(Value func_val, Value this_val, const std::vector<Value>& argv) {
-	return vm_.CallFunction(Value(), std::move(func_val), std::move(this_val), argv);
+	return vm_.CallFunction(StackFrame(&runtime_->stack()), std::move(func_val), std::move(this_val), argv);
 }
 
 } // namespace mjs

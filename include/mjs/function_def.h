@@ -44,15 +44,15 @@ public:
 		type_ = FunctionType::kAsync;
 	}
 
-	bool IsNormal() {
+	bool IsNormal() const {
 		return type_ == FunctionType::kNormal;
 	}
 
-	bool IsGenerator() {
+	bool IsGenerator() const {
 		return type_ == FunctionType::kGenerator;
 	}
 
-	bool IsAsync() {
+	bool IsAsync() const {
 		return type_ == FunctionType::kAsync;
 	}
 

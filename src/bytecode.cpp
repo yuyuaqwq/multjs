@@ -91,13 +91,17 @@ uint8_t* ByteCode::GetPtr(Pc pc) {
 	return bytes_.data() + pc;
 }
 
+const uint8_t* ByteCode::GetPtr(Pc pc) const {
+    return bytes_.data() + pc;
+}
 
-OpcodeType ByteCode::GetOpcode(Pc pc) {
+
+OpcodeType ByteCode::GetOpcode(Pc pc) const {
 	return (OpcodeType)bytes_[pc];
 }
 
 
-Pc ByteCode::GetPc(Pc* pc)  {
+Pc ByteCode::GetPc(Pc* pc) const {
     auto pc_ = *pc;
     *pc += sizeof(Pc);
     return GetU32(pc_);
@@ -210,9 +214,9 @@ void ByteCode::RepairPc(Pc pc_from, Pc pc_to) {
 	*reinterpret_cast<int16_t*>(GetPtr(pc_from) + 1) = int64_t(pc_to) - int64_t(pc_from);
 }
 
-Pc ByteCode::CalcPc(Pc cur_pc) {
+Pc ByteCode::CalcPc(Pc cur_pc) const {
     // skip opcode
-    return cur_pc + *reinterpret_cast<int16_t*>(GetPtr(cur_pc) + 1);
+    return cur_pc + *reinterpret_cast<const int16_t*>(GetPtr(cur_pc) + 1);
 }
 
 std::string ByteCode::Disassembly(Context* context, Pc& pc, OpcodeType& opcode, uint32_t& par, FunctionDef* func_def) {
@@ -311,27 +315,27 @@ std::string ByteCode::Disassembly(Context* context, Pc& pc, OpcodeType& opcode, 
 }
 
 
-int8_t ByteCode::GetI8(Pc pc) {
+int8_t ByteCode::GetI8(Pc pc) const {
     return *(int8_t*)&bytes_[pc];
 }
 
-uint8_t ByteCode::GetU8(Pc pc) {
+uint8_t ByteCode::GetU8(Pc pc) const {
     return *(uint8_t*)&bytes_[pc];
 }
 
-int16_t ByteCode::GetI16(Pc pc) {
+int16_t ByteCode::GetI16(Pc pc) const {
     return *(int16_t*)&bytes_[pc];
 }
 
-uint16_t ByteCode::GetU16(Pc pc) {
+uint16_t ByteCode::GetU16(Pc pc) const {
     return *(uint16_t*)&bytes_[pc];
 }
 
-int32_t ByteCode::GetI32(Pc pc) {
+int32_t ByteCode::GetI32(Pc pc) const {
     return *(int32_t*)&bytes_[pc];
 }
 
-Pc ByteCode::GetU32(Pc pc) {
+Pc ByteCode::GetU32(Pc pc) const {
     return *(Pc*)&bytes_[pc];
 }
 

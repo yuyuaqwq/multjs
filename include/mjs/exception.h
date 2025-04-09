@@ -70,6 +70,10 @@ public:
         return nullptr; // 未找到匹配的try块
     }
 
+    const ExceptionEntry* FindEntry(Pc throw_pc) const {
+        return const_cast<ExceptionTable*>(this)->FindEntry(throw_pc);
+    }
+
     // 获取所有条目（只读）
     const std::vector<ExceptionEntry>& GetEntries() const {
         return entries_;

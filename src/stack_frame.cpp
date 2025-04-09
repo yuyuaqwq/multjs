@@ -64,6 +64,10 @@ void StackFrame::reduce(size_t count) {
 	stack_->reduce(count);
 }
 
+void StackFrame::upgrade(size_t count) {
+	stack_->upgrade(count);
+}
+
 // 负数表示从栈顶向下索引
 Value& StackFrame::get(ptrdiff_t index) const {
 	if (index >= 0) {

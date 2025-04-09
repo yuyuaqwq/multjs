@@ -21,16 +21,14 @@ public:
 	StackFrame(Stack* stack)
 		: stack_(stack){}
 
-	StackFrame(const StackFrame& upper_stack_frame) {
-		stack_ = upper_stack_frame.stack_;
-		bottom_ = upper_stack_frame.bottom();
-	}
+	StackFrame(const StackFrame& upper_stack_frame);
 
 	void push(const Value& value);
 	void push(Value&& value);
 	Value pop();
 
 	void reduce(size_t count);
+	void upgrade(size_t count);
 
 	// 正数表示从栈帧底向上索引，0开始
 	// 负数表示从栈帧顶向下索引，-1开始
@@ -44,7 +42,7 @@ public:
 	const auto& func_val() const { return func_val_; }
 	void set_func_val(Value&& func_val) { func_val_ = std::move(func_val); }
 
-	const auto& func_def() const { return func_def_; }
+	const auto* func_def() const { return func_def_; }
 	void set_func_def(FunctionDef* func_def) { func_def_ = func_def; }
 
 	const auto& this_val() const { return this_val_; }
@@ -90,5 +88,9 @@ private:
 	std::vector<Value> vector_;
 };
 
+inline StackFrame::StackFrame(const StackFrame& upper_stack_frame) {
+	stack_ = upper_stack_frame.stack_;
+	bottom_ = upper_stack_frame.stack_->size();
+}
 
 } // namespace mjs

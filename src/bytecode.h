@@ -23,8 +23,8 @@ class Context;
 class FunctionDef;
 class ByteCode : public noncopyable {
 public:
-	OpcodeType GetOpcode(Pc pc);
-	Pc GetPc(Pc* pc);
+	OpcodeType GetOpcode(Pc pc) const;
+	Pc GetPc(Pc* pc) const;
 	VarIndex GetVarIndex(Pc* pc);
 	ConstIndex GetConstIndex(Pc* pc);
 
@@ -51,22 +51,23 @@ public:
 
 
 	void RepairPc(Pc pc_from, Pc pc_to);
-	Pc CalcPc(Pc cur_pc);
+	Pc CalcPc(Pc cur_pc) const;
 
 	std::string Disassembly(Context* context, Pc& pc, OpcodeType& opcode, uint32_t& par, FunctionDef* func_def);
 
-	Pc Size() { return bytes_.size(); }
+	Pc Size() const { return bytes_.size(); }
 
 
-	int8_t GetI8(Pc pc);
-	uint8_t GetU8(Pc pc);
-	int16_t GetI16(Pc pc);
-	uint16_t GetU16(Pc pc);
-	int32_t GetI32(Pc pc);
-	uint32_t GetU32(Pc pc);
+	int8_t GetI8(Pc pc) const;
+	uint8_t GetU8(Pc pc) const;
+	int16_t GetI16(Pc pc) const;
+	uint16_t GetU16(Pc pc) const;
+	int32_t GetI32(Pc pc) const;
+	uint32_t GetU32(Pc pc) const;
 
 private:
 	uint8_t* GetPtr(Pc pc);
+	const uint8_t* GetPtr(Pc pc) const;
 
 	void EmitI8(int8_t val);
 	void EmitU8(uint8_t val);
