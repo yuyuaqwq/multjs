@@ -29,44 +29,37 @@ public:
 public:
 	explicit Vm(Context* context);
 
-	Value CallFunction(Value func, Value this_val, const std::vector<Value>& argv);
+	Value CallFunction(const StackFrame& upper_stack_frame, Value func, Value this_val, const std::vector<Value>& argv);
 
-	Value& GetVar(VarIndex idx);
-	void SetVar(VarIndex idx, Value&& var);
+	Value& GetVar(StackFrame* stack_frame, VarIndex idx);
+	void SetVar(StackFrame* stack_frame, VarIndex idx, Value&& var);
 
 private:
-	bool InitClosure(Value* func_def_val);
-	void BindClosureVars(const Value& func_val);
+	bool InitClosure(const StackFrame& upper_stack_frame, Value* func_def_val);
+	void BindClosureVars(StackFrame* stack_frame, const Value& func_val);
 
 	// 返回是否需要继续执行字节码
-	bool FunctionSwitch(Value func_val, Value this_val, uint32_t par_count);
+	bool FunctionSwitch(StackFrame* stack_frame, Value* func_val, Value this_val, uint32_t par_count);
 
-	void CallInternal(Value func_val, Value this_val);
+	void CallInternal(StackFrame* stack_frame, Value func_val, Value this_val);
 
 	const Value& GetGlobalConst(ConstIndex idx);
 	const Value& GetLocalConst(ConstIndex idx);
-	const Value& GetConst(ConstIndex idx);
+	const Value& GetConst(StackFrame* stack_frame, ConstIndex idx);
 
-	void LoadConst(ConstIndex const_idx);
+	void LoadConst(StackFrame* stack_frame, ConstIndex const_idx);
 
 	void SwitchStackFrame(const Value& func_val, FunctionDef* func_def
 		, Value&& this_val, uint32_t par_count, bool is_generator);
 
-	bool ThrowExecption(std::optional<Value>* error_val);
-
-	void JumpTo(Pc pc);
+	bool ThrowExecption(FunctionDef* cur_func_def, Pc* pc, std::optional<Value>* error_val);
 
 	Stack& stack();
 	FunctionDef* function_def(const Value& func_val) const;
 
 private:
 	Context* context_;
-
-	Value cur_func_val_;
-	FunctionDef* cur_func_def_ = nullptr;
-	uint32_t pc_ = 0;
-
-	StackFrame stack_frame_;
+	// StackFrame stack_frame_;
 };
 
 } // namespace mjs

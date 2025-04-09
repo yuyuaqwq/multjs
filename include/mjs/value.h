@@ -41,6 +41,7 @@ enum class ValueType : uint32_t {
 
 	kFunctionDef,
 	kCppFunction,
+	kAsyncFunction,
 
 	kGeneratorNext,
 
@@ -94,6 +95,7 @@ public:
 
 	Value(ValueType type);
 	Value(ValueType type, PromiseObject* promise);
+	Value(ValueType type, GeneratorObject* generator);
 
 	~Value();
 

@@ -125,6 +125,17 @@ Value::Value(ValueType type, PromiseObject* promise) {
 	}
 }
 
+Value::Value(ValueType type, GeneratorObject* generator) {
+	tag_.type_ = type;
+	if (type == ValueType::kAsyncFunction) {
+		value_.object_ = reinterpret_cast<Object*>(generator);
+		value_.object_->Reference();
+	}
+	else {
+		assert(0);
+	}
+}
+
 
 Value::~Value() {
 	if (IsString()) {
