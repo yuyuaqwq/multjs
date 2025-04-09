@@ -28,6 +28,7 @@ enum class ValueType : uint32_t {
 	kFunctionObject,
 	kGeneratorObject,
 	kPromiseObject,
+	kAsyncObject,
 
 	// 内部使用
 	kI64,
@@ -41,7 +42,6 @@ enum class ValueType : uint32_t {
 
 	kFunctionDef,
 	kCppFunction,
-	kAsyncFunction,
 
 	kGeneratorNext,
 
@@ -58,6 +58,7 @@ class Object;
 class FunctionObject;
 class GeneratorObject;
 class PromiseObject;
+class AsyncObject;
 
 class ClassDef;
 struct UpValue {
@@ -81,6 +82,7 @@ public:
 	explicit Value(FunctionObject* func);
 	explicit Value(GeneratorObject* generator);
 	explicit Value(PromiseObject* promise);
+	explicit Value(AsyncObject* async);
 
 	explicit Value(int64_t i64);
 	explicit Value(int32_t i32);
@@ -95,7 +97,6 @@ public:
 
 	Value(ValueType type);
 	Value(ValueType type, PromiseObject* promise);
-	Value(ValueType type, GeneratorObject* generator);
 
 	~Value();
 
@@ -137,6 +138,7 @@ public:
 	FunctionObject& function() const;
 	GeneratorObject& generator() const;
 	PromiseObject& promise() const;
+	AsyncObject& async() const;
 
 	int64_t i64() const;
 	uint64_t u64() const;
@@ -159,6 +161,7 @@ public:
 	bool IsFunctionObject() const;
 	bool IsGeneratorObject() const;
 	bool IsPromiseObject() const;
+	bool IsAsyncObject() const;
 	bool IsPromiseResolve() const;
 	bool IsPromiseReject() const;
 

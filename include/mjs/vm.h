@@ -51,6 +51,9 @@ private:
 
 	bool ThrowExecption(StackFrame* stack_frame, std::optional<Value>* error_val);
 
+private:
+	void YieldSave(StackFrame* stack_frame, GeneratorObject* generator);
+
 	Stack& stack();
 	FunctionDef* function_def(const Value& func_val) const;
 

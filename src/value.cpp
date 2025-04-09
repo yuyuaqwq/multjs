@@ -73,6 +73,11 @@ Value::Value(PromiseObject* promise) {
 	value_.object_->Reference();
 }
 
+Value::Value(AsyncObject* async) {
+	tag_.type_ = ValueType::kAsyncObject;
+	value_.object_ = reinterpret_cast<Object*>(async);
+	value_.object_->Reference();
+}
 
 Value::Value(uint64_t u64) {
 	tag_.type_ = ValueType::kU64;
@@ -118,17 +123,6 @@ Value::Value(ValueType type, PromiseObject* promise) {
 	tag_.type_ = type;
 	if (type == ValueType::kPromiseResolve || type == ValueType::kPromiseReject) {
 		value_.object_ = reinterpret_cast<Object*>(promise);
-		value_.object_->Reference();
-	}
-	else {
-		assert(0);
-	}
-}
-
-Value::Value(ValueType type, GeneratorObject* generator) {
-	tag_.type_ = type;
-	if (type == ValueType::kAsyncFunction) {
-		value_.object_ = reinterpret_cast<Object*>(generator);
 		value_.object_->Reference();
 	}
 	else {
@@ -458,6 +452,11 @@ PromiseObject& Value::promise() const {
 	return *reinterpret_cast<PromiseObject*>(value_.object_);
 }
 
+AsyncObject& Value::async() const {
+	assert(IsAsyncObject());
+	return *reinterpret_cast<AsyncObject*>(value_.object_);
+}
+
 int64_t Value::i64() const {
 	assert(IsI64());
 	return value_.i64_;
@@ -532,6 +531,10 @@ bool Value::IsGeneratorObject() const {
 
 bool Value::IsPromiseObject() const {
 	return type() == ValueType::kPromiseObject;
+}
+
+bool Value::IsAsyncObject() const {
+	return type() == ValueType::kAsyncObject;
 }
 
 bool Value::IsPromiseResolve() const {

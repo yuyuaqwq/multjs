@@ -44,16 +44,21 @@ promise.then(function(val) {
     println("promise2!! ", val);
 });
 
-// // promise.resolve(1);
-// // promise.resolve();
+// promise.resolve(1);
+// promise.resolve();
 
 
-// async function asyncfunc() {
-//     let res = await new Promise();
-// }
+async function asyncfunc() {
+    println("asyncfunc await begin!!");
+    let res = await new Promise(function(resolve) {
+        resolve(666);
+    });
+    println("asyncfunc await ok!!", res);
+}
 
-// let res_promise = asyncfunc();
+let res_promise = asyncfunc();
 
+// Promise.resolve(res_promise);
 
 let anonymousfunc = function() {
     try {

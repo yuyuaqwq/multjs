@@ -8,6 +8,7 @@
 #include <mjs/array_object.h>
 #include <mjs/function_object.h>
 #include <mjs/generator_object.h>
+#include <mjs/async_object.h>
 #include <mjs/promise_object.h>
 
 namespace mjs {
@@ -406,7 +407,7 @@ void Vm::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 				break;
 			}
 			case OpcodeType::kAwait: {
-				// 表达式如果是一个promise对象，判断状态，如果是pending，则走yield流程
+				// 表达式如果是一个promise对象，判断状态
 				// 否则继续执行
 
 				auto& obj = stack_frame->get(-1);
@@ -414,32 +415,24 @@ void Vm::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 				if (obj.IsPromiseObject()) {
 					auto& promise = obj.promise();
 					if (promise.IsPending()) {
-						// yield流程
+						// 如果是pending，则走yield流程
 
-						// 怎么拿到自己的generator？
+						auto& async_obj = stack_frame->func_val().async();
+						
+						YieldSave(stack_frame, &async_obj);
 
+						// 该promise完成时，会继续执行当前async函数
+						promise.Then(context_, Value(&async_obj), Value());
 
 						goto exit_;
 					}
 				}
-
-				//auto ret_value = stack_frame_.pop();
-				//stack_frame_.push(std::move(ret_value));
-
-				
 				break;
 			}
 			case OpcodeType::kYield: {
 				auto& generator = stack_frame->this_val().generator();
 
-				// 保存当前生成器的pc
-				generator.set_pc(stack_frame->pc());
-
-				// 保存当前栈帧到generator的栈帧中
-				auto& gen_vector = generator.stack().vector();
-				for (int32_t i = 0; i < gen_vector.size(); ++i) {
-					gen_vector[i] = std::move(stack_frame->get(i));
-				}
+				YieldSave(stack_frame, &generator);
 
 				auto ret_value = stack_frame->pop();
 				auto ret_obj = generator.MakeReturnObject(&context_->runtime(), std::move(ret_value));
@@ -627,13 +620,20 @@ bool Vm::FunctionScheduling(StackFrame* stack_frame, uint32_t par_count) {
 		BindClosureVars(stack_frame);
 
 		if (func_def->IsGenerator() || func_def->IsAsync()) {
+			GeneratorObject* generator;
+			if (func_def->IsGenerator()) {
+				generator = new GeneratorObject(context_, stack_frame->func_val());
+			}
+			else {
+				generator = new AsyncObject(context_, stack_frame->func_val());
+			}
+
 			// 提前分配参数和局部变量栈空间
-			auto generator = new GeneratorObject(context_, stack_frame->func_val());
 			generator->stack().upgrade(func_def->var_count());
 
 			// 复制参数和变量(因为变量可能通过BindClosureVars绑定了)
 			for (int32_t i = 0; i < func_def->var_count(); ++i) {
-				generator->stack().set(i, std::move(stack_frame->get(i)));
+				generator->stack().set(i, stack_frame->get(i));
 			}
 
 			if (func_def->IsGenerator()) {
@@ -645,7 +645,7 @@ bool Vm::FunctionScheduling(StackFrame* stack_frame, uint32_t par_count) {
 			else {
 				// 是异步函数
 				// 开始执行
-				stack_frame->set_func_val(Value(ValueType::kAsyncFunction, generator));
+				stack_frame->set_func_val(Value(static_cast<AsyncObject*>(generator)));
 			}
 		}
 		return true;
@@ -755,8 +755,15 @@ bool Vm::ThrowExecption(StackFrame* stack_frame, std::optional<Value>* error_val
 	return true;
 }
 
-//void Vm::JumpTo(Pc pc) {
-//	pc_ = pc;
-//}
+void Vm::YieldSave(StackFrame* stack_frame, GeneratorObject* generator) {
+	// 保存当前生成器的pc
+	generator->set_pc(stack_frame->pc());
+
+	// 保存当前栈帧到generator的栈帧中
+	auto& gen_vector = generator->stack().vector();
+	for (int32_t i = 0; i < gen_vector.size(); ++i) {
+		gen_vector[i] = std::move(stack_frame->get(i));
+	}
+}
 
 } // namespace mjs

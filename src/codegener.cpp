@@ -770,6 +770,9 @@ void CodeGener::GenerateFunctionDeclExp(FuncDeclExp* exp) {
 	if (exp->func_type == FunctionType::kGenerator) {
 		func_def.SetGenerator();
 	}
+	else if (exp->func_type == FunctionType::kAsync) {
+		func_def.SetAsync();
+	}
 	cur_func_def_->byte_code().EmitConstLoad(const_idx);
 
 	if (!exp->func_name.empty()) {
