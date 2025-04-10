@@ -130,7 +130,7 @@ Value CodeGener::Generate(BlockStat* block) {
 
 	EntryScope();
 
-	RegisterCppFunction("println", [](Context* context, const Value& this_val, uint32_t par_count, const StackFrame& stack) -> Value {
+	RegisterCppFunction("println", [](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
 		for (size_t i = 0; i < par_count; i++) {
 			auto val = stack.get(i);
 			try {

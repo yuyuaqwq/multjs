@@ -66,8 +66,8 @@ Value PromiseObject::Then(Context* context, Value on_fulfilled, Value on_rejecte
     auto* new_promise = new PromiseObject(context, Value());
 
     // 如果当前then的回调被执行，还需要执行new_promise中的Resolve/Reject
-    auto fulfilled_handler = Value([](Context* context, const Value& this_val, uint32_t par_count, const StackFrame& stack) -> Value {
-        auto& new_promise = this_val.promise();
+    auto fulfilled_handler = Value([](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
+        auto& new_promise = stack.this_val().promise();
         // 首先拿到on_fulfilled执行的返回值
         assert(par_count == 2);
         Value on_fulfilled = stack.get(0);
@@ -81,8 +81,8 @@ Value PromiseObject::Then(Context* context, Value on_fulfilled, Value on_rejecte
         return Value();
     });
 
-    auto rejected_handler = Value([](Context* context, const Value& this_val, uint32_t par_count, const StackFrame& stack) -> Value {
-        auto& new_promise = this_val.promise();
+    auto rejected_handler = Value([](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
+        auto& new_promise = stack.this_val().promise();
         // 首先拿到on_rejected执行的返回值
         assert(par_count == 2);
         Value on_rejected = stack.get(0);

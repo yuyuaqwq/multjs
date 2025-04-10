@@ -414,7 +414,7 @@ void Vm::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 
 				if (!val.IsPromiseObject()) {
 					// 不是Promise，则用Promise包装
-					val = Value(new PromiseObject(context_, std::move(val)));
+					val = PromiseClassDef::Resolve(context_, std::move(val));
 				}
 
 				auto& promise = val.promise();
@@ -652,7 +652,7 @@ bool Vm::FunctionScheduling(StackFrame* stack_frame, uint32_t par_count) {
 	}
 	case ValueType::kCppFunction: {
 		// 切换栈帧
-		auto ret = stack_frame->func_val().cpp_function()(context_, stack_frame->this_val(), par_count, *stack_frame);
+		auto ret = stack_frame->func_val().cpp_function()(context_, par_count, *stack_frame);
 		stack_frame->push(std::move(ret));
 		return false;
 	}
