@@ -410,7 +410,7 @@ void Vm::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 				// 表达式如果是一个promise对象，判断状态
 				// 否则继续执行
 
-				auto val = stack_frame->get(-1);
+				auto val = stack_frame->pop();
 
 				if (!val.IsPromiseObject()) {
 					// 不是Promise，则用Promise包装
