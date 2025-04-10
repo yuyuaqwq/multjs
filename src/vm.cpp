@@ -410,29 +410,24 @@ void Vm::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 				// 表达式如果是一个promise对象，判断状态
 				// 否则继续执行
 
-				auto& obj = stack_frame->get(-1);
+				auto val = stack_frame->get(-1);
 
-				if (obj.IsPromiseObject()) {
-					auto& promise = obj.promise();
-					if (promise.IsPending()) {
-						// 如果是pending，则走yield流程
-
-						auto& async_obj = stack_frame->func_val().async();
-						
-						YieldSave(stack_frame, &async_obj);
-
-						// 该promise完成时，会继续执行当前async函数
-						promise.Then(context_, Value(&async_obj), Value());
-
-						goto exit_;
-					}
+				if (!val.IsPromiseObject()) {
+					// 不是Promise，则用Promise包装
+					val = Value(new PromiseObject(context_, Value()));
 				}
+
+				auto& promise = val.promise();
+				auto& async_obj = stack_frame->func_val().async();
+				GeneratorSaveContext(stack_frame, &async_obj);
+				promise.Then(context_, Value(&async_obj), Value());
+				goto exit_;
 				break;
 			}
 			case OpcodeType::kYield: {
 				auto& generator = stack_frame->this_val().generator();
 
-				YieldSave(stack_frame, &generator);
+				GeneratorSaveContext(stack_frame, &generator);
 
 				auto ret_value = stack_frame->pop();
 				auto ret_obj = generator.MakeReturnObject(&context_->runtime(), std::move(ret_value));
@@ -650,6 +645,11 @@ bool Vm::FunctionScheduling(StackFrame* stack_frame, uint32_t par_count) {
 		}
 		return true;
 	}
+	case ValueType::kClassDef: {
+		auto obj = stack_frame->func_val().class_def().Constructor(context_, par_count, *stack_frame);
+		stack_frame->push(std::move(obj));
+		return false;
+	}
 	case ValueType::kCppFunction: {
 		// 切换栈帧
 		auto ret = stack_frame->func_val().cpp_function()(context_, stack_frame->this_val(), par_count, *stack_frame);
@@ -672,15 +672,7 @@ bool Vm::FunctionScheduling(StackFrame* stack_frame, uint32_t par_count) {
 
 		bool is_first = !generator.IsExecuting();
 
-		// 复制栈帧
-		auto& vector = stack().vector();
-		auto& gen_vector = generator.stack().vector();
-		vector.insert(vector.end(), gen_vector.begin(), gen_vector.end());
-
-		generator.SetExecuting();
-		
-		stack_frame->set_func_def(&generator.function_def());
-		stack_frame->set_pc(generator.pc());
+		GeneratorRestoreContext(stack_frame, &generator);
 
 		// next参数入栈
 		if (!is_first) {
@@ -709,10 +701,12 @@ bool Vm::FunctionScheduling(StackFrame* stack_frame, uint32_t par_count) {
 
 		return false;
 	}
-	case ValueType::kClassDef: {
-		auto obj = stack_frame->func_val().class_def().Constructor(context_, par_count, *stack_frame);
-		stack_frame->push(std::move(obj));
-		return false;
+	case ValueType::kAsyncObject: {
+		auto& async = stack_frame->func_val().async();
+		auto ret = stack_frame->pop();
+		GeneratorRestoreContext(stack_frame, &async);
+		stack_frame->push(std::move(ret));
+		return true;
 	}
 	default:
 		throw VmException("Non callable type.");
@@ -755,7 +749,7 @@ bool Vm::ThrowExecption(StackFrame* stack_frame, std::optional<Value>* error_val
 	return true;
 }
 
-void Vm::YieldSave(StackFrame* stack_frame, GeneratorObject* generator) {
+void Vm::GeneratorSaveContext(StackFrame* stack_frame, GeneratorObject* generator) {
 	// 保存当前生成器的pc
 	generator->set_pc(stack_frame->pc());
 
@@ -764,6 +758,18 @@ void Vm::YieldSave(StackFrame* stack_frame, GeneratorObject* generator) {
 	for (int32_t i = 0; i < gen_vector.size(); ++i) {
 		gen_vector[i] = std::move(stack_frame->get(i));
 	}
+}
+
+void Vm::GeneratorRestoreContext(StackFrame* stack_frame, GeneratorObject* generator) {
+	// 复制栈帧
+	auto& vector = stack().vector();
+	auto& gen_vector = generator->stack().vector();
+	vector.insert(vector.end(), gen_vector.begin(), gen_vector.end());
+
+	generator->SetExecuting();
+
+	stack_frame->set_func_def(&generator->function_def());
+	stack_frame->set_pc(generator->pc());
 }
 
 } // namespace mjs

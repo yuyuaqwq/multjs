@@ -98,7 +98,7 @@ Value PromiseObject::Then(Context* context, Value on_fulfilled, Value on_rejecte
 
     auto& microtask_queue = context->microtask_queue();
 
-    if (on_fulfilled.IsFunctionObject()) {
+    if (!on_fulfilled.IsUndefined()) {
         auto fulfill_job = Job(std::move(fulfilled_handler), Value(new_promise));
         fulfill_job.AddArg(on_fulfilled);
 
@@ -110,7 +110,7 @@ Value PromiseObject::Then(Context* context, Value on_fulfilled, Value on_rejecte
             microtask_queue.emplace(std::move(fulfill_job));
         }
     }
-    if (on_rejected.IsFunctionObject()) {
+    if (!on_rejected.IsUndefined()) {
         auto reject_job = Job(std::move(rejected_handler), Value(new_promise));
         reject_job.AddArg(on_rejected);
 
