@@ -53,7 +53,11 @@ async function asyncfunc() {
     let res = await new Promise(function(resolve) {
         resolve(666);
     });
-    println("asyncfunc await ok!!", res);
+    println("asyncfunc await ok1!!", res);
+    res = await new Promise(function(resolve) {
+        resolve(777);
+    });
+    println("asyncfunc await ok2!!", res);
 }
 
 let res_promise = asyncfunc();
