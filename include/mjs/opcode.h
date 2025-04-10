@@ -87,6 +87,7 @@ enum class OpcodeType {
 	kYield = 0xc0,
 	kGeneratorReturn = 0xc1,
 	kAwait = 0xc2,
+	kAsyncReturn = 0xc3,
 
 	// new
 	kNew = 0xc8,

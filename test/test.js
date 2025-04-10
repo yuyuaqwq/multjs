@@ -48,6 +48,19 @@ promise.then(function(val) {
 // promise.resolve();
 
 
+async function asyncfunc2(par) {
+    println("asyncfunc2 await begin!!");
+    let res = await new Promise(function(resolve) {
+        resolve(6666);
+    });
+    println("asyncfunc2 await ok1!!", res);
+    res = await new Promise(function(resolve) {
+        resolve(7777);
+    });
+    println("asyncfunc2 await ok2!!", res);
+    return par;
+}
+
 async function asyncfunc() {
     println("asyncfunc await begin!!");
     let res = await new Promise(function(resolve) {
@@ -58,6 +71,8 @@ async function asyncfunc() {
         resolve(777);
     });
     println("asyncfunc await ok2!!", res);
+    res = await asyncfunc2(114514);
+    println("asyncfunc await ok3!!", res);
 }
 
 let res_promise = asyncfunc();

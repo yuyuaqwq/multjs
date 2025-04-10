@@ -233,7 +233,7 @@ void CodeGener::GenerateReturnStat(ReturnStat* stat) {
 		cur_func_def_->byte_code().EmitOpcode(OpcodeType::kFinallyReturn);
 	}
 	else {
-		cur_func_def_->byte_code().EmitReturn(cur_func_def_->IsGenerator());
+		cur_func_def_->byte_code().EmitReturn(cur_func_def_->type());
 	}
 }
 
@@ -805,7 +805,7 @@ void CodeGener::GenerateFunctionDeclExp(FuncDeclExp* exp) {
 			if (stat->GetType() != StatType::kReturn) {
 				// 补全末尾的return
 				cur_func_def_->byte_code().EmitOpcode(OpcodeType::kUndefined);
-				cur_func_def_->byte_code().EmitReturn(cur_func_def_->IsGenerator());
+				cur_func_def_->byte_code().EmitReturn(cur_func_def_->type());
 			}
 		}
 	}

@@ -1,4 +1,4 @@
-#include "bytecode.h"
+#include <mjs/bytecode.h>
 
 #include <mjs/context.h>
 #include <mjs/runtime.h>
@@ -76,6 +76,7 @@ std::map<OpcodeType, InstrInfo> g_instr_symbol{
     {OpcodeType::kYield, {"yield", {}}},
     {OpcodeType::kGeneratorReturn, {"generator_return", {}}},
     {OpcodeType::kAwait, {"await", {}}},
+    {OpcodeType::kAsyncReturn, {"async_return", {}}},
 
     {OpcodeType::kNew, {"new", {}}},
 
@@ -200,9 +201,12 @@ void ByteCode::EmitIndexedStore() {
     EmitOpcode(OpcodeType::kIndexedStore);
 }
 
-void ByteCode::EmitReturn(bool is_generator) {
-    if (is_generator) {
+void ByteCode::EmitReturn(FunctionType func_type) {
+    if (func_type == FunctionType::kGenerator) {
         EmitOpcode(OpcodeType::kGeneratorReturn);
+    }
+    else if (func_type == FunctionType::kAsync) {
+        EmitOpcode(OpcodeType::kAsyncReturn);
     }
     else {
         EmitOpcode(OpcodeType::kReturn);

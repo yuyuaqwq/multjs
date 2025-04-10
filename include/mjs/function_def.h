@@ -6,16 +6,10 @@
 
 #include <mjs/object.h>
 #include <mjs/exception.h>
-
-#include "bytecode.h"
+#include <mjs/bytecode.h>
 
 namespace mjs {
 
-enum class FunctionType {
-	kNormal,
-	kAsync,
-	kGenerator,
-};
 
 struct ClosureVarDef {
 	// upvalueÔÚclosure_value_arr_µÄË÷Òý
@@ -54,6 +48,10 @@ public:
 
 	bool IsAsync() const {
 		return type_ == FunctionType::kAsync;
+	}
+
+	FunctionType type() {
+		return type_;
 	}
 
 	void AddVar(std::string name) {

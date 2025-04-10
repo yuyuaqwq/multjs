@@ -4,7 +4,6 @@
 #include <mjs/object.h>
 #include <mjs/stack_frame.h>
 
-
 namespace mjs {
 
 class Context;

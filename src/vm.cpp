@@ -396,13 +396,19 @@ void Vm::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 			}
 			case OpcodeType::kGeneratorReturn: {
 				auto& generator = stack_frame->this_val().generator();
-
 				generator.SetClosed();
 
 				auto ret_value = stack_frame->pop();
 				auto ret_obj = generator.MakeReturnObject(&context_->runtime(), std::move(ret_value));
 				stack_frame->push(std::move(ret_obj));
 
+				goto exit_;
+				break;
+			}
+			case OpcodeType::kAsyncReturn: {
+				auto& async = stack_frame->func_val().async();
+				async.res_promise().promise().Resolve(context_, stack_frame->pop());
+				stack_frame->push(async.res_promise());
 				goto exit_;
 				break;
 			}
@@ -421,6 +427,9 @@ void Vm::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 				auto& async_obj = stack_frame->func_val().async();
 				GeneratorSaveContext(stack_frame, &async_obj);
 				promise.Then(context_, Value(&async_obj), Value());
+
+				stack_frame->push(async_obj.res_promise());
+
 				goto exit_;
 				break;
 			}

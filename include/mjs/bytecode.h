@@ -8,6 +8,7 @@
 #include <mjs/const_def.h>
 #include <mjs/var_def.h>
 #include <mjs/opcode.h>
+#include <mjs/function_type.h>
 
 namespace mjs {
 
@@ -47,7 +48,7 @@ public:
 	void EmitIndexedLoad();
 	void EmitIndexedStore();
 
-	void EmitReturn(bool is_generator);
+	void EmitReturn(FunctionType func_type);
 
 
 	void RepairPc(Pc pc_from, Pc pc_to);
