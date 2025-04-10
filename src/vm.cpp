@@ -414,7 +414,7 @@ void Vm::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 
 				if (!val.IsPromiseObject()) {
 					// 不是Promise，则用Promise包装
-					val = Value(new PromiseObject(context_, Value()));
+					val = Value(new PromiseObject(context_, std::move(val)));
 				}
 
 				auto& promise = val.promise();
