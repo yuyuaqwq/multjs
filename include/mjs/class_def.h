@@ -57,11 +57,11 @@ public:
 	// 如果允许被new构造，重写该函数，new相关对象并返回，如new ArrayObject()
 	virtual Value Constructor(Context* context, uint32_t par_count, const StackFrame& stack) { throw std::runtime_error("Types that are not allowed to be constructed."); }
 
-	void SetProperty(Runtime* runtime, const Value& key, Value&& val) {
+	virtual void SetProperty(Runtime* runtime, const Value& key, Value&& val) {
 		property_map_[key] = std::move(val);
 	}
 
-	Value* GetProperty(Runtime* runtime, const Value& key) {
+	virtual Value* GetProperty(Runtime* runtime, const Value& key) {
 		auto iter = property_map_.find(key);
 		if (iter != property_map_.end()) {
 			return &iter->second;
@@ -69,15 +69,21 @@ public:
 		return nullptr;
 	}
 
-	void DelProperty(Context* context, const Value& key) {
-		property_map_.erase(key);
+	virtual bool HasProperty(Runtime* runtime, const Value& key) {
+		auto iter = property_map_.find(key);
+		return iter != property_map_.end();
 	}
 
-	void SetStaticProperty(Runtime* runtime, const Value& key, Value&& val) {
+	virtual bool DelProperty(Context* context, const Value& key) {
+		auto res = property_map_.erase(key);
+		return res > 0;
+	}
+
+	virtual void SetStaticProperty(Runtime* runtime, const Value& key, Value&& val) {
 		static_property_map_[key] = std::move(val);
 	}
 
-	Value* GetStaticProperty(Runtime* runtime, const Value& key) {
+	virtual Value* GetStaticProperty(Runtime* runtime, const Value& key) {
 		auto iter = static_property_map_.find(key);
 		if (iter != static_property_map_.end()) {
 			return &iter->second;
@@ -85,7 +91,12 @@ public:
 		return nullptr;
 	}
 
-	void DelStaticProperty(Context* context, const Value& key) {
+	virtual bool HasStaticProperty(Runtime* runtime, const Value& key) {
+		auto iter = static_property_map_.find(key);
+		return iter != static_property_map_.end();
+	}
+
+	virtual void DelStaticProperty(Context* context, const Value& key) {
 		static_property_map_.erase(key);
 	}
 
