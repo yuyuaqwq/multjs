@@ -2,7 +2,8 @@
 
 namespace mjs {
 
-FunctionObject::FunctionObject(FunctionDef* function_def) noexcept
-	: function_def_(function_def) {}
+FunctionObject::FunctionObject(Context* context, FunctionDef* function_def) noexcept
+	: Object(context)
+	, function_def_(function_def) {}
 
 } // namespace mjs

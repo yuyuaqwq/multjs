@@ -6,6 +6,7 @@
 #include <optional>
 
 #include <mjs/noncopyable.h>
+// #include <mjs/const_def.h>
 
 namespace mjs {
 
@@ -49,7 +50,7 @@ public:
 	}
 
 	T& operator[](IndexT index) {
-		index = GlobalToConstIndex(index);
+		// index = GlobalToConstIndex(index);
 		auto i1 = index / kStaticArraySize;
 		auto i2 = index % kStaticArraySize;
 		return (*pool_[i1])[i2];

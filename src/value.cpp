@@ -135,9 +135,6 @@ Value::~Value() {
 	if (IsString()) {
 		if (type() == ValueType::kString) {
 			value_.string_->Dereference();
-			if (value_.string_->ref_count() == 0) {
-				delete value_.string_;
-			}
 		}
 		else if (type() == ValueType::kStringView) {
 
@@ -145,10 +142,6 @@ Value::~Value() {
 	}
 	else if (IsObject()) {
 		object().Dereference();
-		if (object().ref_count() == 0) {
-			//  Õ∑≈∂‘œÛ
-			delete &object();
-		}
 	}
 	else if (IsFunctionDef() && const_index() != 0) {
 		delete value_.function_def_;

@@ -17,16 +17,13 @@ Value Context::Eval(std::string_view script) {
 	auto parser = Parser(&lexer);
 	auto src = parser.ParseSource();
 
-	auto codegener = CodeGener(runtime_);
+	auto codegener = CodeGener(this);
 	auto func = codegener.Generate(src.get());
 
-	Call(func, Value(), {});
+	std::initializer_list<Value> argv = {};
+	Call(func, Value(), argv.begin(), argv.end());
 
 	return func;
-}
-
-Value Context::Call(Value func_val, Value this_val, const std::vector<Value>& argv) {
-	return vm_.CallFunction(StackFrame(&runtime_->stack()), std::move(func_val), std::move(this_val), argv);
 }
 
 } // namespace mjs

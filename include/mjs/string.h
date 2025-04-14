@@ -18,9 +18,10 @@ public:
 
 	void Dereference() {
 		--ref_count_;
+		if (ref_count_ == 0) {
+			delete this;
+		}
 	}
-
-	uint32_t ref_count() const { return ref_count_; }
 
 private:
 	uint32_t ref_count_ = 0;

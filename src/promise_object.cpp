@@ -4,20 +4,23 @@
 
 namespace mjs {
 
-PromiseObject::PromiseObject(Context* context, Value executor) {
+PromiseObject::PromiseObject(Context* context, Value executor)
+    : Object(context) {
     if (executor.IsUndefined()) return;
 
     // 在构造函数中使用当前this是危险行为，需要注意
     // 避免Value(kPromiseResolve) 和 Value(kPromiseReject) 的析构导致当前对象释放，先引用
-    Reference();
-
-    // 传递两个参数，resolve和reject
-    context->Call(executor, Value(), {
-        Value(ValueType::kPromiseResolve, this),
-        Value(ValueType::kPromiseReject, this)
-    });
-
-    Dereference();
+    ++tag_.ref_count_;
+    {
+        auto argv = {
+            Value(ValueType::kPromiseResolve, this),
+            Value(ValueType::kPromiseReject, this)
+        };
+        // 传递两个参数，resolve和reject
+        context->Call(executor, Value(), argv.begin(), argv.end());
+    }
+    // 手动解除引用，避免解引用释放对象
+    --tag_.ref_count_;
 }
 
 void PromiseObject::Resolve(Context* context, Value value) {
@@ -71,9 +74,9 @@ Value PromiseObject::Then(Context* context, Value on_fulfilled, Value on_rejecte
         // 首先拿到on_fulfilled执行的返回值
         assert(par_count == 2);
         Value on_fulfilled = stack.get(0);
-        Value result = stack.get(1);
 
-        auto on_fulfilled_result = context->Call(on_fulfilled, Value(), { result });
+        auto argv = { stack.get(1) };
+        auto on_fulfilled_result = context->Call(on_fulfilled, Value(), argv.begin(), argv.end());
 
         // 然后传递给new_promise
         new_promise.Resolve(context, on_fulfilled_result);
@@ -86,9 +89,9 @@ Value PromiseObject::Then(Context* context, Value on_fulfilled, Value on_rejecte
         // 首先拿到on_rejected执行的返回值
         assert(par_count == 2);
         Value on_rejected = stack.get(0);
-        Value result = stack.get(1);
 
-        auto on_rejected_result = context->Call(on_rejected, Value(), { result });
+        auto argv = { stack.get(1) };
+        auto on_rejected_result = context->Call(on_rejected, Value(), argv.begin(), argv.end());
 
         // 然后传递给new_promise
         new_promise.Reject(context, on_rejected_result);

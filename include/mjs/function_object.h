@@ -14,7 +14,7 @@ namespace mjs {
 // 闭包就是在将FunctionDef赋值给Value的时候，会捕获当前的词法作用域上下文，闭包对象=函数指针+外部变量的捕获列表
 class FunctionObject : public Object {
 public:
-	explicit FunctionObject(FunctionDef* function_def) noexcept;
+	explicit FunctionObject(Context* context, FunctionDef* function_def) noexcept;
 
 	auto& function_def() const { return *function_def_; }
 

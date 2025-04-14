@@ -10,7 +10,9 @@ class Context;
 class GeneratorObject : public Object {
 public:
     GeneratorObject(Context* context, const Value& function)
-        : function_(function), stack_(0) {}
+        : Object(context)
+        , function_(function)
+        , stack_(0) {}
 
     bool IsSuspended() const { return state_ == State::kSuspended; }
     bool IsExecuting() const { return state_ == State::kExecuting; }
@@ -25,16 +27,16 @@ public:
         state_ = State::kClosed;
     }
 
-    Value MakeReturnObject(Runtime* runtime, Value&& ret_value) {
+    Value MakeReturnObject(Context* context, Value&& ret_value) {
         // { value: $_, done: $boolean }
         //if (ret_obj_.IsUndefined()) {
         //    ret_obj_ = Value(new Object());
         //}
 
         // 每次都得new
-        auto ret_obj = Value(new Object());
-        ret_obj.object().SetProperty(runtime, Value("value"), std::move(ret_value));
-        ret_obj.object().SetProperty(runtime, Value("done"), Value(IsClosed()));
+        auto ret_obj = Value(new Object(context));
+        ret_obj.object().SetProperty(context, Value("value"), std::move(ret_value));
+        ret_obj.object().SetProperty(context, Value("done"), Value(IsClosed()));
         return ret_obj;
     }
 

@@ -20,24 +20,6 @@ Stack& Vm::stack() {
 	return context_->runtime().stack();
 }
 
-Value Vm::CallFunction(const StackFrame& upper_stack_frame, Value func_val, Value this_val, const std::vector<Value>& argv) {
-	auto stack_frame = StackFrame(upper_stack_frame);
-	
-	// 参数正序入栈
-	for (auto& v : argv) {
-		stack_frame.push(v);
-	}
-
-	// 如果传入的是一个func_def，那么需要加载为func_obj
-	if (func_val.IsFunctionDef()) {
-		InitClosure(upper_stack_frame, &func_val);
-	}
-
-	CallInternal(&stack_frame, std::move(func_val), std::move(this_val), argv.size());
-
-	return stack_frame.pop();
-}
-
 FunctionDef* Vm::function_def(const Value& func_val) const {
 	if (func_val.IsFunctionObject()) {
 		return &func_val.function().function_def();
@@ -55,7 +37,7 @@ bool Vm::InitClosure(const StackFrame& upper_stack_frame, Value* func_def_val) {
 		return false;
 	}
 
-	*func_def_val = Value(new FunctionObject(&func_def));
+	*func_def_val = Value(new FunctionObject(context_, &func_def));
 	
 	auto& func = func_def_val->function();
 	// func->upvalues_.resize(func_def->closure_var_defs_.size());
@@ -263,7 +245,7 @@ void Vm::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 				Value* prop = nullptr;
 				if (obj_val.IsObject()) {
 					auto& obj = obj_val.object();
-					prop = obj.GetProperty(&context_->runtime(), key_val);
+					prop = obj.GetProperty(context_, key_val);
 				}
 				else if (obj_val.IsClassDef()) {
 					auto& class_def = obj_val.class_def();
@@ -290,7 +272,7 @@ void Vm::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 				auto val = stack_frame->pop();
 				if (obj_val.IsObject()) {
 					auto& obj = obj_val.object();
-					obj.SetProperty(&context_->runtime(), key_val, std::move(val));
+					obj.SetProperty(context_, key_val, std::move(val));
 				}
 				else {
 					// 非Object类型，根据类型来处理
@@ -308,7 +290,7 @@ void Vm::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 				auto& obj_val = stack_frame->get(-1);
 				auto& obj = obj_val.object();
 
-				auto prop = obj.GetProperty(&context_->runtime(), idx_val);
+				auto prop = obj.GetProperty(context_, idx_val);
 				if (!prop) {
 					obj_val = Value();
 				}
@@ -324,7 +306,7 @@ void Vm::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 				auto obj_val = stack_frame->pop();
 				auto& obj = obj_val.object();
 
-				obj.SetProperty(&context_->runtime(), idx_val, stack_frame->pop());
+				obj.SetProperty(context_, idx_val, stack_frame->pop());
 				break;
 			}
 			case OpcodeType::kAdd: {
@@ -399,7 +381,7 @@ void Vm::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 				generator.SetClosed();
 
 				auto ret_value = stack_frame->pop();
-				auto ret_obj = generator.MakeReturnObject(&context_->runtime(), std::move(ret_value));
+				auto ret_obj = generator.MakeReturnObject(context_, std::move(ret_value));
 				stack_frame->push(std::move(ret_obj));
 
 				goto exit_;
@@ -439,7 +421,7 @@ void Vm::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 				GeneratorSaveContext(stack_frame, &generator);
 
 				auto ret_value = stack_frame->pop();
-				auto ret_obj = generator.MakeReturnObject(&context_->runtime(), std::move(ret_value));
+				auto ret_obj = generator.MakeReturnObject(context_, std::move(ret_value));
 				stack_frame->push(std::move(ret_obj));
 
 				goto exit_;
@@ -674,7 +656,7 @@ bool Vm::FunctionScheduling(StackFrame* stack_frame, uint32_t par_count) {
 			next_val = stack_frame->pop();
 		}
 		if (generator.IsClosed()) {
-			stack_frame->push(generator.MakeReturnObject(&context_->runtime(), Value()));
+			stack_frame->push(generator.MakeReturnObject(context_, Value()));
 			// 已完成，不再需要执行
 			return false;
 		}

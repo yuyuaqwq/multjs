@@ -22,10 +22,10 @@ public:
 	using Base::Base;
 };
 
-class Runtime;
+class Context;
 class CodeGener : public noncopyable {
 public:
-	CodeGener(Runtime* runtime);
+	CodeGener(Context* context);
 
 	void RegisterCppFunction(const std::string& func_name, CppFunction func);
 	Value Generate(BlockStat* block);
@@ -64,7 +64,7 @@ private:
 	void GenerateParList(const std::vector<std::unique_ptr<Exp>>& par_list);
 
 private:
-	Runtime* runtime_;
+	Context* context_;
 
 	// 函数
 	FunctionDef* cur_func_def_ = nullptr;				// 当前生成函数

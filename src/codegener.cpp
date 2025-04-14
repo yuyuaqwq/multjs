@@ -3,12 +3,13 @@
 #include <iostream>
 
 #include <mjs/runtime.h>
+#include <mjs/context.h>
 #include <mjs/array_object.h>
 
 namespace mjs {
 
-CodeGener::CodeGener(Runtime* runtime)
-	: runtime_(runtime) {}
+CodeGener::CodeGener(Context* context)
+	: context_(context) {}
 
 void CodeGener::EntryScope(FunctionDef* sub_func, ScopeType type) {
 	if (sub_func == nullptr) {
@@ -23,11 +24,11 @@ void CodeGener::ExitScope() {
 
 
 ConstIndex CodeGener::AllocConst(Value&& value) {
-	return runtime_->const_pool().insert(std::move(value));
+	return context_->runtime().const_pool().insert(std::move(value));
 }
 
 const Value& CodeGener::FindConstValueByIndex(ConstIndex idx) {
-	return runtime_->const_pool().at(idx);
+	return context_->runtime().const_pool().at(idx);
 }
 
 
@@ -128,7 +129,7 @@ Value CodeGener::Generate(BlockStat* block) {
 
 	// 创建顶层函数(模块)
 	auto const_idx = AllocConst(Value(new FunctionDef(0)));
-	cur_func_def_ = &runtime_->const_pool().at(const_idx).function_def();
+	cur_func_def_ = &FindConstValueByIndex(const_idx).function_def();
 
 	EntryScope();
 
@@ -522,7 +523,7 @@ void CodeGener::GenerateExp(Exp* exp) {
 
 		// 如果是标识符的话，找下ClassDefTable
 		auto ident_exp = static_cast<IdentifierExp*>(exp);
-		auto class_def = runtime_->class_def_table().find(ident_exp->name);
+		auto class_def = context_->runtime().class_def_table().find(ident_exp->name);
 		// 先不考虑js里定义的类
 		if (class_def) {
 			auto const_idx = AllocConst(Value(class_def));
@@ -777,7 +778,7 @@ void CodeGener::GenerateExp(Exp* exp) {
 
 void CodeGener::GenerateFunctionDeclExp(FuncDeclExp* exp) {
 	auto const_idx = AllocConst(Value(new FunctionDef(exp->par_list.size())));
-	auto& func_def = runtime_->const_pool().at(const_idx).function_def();
+	auto& func_def = FindConstValueByIndex(const_idx).function_def();
 	if (exp->func_type == FunctionType::kGenerator) {
 		func_def.SetGenerator();
 	}
@@ -857,21 +858,21 @@ Value CodeGener::MakeValue(Exp* exp) {
 	}
 	case ExpType::kArrayLiteralExp: {
 		auto arr_exp = static_cast<ArrayLiteralExp*>(exp);
-		ArrayObject* arr_obj = new ArrayObject();
+		ArrayObject* arr_obj = new ArrayObject(context_);
 		double i = 0;
 		for (auto& exp : arr_exp->arr_litera) {
 			// arr_obj->mutale_values().emplace_back(MakeValue(exp.get()));
 			auto const_idx = AllocConst(Value(i++).ToString());
-			arr_obj->SetProperty(runtime_, FindConstValueByIndex(const_idx), MakeValue(exp.get()));
+			arr_obj->SetProperty(context_, FindConstValueByIndex(const_idx), MakeValue(exp.get()));
 		}
 		return Value(arr_obj);
 	}
 	case ExpType::kObjectLiteralExp: {
 		auto obj_exp = static_cast<ObjectLiteralExp*>(exp);
-		Object* obj = new Object();
+		Object* obj = new Object(context_);
 		for (auto& exp : obj_exp->obj_litera) {
 			auto const_idx = AllocConst(Value(exp.first));
-			obj->SetProperty(runtime_, FindConstValueByIndex(const_idx), MakeValue(exp.second.get()));
+			obj->SetProperty(context_, FindConstValueByIndex(const_idx), MakeValue(exp.second.get()));
 		}
 		return Value(obj);
 	}

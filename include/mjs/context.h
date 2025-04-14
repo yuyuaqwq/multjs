@@ -1,14 +1,15 @@
 #pragma once
 
 #include <memory>
+#include <initializer_list>
 
 #include <mjs/noncopyable.h>
+#include <mjs/runtime.h>
 #include <mjs/vm.h>
 #include <mjs/job_queue.h>
 
 namespace mjs {
 
-class Runtime;
 class Context : public noncopyable {
 public:
 	Context(Runtime* runtime)
@@ -17,11 +18,16 @@ public:
 
 	Value Eval(std::string_view script);
 
-	Value Call(Value func_val, Value this_val, const std::vector<Value>& argv);
+	template<typename It>
+	Value Call(Value func_val, Value this_val, It begin, It end) {
+		return vm_.CallFunction(StackFrame(&runtime_->stack()), std::move(func_val), std::move(this_val), begin, end);
+	}
 
 	void Gc() {
 		// 第一趟将孩子解引用为0的挂入tmp，因为该孩子节点只被当前节点引用
 		// 如果当前节点可以被回收，那么该孩子就肯定也要被回收
+
+
 
 		// 第二趟扫的时候，再将当前链表中的节点指向的孩子挂回来，因为当前节点不是垃圾，其孩子自然也不是垃圾
 		// 如果没有被挂回链表的节点，那就是垃圾了，没有被根节点自下的路径引用
@@ -30,7 +36,7 @@ public:
 	void ExecuteMicrotasks() {
 		while (!microtask_queue_.empty()) {
 			auto& task = microtask_queue_.front();
-			Call(task.func(), task.this_val(), task.argv());
+			Call(task.func(), task.this_val(), task.argv().begin(), task.argv().end());
 			microtask_queue_.pop();
 		}
 	}
@@ -46,6 +52,9 @@ public:
 	auto& microtask_queue() { return microtask_queue_; }
 
 private:
+	Object* obj_list_head_prev_;
+	Object* obj_list_head_next_;
+
 	Runtime* runtime_;
 	// LocalConstPool local_const_pool_;
 	Vm vm_;

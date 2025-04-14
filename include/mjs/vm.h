@@ -29,7 +29,24 @@ public:
 public:
 	explicit Vm(Context* context);
 
-	Value CallFunction(const StackFrame& upper_stack_frame, Value func, Value this_val, const std::vector<Value>& argv);
+	template<typename It>
+	Value CallFunction(const StackFrame& upper_stack_frame, Value func_val, Value this_val, It begin, It end) {
+		auto stack_frame = StackFrame(upper_stack_frame);
+
+		// 参数正序入栈
+		for (It it = begin; it != end; ++it) {
+			stack_frame.push(*it);
+		}
+
+		// 如果传入的是一个func_def，那么需要加载为func_obj
+		if (func_val.IsFunctionDef()) {
+			InitClosure(upper_stack_frame, &func_val);
+		}
+
+		CallInternal(&stack_frame, std::move(func_val), std::move(this_val), std::distance(begin, end));
+
+		return stack_frame.pop();
+	}
 
 	Value& GetVar(StackFrame* stack_frame, VarIndex idx);
 	void SetVar(StackFrame* stack_frame, VarIndex idx, Value&& var);

@@ -74,7 +74,7 @@ public:
 		return iter != property_map_.end();
 	}
 
-	virtual bool DelProperty(Context* context, const Value& key) {
+	virtual bool DelProperty(Runtime* context, const Value& key) {
 		auto res = property_map_.erase(key);
 		return res > 0;
 	}

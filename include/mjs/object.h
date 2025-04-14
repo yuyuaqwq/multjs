@@ -5,6 +5,7 @@
 #include <unordered_map>
 
 #include <mjs/noncopyable.h>
+#include <mjs/intrusive_list.hpp>
 #include <mjs/const_def.h>
 #include <mjs/class_def.h>
 #include <mjs/value.h>
@@ -17,13 +18,22 @@ namespace mjs {
 // []方式访问，走哈希表查询得到idx，再查数组
 
 class Runtime;
-class Object : public noncopyable {
+class Context;
+class Object
+	: public noncopyable
+	, public intrusive_list<Object>::node {
 public:
+	Object(Context* context) {
+		if (tag_.ref_count_ == 0) {
+			// 挂入context obj链表
+		}
+	}
+
 	virtual ~Object() {
+		assert(tag_.ref_count_ == 0);
 		if (property_map_) {
 			delete property_map_;
 		}
-		assert(tag_.ref_count_ == 0);
 	}
 
 	void Reference() {
@@ -32,11 +42,14 @@ public:
 
 	void Dereference() {
 		--tag_.ref_count_;
+		if (tag_.ref_count_ == 0) {
+			delete this;
+		}
 	}
 
-	void SetProperty(Runtime* runtime, const Value& key, Value&& val);
+	void SetProperty(Context* context, const Value& key, Value&& val);
 
-	Value* GetProperty(Runtime* runtime, const Value& key);
+	Value* GetProperty(Context* context, const Value& key);
 
 	void DelProperty(Context* context, const Value& key);
 

@@ -6,9 +6,9 @@
 #include <mutex>
 
 #include <mjs/noncopyable.h>
+#include <mjs/segmented_array.h>
 #include <mjs/const_def.h>
 #include <mjs/value.h>
-#include <mjs/segmented_array.h>
 
 namespace mjs {
 
