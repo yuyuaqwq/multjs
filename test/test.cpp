@@ -23,6 +23,8 @@ int main() {
 
     ctx.ExecuteMicrotasks();
 
+    rt.const_pool().clear();
+
     ctx.Gc();
 
     auto start = std::chrono::high_resolution_clock::now();

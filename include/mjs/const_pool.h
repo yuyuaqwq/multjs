@@ -49,6 +49,10 @@ public:
 		return std::nullopt;
 	}
 
+	void clear() {
+		map_.clear();
+	}
+
 private:
 	std::mutex mutex_;
 	std::map<Value, ConstIndex> map_;

@@ -6,10 +6,8 @@
 namespace mjs {
 
 Object::Object(Context* context) {
-	if (tag_.ref_count_ == 0) {
-		// 挂入context obj链表
-		context->AddObject(this);
-	}
+	// 挂入context obj链表
+	context->AddObject(this);
 }
 
 Object::~Object() {

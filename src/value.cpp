@@ -160,15 +160,22 @@ Value::Value(Value&& r) noexcept {
 void Value::operator=(const Value& r) {
 	tag_.type_ = r.tag_.type_;
 	if (IsObject()) {
-		value_.object_ = r.value_.object_;
-		object().Reference();
+		object().Dereference();
 	}
 	else if (IsString() && type() == ValueType::kString) {
-		value_.string_ = r.value_.string_;
-		value_.string_->Reference();
+		value_.string_->Dereference();
 	}
 	else {
 		value_ = r.value_;
+	}
+
+	if (r.IsObject()) {
+		value_.object_ = r.value_.object_;
+		object().Reference();
+	}
+	else if (r.IsString() && r.type() == ValueType::kString) {
+		value_.string_ = r.value_.string_;
+		value_.string_->Reference();
 	}
 	tag_.exception_ = r.tag_.exception_;
 }
