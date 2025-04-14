@@ -11,7 +11,8 @@ Object::Object(Context* context) {
 }
 
 Object::~Object() {
-	assert(tag_.ref_count_ == 0);
+	// 如果是gc释放的，就直接析构
+	assert(gc_mark() || tag_.ref_count_ == 0);
 	if (property_map_) {
 		delete property_map_;
 	}
