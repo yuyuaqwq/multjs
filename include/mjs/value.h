@@ -100,6 +100,7 @@ public:
 
 	~Value();
 
+
 	Value(const Value& r);
 	Value(Value&& r) noexcept;
 
@@ -178,6 +179,11 @@ public:
 
 	bool IsException() const { return tag_.exception_; }
 	void SetException() { tag_.exception_ = 1; }
+
+private:
+	void Clear();
+	void Copy(const Value& r);
+	void Move(Value&& r);
 
 private:
 	union {

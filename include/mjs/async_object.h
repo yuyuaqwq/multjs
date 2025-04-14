@@ -15,6 +15,11 @@ public:
         res_promise_ = Value(new PromiseObject(context, Value()));
     }
 
+    virtual void ForEachChild(intrusive_list<Object>* list, void(*callback)(intrusive_list<Object>* list, const Value& child)) override {
+        GeneratorObject::ForEachChild(list, callback);
+        callback(list, res_promise_);
+    }
+
     virtual ClassId class_id() const override { return ClassId::kAsync; }
 
     const auto& res_promise() const { return res_promise_; }

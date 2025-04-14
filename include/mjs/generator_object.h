@@ -14,6 +14,14 @@ public:
         , function_(function)
         , stack_(0) {}
 
+    virtual void ForEachChild(intrusive_list<Object>* list, void(*callback)(intrusive_list<Object>* list, const Value& child)) override {
+        Object::ForEachChild(list, callback);
+        callback(list, function_);
+        for (auto& val : stack_.vector()) {
+            callback(list, val);
+        }
+    }
+
     bool IsSuspended() const { return state_ == State::kSuspended; }
     bool IsExecuting() const { return state_ == State::kExecuting; }
     bool IsClosed() const { return state_ == State::kClosed; }

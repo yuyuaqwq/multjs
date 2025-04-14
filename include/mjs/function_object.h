@@ -16,6 +16,14 @@ class FunctionObject : public Object {
 public:
 	explicit FunctionObject(Context* context, FunctionDef* function_def) noexcept;
 
+	virtual void ForEachChild(intrusive_list<Object>* list, void(*callback)(intrusive_list<Object>* list, const Value& child)) override {
+		Object::ForEachChild(list, callback);
+		callback(list, parent_function_);
+		for (auto& val : closure_value_arr_) {
+			callback(list, val);
+		}
+	}
+
 	auto& function_def() const { return *function_def_; }
 
 	const auto& parent_function() const { return parent_function_; }

@@ -51,6 +51,7 @@ public:
 
 	void clear() {
 		map_.clear();
+		Base::clear();
 	}
 
 private:

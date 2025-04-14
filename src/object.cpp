@@ -54,13 +54,17 @@ void Object::Reference() {
 }
 
 void Object::Dereference() {
-	--tag_.ref_count_;
-	if (tag_.ref_count_ == 0) {
-		delete this;
+	// 对象正在gc过程中，其属性中可能包含对象自身，通过gc_mark避免重复析构
+	if (!gc_mark()) {
+		WeakDereference();
+		if (tag_.ref_count_ == 0) {
+			delete this;
+		}
 	}
 }
 
 void Object::WeakDereference() {
+	assert(tag_.ref_count_ > 0);
 	--tag_.ref_count_;
 }
 

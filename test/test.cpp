@@ -13,7 +13,7 @@ int main() {
     using namespace mjs;
 
     std::fstream file;
-    file.open(R"(test.js)");
+    file.open(R"(test3.js)");
     auto content = std::string((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());;
     file.close();
 

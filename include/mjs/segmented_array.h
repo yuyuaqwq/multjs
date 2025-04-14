@@ -74,6 +74,12 @@ public:
 		return size_;
 	}
 
+	void clear() {
+		for (auto& ptr : pool_) {
+			ptr.reset();
+		}
+	}
+
 private:
 	std::array<std::unique_ptr<StaticArray>, kStaticArraySize> pool_;
 	IndexT size_ = 1;

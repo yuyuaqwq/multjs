@@ -2,6 +2,7 @@
 
 #include <mjs/noncopyable.h>
 #include <mjs/value.h>
+#include <mjs/object.h>
 
 namespace mjs {
 
@@ -14,6 +15,14 @@ public:
 
 	Job(Job&& other) noexcept {
 		operator=(std::move(other));
+	}
+
+	void ForEachChild(intrusive_list<Object>* list, void(*callback)(intrusive_list<Object>* list, const Value& child)) {
+		callback(list, func_);
+		callback(list, this_val_);
+		for (auto& val : argv_) {
+			callback(list, val);
+		}
 	}
 
 	void operator=(Job&& other) noexcept {

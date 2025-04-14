@@ -132,58 +132,28 @@ Value::Value(ValueType type, PromiseObject* promise) {
 
 
 Value::~Value() {
-	if (IsString()) {
-		if (type() == ValueType::kString) {
-			value_.string_->Dereference();
-		}
-		else if (type() == ValueType::kStringView) {
-
-		}
-	}
-	else if (IsObject()) {
-		object().Dereference();
-	}
-	else if (IsFunctionDef() && const_index() != 0) {
-		delete value_.function_def_;
-	}
+	Clear();
 }
 
+
+
 Value::Value(const Value& r) {
-	operator=(r);
+	Copy(r);
 }
 
 Value::Value(Value&& r) noexcept {
-	operator=(std::move(r));
+	Move(std::move(r));
 }
 
 
 void Value::operator=(const Value& r) {
-	tag_.type_ = r.tag_.type_;
-	if (IsObject()) {
-		object().Dereference();
-	}
-	else if (IsString() && type() == ValueType::kString) {
-		value_.string_->Dereference();
-	}
-	else {
-		value_ = r.value_;
-	}
-
-	if (r.IsObject()) {
-		value_.object_ = r.value_.object_;
-		object().Reference();
-	}
-	else if (r.IsString() && r.type() == ValueType::kString) {
-		value_.string_ = r.value_.string_;
-		value_.string_->Reference();
-	}
-	tag_.exception_ = r.tag_.exception_;
+	Clear();
+	Copy(r);
 }
 
 void Value::operator=(Value&& r) noexcept {
-	tag_.full_ = r.tag_.full_;
-	value_ = r.value_;
-	r.tag_.type_ = ValueType::kUndefined;
+	Clear();
+	Move(std::move(r));
 }
 
 bool Value::operator<(const Value& rhs) const {
@@ -518,6 +488,7 @@ bool Value::IsObject() const {
 		|| type() == ValueType::kPromiseObject
 		|| type() == ValueType::kPromiseResolve
 		|| type() == ValueType::kPromiseReject
+		|| type() == ValueType::kAsyncObject
 		;
 }
 
@@ -629,6 +600,51 @@ Value Value::ToBoolean() const {
 	default:
 		throw std::runtime_error("Need to add new types.");
 	}
+}
+
+
+void Value::Clear() {
+	if (IsString()) {
+		if (type() == ValueType::kString) {
+			value_.string_->Dereference();
+		}
+		else if (type() == ValueType::kStringView) {
+
+		}
+	}
+	else if (IsObject()) {
+		object().Dereference();
+	}
+	else if (IsFunctionDef() && const_index() != 0) {
+		delete value_.function_def_;
+	}
+}
+
+void Value::Copy(const Value& r) {
+	tag_.type_ = r.tag_.type_;
+	if (r.IsObject()) {
+		value_.object_ = r.value_.object_;
+		object().Reference();
+	}
+	else if (r.IsString()) {
+		if (r.type() == ValueType::kString) {
+			value_.string_ = r.value_.string_;
+			value_.string_->Reference();
+		}
+		else {
+			value_.string_view_ = r.value_.string_view_;
+		}
+	}
+	else {
+		value_.full_ = r.value_.full_;
+	}
+	tag_.exception_ = r.tag_.exception_;
+}
+
+void Value::Move(Value&& r) {
+	tag_.full_ = r.tag_.full_;
+	value_ = r.value_;
+	r.tag_.type_ = ValueType::kUndefined;
 }
 
 

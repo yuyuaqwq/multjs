@@ -25,53 +25,81 @@ public:
 	}
 
     void Gc() {
-        // 第一趟将孩子解引用为0的挂入tmp，因为该孩子节点只被当前节点引用
-        // 如果当前节点可以被回收，那么该孩子就肯定也要被回收
-
-        // 第二趟扫的时候，再将当前链表中的节点指向的孩子挂回来，因为当前节点不是垃圾，其孩子自然也不是垃圾
-        // 如果没有被挂回链表的节点，那就是垃圾了，没有被根节点自下的路径引用
-
-
-        // 第一趟：将孩子引用计数为0的节点移动到临时链表
         intrusive_list<Object> tmp_list;
 
         auto it = object_list_.begin();
         while (it != object_list_.end()) {
-            Object* current = &(*it);
-            ++it; // 提前递增迭代器，因为下面可能会移除当前元素
+            Object& cur = *it;
 
-            // 检查所有子对象的引用计数
-            current->ForEachChild([&tmp_list](Object& child) {
-                child.WeakDereference();
-                if (child.ref_count() == 0) {
-                    child.unlink();
-                    tmp_list.push_back(child);
+            assert(!cur.gc_mark());
+
+            cur.ForEachChild(&tmp_list, [](intrusive_list<Object>* list, const Value& child) {
+                if (!child.IsObject()) return;
+                auto& obj = child.object();
+                assert(obj.ref_count() > 0);
+                obj.WeakDereference();
+                if (obj.ref_count() == 0 && obj.gc_mark()) {
+                    obj.unlink();
+                    list->push_back(obj);
                 }
             });
+
+            ++it;
+
+            cur.set_gc_mark(true);
+            if (cur.ref_count() == 0) {
+                cur.unlink();
+                tmp_list.push_back(cur);
+            }
         }
 
-        // 第二趟：检查临时链表中的对象是否被根节点引用
+        // 到这里看object_list_，没有被回收的就可能是没清理的
+        // 看一下Value::IsObject有没有添加对应的类型
+
         it = object_list_.begin();
         while (it != object_list_.end()) {
-            Object* current = &(*it);
-            ++it; // 提前递增迭代器
+            Object& cur = *it;
 
-            current->ForEachChild([this](Object& child) {
-                if (child.ref_count() == 0) {
-                    child.Reference();
-                    child.unlink();
-                    object_list_.push_back(child);
+            assert(cur.ref_count() > 0);
+
+            cur.set_gc_mark(false);
+
+            cur.ForEachChild(&object_list_, [](intrusive_list<Object>* list, const Value& child) {
+                if (!child.IsObject()) return;
+                auto& obj = child.object();
+                obj.Reference();
+                if (obj.ref_count() == 1) {
+                    obj.unlink();
+                    list->push_back(obj);
                 }
             });
+
+            ++it;
         }
+
+        it = tmp_list.begin();
+        while (it != tmp_list.end()) {
+            Object& cur = *it;
+
+            cur.ForEachChild(&object_list_, [](intrusive_list<Object>* list, const Value& child) {
+                if (!child.IsObject()) return;
+                auto& obj = child.object();
+                obj.Reference();
+            });
+
+            ++it;
+        }
+
+
 
         // 剩下的tmp_list中的节点就是垃圾，可以释放
         while (!tmp_list.empty()) {
-            Object* obj = &tmp_list.front();
-            obj->unlink();
-            delete obj;
+            Object& obj = tmp_list.front();
+            obj.WeakDereference();
+            delete &obj;
         }
     }
+
 
 	void AddObject(Object* object) {
 		object_list_.push_back(*object);
@@ -82,7 +110,7 @@ public:
 		while (!microtask_queue_.empty()) {
 			auto& task = microtask_queue_.front();
 			Call(task.func(), task.this_val(), task.argv().begin(), task.argv().end());
-			microtask_queue_.pop();
+			microtask_queue_.pop_front();
 		}
 	}
 

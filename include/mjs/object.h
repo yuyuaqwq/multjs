@@ -28,16 +28,12 @@ public:
 
 	virtual ~Object();
 
-	virtual void ForEachChild(std::function<void(Object&)> callback) {
-		// ±éÀúproperty_map_
+	virtual void ForEachChild(intrusive_list<Object>* list, void(*callback)(intrusive_list<Object>* list, const Value& child)) {
+		callback(list, prototype_);
 		if (property_map_) {
 			for (auto& pair : *property_map_) {
-				if (pair.first.IsObject()) {
-					callback(pair.first.object());
-				}
-				if (pair.second.IsObject()) {
-					callback(pair.second.object());
-				}
+				callback(list, pair.first);
+				callback(list, pair.second);
 			}
 		}
 	}
@@ -55,11 +51,15 @@ public:
 	auto ref_count() const { return tag_.ref_count_; }
 	const auto& prototype() const { return prototype_; }
 	void set_prototype(Value prototype) { prototype_ = std::move(prototype); }
-
+	bool gc_mark() { return  tag_.gc_mark_; }
+	void set_gc_mark(bool flag) { tag_.gc_mark_ = flag; }
 protected:
 	union {
 		uint64_t full_ = 0;
-		uint32_t ref_count_;
+		struct {
+			uint32_t ref_count_;
+			uint32_t gc_mark_ : 1;
+		};
 	} tag_;
 	Value prototype_;
 	PropertyMap* property_map_ = nullptr;

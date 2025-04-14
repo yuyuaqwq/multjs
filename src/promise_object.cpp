@@ -35,12 +35,12 @@ void PromiseObject::Resolve(Context* context, Value value) {
     while (!on_fulfill_callbacks_.empty()) {
         auto& job = on_fulfill_callbacks_.front();
         job.AddArg(value);
-        microtask_queue.emplace(std::move(job));
-        on_fulfill_callbacks_.pop();
+        microtask_queue.emplace_back(std::move(job));
+        on_fulfill_callbacks_.pop_front();
     }
 
     while (!on_reject_callbacks_.empty()) {
-        on_reject_callbacks_.pop();
+        on_reject_callbacks_.pop_front();
     }
 }
 
@@ -56,12 +56,12 @@ void PromiseObject::Reject(Context* context, Value value) {
     while (!on_reject_callbacks_.empty()) {
         auto& job = on_reject_callbacks_.front();
         job.AddArg(value);
-        microtask_queue.emplace(std::move(job));
-        on_reject_callbacks_.pop();
+        microtask_queue.emplace_back(std::move(job));
+        on_reject_callbacks_.pop_front();
     }
 
     while (!on_fulfill_callbacks_.empty()) {
-        on_fulfill_callbacks_.pop();
+        on_fulfill_callbacks_.pop_front();
     }
 }
 
@@ -106,11 +106,11 @@ Value PromiseObject::Then(Context* context, Value on_fulfilled, Value on_rejecte
         fulfill_job.AddArg(on_fulfilled);
 
         if (IsPending()) {
-            on_fulfill_callbacks_.emplace(std::move(fulfill_job));
+            on_fulfill_callbacks_.emplace_back(std::move(fulfill_job));
         }
         else if (IsFulfilled()) {
             fulfill_job.AddArg(result_);
-            microtask_queue.emplace(std::move(fulfill_job));
+            microtask_queue.emplace_back(std::move(fulfill_job));
         }
     }
     if (!on_rejected.IsUndefined()) {
@@ -118,11 +118,11 @@ Value PromiseObject::Then(Context* context, Value on_fulfilled, Value on_rejecte
         reject_job.AddArg(on_rejected);
 
         if (IsPending()) {
-            on_reject_callbacks_.emplace(std::move(reject_job));
+            on_reject_callbacks_.emplace_back(std::move(reject_job));
         }
         else if (IsRejected()) {
             reject_job.AddArg(result_);
-            microtask_queue.emplace(std::move(reject_job));
+            microtask_queue.emplace_back(std::move(reject_job));
         }
     }
 
