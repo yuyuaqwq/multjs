@@ -31,29 +31,31 @@ const Value& CodeGener::FindConstValueByIndex(ConstIndex idx) {
 }
 
 
-VarIndex CodeGener::AllocVar(const std::string& var_name) {
-	return scopes_.back().AllocVar(var_name);
+const VarInfo& CodeGener::AllocVar(const std::string& var_name, VarFlags flags) {
+	return scopes_.back().AllocVar(var_name, flags);
 }
 
-std::optional<VarIndex> CodeGener::FindVarIndexByName(const std::string& var_name) {
-	std::optional<VarIndex> find_var_idx = std::nullopt;
+const VarInfo* CodeGener::FindVarIndexByName(const std::string& var_name) {
+	const VarInfo* find_var_info = nullptr;;
 	// 就近找变量
 	for (ptrdiff_t i = scopes_.size() - 1; i >= 0; --i) {
-		auto var_idx_opt = scopes_[i].FindVar(var_name);
-		if (!var_idx_opt) {
+		auto var_info = scopes_[i].FindVar(var_name);
+		if (!var_info) {
 			// 当前作用域找不到变量，向上层作用域找
 			continue;
 		}
+
+		auto var_idx = var_info->var_idx;
 		if (scopes_[i].function_def() == cur_func_def_) {
-			find_var_idx = *var_idx_opt;
+			find_var_info = var_info;
 		}
 		else {
 			// 在上层函数作用域找到了，构建upvalue捕获链
 			auto scope_func = scopes_[i].function_def();
 			scope_func->closure_var_defs().emplace(
-				*var_idx_opt,
+				var_idx,
 				ClosureVarDef{
-					.arr_idx = int32_t(scope_func->closure_var_defs().size()),
+					.arr_idx = uint32_t(scope_func->closure_var_defs().size()),
 				}
 			);
 
@@ -64,21 +66,21 @@ std::optional<VarIndex> CodeGener::FindVarIndexByName(const std::string& var_nam
 				scope_func = scopes_[j].function_def();
 
 				// 为upvalue分配变量
-				find_var_idx = scopes_[j].AllocVar(var_name);
+				find_var_info = &scopes_[j].AllocVar(var_name, var_info->flags);
 				scope_func->closure_var_defs().emplace(
-					*find_var_idx,
+					find_var_info->var_idx,
 					ClosureVarDef{
-						.arr_idx = int32_t(scope_func->closure_var_defs().size()),
-						.parent_var_idx = *var_idx_opt
+						.arr_idx = uint32_t(scope_func->closure_var_defs().size()),
+						.parent_var_idx = var_idx
 					}
 				);
 
-				*var_idx_opt = *find_var_idx;
+				var_idx = find_var_info->var_idx;
 			}
 		}
 		break;
 	}
-	return find_var_idx;
+	return find_var_info;
 }
 
 bool CodeGener::IsInTypeScope(std::initializer_list<ScopeType> types, std::initializer_list<ScopeType> end_types) {
@@ -99,25 +101,25 @@ bool CodeGener::IsInTypeScope(std::initializer_list<ScopeType> types, std::initi
 }
 
 
-VarIndex CodeGener::GetVarByExp(Exp* exp) {
+const VarInfo& CodeGener::GetVarByExp(Exp* exp) {
 	assert(exp->GetType() == ExpType::kIdentifier);
 	auto var_exp = static_cast<IdentifierExp*>(exp);
-	auto var_idx = FindVarIndexByName(var_exp->name);
-	if (!var_idx) {
+	auto var_info = FindVarIndexByName(var_exp->name);
+	if (!var_info) {
 		throw CodeGenerException("var not defined");
 	}
-	return *var_idx;
+	return *var_info;
 }
 
 
 void CodeGener::RegisterCppFunction(const std::string& func_name, CppFunction func) {
-	auto var_idx = AllocVar(func_name);
+	auto& var_info = AllocVar(func_name, VarFlags::kConst);
 	auto const_idx = AllocConst(Value(func));
 
 	// 生成将函数放到变量表中的代码
 	// 交给虚拟机执行时去加载，虚拟机发现加载的常量是函数体，就会将函数原型赋给局部变量
 	cur_func_def_->byte_code().EmitConstLoad(const_idx);
-	cur_func_def_->byte_code().EmitVarStore(var_idx);
+	cur_func_def_->byte_code().EmitVarStore(var_info.var_idx);
 }
 
 
@@ -239,10 +241,15 @@ void CodeGener::GenerateReturnStat(ReturnStat* stat) {
 
 
 void CodeGener::GenerateNewVarStat(NewVarStat* stat) {
-	auto var_idx = AllocVar(stat->var_name);
+	VarFlags flags = VarFlags::kNone;
+	if (stat->keyword_type == TokenType::kKwConst) {
+		flags = VarFlags::kConst;
+	}
+
+	auto& var_info = AllocVar(stat->var_name, flags);
 	GenerateExp(stat->exp.get());
 	// 弹出到变量中
-	cur_func_def_->byte_code().EmitVarStore(var_idx);
+	cur_func_def_->byte_code().EmitVarStore(var_info.var_idx);
 }
 
 // 2字节指的是基于当前指令的offset
@@ -446,7 +453,7 @@ void CodeGener::GenerateTryStat(TryStat* stat) {
 		EntryScope(nullptr, has_finally ? ScopeType::kCatchFinally : ScopeType::kCatch);
 
 		// 加载error参数到变量
-		catch_err_var_idx = AllocVar(stat->catch_stat->exp->name);
+		catch_err_var_idx = AllocVar(stat->catch_stat->exp->name).var_idx;
 
 		GenerateBlock(stat->catch_stat->block.get(), false);
 
@@ -524,8 +531,8 @@ void CodeGener::GenerateExp(Exp* exp) {
 		else {
 			// throw CodeGenerException("Undefined class.");
 			// 是取变量值的话，查找到对应的变量编号，将其入栈
-			auto var_idx = GetVarByExp(exp);
-			cur_func_def_->byte_code().EmitVarLoad(var_idx);	// 从变量中获取
+			const auto& var_info = GetVarByExp(exp);
+			cur_func_def_->byte_code().EmitVarLoad(var_info.var_idx);	// 从变量中获取
 		}
 		break;
 	}
@@ -624,8 +631,12 @@ void CodeGener::GenerateExp(Exp* exp) {
 			{
 			// 为左值赋值
 			case ExpType::kIdentifier: {
-				auto var_idx = GetVarByExp(lvalue_exp);
-				cur_func_def_->byte_code().EmitVarStore(var_idx);
+				const auto& var_info = GetVarByExp(lvalue_exp);
+				if ((var_info.flags & VarFlags::kConst) == VarFlags::kConst) {
+					throw CodeGenerException("Cannot change const var.");
+				}
+
+				cur_func_def_->byte_code().EmitVarStore(var_info.var_idx);
 				break;
 			}
 			case ExpType::kIndexedExp: {
@@ -778,8 +789,8 @@ void CodeGener::GenerateFunctionDeclExp(FuncDeclExp* exp) {
 	if (!exp->func_name.empty()) {
 		// 非匿名函数分配变量来装，这里其实有个没考虑的地方
 		// 如果外层还有一层赋值，那么该函数的名字应该只在函数内作用域有效
-		auto var_idx = AllocVar(exp->func_name);
-		cur_func_def_->byte_code().EmitVarStore(var_idx);
+		auto& var_info = AllocVar(exp->func_name, VarFlags::kConst);
+		cur_func_def_->byte_code().EmitVarStore(var_info.var_idx);
 
 		// 栈顶的被赋值消耗了，再push一个
 		cur_func_def_->byte_code().EmitConstLoad(const_idx);

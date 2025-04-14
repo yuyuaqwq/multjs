@@ -167,10 +167,11 @@ struct ThrowStat : public Stat {
 
 struct NewVarStat : public Stat {
 	virtual StatType GetType() const noexcept;
-	NewVarStat(const std::string& var_name, std::unique_ptr<Exp> t_exp);
+	NewVarStat(const std::string& var_name, std::unique_ptr<Exp> exp, TokenType keyword_type);
 
 	std::string var_name;
 	std::unique_ptr<Exp> exp;
+	TokenType keyword_type;
 };
 
 } // namespace mjs

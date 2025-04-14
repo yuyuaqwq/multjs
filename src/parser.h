@@ -43,7 +43,7 @@ public:
 	std::unique_ptr<FinallyStat> ParseFinallyStat();
 	std::unique_ptr<ThrowStat> ParseThrowStat();
 
-	std::unique_ptr<NewVarStat> ParseNewVarStat();
+	std::unique_ptr<NewVarStat> ParseNewVarStat(TokenType type);
 
 	std::unique_ptr<Exp> ParseExp();
 	std::unique_ptr<Exp> ParseExp20();

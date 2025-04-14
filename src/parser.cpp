@@ -45,8 +45,9 @@ std::unique_ptr<BlockStat> Parser::ParseBlockStat() {
 std::unique_ptr<Stat> Parser::ParseStat() {
 	auto token = lexer_->PeekToken();
 	switch (token.type()) {
-		case TokenType::kKwLet: {
-			return ParseNewVarStat();
+		case TokenType::kKwLet:
+		case TokenType::kKwConst: {
+			return ParseNewVarStat(token.type());
 		}
 		case TokenType::kSepLCurly: {
 			return ParseBlockStat();
@@ -245,13 +246,13 @@ std::unique_ptr<ThrowStat> Parser::ParseThrowStat() {
 }
 
 
-std::unique_ptr<NewVarStat> Parser::ParseNewVarStat() {
-	lexer_->MatchToken(TokenType::kKwLet);
+std::unique_ptr<NewVarStat> Parser::ParseNewVarStat(TokenType type) {
+	lexer_->MatchToken(type);
 	auto var_name = lexer_->MatchToken(TokenType::kIdentifier).str();
 	lexer_->MatchToken(TokenType::kOpAssign);
 	auto exp = ParseExp();
 	lexer_->MatchToken(TokenType::kSepSemi);
-	return  std::make_unique<NewVarStat>(var_name, std::move(exp));
+	return  std::make_unique<NewVarStat>(var_name, std::move(exp), type);
 }
 
 

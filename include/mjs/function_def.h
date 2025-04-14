@@ -13,7 +13,7 @@ namespace mjs {
 
 struct ClosureVarDef {
 	// upvalue在closure_value_arr_的索引
-	int32_t arr_idx;
+	uint32_t arr_idx;
 
 	// upvalue指向的变量在父作用域中的变量索引
 	std::optional<VarIndex> parent_var_idx;

@@ -1,4 +1,7 @@
 
+let constvar = { a:{a:"123"} };
+constvar = "456";
+
 function* gen(a, b, c) {
     let ttt = this;
     let ada = "emm";

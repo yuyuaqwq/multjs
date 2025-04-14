@@ -84,9 +84,10 @@ StatType NewVarStat::GetType() const noexcept {
 	return StatType::kNewVar;
 }
 
-NewVarStat::NewVarStat(const std::string& var_name, std::unique_ptr<Exp> exp)
+NewVarStat::NewVarStat(const std::string& var_name, std::unique_ptr<Exp> exp, TokenType keyword_type)
 	: var_name(var_name)
-	, exp(std::move(exp)) {}
+	, exp(std::move(exp)) 
+	, keyword_type(keyword_type) {}
 
 
 } // namespace mjs

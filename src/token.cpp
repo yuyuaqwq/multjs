@@ -59,6 +59,7 @@ std::unordered_map<std::string, TokenType> g_keywords = {
 	{ "throw", TokenType::kKwThrow },
 	// { "var", TokenType::kKwVar },
 	{ "let", TokenType::kKwLet },
+	{ "const", TokenType::kKwConst },
 	{ "yield", TokenType::kKwYield, },
 	{ "async", TokenType::kKwAsync },
 	{ "await", TokenType::kKwAwait },

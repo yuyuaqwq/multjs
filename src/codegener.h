@@ -37,11 +37,11 @@ private:
 	ConstIndex AllocConst(Value&& value);
 	const Value& FindConstValueByIndex(ConstIndex idx);
 
-	VarIndex AllocVar(const std::string& name);
-	std::optional<VarIndex> FindVarIndexByName(const std::string& name);
+	const VarInfo& AllocVar(const std::string& name, VarFlags flags = VarFlags::kNone);
+	const VarInfo* FindVarIndexByName(const std::string& name);
 	bool IsInTypeScope(std::initializer_list<ScopeType> types, std::initializer_list<ScopeType> end_types);
 	
-	VarIndex GetVarByExp(Exp* exp);
+	const VarInfo& GetVarByExp(Exp* exp);
 
 	void GenerateBlock(BlockStat* block, bool entry_scope = true, ScopeType type = ScopeType::kNone);
 	void GenerateStat(Stat* stat);

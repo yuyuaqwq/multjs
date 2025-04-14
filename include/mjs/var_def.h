@@ -4,7 +4,7 @@
 
 namespace mjs {
 
-using VarIndex = uint16_t;
+using VarIndex = uint32_t;
 constexpr VarIndex kVarInvaildIndex = 0xffff;
 
 } // namespace mjs 

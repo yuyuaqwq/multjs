@@ -30,6 +30,35 @@ enum class ScopeType {
 	kFinally,
 };
 
+enum class VarFlags {
+	kNone = 0,
+	kConst = 1 << 0,
+};
+
+constexpr VarFlags operator|(VarFlags lhs, VarFlags rhs) {
+	using underlying = std::underlying_type_t<VarFlags>;
+	return static_cast<VarFlags>(
+		static_cast<underlying>(lhs) | static_cast<underlying>(rhs)
+		);
+}
+
+constexpr VarFlags operator&(VarFlags lhs, VarFlags rhs) {
+	using underlying = std::underlying_type_t<VarFlags>;
+	return static_cast<VarFlags>(
+		static_cast<underlying>(lhs) & static_cast<underlying>(rhs)
+		);
+}
+
+constexpr VarFlags& operator|=(VarFlags& lhs, VarFlags rhs) {
+	lhs = lhs | rhs;
+	return lhs;
+}
+
+struct VarInfo {
+	VarIndex var_idx;
+	VarFlags flags;
+};
+
 class Scope : public noncopyable {
 public:
 	Scope(FunctionDef* function_def, ScopeType type)
@@ -45,22 +74,22 @@ public:
 		type_ = other.type_;
 	}
 
-	VarIndex AllocVar(const std::string& var_name) {
+	const VarInfo& AllocVar(const std::string& var_name, VarFlags flags) {
 		if (var_table_.find(var_name) != var_table_.end()) {
 			throw ScopeException("local var redefinition");
 		}
 		auto var_idx = function_def_->var_count();
 		function_def_->AddVar(var_name);
-		var_table_.emplace(var_name, var_idx);
-		return var_idx;
+		auto res = var_table_.emplace(var_name, VarInfo{ .var_idx = var_idx, .flags = flags });
+		return res.first->second;
 	}
 
-	std::optional<VarIndex> FindVar(const std::string& var_name) {
+	const VarInfo* FindVar(const std::string& var_name) {
 		auto it = var_table_.find(var_name);
 		if (it == var_table_.end()) {
-			return std::nullopt;
+			return nullptr;
 		}
-		return it->second.var_idx;
+		return &it->second;
 	}
 
 	FunctionDef* function_def() const { return function_def_; }
@@ -69,9 +98,6 @@ public:
 
 private:
 	FunctionDef* function_def_; // 所属函数
-	struct VarInfo {
-		VarIndex var_idx;
-	};
 	std::unordered_map<std::string, VarInfo> var_table_; // 变量表
 
 	ScopeType type_;

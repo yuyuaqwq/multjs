@@ -132,8 +132,8 @@ struct IdentifierExp : public Exp {
 	virtual ExpType GetType() const noexcept override {
 		return ExpType::kIdentifier;
 	}
-	IdentifierExp(const std::string& name) :
-		name(name)
+	IdentifierExp(const std::string& name)
+		: name(name)
 	{
 		value_category = ExpValueCategory::kLeftValue;
 	}
