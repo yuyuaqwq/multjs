@@ -53,7 +53,7 @@ public:
             }
         }
 
-        // 到这里看object_list_，没有被回收的就可能是没清理的
+        // 到这里看object_list_，没有被回收的就可能是漏清理的
         // 看一下Value::IsObject有没有添加对应的类型
 
         it = object_list_.begin();

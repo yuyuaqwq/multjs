@@ -2,8 +2,9 @@
 
 namespace mjs {
 
-FunctionDef::FunctionDef(uint32_t par_count) noexcept
-	: par_count_(par_count) {}
+FunctionDef::FunctionDef(std::string name, uint32_t par_count) noexcept
+	: name_(name)
+	, par_count_(par_count) {}
 
 std::string FunctionDef::Disassembly(Context* context) {
 	std::string str;

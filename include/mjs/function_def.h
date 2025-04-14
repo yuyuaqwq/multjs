@@ -26,7 +26,7 @@ public:
 	};
 
 public:
-	explicit FunctionDef(uint32_t par_count) noexcept;
+	FunctionDef(std::string name, uint32_t par_count) noexcept;
 
 	std::string Disassembly(Context* context);
 
@@ -76,6 +76,8 @@ public:
 	auto& exception_table() { return exception_table_; }
 
 private:
+	std::string name_;
+
 	uint32_t par_count_;
 	uint32_t var_count_ = 0;		// °üÀ¨par_count
 

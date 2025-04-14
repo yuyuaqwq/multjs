@@ -128,7 +128,7 @@ Value CodeGener::Generate(BlockStat* block) {
 	scopes_.clear();
 
 	// 创建顶层函数(模块)
-	auto const_idx = AllocConst(Value(new FunctionDef(0)));
+	auto const_idx = AllocConst(Value(new FunctionDef("module", 0)));
 	cur_func_def_ = &FindConstValueByIndex(const_idx).function_def();
 
 	EntryScope();
@@ -777,7 +777,7 @@ void CodeGener::GenerateExp(Exp* exp) {
 }
 
 void CodeGener::GenerateFunctionDeclExp(FuncDeclExp* exp) {
-	auto const_idx = AllocConst(Value(new FunctionDef(exp->par_list.size())));
+	auto const_idx = AllocConst(Value(new FunctionDef(exp->func_name, exp->par_list.size())));
 	auto& func_def = FindConstValueByIndex(const_idx).function_def();
 	if (exp->func_type == FunctionType::kGenerator) {
 		func_def.SetGenerator();
