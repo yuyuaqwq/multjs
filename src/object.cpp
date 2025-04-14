@@ -5,6 +5,21 @@
 
 namespace mjs {
 
+Object::Object(Context* context) {
+	if (tag_.ref_count_ == 0) {
+		// ¹ÒÈëcontext objÁ´±í
+		context->AddObject(this);
+	}
+}
+
+Object::~Object() {
+	assert(tag_.ref_count_ == 0);
+	if (property_map_) {
+		delete property_map_;
+	}
+	unlink();
+}
+
 void Object::SetProperty(Context* context, const Value& key, Value&& val) {
 	if (!property_map_) property_map_ = new PropertyMap();
 	(*property_map_)[key] = std::move(val);
@@ -34,6 +49,21 @@ Value* Object::GetProperty(Context* context, const Value& key) {
 void Object::DelProperty(Context* context, const Value& key) {
 	if (!property_map_) return;
 	property_map_->erase(key);
+}
+
+void Object::Reference() {
+	++tag_.ref_count_;
+}
+
+void Object::Dereference() {
+	--tag_.ref_count_;
+	if (tag_.ref_count_ == 0) {
+		delete this;
+	}
+}
+
+void Object::WeakDereference() {
+	--tag_.ref_count_;
 }
 
 } // namespace mjs

@@ -10,7 +10,7 @@ PromiseObject::PromiseObject(Context* context, Value executor)
 
     // 在构造函数中使用当前this是危险行为，需要注意
     // 避免Value(kPromiseResolve) 和 Value(kPromiseReject) 的析构导致当前对象释放，先引用
-    ++tag_.ref_count_;
+    Reference();
     {
         auto argv = {
             Value(ValueType::kPromiseResolve, this),
@@ -19,8 +19,8 @@ PromiseObject::PromiseObject(Context* context, Value executor)
         // 传递两个参数，resolve和reject
         context->Call(executor, Value(), argv.begin(), argv.end());
     }
-    // 手动解除引用，避免解引用释放对象
-    --tag_.ref_count_;
+    // 避免解引用释放对象
+    WeakDereference();
 }
 
 void PromiseObject::Resolve(Context* context, Value value) {

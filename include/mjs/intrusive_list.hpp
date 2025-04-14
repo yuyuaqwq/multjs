@@ -45,6 +45,7 @@ public:
 
     // µü´úÆ÷
     class iterator {
+        friend class intrusive_list;
         node* current_;
         
     public:
@@ -93,8 +94,6 @@ public:
     }
 
     void insert(iterator pos, T& item) {
-        item.unlink();
-        
         node* new_node = &item;
         node* next_node = pos.current_;
         node* prev_node = next_node->prev;
