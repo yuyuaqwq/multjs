@@ -24,7 +24,7 @@ public:
 		return vm_.CallFunction(StackFrame(&runtime_->stack()), std::move(func_val), std::move(this_val), begin, end);
 	}
 
-    void Gc() {
+    void GC() {
         intrusive_list<Object> tmp_list;
 
         auto it = object_list_.begin();
@@ -103,6 +103,7 @@ public:
         while (!tmp_list.empty()) {
             Object& obj = tmp_list.front();
             assert(obj.ref_count() == 0);
+            assert(obj.gc_mark());
             // obj.WeakDereference();
             delete &obj;
         }

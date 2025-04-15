@@ -25,7 +25,7 @@ int main() {
 
     rt.const_pool().clear();
 
-    ctx.Gc();
+    ctx.GC();
 
     auto start = std::chrono::high_resolution_clock::now();
 
