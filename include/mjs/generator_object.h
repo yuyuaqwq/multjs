@@ -14,6 +14,8 @@ public:
         , function_(function)
         , stack_(0) {}
 
+    virtual ~GeneratorObject() override = default;
+
     virtual void ForEachChild(intrusive_list<Object>* list, void(*callback)(intrusive_list<Object>* list, const Value& child)) override {
         Object::ForEachChild(list, callback);
         callback(list, function_);
