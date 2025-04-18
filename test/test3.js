@@ -60,6 +60,7 @@ async function asyncfunc2(par) {
     res = await new Promise(function(resolve) {
         resolve(7777);
     });
+    // throw "abc";
     println("asyncfunc2 await ok2!!", res);
     return par;
 }
@@ -78,9 +79,13 @@ async function asyncfunc() {
     println("asyncfunc await ok3!!", res);
 }
 
-let res_promise = asyncfunc2(123);
+let res_promise1 = asyncfunc();
+let res_promise66 = asyncfunc();
 
-// Promise.resolve(res_promise);
+let res_promise2 = asyncfunc2(123);
+
+
+// Promise.resolve(res_promise2);
 
 let anonymousfunc = function() {
     try {
@@ -166,8 +171,8 @@ catch (e) {
     println("outer catch:", e);
 }
 finally {
-    println("outer finally");
-    throw "2b";
+    println("dawdawd outer finally");
+    // throw "2b";
 }
 
 
@@ -178,8 +183,8 @@ p.then(function(val) { println(val); });
 
 
 
-anonymousfunc();
-anonymousfunc();
+//anonymousfunc();
+//anonymousfunc();
 
 
 

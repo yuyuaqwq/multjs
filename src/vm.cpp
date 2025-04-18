@@ -359,6 +359,7 @@ void Vm::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 				if (ret.IsException()) {
 					pending_error_val = std::move(ret);
 					if (!ThrowExecption(stack_frame, &pending_error_val)) {
+						pending_return_val = std::move(pending_error_val);
 						goto exit_;
 					}
 				}
@@ -483,7 +484,10 @@ void Vm::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 			case OpcodeType::kThrow: {
 				stack_frame->set_pc(stack_frame->pc() - 1);
 				pending_error_val = stack_frame->pop();
-				ThrowExecption(stack_frame, &pending_error_val);
+				if (!ThrowExecption(stack_frame, &pending_error_val)) {
+					pending_return_val = std::move(pending_error_val);
+					goto exit_;
+				}
 				break;
 			}
 			case OpcodeType::kTryEnd: {
@@ -577,6 +581,11 @@ exit_:
 	}
 	else {
 		pending_return_val->SetException();
+		if (stack_frame->func_val().IsAsyncObject()) {
+			auto& async = stack_frame->func_val().async();
+			async.res_promise().promise().Reject(context_, *pending_return_val);
+			pending_return_val = async.res_promise();
+		}
 	}
 
 	// »¹Ô­Õ»Ö¡
