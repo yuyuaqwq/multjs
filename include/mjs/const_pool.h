@@ -1,7 +1,7 @@
 #pragma once
 
 #include <vector>
-#include <map>
+#include <unordered_map>
 #include <memory>
 #include <mutex>
 
@@ -56,7 +56,7 @@ public:
 
 private:
 	std::mutex mutex_;
-	std::map<Value, ConstIndex> map_;
+	std::unordered_map<Value, ConstIndex, ValueHash> map_;
 };
 
 class LocalConstPool : public noncopyable {
@@ -70,7 +70,7 @@ public:
 	Value& get(ConstIndex index);
 
 private:
-	std::map<Value, ConstIndex> const_map_;
+	std::unordered_map<Value, ConstIndex, ValueHash> const_map_;
 	std::vector<Value*> pool_;
 };
 

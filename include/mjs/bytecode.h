@@ -1,6 +1,6 @@
 #pragma once
 
-#include <map>
+#include <unordered_map>
 #include <vector>
 #include <string>
 
@@ -81,6 +81,6 @@ private:
 	std::vector<uint8_t> bytes_;
 };
 
-extern std::map<OpcodeType, InstrInfo> g_instr_symbol;
+extern std::unordered_map<OpcodeType, InstrInfo> g_instr_symbol;
 
 } // namespace mjs

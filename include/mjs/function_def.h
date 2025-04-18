@@ -12,10 +12,10 @@ namespace mjs {
 
 
 struct ClosureVarDef {
-	// upvalueÔÚclosure_value_arr_µÄË÷Òı
+	// upvalueåœ¨closure_value_arr_çš„ç´¢å¼•
 	uint32_t arr_idx;
 
-	// upvalueÖ¸ÏòµÄ±äÁ¿ÔÚ¸¸×÷ÓÃÓòÖĞµÄ±äÁ¿Ë÷Òı
+	// upvalueæŒ‡å‘çš„å˜é‡åœ¨çˆ¶ä½œç”¨åŸŸä¸­çš„å˜é‡ç´¢å¼•
 	std::optional<VarIndex> parent_var_idx;
 };
 
@@ -79,25 +79,25 @@ private:
 	std::string name_;
 
 	uint32_t par_count_;
-	uint32_t var_count_ = 0;		// °üÀ¨par_count
+	uint32_t var_count_ = 0;		// åŒ…æ‹¬par_count
 
 	ByteCode byte_code_;
 
 	FunctionType type_ = FunctionType::kNormal;
 
-	// ÓÅ»¯·½Ïò£º
-	// Èç¹ûËùÓĞ¼ÇÂ¼¶¼Ã»ÓĞ²¶»ñÍâ²¿±äÁ¿£¬¶¼ÊÇ¶¥¼¶upvalue±äÁ¿
-	// Ôòclosure_value_arr_¿ÉÒÔÖ¸ÏòÕ»Ö¡£¬ÎŞĞèÄÚ´æ·ÖÅä
+	// ä¼˜åŒ–æ–¹å‘ï¼š
+	// å¦‚æœæ‰€æœ‰è®°å½•éƒ½æ²¡æœ‰æ•è·å¤–éƒ¨å˜é‡ï¼Œéƒ½æ˜¯é¡¶çº§upvalueå˜é‡
+	// åˆ™closure_value_arr_å¯ä»¥æŒ‡å‘æ ˆå¸§ï¼Œæ— éœ€å†…å­˜åˆ†é…
 
-	// upvalue±äÁ¿¼ÇÂ¼£¬upvalue±äÁ¿ÔÚµ±Ç°×÷ÓÃÓòµÄË÷Òı
-	// Èç¹û´æÔÚµÄ»°£¬Ôò¼ÓÔØÊ±ĞèÒª´´½¨FunctionObject
+	// upvalueå˜é‡è®°å½•ï¼Œupvalueå˜é‡åœ¨å½“å‰ä½œç”¨åŸŸçš„ç´¢å¼•
+	// å¦‚æœå­˜åœ¨çš„è¯ï¼Œåˆ™åŠ è½½æ—¶éœ€è¦åˆ›å»ºFunctionObject
 
-	// key: upvalue±äÁ¿Ë÷Òı
+	// key: upvalueå˜é‡ç´¢å¼•
 	std::unordered_map<VarIndex, ClosureVarDef> closure_var_defs_;
 
 	std::vector<VarInfo> var_info_;
 
-	// Òì³£
+	// å¼‚å¸¸
 	ExceptionTable exception_table_;
 };
 

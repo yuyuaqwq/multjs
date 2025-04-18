@@ -7,7 +7,7 @@
 
 namespace mjs {
 
-std::map<OpcodeType, InstrInfo> g_instr_symbol{
+std::unordered_map<OpcodeType, InstrInfo> g_instr_symbol{
     // {OpcodeType::kStop, {"stop", {}}},
 
     {OpcodeType::kCLoad_0, {"cload_0", {}}},
@@ -144,7 +144,7 @@ void ByteCode::EmitConstLoad(ConstIndex idx) {
         EmitOpcode(OpcodeType::kCLoad_0 + idx);
     }
 	else if (idx <= 0xff) {
-		// ÔÊÐí¼ÓÔØ64bit£¿
+		// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½64bitï¿½ï¿½
 		EmitOpcode(OpcodeType::kCLoad);
 		EmitU8(idx);
 	}

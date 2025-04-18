@@ -156,111 +156,54 @@ void Value::operator=(Value&& r) noexcept {
 	Move(std::move(r));
 }
 
-bool Value::operator<(const Value& rhs) const {
+ptrdiff_t Value::Comparer(const Value& rhs) const {
 	if (IsString() && rhs.IsString()) {
-		if (string() == rhs.string()) { return false; }
-		return std::strcmp(string(), rhs.string()) < 0;
+		if (string() == rhs.string()) { return 0; }
+		return std::strcmp(string(), rhs.string());
 	}
 
 	if (type() != rhs.type()) {
-		return type() < rhs.type();
+		return static_cast<ptrdiff_t>(type()) - static_cast<ptrdiff_t>(rhs.type());
 	}
 
 	switch (type()) {
 	case ValueType::kUndefined:
-		return false;
+		return 0;
 	case ValueType::kNull:
-		return false;
+		return 0;
 	case ValueType::kBoolean:
-		return boolean() < rhs.boolean();
+		return static_cast<ptrdiff_t>(boolean()) - static_cast<ptrdiff_t>(rhs.boolean());
 	case ValueType::kNumber:
-		return number() < rhs.number();
-	case ValueType::kString: 
+		return number() - rhs.number();
+	case ValueType::kString:
 	case ValueType::kStringView:
-		return std::strcmp(string(), rhs.string()) < 0;
+		return std::strcmp(string(), rhs.string());
 	case ValueType::kObject:
-		return &object() < &rhs.object();
+		return &object() - &rhs.object();
 	case ValueType::kI64:
-		return i64() < rhs.i64();
+		return i64() - rhs.i64();
 	case ValueType::kU64:
-		return u64() < rhs.u64();
+		return u64() - rhs.u64();
 	case ValueType::kFunctionDef:
 	case ValueType::kCppFunction:
 	case ValueType::kUpValue:
 	case ValueType::kClassDef:
-		return value_.full_ < rhs.value_.full_;
+		return value_.full_ - rhs.value_.full_;
 	default:
 		throw std::runtime_error("Incorrect value type.");
 	}
+}
+
+bool Value::operator<(const Value& rhs) const {
+	return Comparer(rhs) < 0;
 }
 
 bool Value::operator>(const Value& rhs) const {
-	if (IsString() && rhs.IsString()) {
-		if (string() == rhs.string()) { return false; }
-		return std::strcmp(string(), rhs.string()) > 0;
-	}
-
-	if (type() != rhs.type()) {
-		return type() > rhs.type();
-	}
-	switch (type()) {
-	case ValueType::kUndefined:
-		return false;
-	case ValueType::kNull:
-		return false;
-	case ValueType::kBoolean:
-		return boolean() > rhs.boolean();
-	case ValueType::kNumber:
-		return number() > rhs.number();
-	case ValueType::kString:
-	case ValueType::kStringView:
-		return std::strcmp(string(), rhs.string()) > 0;
-	case ValueType::kObject:
-		return &object() > &rhs.object();
-	case ValueType::kI64:
-		return i64() > rhs.i64();
-	case ValueType::kU64:
-		return u64() > rhs.u64();
-	case ValueType::kUpValue:
-	case ValueType::kFunctionDef:
-	case ValueType::kCppFunction:
-		return value_.full_ > rhs.value_.full_;
-	default:
-		throw std::runtime_error("Incorrect value type.");
-	}
+	return Comparer(rhs) > 0;
 }
 
 bool Value::operator==(const Value& rhs) const {
-	if (IsString() && rhs.IsString()) {
-		return string() == rhs.string() || std::strcmp(string(), rhs.string()) == 0;
-	}
-
-	if (type() != rhs.type()) {
-		return false;
-	}
-	switch (type()) {
-	case ValueType::kUndefined:
-		return true;
-	case ValueType::kNull:
-		return true;
-	case ValueType::kBoolean:
-		return boolean() == rhs.boolean();
-	case ValueType::kNumber:
-		return number() == rhs.number();
-	case ValueType::kString:
-	case ValueType::kStringView:
-		return std::strcmp(string(), rhs.string()) == 0;
-	case ValueType::kObject:
-		return &object() == &rhs.object();
-	case ValueType::kI64:
-		return i64() == rhs.i64();
-	case ValueType::kFunctionDef:
-	case ValueType::kCppFunction:
-	case ValueType::kUpValue:
-		return value_.full_ == rhs.value_.full_;
-	default:
-		throw std::runtime_error("Incorrect value type.");
-	}
+	return Comparer(rhs) == 0;
 }
 
 Value Value::operator+(const Value& rhs) const {

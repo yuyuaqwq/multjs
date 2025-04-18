@@ -5,6 +5,7 @@
 #include <string>
 #include <memory>
 #include <stdexcept>
+#include <functional>
 
 #include <mjs/const_def.h>
 #include <mjs/string.h>
@@ -107,9 +108,11 @@ public:
 	void operator=(const Value& r);
 	void operator=(Value&& r) noexcept;
 
+	ptrdiff_t Comparer(const Value& rhs) const;
 	bool operator<(const Value& rhs) const;
 	bool operator>(const Value& rhs) const;
 	bool operator==(const Value& rhs) const;
+
 	Value operator+(const Value& rhs) const;
 	Value operator-(const Value& rhs) const;
 	Value operator*(const Value& rhs) const;
@@ -187,6 +190,8 @@ private:
 	void Move(Value&& r);
 
 private:
+	friend class ValueHash;
+
 	union {
 		uint64_t full_ = 0;
 		struct {
@@ -224,5 +229,40 @@ private:
 };
 
 using CppFunction = Value::CppFunction;
+
+struct ValueHash {
+	size_t operator()(const Value& val) const {
+		switch (val.type()) {
+		case ValueType::kUndefined:
+			return 0;
+		case ValueType::kNull:
+			return 1;
+		case ValueType::kBoolean:
+			return std::hash<bool>()(val.boolean());
+		case ValueType::kNumber:
+			return std::hash<double>()(val.number());
+		case ValueType::kString:
+		case ValueType::kStringView:
+			// 使用字符串内容计算哈希
+			return std::hash<std::string>()(val.string());
+		case ValueType::kObject:
+			// 使用对象地址计算哈希
+			return std::hash<const void*>()(&val.object());
+		case ValueType::kI64:
+			return std::hash<int64_t>()(val.i64());
+		case ValueType::kU64:
+			return std::hash<uint64_t>()(val.u64());
+		case ValueType::kFunctionDef:
+		case ValueType::kCppFunction:
+		case ValueType::kUpValue:
+		case ValueType::kClassDef:
+			// 使用内部值计算哈希
+			return std::hash<uint64_t>()(val.value_.full_);
+		default:
+			throw std::runtime_error("Unhashable value type.");
+		}
+	}
+};
+
 
 } // namespace mjs

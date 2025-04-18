@@ -1,6 +1,6 @@
 #pragma once
 
-#include <map>
+#include <unordered_map>
 #include <vector>
 #include <string>
 
@@ -70,7 +70,7 @@ enum class OpcodeType {
 	kGt = 0x9d,
 	kLe = 0x9e,
 
-	kIfEq = 0xa0,	// Õ»¶¥Îª0ÔòÌø×ª
+	kIfEq = 0xa0,	// Õ»ï¿½ï¿½Îª0ï¿½ï¿½ï¿½ï¿½×ª
 
 	// Control flow
 	kGoto = 0xa7,
@@ -100,7 +100,7 @@ enum class OpcodeType {
 
 	kFinallyGoto = 0xd6,
 
-	// 0xf0 ~ 0xff ±£Áô
+	// 0xf0 ~ 0xff ï¿½ï¿½ï¿½ï¿½
 };
 
 struct InstrInfo {
@@ -113,6 +113,6 @@ using PcOffset = uint16_t;
 
 constexpr Pc kInvalidPc = 0xffffffff;
 
-extern std::map<OpcodeType, InstrInfo> g_instr_symbol;
+extern std::unordered_map<OpcodeType, InstrInfo> g_instr_symbol;
 
 } // namespace mjs
