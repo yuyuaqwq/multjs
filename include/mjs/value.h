@@ -158,6 +158,7 @@ public:
 	bool IsNumber() const;
 	bool IsString() const;
 
+	// 新对象必须添加到IsObject中，否则会内存泄露
 	bool IsObject() const;
 	bool IsFunctionObject() const;
 	bool IsGeneratorObject() const;
