@@ -1,7 +1,7 @@
 #pragma once
 
-#include <mjs/object.h>
 #include <mjs/job_queue.h>
+#include <mjs/object/object.h>
 
 namespace mjs {
 

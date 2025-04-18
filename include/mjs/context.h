@@ -6,8 +6,8 @@
 #include <mjs/noncopyable.h>
 #include <mjs/runtime.h>
 #include <mjs/vm.h>
-#include <mjs/object.h>
 #include <mjs/job_queue.h>
+#include <mjs/object/object.h>
 
 namespace mjs {
 

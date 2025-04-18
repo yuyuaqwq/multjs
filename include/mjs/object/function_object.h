@@ -4,8 +4,8 @@
 #include <unordered_map>
 #include <optional>
 
-#include <mjs/object.h>
 #include <mjs/function_def.h>
+#include <mjs/object/object.h>
 
 namespace mjs {
 

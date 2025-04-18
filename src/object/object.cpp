@@ -1,4 +1,4 @@
-#include <mjs/object.h>
+#include <mjs/object/object.h>
 
 #include <mjs/context.h>
 #include <mjs/runtime.h>

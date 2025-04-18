@@ -1,8 +1,8 @@
-#include <mjs/promise_class_def.h>
+#include <mjs/class_def/promise_class_def.h>
 
-#include <mjs/promise_object.h>
 #include <mjs/stack_frame.h>
 #include <mjs/context.h>
+#include <mjs/object/promise_object.h>
 
 namespace mjs {
 

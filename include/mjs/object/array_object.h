@@ -1,6 +1,6 @@
 #pragma once
 
-#include <mjs/object.h>
+#include <mjs/object/object.h>
 
 namespace mjs {
 

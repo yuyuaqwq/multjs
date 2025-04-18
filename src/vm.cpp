@@ -5,11 +5,11 @@
 #include <mjs/runtime.h>
 #include <mjs/context.h>
 #include <mjs/opcode.h>
-#include <mjs/array_object.h>
-#include <mjs/function_object.h>
-#include <mjs/generator_object.h>
-#include <mjs/async_object.h>
-#include <mjs/promise_object.h>
+#include <mjs/object/array_object.h>
+#include <mjs/object/function_object.h>
+#include <mjs/object/generator_object.h>
+#include <mjs/object/async_object.h>
+#include <mjs/object/promise_object.h>
 
 namespace mjs {
 

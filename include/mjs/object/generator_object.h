@@ -1,8 +1,8 @@
 #pragma once
 
 #include <mjs/opcode.h>
-#include <mjs/object.h>
 #include <mjs/stack_frame.h>
+#include <mjs/object/object.h>
 
 namespace mjs {
 

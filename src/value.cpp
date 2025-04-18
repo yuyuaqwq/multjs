@@ -1,10 +1,10 @@
 #include <format>
 
 #include <mjs/value.h>
-#include <mjs/object.h>
-
 #include <mjs/function_def.h>
-#include <mjs/function_object.h>
+
+#include <mjs/object/object.h>
+#include <mjs/object/function_object.h>
 
 namespace mjs {
 

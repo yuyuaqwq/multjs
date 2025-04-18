@@ -1,11 +1,12 @@
 #pragma once
 
 #include <mjs/noncopyable.h>
-#include <mjs/class_def.h>
-#include <mjs/generator_class_def.h>
-#include <mjs/promise_class_def.h>
 #include <mjs/const_pool.h>
 #include <mjs/stack_frame.h>
+
+#include <mjs/class_def/class_def.h>
+#include <mjs/class_def/generator_class_def.h>
+#include <mjs/class_def/promise_class_def.h>
 
 namespace mjs {
 

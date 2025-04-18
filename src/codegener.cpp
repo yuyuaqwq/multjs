@@ -4,7 +4,7 @@
 
 #include <mjs/runtime.h>
 #include <mjs/context.h>
-#include <mjs/array_object.h>
+#include <mjs/object/array_object.h>
 
 namespace mjs {
 

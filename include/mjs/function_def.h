@@ -4,9 +4,9 @@
 #include <unordered_map>
 #include <optional>
 
-#include <mjs/object.h>
 #include <mjs/exception.h>
 #include <mjs/bytecode.h>
+#include <mjs/object/object.h>
 
 namespace mjs {
 

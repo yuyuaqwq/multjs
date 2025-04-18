@@ -4,7 +4,7 @@
 #include <optional>
 
 #include <mjs/noncopyable.h>
-#include <mjs/function_object.h>
+#include <mjs/object/function_object.h>
 
 namespace mjs {
 

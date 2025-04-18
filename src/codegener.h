@@ -7,7 +7,7 @@
 
 #include <mjs/noncopyable.h>
 #include <mjs/value.h>
-#include <mjs/function_object.h>
+#include <mjs/object/function_object.h>
 
 #include "scope.h"
 #include "stat.h"
