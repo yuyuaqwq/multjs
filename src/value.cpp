@@ -157,12 +157,7 @@ void Value::operator=(Value&& r) noexcept {
 }
 
 ptrdiff_t Value::Comparer(const Value& rhs) const {
-	if (IsString() && rhs.IsString()) {
-		if (string() == rhs.string()) { return 0; }
-		return std::strcmp(string(), rhs.string());
-	}
-
-	if (type() != rhs.type()) {
+	if (type() != rhs.type() && !(IsString() && rhs.IsString())) {
 		return static_cast<ptrdiff_t>(type()) - static_cast<ptrdiff_t>(rhs.type());
 	}
 
@@ -177,6 +172,7 @@ ptrdiff_t Value::Comparer(const Value& rhs) const {
 		return number() - rhs.number();
 	case ValueType::kString:
 	case ValueType::kStringView:
+		if (string() == rhs.string()) return 0;
 		return std::strcmp(string(), rhs.string());
 	case ValueType::kObject:
 		return &object() - &rhs.object();
