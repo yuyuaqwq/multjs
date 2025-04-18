@@ -20,6 +20,10 @@ public:
         callback(list, res_promise_);
     }
 
+    virtual Value ToString() override {
+        return Value(std::format("asnyc_object:{}", function_def().name()));
+    }
+
     virtual ClassId class_id() const override { return ClassId::kAsync; }
 
     const auto& res_promise() const { return res_promise_; }

@@ -3,13 +3,12 @@
 #include <iostream>
 
 #include <mjs/runtime.h>
-#include <mjs/context.h>
 #include <mjs/object/array_object.h>
 
 namespace mjs {
 
-CodeGener::CodeGener(Context* context)
-	: context_(context) {}
+CodeGener::CodeGener(Runtime* runtime)
+	: runtime_(runtime) {}
 
 void CodeGener::EntryScope(FunctionDef* sub_func, ScopeType type) {
 	if (sub_func == nullptr) {
@@ -24,11 +23,11 @@ void CodeGener::ExitScope() {
 
 
 ConstIndex CodeGener::AllocConst(Value&& value) {
-	return context_->runtime().const_pool().insert(std::move(value));
+	return runtime_->const_pool().insert(std::move(value));
 }
 
-const Value& CodeGener::FindConstValueByIndex(ConstIndex idx) {
-	return context_->runtime().const_pool().at(idx);
+const Value& CodeGener::GetConstValueByIndex(ConstIndex idx) {
+	return runtime_->const_pool().at(idx);
 }
 
 
@@ -129,7 +128,7 @@ Value CodeGener::Generate(BlockStat* block) {
 
 	// 创建顶层函数(模块)
 	auto const_idx = AllocConst(Value(new FunctionDef("module", 0)));
-	cur_func_def_ = &FindConstValueByIndex(const_idx).function_def();
+	cur_func_def_ = &GetConstValueByIndex(const_idx).function_def();
 
 	EntryScope();
 
@@ -523,7 +522,7 @@ void CodeGener::GenerateExp(Exp* exp) {
 
 		// 如果是标识符的话，找下ClassDefTable
 		auto ident_exp = static_cast<IdentifierExp*>(exp);
-		auto class_def = context_->runtime().class_def_table().find(ident_exp->name);
+		auto class_def = runtime_->class_def_table().find(ident_exp->name);
 		// 先不考虑js里定义的类
 		if (class_def) {
 			auto const_idx = AllocConst(Value(class_def));
@@ -778,7 +777,7 @@ void CodeGener::GenerateExp(Exp* exp) {
 
 void CodeGener::GenerateFunctionDeclExp(FuncDeclExp* exp) {
 	auto const_idx = AllocConst(Value(new FunctionDef(exp->func_name, exp->par_list.size())));
-	auto& func_def = FindConstValueByIndex(const_idx).function_def();
+	auto& func_def = GetConstValueByIndex(const_idx).function_def();
 	if (exp->func_type == FunctionType::kGenerator) {
 		func_def.SetGenerator();
 	}
@@ -856,23 +855,25 @@ Value CodeGener::MakeValue(Exp* exp) {
 		auto ident_exp = static_cast<IdentifierExp*>(exp);
 		return Value(ident_exp->name);
 	}
+	// 无需GC回收，此处分配的对象不会引用Context分配的对象，因此不存在循环引用
+	// 应该是只读
 	case ExpType::kArrayLiteralExp: {
 		auto arr_exp = static_cast<ArrayLiteralExp*>(exp);
-		ArrayObject* arr_obj = new ArrayObject(context_);
+		ArrayObject* arr_obj = new ArrayObject(nullptr);
 		double i = 0;
 		for (auto& exp : arr_exp->arr_litera) {
 			// arr_obj->mutale_values().emplace_back(MakeValue(exp.get()));
 			auto const_idx = AllocConst(Value(i++).ToString());
-			arr_obj->SetProperty(context_, FindConstValueByIndex(const_idx), MakeValue(exp.get()));
+			arr_obj->SetProperty(nullptr, GetConstValueByIndex(const_idx), MakeValue(exp.get()));
 		}
 		return Value(arr_obj);
 	}
 	case ExpType::kObjectLiteralExp: {
 		auto obj_exp = static_cast<ObjectLiteralExp*>(exp);
-		Object* obj = new Object(context_);
+		Object* obj = new Object(nullptr);
 		for (auto& exp : obj_exp->obj_litera) {
 			auto const_idx = AllocConst(Value(exp.first));
-			obj->SetProperty(context_, FindConstValueByIndex(const_idx), MakeValue(exp.second.get()));
+			obj->SetProperty(nullptr, GetConstValueByIndex(const_idx), MakeValue(exp.second.get()));
 		}
 		return Value(obj);
 	}

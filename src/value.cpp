@@ -497,21 +497,22 @@ Value Value::ToString() const {
 	case ValueType::kString: 
 	case ValueType::kStringView: 
 		return *this;
-	case ValueType::kObject:
-		return Value("object");
-	case ValueType::kFunctionObject:
-		return Value("functionobject");
 	case ValueType::kI64:
 		return Value(std::format("{}", i64()));
 	case ValueType::kU64:
 		return Value(std::format("{}", u64()));
 	case ValueType::kFunctionDef:
-		return Value("function");
+		return Value(std::format("function_def:{}", function_def().name()));
 	case ValueType::kCppFunction:
-		return Value("cppfunction");
+		return Value("cpp_function");
 	case ValueType::kClassDef:
-		return Value("class");
+		return Value(std::format("class_def:{}", class_def().name()));
+	case ValueType::kUpValue:
+		return up_value().get_value().ToString();
 	default:
+		if (IsObject()) {
+			return object().ToString();
+		}
 		return Value("unknown");
 		// throw std::runtime_error("Incorrect value type.");
 	}

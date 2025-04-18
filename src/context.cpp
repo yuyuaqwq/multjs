@@ -17,7 +17,7 @@ Value Context::Eval(std::string_view script) {
 	auto parser = Parser(&lexer);
 	auto src = parser.ParseSource();
 
-	auto codegener = CodeGener(this);
+	auto codegener = CodeGener(runtime_);
 	auto func = codegener.Generate(src.get());
 
 	std::initializer_list<Value> argv = {};

@@ -91,16 +91,16 @@ void Vm::BindClosureVars(StackFrame* stack_frame) {
 
 Value& Vm::GetVar(StackFrame* stack_frame, VarIndex idx) {
 	auto* var = &stack_frame->get(idx);
-	while (var->IsUpValue()) {
-		var = var->up_value().value;
+	if (var->IsUpValue()) {
+		var = &var->up_value().get_value();
 	}
 	return *var;
 }
 
 void Vm::SetVar(StackFrame* stack_frame, VarIndex idx, Value&& var) {
 	auto* var_ = &stack_frame->get(idx);
-	while (var_->IsUpValue()) {
-		var_ = var_->up_value().value;
+	if (var_->IsUpValue()) {
+		var_ = &var_->up_value().get_value();
 	}
 	*var_ = std::move(var);
 }
@@ -130,14 +130,16 @@ const Value& Vm::GetConst(StackFrame* stack_frame, ConstIndex idx) {
 
 void Vm::LoadConst(StackFrame* stack_frame, ConstIndex const_idx) {
 	auto& value = GetGlobalConst(const_idx);
-
 	if (value.IsFunctionDef()) {
 		auto func_val = value;
 		InitClosure(*stack_frame, &func_val);
 		stack_frame->push(std::move(func_val));
 		return;
 	}
-
+	else if (value.IsObject()) {
+		stack_frame->push(Value(value.object().Copy(context_)));
+		return;
+	}
 	stack_frame->push(value);
 }
 

@@ -62,8 +62,16 @@ class PromiseObject;
 class AsyncObject;
 
 class ClassDef;
-struct UpValue {
-	Value* value;
+
+class UpValue {
+public:
+	UpValue() = default;
+	UpValue(Value* up) : up_(up) {}
+
+	Value& get_value() const;
+
+private:
+	Value* up_ = nullptr;
 };
 class FunctionDef;
 
@@ -227,6 +235,14 @@ private:
 		ExceptionIdx exception_idx_;
 	} value_;
 };
+
+inline Value& UpValue::get_value() const {
+	Value* val = up_;
+	while (val->IsUpValue()) {
+		val = val->up_value().up_;
+	}
+	return *val;
+}
 
 using CppFunction = Value::CppFunction;
 

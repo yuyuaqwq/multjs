@@ -63,6 +63,8 @@ public:
 		return var_info_.at(idx);
 	}
 
+	const auto& name() const { return name_; }
+
 	auto par_count() const { return par_count_; }
 	auto var_count() const { return var_count_; }
 

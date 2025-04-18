@@ -22,10 +22,10 @@ public:
 	using Base::Base;
 };
 
-class Context;
+class Runtime;
 class CodeGener : public noncopyable {
 public:
-	CodeGener(Context* context);
+	CodeGener(Runtime* runtime);
 
 	void RegisterCppFunction(const std::string& func_name, CppFunction func);
 	Value Generate(BlockStat* block);
@@ -35,7 +35,7 @@ private:
 	void ExitScope();
 
 	ConstIndex AllocConst(Value&& value);
-	const Value& FindConstValueByIndex(ConstIndex idx);
+	const Value& GetConstValueByIndex(ConstIndex idx);
 
 	const VarInfo& AllocVar(const std::string& name, VarFlags flags = VarFlags::kNone);
 	const VarInfo* FindVarIndexByName(const std::string& name);
@@ -64,7 +64,7 @@ private:
 	void GenerateParList(const std::vector<std::unique_ptr<Exp>>& par_list);
 
 private:
-	Context* context_;
+	Runtime* runtime_;
 
 	// 函数
 	FunctionDef* cur_func_def_ = nullptr;				// 当前生成函数

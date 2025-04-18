@@ -1,5 +1,6 @@
 #pragma once
 
+#include <iostream>
 #include <memory>
 #include <initializer_list>
 
@@ -23,6 +24,24 @@ public:
 	Value Call(Value func_val, Value this_val, It begin, It end) {
 		return vm_.CallFunction(StackFrame(&runtime_->stack()), std::move(func_val), std::move(this_val), begin, end);
 	}
+
+    void PrintObjectTree() {
+        auto it = object_list_.begin();
+        while (it != object_list_.end()) {
+            Object& cur = *it;
+            assert(!cur.gc_mark());
+
+            std::cout << Value(&cur).ToString().string() << std::endl;
+
+            cur.ForEachChild(nullptr, [](intrusive_list<Object>* list, const Value& child) {
+                std::cout << "\t\t" << child.ToString().string() << std::endl;
+            });
+
+            std::cout << std::endl;
+
+            ++it;
+        }
+    }
 
     void GC() {
         intrusive_list<Object> tmp_list;

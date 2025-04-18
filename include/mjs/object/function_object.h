@@ -3,6 +3,7 @@
 #include <string>
 #include <unordered_map>
 #include <optional>
+#include <format>
 
 #include <mjs/function_def.h>
 #include <mjs/object/object.h>
@@ -22,6 +23,10 @@ public:
 		for (auto& val : closure_value_arr_) {
 			callback(list, val);
 		}
+	}
+
+	virtual Value ToString() override {
+		return Value(std::format("function_object:{}", function_def_->name()));
 	}
 
 	auto& function_def() const { return *function_def_; }

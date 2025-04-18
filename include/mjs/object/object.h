@@ -30,6 +30,10 @@ public:
 
 	virtual ~Object();
 
+	void Reference();
+	void Dereference();
+	void WeakDereference();
+
 	virtual void ForEachChild(intrusive_list<Object>* list, void(*callback)(intrusive_list<Object>* list, const Value& child)) {
 		callback(list, prototype_);
 		if (property_map_) {
@@ -40,27 +44,41 @@ public:
 		}
 	}
 
-	void SetProperty(Context* context, const Value& key, Value&& val);
-	Value* GetProperty(Context* context, const Value& key);
-	void DelProperty(Context* context, const Value& key);
+	virtual Value ToString() {
+		return Value("object");
+	}
 
+	virtual Object* Copy(Context* context) {
+		auto obj = new Object(context);
+		obj->prototype_ = prototype_;
+		if (property_map_) {
+			obj->property_map_ = new PropertyMap();
+			*obj->property_map_ = *property_map_;
+		}
+		return obj;
+	}
 
-	void Reference();
-	void Dereference();
-	void WeakDereference();
+	virtual void SetProperty(Context* context, const Value& key, Value&& val);
+	virtual Value* GetProperty(Context* context, const Value& key);
+	virtual void DelProperty(Context* context, const Value& key);
 
 	virtual ClassId class_id() const { return ClassId::kBase; }
+
 	auto ref_count() const { return tag_.ref_count_; }
+
 	const auto& prototype() const { return prototype_; }
 	void set_prototype(Value prototype) { prototype_ = std::move(prototype); }
+
 	bool gc_mark() { return  tag_.gc_mark_; }
 	void set_gc_mark(bool flag) { tag_.gc_mark_ = flag; }
+
 protected:
 	union {
 		uint64_t full_ = 0;
 		struct {
 			uint32_t ref_count_;
 			uint32_t gc_mark_ : 1;
+			uint32_t is_const_ : 1;
 		};
 	} tag_;
 	Value prototype_;

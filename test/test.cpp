@@ -23,9 +23,13 @@ int main() {
 
     ctx.ExecuteMicrotasks();
 
-    rt.const_pool().clear();
+    // rt.const_pool().clear();
+
+    ctx.PrintObjectTree();
 
     ctx.GC();
+
+    ctx.PrintObjectTree();
 
     auto start = std::chrono::high_resolution_clock::now();
 

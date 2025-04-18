@@ -7,7 +7,12 @@ namespace mjs {
 
 Object::Object(Context* context) {
 	// ¹ÒÈëcontext objÁ´±í
-	context->AddObject(this);
+	if (context) {
+		context->AddObject(this);
+	}
+	else {
+		tag_.is_const_ = true;
+	}
 }
 
 Object::~Object() {
@@ -19,6 +24,7 @@ Object::~Object() {
 }
 
 void Object::SetProperty(Context* context, const Value& key, Value&& val) {
+	assert(!tag_.is_const_);
 	if (!property_map_) property_map_ = new PropertyMap();
 	(*property_map_)[key] = std::move(val);
 }
@@ -45,6 +51,7 @@ Value* Object::GetProperty(Context* context, const Value& key) {
 }
 
 void Object::DelProperty(Context* context, const Value& key) {
+	assert(!tag_.is_const_);
 	if (!property_map_) return;
 	property_map_->erase(key);
 }

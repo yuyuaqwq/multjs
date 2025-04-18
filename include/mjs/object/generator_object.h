@@ -24,6 +24,10 @@ public:
         }
     }
 
+    virtual Value ToString() override {
+        return Value(std::format("generator_object:{}", function_def().name()));
+    }
+
     bool IsSuspended() const { return state_ == State::kSuspended; }
     bool IsExecuting() const { return state_ == State::kExecuting; }
     bool IsClosed() const { return state_ == State::kClosed; }
@@ -59,7 +63,7 @@ public:
 
     auto& stack() { return stack_; }
 
-    auto& function_def() { 
+    FunctionDef& function_def() { 
         if (function_.IsFunctionDef()) {
             return function_.function_def();
         }
