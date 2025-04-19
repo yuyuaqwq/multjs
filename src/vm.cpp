@@ -53,10 +53,10 @@ bool Vm::InitClosure(const StackFrame& upper_stack_frame, Value* func_def_val) {
 		parent_func_obj = &parent_func_val.function();
 	}
 
-	// 递增父函数的引用计数，用于延长父函数中的ArrayValue的生命周期
+	// 递增父函数的引用计数，用于延长父函数中的closure_value_arr_的生命周期
 	func_obj->set_parent_function(parent_func_val);
 
-	// 引用到父函数的ArrayValue
+	// 引用到父函数的closure_value_arr_
 	auto& parent_arr = parent_func_obj->closure_value_arr();
 
 	for (auto& def : func_obj->function_def().closure_var_defs()) {
