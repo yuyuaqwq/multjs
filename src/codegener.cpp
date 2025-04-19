@@ -126,9 +126,10 @@ void CodeGener::RegisterCppFunction(const std::string& func_name, CppFunction fu
 Value CodeGener::Generate(BlockStat* block) {
 	scopes_.clear();
 
-	// 创建顶层函数(模块)
-	auto const_idx = AllocConst(Value(new FunctionDef("module", 0)));
-	cur_func_def_ = &GetConstValueByIndex(const_idx).function_def();
+	// 创建模块的函数定义
+	cur_func_def_ = new FunctionDef("module", 0);
+	cur_func_def_->SetModule();
+	AllocConst(Value(cur_func_def_));
 
 	EntryScope();
 

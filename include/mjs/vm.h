@@ -29,6 +29,8 @@ public:
 public:
 	explicit Vm(Context* context);
 
+	bool InitClosure(const StackFrame& upper_stack_frame, Value* func_def_val);
+	
 	template<typename It>
 	Value CallFunction(const StackFrame& upper_stack_frame, Value func_val, Value this_val, It begin, It end) {
 		auto stack_frame = StackFrame(upper_stack_frame);
@@ -38,21 +40,15 @@ public:
 			stack_frame.push(*it);
 		}
 
-		// 如果传入的是一个func_def，那么需要加载为func_obj
-		if (func_val.IsFunctionDef()) {
-			InitClosure(upper_stack_frame, &func_val);
-		}
-
 		CallInternal(&stack_frame, std::move(func_val), std::move(this_val), std::distance(begin, end));
 
 		return stack_frame.pop();
 	}
 
+private:
 	Value& GetVar(StackFrame* stack_frame, VarIndex idx);
 	void SetVar(StackFrame* stack_frame, VarIndex idx, Value&& var);
 
-private:
-	bool InitClosure(const StackFrame& upper_stack_frame, Value* func_def_val);
 	void BindClosureVars(StackFrame* stack_frame);
 
 	// 返回是否需要继续执行字节码

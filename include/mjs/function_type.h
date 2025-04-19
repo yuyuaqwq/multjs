@@ -5,5 +5,6 @@ enum class FunctionType {
 	kNormal,
 	kAsync,
 	kGenerator,
+	kModule,
 };
 } // namespace mjs

@@ -36,6 +36,7 @@ public:
 	}
 
 	const auto& func() const { return func_; }
+	auto& func() { return func_; }
 	const auto& this_val() const { return this_val_; }
 	const auto& argv() const { return argv_; }
 

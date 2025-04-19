@@ -38,6 +38,10 @@ public:
 		type_ = FunctionType::kAsync;
 	}
 
+	void SetModule() {
+		type_ = FunctionType::kModule;
+	}
+
 	bool IsNormal() const {
 		return type_ == FunctionType::kNormal;
 	}
@@ -48,6 +52,10 @@ public:
 
 	bool IsAsync() const {
 		return type_ == FunctionType::kAsync;
+	}
+
+	bool IsModule() const {
+		return type_ == FunctionType::kModule;
 	}
 
 	FunctionType type() {

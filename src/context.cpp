@@ -4,6 +4,7 @@
 #include <string_view>
 
 #include <mjs/runtime.h>
+#include <mjs/object/module_object.h>
 
 #include "lexer.h"
 #include "parser.h"
@@ -20,8 +21,10 @@ Value Context::Eval(std::string_view script) {
 	auto codegener = CodeGener(runtime_);
 	auto func = codegener.Generate(src.get());
 
+	// auto module = Value(new ModuleObject(this, &func.function_def()));
+
 	std::initializer_list<Value> argv = {};
-	Call(func, Value(), argv.begin(), argv.end());
+	Call(&func, Value(), argv.begin(), argv.end());
 
 	return func;
 }

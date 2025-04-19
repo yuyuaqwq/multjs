@@ -19,7 +19,7 @@ int main() {
 
     Runtime rt;
     auto ctx = Context(&rt);
-    ctx.Eval(content);
+    auto module = ctx.Eval(content);
 
     ctx.ExecuteMicrotasks();
 

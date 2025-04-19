@@ -21,8 +21,13 @@ public:
 	Value Eval(std::string_view script);
 
 	template<typename It>
-	Value Call(Value func_val, Value this_val, It begin, It end) {
-		return vm_.CallFunction(StackFrame(&runtime_->stack()), std::move(func_val), std::move(this_val), begin, end);
+	Value Call(Value* func_val, Value this_val, It begin, It end) {
+        auto upper_stack_frame = StackFrame(&runtime_->stack());
+        // 如果传入的是一个func_def，那么可能需要加载为func_obj或module_obj
+        if (func_val->IsFunctionDef()) {
+            vm_.InitClosure(upper_stack_frame, func_val);
+        }
+		return vm_.CallFunction(upper_stack_frame, *func_val, std::move(this_val), begin, end);
 	}
 
     void PrintObjectTree() {
@@ -137,7 +142,7 @@ public:
 	void ExecuteMicrotasks() {
 		while (!microtask_queue_.empty()) {
 			auto& task = microtask_queue_.front();
-			Call(task.func(), task.this_val(), task.argv().begin(), task.argv().end());
+			Call(&task.func(), task.this_val(), task.argv().begin(), task.argv().end());
 			microtask_queue_.pop_front();
 		}
 	}

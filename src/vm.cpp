@@ -10,26 +10,13 @@
 #include <mjs/object/generator_object.h>
 #include <mjs/object/async_object.h>
 #include <mjs/object/promise_object.h>
+#include <mjs/object/module_object.h>
 
 namespace mjs {
 
 Vm::Vm(Context* context)
 	: context_(context) {}
 
-Stack& Vm::stack() {
-	return context_->runtime().stack();
-}
-
-FunctionDef* Vm::function_def(const Value& func_val) const {
-	if (func_val.IsFunctionObject()) {
-		return &func_val.function().function_def();
-	}
-	else if (func_val.IsFunctionDef()) {
-		return &func_val.function_def();
-	}
-	return nullptr;
-	throw std::runtime_error("Unavailable function definition.");
-}
 
 bool Vm::InitClosure(const StackFrame& upper_stack_frame, Value* func_def_val) {
 	auto& func_def = func_def_val->function_def();
@@ -37,51 +24,74 @@ bool Vm::InitClosure(const StackFrame& upper_stack_frame, Value* func_def_val) {
 		return false;
 	}
 
-	*func_def_val = Value(new FunctionObject(context_, &func_def));
+	FunctionObject* func_obj;
+	if (func_def.IsModule()) {
+		*func_def_val = Value(new ModuleObject(context_, &func_def));
+		func_obj = &func_def_val->module();
+	}
+	else {
+		*func_def_val = Value(new FunctionObject(context_, &func_def));
+		func_obj = &func_def_val->function();
+	}
 	
-	auto& func = func_def_val->function();
 	// func->upvalues_.resize(func_def->closure_var_defs_.size());
 
-	auto& arr = func.closure_value_arr();
+	auto& arr = func_obj->closure_value_arr();
 	arr.resize(func_def.closure_var_defs().size());
+
+	auto& parent_func_val = upper_stack_frame.function_val();
 
 	// array需要初始化为upvalue，指向父函数的ArrayValue
 	// 如果没有父函数就不需要，即是顶层函数，默认初始化为未定义
-	if (!upper_stack_frame.func_val().IsFunctionObject()) {
+	if (!parent_func_val.IsFunctionObject() && !parent_func_val.IsModuleObject()) {
 		return true;
 	}
 
-	auto& parent_func = upper_stack_frame.func_val().function();
+	FunctionObject* parent_func_obj;
+	if (upper_stack_frame.function_def()->IsModule()) {
+		parent_func_obj = &parent_func_val.module();
+	}
+	else {
+		parent_func_obj = &parent_func_val.function();
+	}
 
 	// 递增父函数的引用计数，用于延长父函数中的ArrayValue的生命周期
-	func.set_parent_function(upper_stack_frame.func_val());
+	func_obj->set_parent_function(parent_func_val);
 
 	// 引用到父函数的ArrayValue
-	auto& parent_arr = parent_func.closure_value_arr();
+	auto& parent_arr = parent_func_obj->closure_value_arr();
 
-	for (auto& def : func.function_def().closure_var_defs()) {
+	for (auto& def : func_obj->function_def().closure_var_defs()) {
 		if (!def.second.parent_var_idx) {
 			// 当前是顶级变量
 			continue;
 		}
-		auto parent_arr_idx = parent_func.function_def().closure_var_defs()[*def.second.parent_var_idx].arr_idx;
+		auto parent_arr_idx = parent_func_obj->function_def().closure_var_defs()[*def.second.parent_var_idx].arr_idx;
 		arr[def.second.arr_idx] = Value(UpValue(&parent_arr[parent_arr_idx]));
 	}
 
 	return true;
 }
 
+
 void Vm::BindClosureVars(StackFrame* stack_frame) {
-	if (!stack_frame->func_val().IsFunctionObject()) {
+	auto& func_val = stack_frame->function_val();
+	if (!func_val.IsFunctionObject() && !func_val.IsModuleObject()) {
 		return;
 	}
+	auto* func_def = stack_frame->function_def();
 
-	auto& func = stack_frame->func_val().function();
-	auto* func_def = stack_frame->func_def();
+	FunctionObject* func_obj;
+	if (func_def->IsModule()) {
+		func_obj = &stack_frame->function_val().module();
+	}
+	else {
+		func_obj = &stack_frame->function_val().function();
+	}
 
 	// 调用的是函数对象，可能需要处理闭包内的upvalue
-	auto& arr = func.closure_value_arr();
-	for (auto& def : stack_frame->func_def()->closure_var_defs()) {
+	auto& arr = func_obj->closure_value_arr();
+	for (auto& def : stack_frame->function_def()->closure_var_defs()) {
 		// 栈上的对象通过upvalue关联到闭包变量
 		stack_frame->set(def.first, Value(
 			UpValue(&arr[def.second.arr_idx])
@@ -143,9 +153,128 @@ void Vm::LoadConst(StackFrame* stack_frame, ConstIndex const_idx) {
 	stack_frame->push(value);
 }
 
+bool Vm::FunctionScheduling(StackFrame* stack_frame, uint32_t par_count) {
+	switch (stack_frame->function_val().type()) {
+	case ValueType::kFunctionDef:
+	case ValueType::kModuleObject:
+	case ValueType::kFunctionObject: {
+		stack_frame->set_function_def(function_def(stack_frame->function_val()));
+		auto* function_def = stack_frame->function_def();
+
+		// printf("%s\n", function_def->Disassembly().c_str());
+
+		if (par_count < function_def->par_count()) {
+			throw VmException("Wrong number of parameters passed when calling the function");
+		}
+
+		// 弹出多余参数
+		stack().reduce(par_count - function_def->par_count());
+
+		assert(function_def->var_count() >= function_def->par_count());
+		stack_frame->upgrade(function_def->var_count() - function_def->par_count());
+		BindClosureVars(stack_frame);
+
+		if (function_def->IsGenerator() || function_def->IsAsync()) {
+			GeneratorObject* generator;
+			if (function_def->IsGenerator()) {
+				generator = new GeneratorObject(context_, stack_frame->function_val());
+			}
+			else {
+				generator = new AsyncObject(context_, stack_frame->function_val());
+			}
+
+			// 提前分配参数和局部变量栈空间
+			generator->stack().upgrade(function_def->var_count());
+
+			// 复制参数和变量(因为变量可能通过BindClosureVars绑定了)
+			for (int32_t i = 0; i < function_def->var_count(); ++i) {
+				generator->stack().set(i, stack_frame->get(i));
+			}
+
+			if (function_def->IsGenerator()) {
+				// 是生成器函数
+				// 则直接返回生成器对象
+				stack_frame->push(Value(generator));
+				return false;
+			}
+			else {
+				// 是异步函数
+				// 开始执行
+				stack_frame->set_function_val(Value(static_cast<AsyncObject*>(generator)));
+			}
+		}
+		return true;
+	}
+	case ValueType::kClassDef: {
+		auto obj = stack_frame->function_val().class_def().Constructor(context_, par_count, *stack_frame);
+		stack_frame->push(std::move(obj));
+		return false;
+	}
+	case ValueType::kCppFunction: {
+		// 切换栈帧
+		auto ret = stack_frame->function_val().cpp_function()(context_, par_count, *stack_frame);
+		stack_frame->push(std::move(ret));
+		return false;
+	}
+	case ValueType::kGeneratorNext: {
+		auto& generator = stack_frame->this_val().generator();
+
+		auto next_val = Value();
+		if (par_count > 0) {
+			stack_frame->reduce(par_count - 1);
+			next_val = stack_frame->pop();
+		}
+		if (generator.IsClosed()) {
+			stack_frame->push(generator.MakeReturnObject(context_, Value()));
+			// 已完成，不再需要执行
+			return false;
+		}
+
+		bool is_first = !generator.IsExecuting();
+
+		GeneratorRestoreContext(stack_frame, &generator);
+
+		// next参数入栈
+		if (!is_first) {
+			stack_frame->push(next_val);
+		}
+		return true;
+	}
+	case ValueType::kPromiseResolve:
+	case ValueType::kPromiseReject: {
+		auto& promise = stack_frame->function_val().promise();
+
+		Value value;
+		if (par_count > 0) {
+			value = stack_frame->get(-1);
+		}
+		stack_frame->reduce(par_count);
+
+		if (stack_frame->function_val().type() == ValueType::kPromiseResolve) {
+			promise.Resolve(context_, value);
+		}
+		else if (stack_frame->function_val().type() == ValueType::kPromiseReject) {
+			promise.Reject(context_, value);
+		}
+
+		stack_frame->push(Value());
+
+		return false;
+	}
+	case ValueType::kAsyncObject: {
+		auto& async = stack_frame->function_val().async();
+		auto ret = stack_frame->pop();
+		GeneratorRestoreContext(stack_frame, &async);
+		stack_frame->push(std::move(ret));
+		return true;
+	}
+	default:
+		throw VmException("Non callable type.");
+	}
+}
 
 void Vm::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, uint32_t param_count) {
-	stack_frame->set_func_val(std::move(func_val));
+	stack_frame->set_function_val(std::move(func_val));
 	stack_frame->set_this_val(std::move(this_val));
 	
 	std::optional<Value> pending_return_val;
@@ -162,7 +291,7 @@ void Vm::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 		std::optional<Value> pending_error_val;
 		Pc pending_goto_pc = kInvalidPc;
 
-		auto* func_def = stack_frame->func_def();
+		auto* func_def = stack_frame->function_def();
 		while (stack_frame->pc() >= 0 && func_def && stack_frame->pc() < func_def->byte_code().Size()) {
 			//OpcodeType opcode_; uint32_t par; auto pc = pc_; std::cout << exec_func_def->byte_code().Disassembly(context_, pc, opcode_, par, exec_func_def) << std::endl;
 			auto opcode = func_def->byte_code().GetOpcode(stack_frame->pc());
@@ -391,7 +520,7 @@ void Vm::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 				break;
 			}
 			case OpcodeType::kAsyncReturn: {
-				auto& async = stack_frame->func_val().async();
+				auto& async = stack_frame->function_val().async();
 				async.res_promise().promise().Resolve(context_, stack_frame->pop());
 				stack_frame->push(async.res_promise());
 				goto exit_;
@@ -409,7 +538,7 @@ void Vm::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 				}
 
 				auto& promise = val.promise();
-				auto& async_obj = stack_frame->func_val().async();
+				auto& async_obj = stack_frame->function_val().async();
 				GeneratorSaveContext(stack_frame, &async_obj);
 				promise.Then(context_, Value(&async_obj), Value());
 
@@ -583,8 +712,8 @@ exit_:
 	}
 	else {
 		pending_return_val->SetException();
-		if (stack_frame->func_val().IsAsyncObject()) {
-			auto& async = stack_frame->func_val().async();
+		if (stack_frame->function_val().IsAsyncObject()) {
+			auto& async = stack_frame->function_val().async();
 			async.res_promise().promise().Reject(context_, *pending_return_val);
 			pending_return_val = async.res_promise();
 		}
@@ -596,127 +725,9 @@ exit_:
 	return;
 }
 
-bool Vm::FunctionScheduling(StackFrame* stack_frame, uint32_t par_count) {
-	switch (stack_frame->func_val().type()) {
-	case ValueType::kFunctionDef:
-	case ValueType::kFunctionObject: {
-		stack_frame->set_func_def(function_def(stack_frame->func_val()));
-		auto* func_def = stack_frame->func_def();
-
-		// printf("%s\n", func_def->Disassembly().c_str());
-
-		if (par_count < func_def->par_count()) {
-			throw VmException("Wrong number of parameters passed when calling the function");
-		}
-
-		// 弹出多余参数
-		stack().reduce(par_count - func_def->par_count());
-
-		assert(func_def->var_count() >= func_def->par_count());
-		stack_frame->upgrade(func_def->var_count() - func_def->par_count());
-		BindClosureVars(stack_frame);
-
-		if (func_def->IsGenerator() || func_def->IsAsync()) {
-			GeneratorObject* generator;
-			if (func_def->IsGenerator()) {
-				generator = new GeneratorObject(context_, stack_frame->func_val());
-			}
-			else {
-				generator = new AsyncObject(context_, stack_frame->func_val());
-			}
-
-			// 提前分配参数和局部变量栈空间
-			generator->stack().upgrade(func_def->var_count());
-
-			// 复制参数和变量(因为变量可能通过BindClosureVars绑定了)
-			for (int32_t i = 0; i < func_def->var_count(); ++i) {
-				generator->stack().set(i, stack_frame->get(i));
-			}
-
-			if (func_def->IsGenerator()) {
-				// 是生成器函数
-				// 则直接返回生成器对象
-				stack_frame->push(Value(generator));
-				return false;
-			}
-			else {
-				// 是异步函数
-				// 开始执行
-				stack_frame->set_func_val(Value(static_cast<AsyncObject*>(generator)));
-			}
-		}
-		return true;
-	}
-	case ValueType::kClassDef: {
-		auto obj = stack_frame->func_val().class_def().Constructor(context_, par_count, *stack_frame);
-		stack_frame->push(std::move(obj));
-		return false;
-	}
-	case ValueType::kCppFunction: {
-		// 切换栈帧
-		auto ret = stack_frame->func_val().cpp_function()(context_, par_count, *stack_frame);
-		stack_frame->push(std::move(ret));
-		return false;
-	}
-	case ValueType::kGeneratorNext: {
-		auto& generator = stack_frame->this_val().generator();
-
-		auto next_val = Value();
-		if (par_count > 0) {
-			stack_frame->reduce(par_count - 1);
-			next_val = stack_frame->pop();
-		}
-		if (generator.IsClosed()) {
-			stack_frame->push(generator.MakeReturnObject(context_, Value()));
-			// 已完成，不再需要执行
-			return false;
-		}
-
-		bool is_first = !generator.IsExecuting();
-
-		GeneratorRestoreContext(stack_frame, &generator);
-
-		// next参数入栈
-		if (!is_first) {
-			stack_frame->push(next_val);
-		}
-		return true;
-	}
-	case ValueType::kPromiseResolve:
-	case ValueType::kPromiseReject: {
-		auto& promise = stack_frame->func_val().promise();
-
-	    Value value;
-	    if (par_count > 0) {
-	        value = stack_frame->get(-1);
-	    }
-		stack_frame->reduce(par_count);
-
-		if (stack_frame->func_val().type() == ValueType::kPromiseResolve) {
-			promise.Resolve(context_, value);
-		}
-		else if (stack_frame->func_val().type() == ValueType::kPromiseReject) {
-			promise.Reject(context_, value);
-		}
-
-		stack_frame->push(Value());
-
-		return false;
-	}
-	case ValueType::kAsyncObject: {
-		auto& async = stack_frame->func_val().async();
-		auto ret = stack_frame->pop();
-		GeneratorRestoreContext(stack_frame, &async);
-		stack_frame->push(std::move(ret));
-		return true;
-	}
-	default:
-		throw VmException("Non callable type.");
-	}
-}
 
 bool Vm::ThrowExecption(StackFrame* stack_frame, std::optional<Value>* error_val) {
-	auto& table = stack_frame->func_def()->exception_table();
+	auto& table = stack_frame->function_def()->exception_table();
 
 	auto* entry = table.FindEntry(stack_frame->pc());
 	if (!entry) {
@@ -770,8 +781,26 @@ void Vm::GeneratorRestoreContext(StackFrame* stack_frame, GeneratorObject* gener
 
 	generator->SetExecuting();
 
-	stack_frame->set_func_def(&generator->function_def());
+	stack_frame->set_function_def(&generator->function_def());
 	stack_frame->set_pc(generator->pc());
+}
+
+Stack& Vm::stack() {
+	return context_->runtime().stack();
+}
+
+FunctionDef* Vm::function_def(const Value& func_val) const {
+	if (func_val.IsFunctionObject()) {
+		return &func_val.function().function_def();
+	}
+	else if (func_val.IsModuleObject()) {
+		return &func_val.module().function_def();
+	}
+	else if (func_val.IsFunctionDef()) {
+		return &func_val.function_def();
+	}
+	return nullptr;
+	throw std::runtime_error("Unavailable function definition.");
 }
 
 } // namespace mjs

@@ -30,6 +30,7 @@ enum class ValueType : uint32_t {
 	kGeneratorObject,
 	kPromiseObject,
 	kAsyncObject,
+	kModuleObject,
 
 	// 内部使用
 	kI64,
@@ -60,6 +61,7 @@ class FunctionObject;
 class GeneratorObject;
 class PromiseObject;
 class AsyncObject;
+class ModuleObject;
 
 class ClassDef;
 
@@ -92,6 +94,7 @@ public:
 	explicit Value(GeneratorObject* generator);
 	explicit Value(PromiseObject* promise);
 	explicit Value(AsyncObject* async);
+	explicit Value(ModuleObject* module_);
 
 	explicit Value(int64_t i64);
 	explicit Value(int32_t i32);
@@ -151,6 +154,8 @@ public:
 	GeneratorObject& generator() const;
 	PromiseObject& promise() const;
 	AsyncObject& async() const;
+	ModuleObject& module() const;
+
 
 	int64_t i64() const;
 	uint64_t u64() const;
@@ -175,6 +180,7 @@ public:
 	bool IsGeneratorObject() const;
 	bool IsPromiseObject() const;
 	bool IsAsyncObject() const;
+	bool IsModuleObject() const;
 	bool IsPromiseResolve() const;
 	bool IsPromiseReject() const;
 

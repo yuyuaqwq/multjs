@@ -79,6 +79,14 @@ Value::Value(AsyncObject* async) {
 	value_.object_->Reference();
 }
 
+Value::Value(ModuleObject* module_) {
+	tag_.type_ = ValueType::kModuleObject;
+	value_.object_ = reinterpret_cast<Object*>(module_);
+	value_.object_->Reference();
+}
+
+
+
 Value::Value(uint64_t u64) {
 	tag_.type_ = ValueType::kU64;
 	value_.u64_ = u64;
@@ -366,6 +374,11 @@ AsyncObject& Value::async() const {
 	return *reinterpret_cast<AsyncObject*>(value_.object_);
 }
 
+ModuleObject& Value::module() const {
+	assert(IsModuleObject());
+	return *reinterpret_cast<ModuleObject*>(value_.object_);
+}
+
 int64_t Value::i64() const {
 	assert(IsI64());
 	return value_.i64_;
@@ -428,6 +441,7 @@ bool Value::IsObject() const {
 		|| type() == ValueType::kPromiseResolve
 		|| type() == ValueType::kPromiseReject
 		|| type() == ValueType::kAsyncObject
+		|| type() == ValueType::kModuleObject
 		;
 }
 
@@ -445,6 +459,10 @@ bool Value::IsPromiseObject() const {
 
 bool Value::IsAsyncObject() const {
 	return type() == ValueType::kAsyncObject;
+}
+
+bool Value::IsModuleObject() const {
+	return type() == ValueType::kModuleObject;
 }
 
 bool Value::IsPromiseResolve() const {
