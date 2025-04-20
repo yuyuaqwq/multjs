@@ -9,6 +9,7 @@
 #include <mjs/value.h>
 #include <mjs/object/function_object.h>
 
+#include "parser.h"
 #include "scope.h"
 #include "stat.h"
 #include "exp.h"
@@ -25,10 +26,10 @@ public:
 class Runtime;
 class CodeGener : public noncopyable {
 public:
-	CodeGener(Runtime* runtime);
+	CodeGener(Runtime* runtime, Parser* parser);
 
 	void RegisterCppFunction(const std::string& func_name, CppFunction func);
-	Value Generate(BlockStat* block);
+	Value Generate();
 
 private:
 	void EntryScope(FunctionDef* sub_func = nullptr, ScopeType type = ScopeType::kNone);
@@ -55,16 +56,20 @@ private:
 	void GenerateTryStat(TryStat* stat);
 	void GenerateThrowStat(ThrowStat* stat);
 
+	void GenerateImportStat(ImportStat* stat);
+	void GenerateExportStat(ExportStat* stat);
+
 	void GenerateExp(Exp* exp);
 	void GenerateIfEq(Exp* exp);
 
-	void GenerateFunctionDeclExp(FuncDeclExp* exp);
+	void GenerateFunctionDeclExp(FunctionDeclExp* exp);
 
 	Value MakeValue(Exp* exp);
 	void GenerateParList(const std::vector<std::unique_ptr<Exp>>& par_list);
 
 private:
 	Runtime* runtime_;
+	Parser* parser_;
 
 	// 函数
 	FunctionDef* cur_func_def_ = nullptr;				// 当前生成函数

@@ -12,21 +12,28 @@
 
 namespace mjs {
 
-Value Context::Eval(std::string_view script) {
+Value Context::Compile(std::string_view script) {
 	auto lexer = Lexer(script.data());
 
 	auto parser = Parser(&lexer);
-	auto src = parser.ParseSource();
+	parser.ParseSource();
 
-	auto codegener = CodeGener(runtime_);
-	auto func = codegener.Generate(src.get());
+	auto codegener = CodeGener(runtime_, &parser);
+	auto module = codegener.Generate();
 
-	// auto module = Value(new ModuleObject(this, &func.function_def()));
+	return module;
+}
 
+Value Context::CallModule(Value* value) {
 	std::initializer_list<Value> argv = {};
-	Call(&func, Value(), argv.begin(), argv.end());
+	return CallFunction(value, Value(), argv.begin(), argv.end());
+}
 
-	return func;
+
+Value Context::Eval(std::string_view script) {
+	auto module = Compile(script);
+	CallModule(&module);
+	return module;
 }
 
 } // namespace mjs

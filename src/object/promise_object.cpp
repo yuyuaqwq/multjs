@@ -17,7 +17,7 @@ PromiseObject::PromiseObject(Context* context, Value executor)
             Value(ValueType::kPromiseReject, this)
         };
         // 传递两个参数，resolve和reject
-        context->Call(&executor, Value(), argv.begin(), argv.end());
+        context->CallFunction(&executor, Value(), argv.begin(), argv.end());
     }
     // 避免解引用释放对象
     WeakDereference();
@@ -76,7 +76,7 @@ Value PromiseObject::Then(Context* context, Value on_fulfilled, Value on_rejecte
         Value on_fulfilled = stack.get(0);
 
         auto argv = { stack.get(1) };
-        auto on_fulfilled_result = context->Call(&on_fulfilled, Value(), argv.begin(), argv.end());
+        auto on_fulfilled_result = context->CallFunction(&on_fulfilled, Value(), argv.begin(), argv.end());
 
         // 然后传递给new_promise
         new_promise.Resolve(context, on_fulfilled_result);
@@ -91,7 +91,7 @@ Value PromiseObject::Then(Context* context, Value on_fulfilled, Value on_rejecte
         Value on_rejected = stack.get(0);
 
         auto argv = { stack.get(1) };
-        auto on_rejected_result = context->Call(&on_rejected, Value(), argv.begin(), argv.end());
+        auto on_rejected_result = context->CallFunction(&on_rejected, Value(), argv.begin(), argv.end());
 
         // 然后传递给new_promise
         new_promise.Reject(context, on_rejected_result);

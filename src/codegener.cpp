@@ -7,8 +7,9 @@
 
 namespace mjs {
 
-CodeGener::CodeGener(Runtime* runtime)
-	: runtime_(runtime) {}
+CodeGener::CodeGener(Runtime* runtime, Parser* parser)
+	: runtime_(runtime)
+	, parser_(parser){}
 
 void CodeGener::EntryScope(FunctionDef* sub_func, ScopeType type) {
 	if (sub_func == nullptr) {
@@ -112,7 +113,7 @@ void CodeGener::RegisterCppFunction(const std::string& func_name, CppFunction fu
 }
 
 
-Value CodeGener::Generate(BlockStat* block) {
+Value CodeGener::Generate() {
 	scopes_.clear();
 
 	// 创建模块的函数定义
@@ -121,6 +122,10 @@ Value CodeGener::Generate(BlockStat* block) {
 	AllocConst(Value(cur_func_def_));
 
 	EntryScope();
+
+	for (auto& stat : parser_->import_stats()) {
+		GenerateStat(stat.get());
+	}
 
 	RegisterCppFunction("println", [](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
 		for (size_t i = 0; i < par_count; i++) {
@@ -137,7 +142,7 @@ Value CodeGener::Generate(BlockStat* block) {
 		return Value();
 	});
 
-	for (auto& stat : block->stat_list) {
+	for (auto& stat : parser_->src_stats()) {
 		GenerateStat(stat.get());
 	}
 
@@ -209,6 +214,14 @@ void CodeGener::GenerateStat(Stat* stat) {
 		GenerateThrowStat(&stat->get<ThrowStat>());
 		break;
 	}
+	case StatType::kImport: {
+		GenerateImportStat(&stat->get<ImportStat>());
+		break;
+	}
+	case StatType::kExport: {
+		GenerateExportStat(&stat->get<ExportStat>());
+		break;
+	}
 	default:
 		throw CodeGenerException("Unknown statement type");
 	}
@@ -240,6 +253,10 @@ void CodeGener::GenerateNewVarStat(NewVarStat* stat) {
 	GenerateExp(stat->exp.get());
 	// 弹出到变量中
 	cur_func_def_->byte_code().EmitVarStore(var_info.var_idx);
+
+	if (stat->flags.is_export) {
+		cur_func_def_->AddExport(stat->var_name, var_info.var_idx);
+	}
 }
 
 // 2字节指的是基于当前指令的offset
@@ -490,12 +507,30 @@ void CodeGener::GenerateThrowStat(ThrowStat* stat) {
 	cur_func_def_->byte_code().EmitOpcode(OpcodeType::kThrow);
 }
 
+void CodeGener::GenerateImportStat(ImportStat* stat) {
+	auto const_idx = AllocConst(Value(stat->path));
+	cur_func_def_->byte_code().EmitConstLoad(const_idx);
+
+	cur_func_def_->byte_code().EmitOpcode(OpcodeType::kGetModule);
+
+	// 模块对象保存到变量
+	auto& var_info = AllocVar(stat->var_name, VarFlags::kConst);
+	cur_func_def_->byte_code().EmitVarStore(var_info.var_idx);
+
+}
+
+void CodeGener::GenerateExportStat(ExportStat* stat) {
+	if (!cur_func_def_->IsModule()) {
+		throw CodeGenerException("Only modules can export.");
+	}
+	GenerateStat(stat->stat.get());
+}
 
 
 void CodeGener::GenerateExp(Exp* exp) {
 	switch (exp->GetType()) {
 	case ExpType::kFunctionDecl:
-		GenerateFunctionDeclExp(&exp->get<FuncDeclExp>());
+		GenerateFunctionDeclExp(&exp->get<FunctionDeclExp>());
 		break;
 	case ExpType::kUndefined:
 	case ExpType::kNull:
@@ -763,7 +798,7 @@ void CodeGener::GenerateExp(Exp* exp) {
 	}
 }
 
-void CodeGener::GenerateFunctionDeclExp(FuncDeclExp* exp) {
+void CodeGener::GenerateFunctionDeclExp(FunctionDeclExp* exp) {
 	auto const_idx = AllocConst(Value(new FunctionDef(exp->func_name, exp->par_list.size())));
 	auto& func_def = GetConstValueByIndex(const_idx).function_def();
 	if (exp->func_type == FunctionType::kGenerator) {
@@ -782,6 +817,10 @@ void CodeGener::GenerateFunctionDeclExp(FuncDeclExp* exp) {
 
 		// 栈顶的被赋值消耗了，再push一个
 		cur_func_def_->byte_code().EmitConstLoad(const_idx);
+
+		if (exp->flags.is_export) {
+			cur_func_def_->AddExport(exp->func_name, var_info.var_idx);
+		}
 	}
 
 	// 保存环境，以生成新指令流

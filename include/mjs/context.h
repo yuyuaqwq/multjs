@@ -18,10 +18,14 @@ public:
 		: runtime_(runtime)
 		, vm_(this) {}
 
-	Value Eval(std::string_view script);
+    Value Compile(std::string_view script);
+
+    Value CallModule(Value* value);
+
+    Value Eval(std::string_view script);
 
 	template<typename It>
-	Value Call(Value* func_val, Value this_val, It begin, It end) {
+	Value CallFunction(Value* func_val, Value this_val, It begin, It end) {
         auto upper_stack_frame = StackFrame(&runtime_->stack());
         // 如果传入的是一个func_def，那么可能需要加载为func_obj或module_obj
         if (func_val->IsFunctionDef()) {
@@ -138,23 +142,19 @@ public:
         }
     }
 
-
 	void AddObject(Object* object) {
 		object_list_.push_back(*object);
 	}
 
-
 	void ExecuteMicrotasks() {
 		while (!microtask_queue_.empty()) {
 			auto& task = microtask_queue_.front();
-			Call(&task.func(), task.this_val(), task.argv().begin(), task.argv().end());
+            CallFunction(&task.func(), task.this_val(), task.argv().begin(), task.argv().end());
 			microtask_queue_.pop_front();
 		}
 	}
 
-	//const Value& GetVar(VarIndex idx) {
-	//	return vm_.GetVar(idx);
-	//}
+
 
 	auto& runtime() const { return *runtime_; }
 	// LocalConstPool& const_pool() { return local_const_pool_; }
@@ -163,11 +163,14 @@ public:
 	auto& microtask_queue() { return microtask_queue_; }
 
 private:
+    Runtime* runtime_;
+
 	intrusive_list<Object> object_list_;
 
-	Runtime* runtime_;
 	// LocalConstPool local_const_pool_;
+
 	Vm vm_;
+
 	JobQueue microtask_queue_;
 };
 

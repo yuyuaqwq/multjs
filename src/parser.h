@@ -22,7 +22,7 @@ class Parser : public noncopyable {
 public:
 	Parser(Lexer* t_lexer);
 
-	std::unique_ptr<BlockStat> ParseSource();
+	void ParseSource();
 	std::unique_ptr<BlockStat> ParseBlockStat();
 	std::unique_ptr<Stat> ParseStat();
 
@@ -44,6 +44,8 @@ public:
 	std::unique_ptr<ThrowStat> ParseThrowStat();
 
 	std::unique_ptr<NewVarStat> ParseNewVarStat(TokenType type);
+
+	std::unique_ptr<Stat> ParseImportStat(TokenType type);
 	std::unique_ptr<ExportStat> ParseExportStat(TokenType type);
 
 	std::unique_ptr<Exp> ParseExp();
@@ -65,7 +67,6 @@ public:
 	std::unique_ptr<Exp> ParseExp5();
 	std::unique_ptr<Exp> ParseExp4();
 
-	
 	std::unique_ptr<Exp> ParseNewExp();
 	std::unique_ptr<Exp> ParseExp3();
 	
@@ -76,11 +77,17 @@ public:
 	std::unique_ptr<IdentifierExp> ParseIdentifierExp();
 	std::unique_ptr<Exp> ParsePrimaryExp();
 
-	std::unique_ptr<FuncDeclExp> ParseFunctionDeclExp();
+	std::unique_ptr<FunctionDeclExp> ParseFunctionDeclExp();
 	std::vector<std::unique_ptr<Exp>> ParseExpList(TokenType begin, TokenType end, bool allow_comma_end);
+
+	const auto& src_stats() const { return src_stats_; }
+	const auto& import_stats() const { return import_stats_; }
 
 private:
 	Lexer* lexer_;
+
+	std::vector<std::unique_ptr<Stat>> src_stats_;
+	std::vector<std::unique_ptr<ImportStat>> import_stats_;
 };
 
 } // namespace mjs

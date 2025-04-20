@@ -18,14 +18,10 @@ Parser::Parser(Lexer* lexer)
 	: lexer_(lexer) {}
 
 
-std::unique_ptr<BlockStat> Parser::ParseSource() {
-	std::vector<std::unique_ptr<Stat>> stat_list;
-
+void Parser::ParseSource() {
 	while (!lexer_->PeekToken().Is(TokenType::kEof)) {
-		stat_list.push_back(ParseStat());
+		src_stats_.emplace_back(ParseStat());
 	}
-
-	return std::make_unique<BlockStat>(std::move(stat_list));
 }
 
 std::unique_ptr<BlockStat> Parser::ParseBlockStat() {
@@ -45,6 +41,9 @@ std::unique_ptr<BlockStat> Parser::ParseBlockStat() {
 std::unique_ptr<Stat> Parser::ParseStat() {
 	auto token = lexer_->PeekToken();
 	switch (token.type()) {
+		case TokenType::kKwImport: {
+			return ParseImportStat(token.type());
+		}
 		case TokenType::kKwExport: {
 			return ParseExportStat(token.type());
 		}
@@ -255,18 +254,47 @@ std::unique_ptr<NewVarStat> Parser::ParseNewVarStat(TokenType type) {
 	lexer_->MatchToken(TokenType::kOpAssign);
 	auto exp = ParseExp();
 	lexer_->MatchToken(TokenType::kSepSemi);
-	return  std::make_unique<NewVarStat>(var_name, std::move(exp), type);
+	return std::make_unique<NewVarStat>(std::move(var_name), std::move(exp), type);
+}
+
+std::unique_ptr<Stat> Parser::ParseImportStat(TokenType type) {
+	lexer_->MatchToken(type);
+	auto token = lexer_->NextToken();
+	if (token.Is(TokenType::kOpMul)) {
+		lexer_->MatchToken(TokenType::kKwAs);
+		auto module_name = lexer_->MatchToken(TokenType::kIdentifier).str();
+		lexer_->MatchToken(TokenType::kKwFrom);
+
+		auto path = lexer_->MatchToken(TokenType::kString).str();
+
+		// 静态import会被提升，单独保存
+		auto import_stat = std::make_unique<ImportStat>(std::move(path), std::move(module_name));
+		import_stats_.emplace_back(std::move(import_stat));
+
+		// 解析下一个语句返回
+		return ParseStat();
+	}
+	else {
+		throw ParserException("Unsupported module parsing.");
+	}
 }
 
 std::unique_ptr<ExportStat> Parser::ParseExportStat(TokenType type) {
 	lexer_->MatchToken(type);
 	auto stat = ParseStat();
 	if (stat->GetType() == StatType::kExp) {
-		if (stat->get<ExpStat>().exp->GetType() == ExpType::kFunctionDecl) {
+		auto& exp = stat->get<ExpStat>().exp;
+		if (exp->GetType() == ExpType::kFunctionDecl) {
+			auto& func_decl_exp = exp->get<FunctionDeclExp>();
+			func_decl_exp.flags.is_export = true;
 			return std::make_unique<ExportStat>(std::move(stat));
 		}
 	}
-	if (stat->GetType() != StatType::kNewVar) {
+	if (stat->GetType() == StatType::kNewVar) {
+		auto& new_var_stat = stat->get<NewVarStat>();
+		new_var_stat.flags.is_export = true;
+	}
+	else {
 		throw ParserException("Statement that cannot be exported.");
 	}
 	return std::make_unique<ExportStat>(std::move(stat));
@@ -713,7 +741,7 @@ std::unique_ptr<Exp> Parser::ParsePrimaryExp() {
 	return exp;
 }
 
-std::unique_ptr<FuncDeclExp> Parser::ParseFunctionDeclExp() {
+std::unique_ptr<FunctionDeclExp> Parser::ParseFunctionDeclExp() {
 	FunctionType type = FunctionType::kNormal;
 	if (lexer_->PeekToken().Is(TokenType::kKwAsync)) {
 		lexer_->NextToken();
@@ -734,7 +762,7 @@ std::unique_ptr<FuncDeclExp> Parser::ParseFunctionDeclExp() {
 	}
 	auto par_list = ParseParNameList();
 	auto block = ParseBlockStat();
-	return std::make_unique<FuncDeclExp>(func_name, par_list, std::move(block), type);
+	return std::make_unique<FunctionDeclExp>(func_name, par_list, std::move(block), type);
 }
 
 std::vector<std::unique_ptr<Exp>> Parser::ParseExpList(TokenType begin, TokenType end, bool allow_comma_end) {

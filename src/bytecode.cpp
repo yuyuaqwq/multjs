@@ -85,6 +85,9 @@ std::unordered_map<OpcodeType, InstrInfo> g_instr_symbol{
     {OpcodeType::kTryEnd, {"try_end", {}}},
     {OpcodeType::kFinallyReturn, {"finally_return", {}}},
     {OpcodeType::kFinallyGoto, {"finally_goto", {2}}},
+
+    {OpcodeType::kGetModule, {"get_module", {}}},
+
 };
 
 
@@ -223,7 +226,7 @@ Pc ByteCode::CalcPc(Pc cur_pc) const {
     return cur_pc + *reinterpret_cast<const int16_t*>(GetPtr(cur_pc) + 1);
 }
 
-std::string ByteCode::Disassembly(Context* context, Pc& pc, OpcodeType& opcode, uint32_t& par, FunctionDef* func_def) {
+std::string ByteCode::Disassembly(Context* context, Pc& pc, OpcodeType& opcode, uint32_t& par, const FunctionDef* func_def) const {
     std::string str;
     char buf[16] = { 0 };
     sprintf_s(buf, "%04d\t", pc);

@@ -30,6 +30,9 @@ enum class OpcodeType {
 	kVLoad_2 = 0x1c,
 	kVLoad_3 = 0x1d,
 
+	// Module
+	kGetModule = 0x20,
+
 	// Store instructions
 	kVStore = 0x36,
 	kVStore_0 = 0x3b,
@@ -70,7 +73,7 @@ enum class OpcodeType {
 	kGt = 0x9d,
 	kLe = 0x9e,
 
-	kIfEq = 0xa0,	// ջ��Ϊ0����ת
+	kIfEq = 0xa0,
 
 	// Control flow
 	kGoto = 0xa7,
@@ -100,7 +103,7 @@ enum class OpcodeType {
 
 	kFinallyGoto = 0xd6,
 
-	// 0xf0 ~ 0xff ����
+	// 0xf0 ~ 0xff 保留
 };
 
 struct InstrInfo {

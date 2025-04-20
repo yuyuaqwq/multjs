@@ -83,6 +83,10 @@ public:
 		);
 	}
 
+	void AddExport(std::string_view name, VarIndex var_idx) {
+		exports_.emplace(Value(name.data()), var_idx);
+	}
+
 	const auto& name() const { return name_; }
 
 	auto par_count() const { return par_count_; }
@@ -90,6 +94,9 @@ public:
 
 	const auto& byte_code() const { return byte_code_; }
 	auto& byte_code() { return byte_code_; }
+
+	const auto& exports() const { return exports_; }
+	auto& exports() { return exports_; }
 
 	const auto& closure_var_defs() const { return closure_var_defs_; }
 	auto& closure_var_defs() { return closure_var_defs_; }
@@ -105,7 +112,7 @@ private:
 
 	std::vector<VarInfo> var_info_;
 
-	std::unordered_map<Value, VarIndex, ValueHash> export_;
+	std::unordered_map<Value, VarIndex, ValueHash> exports_;
 
 	ByteCode byte_code_;
 

@@ -229,12 +229,12 @@ struct NewExp : public Exp {
 };
 
 struct BlockStat;
-struct FuncDeclExp : public Exp {
+struct FunctionDeclExp : public Exp {
 	virtual ExpType GetType() const noexcept {
 		return ExpType::kFunctionDecl;
 	}
 
-	FuncDeclExp(const std::string& func_name, const std::vector<std::string>& par_list
+	FunctionDeclExp(const std::string& func_name, const std::vector<std::string>& par_list
 		, std::unique_ptr<BlockStat> block, FunctionType func_type) 
 		: func_name(func_name)
 		, par_list(par_list)
@@ -246,6 +246,9 @@ struct FuncDeclExp : public Exp {
 	std::unique_ptr<BlockStat> block;
 
 	FunctionType func_type;
+	struct {
+		uint32_t is_export : 1 = 0;
+	} flags;
 };
 
 struct FunctionCallExp : public Exp {

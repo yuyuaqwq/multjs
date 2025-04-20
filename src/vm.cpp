@@ -292,7 +292,8 @@ void Vm::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 
 		auto* func_def = stack_frame->function_def();
 		while (stack_frame->pc() >= 0 && func_def && stack_frame->pc() < func_def->byte_code().Size()) {
-			//OpcodeType opcode_; uint32_t par; auto pc = pc_; std::cout << exec_func_def->byte_code().Disassembly(context_, pc, opcode_, par, exec_func_def) << std::endl;
+			OpcodeType opcode_; uint32_t par; auto pc = stack_frame->pc(); std::cout << func_def->byte_code().Disassembly(context_, pc, opcode_, par, func_def) << std::endl;
+			
 			auto opcode = func_def->byte_code().GetOpcode(stack_frame->pc());
 			stack_frame->set_pc(stack_frame->pc() + 1);
 			switch (opcode) {
@@ -701,6 +702,16 @@ void Vm::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 				else {
 					stack_frame->set_pc(entry->finally_start_pc);
 				}
+				break;
+			}
+			case OpcodeType::kGetModule: {
+				auto path = stack_frame->pop();
+				if (!path.IsString()) {
+					throw VmException("Can only provide string paths for module loading.");
+				}
+
+				stack_frame->push(context_->runtime().load_module_callback()(context_, path.string()));
+
 				break;
 			}
 			default:

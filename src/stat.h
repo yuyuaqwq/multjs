@@ -28,6 +28,7 @@ enum class StatType {
 	kThrow,
 	kNewVar,
 	kBlock,
+	kImport,
 	kExport,
 };
 
@@ -178,11 +179,28 @@ struct ThrowStat : public Stat {
 
 struct NewVarStat : public Stat {
 	virtual StatType GetType() const noexcept;
-	NewVarStat(const std::string& var_name, std::unique_ptr<Exp> exp, TokenType keyword_type);
+	NewVarStat(std::string var_name, std::unique_ptr<Exp> exp, TokenType keyword_type);
 
 	std::string var_name;
 	std::unique_ptr<Exp> exp;
 	TokenType keyword_type;
+
+	struct {
+		uint32_t is_export = 1;
+	} flags;
+};
+
+
+struct ImportStat : public Stat {
+	virtual StatType GetType() const noexcept {
+		return StatType::kImport;
+	}
+	ImportStat(std::string path, std::string var_name)
+		: path(std::move(path))
+		, var_name(std::move(var_name)) {}
+
+	std::string path;
+	std::string var_name;
 };
 
 struct ExportStat : public Stat {

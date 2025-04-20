@@ -13,6 +13,10 @@ namespace mjs {
 // 常量池、字节码、栈等共享资源位于Runtime
 class Runtime : public noncopyable {
 public:
+	// using LoadModuleFunction = Value(*)(Context* context, const char* path);
+	using LoadModuleFunction = std::function<Value(Context* context, const char* path)>;
+
+public:
 	Runtime() {
 		class_def_table_.Register(std::make_unique<ClassDef>(ClassId::kBase, "Object"));
 		class_def_table_.Register(std::make_unique<ClassDef>(ClassId::kNumber, "Number"));
@@ -21,6 +25,25 @@ public:
 		class_def_table_.Register(std::make_unique<GeneratorClassDef>());
 		class_def_table_.Register(std::make_unique<PromiseClassDef>());
 
+		set_load_module_callback([](Context* ctx, const char* path) -> Value {
+			//std::fstream file;
+			//file.open(path);
+			//auto content = std::string((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());;
+			//file.close();
+			//auto module = ctx->Eval(content);
+			//return module;
+			return Value();
+		});
+	}
+
+
+
+	void set_load_module_callback(LoadModuleFunction callback) {
+		load_module_callback_ = callback;
+	}
+
+	const auto& load_module_callback() const {
+		return load_module_callback_;
 	}
 
 
@@ -37,6 +60,8 @@ public:
 private:
 	GlobalConstPool const_pool_;
 	ClassDefTable class_def_table_;
+
+	LoadModuleFunction load_module_callback_;
 };
 
 } // namespace mjs

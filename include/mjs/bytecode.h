@@ -54,7 +54,7 @@ public:
 	void RepairPc(Pc pc_from, Pc pc_to);
 	Pc CalcPc(Pc cur_pc) const;
 
-	std::string Disassembly(Context* context, Pc& pc, OpcodeType& opcode, uint32_t& par, FunctionDef* func_def);
+	std::string Disassembly(Context* context, Pc& pc, OpcodeType& opcode, uint32_t& par, const FunctionDef* func_def) const;
 
 	Pc Size() const { return bytes_.size(); }
 
