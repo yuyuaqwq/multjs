@@ -5,11 +5,11 @@
 #include <optional>
 
 #include <mjs/exception.h>
+#include <mjs/var_def.h>
 #include <mjs/bytecode.h>
-#include <mjs/object/object.h>
+#include <mjs/value.h>
 
 namespace mjs {
-
 
 struct ClosureVarDef {
 	// upvalue在closure_value_arr_的索引
@@ -23,6 +23,9 @@ class FunctionDef : public noncopyable {
 public:
 	struct VarInfo {
 		std::string name;
+		struct {
+			uint32_t is_export : 1;
+		} flags;
 	};
 
 public:
@@ -71,6 +74,15 @@ public:
 		return var_info_.at(idx);
 	}
 
+	void AddClosureVar(VarIndex var_idx, std::optional<VarIndex> parent_var_idx) {
+		closure_var_defs_.emplace(var_idx, 
+			ClosureVarDef{
+				.arr_idx = uint32_t(closure_var_defs_.size()),
+				.parent_var_idx = parent_var_idx,
+			}
+		);
+	}
+
 	const auto& name() const { return name_; }
 
 	auto par_count() const { return par_count_; }
@@ -91,6 +103,10 @@ private:
 	uint32_t par_count_;
 	uint32_t var_count_ = 0;		// 包括par_count
 
+	std::vector<VarInfo> var_info_;
+
+	std::unordered_map<Value, VarIndex, ValueHash> export_;
+
 	ByteCode byte_code_;
 
 	FunctionType type_ = FunctionType::kNormal;
@@ -104,8 +120,6 @@ private:
 
 	// key: upvalue变量索引
 	std::unordered_map<VarIndex, ClosureVarDef> closure_var_defs_;
-
-	std::vector<VarInfo> var_info_;
 
 	// 异常
 	ExceptionTable exception_table_;

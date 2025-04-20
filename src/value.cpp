@@ -526,7 +526,7 @@ Value Value::ToString() const {
 	case ValueType::kClassDef:
 		return Value(std::format("class_def:{}", class_def().name()));
 	case ValueType::kUpValue:
-		return up_value().get_value().ToString();
+		return up_value().Up().ToString();
 	default:
 		if (IsObject()) {
 			return object().ToString();

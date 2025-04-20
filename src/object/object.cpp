@@ -16,7 +16,7 @@ Object::Object(Context* context) {
 }
 
 Object::~Object() {
-	assert(tag_.ref_count_ == 0);
+	assert(gc_mark() || tag_.ref_count_ == 0);
 	if (property_map_) {
 		delete property_map_;
 	}
@@ -24,7 +24,7 @@ Object::~Object() {
 }
 
 void Object::SetProperty(Context* context, const Value& key, Value&& val) {
-	assert(!tag_.is_const_);
+	assert(!context || !tag_.is_const_);
 	if (!property_map_) property_map_ = new PropertyMap();
 	(*property_map_)[key] = std::move(val);
 }

@@ -70,7 +70,7 @@ public:
 	UpValue() = default;
 	UpValue(Value* up) : up_(up) {}
 
-	Value& get_value() const;
+	Value& Up() const;
 
 private:
 	Value* up_ = nullptr;
@@ -242,7 +242,7 @@ private:
 	} value_;
 };
 
-inline Value& UpValue::get_value() const {
+inline Value& UpValue::Up() const {
 	Value* val = up_;
 	while (val->IsUpValue()) {
 		val = val->up_value().up_;

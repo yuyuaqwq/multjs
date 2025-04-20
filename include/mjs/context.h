@@ -36,10 +36,16 @@ public:
             Object& cur = *it;
             assert(!cur.gc_mark());
 
-            std::cout << Value(&cur).ToString().string() << std::endl;
+            std::cout << Value(&cur).ToString().string();
+            std::cout << " ref_count:" << cur.ref_count();
+            std::cout << std::endl;
 
             cur.ForEachChild(nullptr, [](intrusive_list<Object>* list, const Value& child) {
-                std::cout << "\t\t" << child.ToString().string() << std::endl;
+                std::cout << "\t\t" << child.ToString().string();
+                if (child.IsObject()) {
+                    std::cout << " ref_count:" << child.object().ref_count();
+                }
+                std::cout << std::endl;
             });
 
             std::cout << std::endl;
@@ -104,29 +110,28 @@ public:
             ++it;
         }
 
-        // 这一趟是为了恢复可被回收对象的引用计数，为了维持引用计数的正确性
-        // 在对象释放子对象时，子对象可以正确递减引用计数为0
-        // 相对于mjs来说已经是无意义的了，因为mjs会在Value析构时自动释放对象
-        // 为了避免Value引起的提前析构子对象，对象的递减引用只有在非gc标记阶段才能生效
-        //it = tmp_list.begin();
-        //while (it != tmp_list.end()) {
-        //    Object& cur = *it;
+        // 上面那一趟只恢复了剩下的object_list_的子对象的引用计数
+        // 被释放对象的子对象的引用计数也要加回去
+        it = tmp_list.begin();
+        while (it != tmp_list.end()) {
+            Object& cur = *it;
 
-        //    cur.ForEachChild(&object_list_, [](intrusive_list<Object>* list, const Value& child) {
-        //        if (!child.IsObject()) return;
-        //        auto& obj = child.object();
-        //        obj.Reference();
-        //    });
+            cur.ForEachChild(&object_list_, [](intrusive_list<Object>* list, const Value& child) {
+                if (!child.IsObject()) return;
+                auto& obj = child.object();
+                obj.Reference();
+            });
 
-        //    ++it;
-        //}
-
+            ++it;
+        }
 
 
         // 剩下的tmp_list中的节点就是垃圾，可以释放
+        // 这里因为需要手动开始释放对象，但是析构又会依据Value自动进行
+        // 所以没法校验引用计数，忽略引用计数释放这些对象
         while (!tmp_list.empty()) {
             Object& obj = tmp_list.front();
-            assert(obj.ref_count() == 0);
+            // assert(obj.ref_count() == 0);
             assert(obj.gc_mark());
             // obj.WeakDereference();
             delete &obj;

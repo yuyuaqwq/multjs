@@ -36,7 +36,6 @@ std::unordered_map<std::string, TokenType> g_operators = {
 	{ "<=", TokenType::kOpLe },
 	{ ">", TokenType::kOpGt },
 	{ ">=", TokenType::kOpGe },
-
 };
 
 std::unordered_map<std::string, TokenType> g_keywords = {
@@ -65,6 +64,10 @@ std::unordered_map<std::string, TokenType> g_keywords = {
 	{ "await", TokenType::kKwAwait },
 	{ "this", TokenType::kKwThis, },
 	{ "new", TokenType::kKwNew, },
+
+	{ "import", TokenType::kKwImport },
+	{ "as", TokenType::kKwAs },
+	{ "export", TokenType::kKwExport },
 };
 
 } // namespace msj

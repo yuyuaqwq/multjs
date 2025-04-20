@@ -14,7 +14,6 @@ std::string FunctionDef::Disassembly(Context* context) {
 
 		str += byte_code_.Disassembly(context, pc, opcode, par, this);
 
-
         str += "\n";
 	}
 	return str;

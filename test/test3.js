@@ -1,190 +1,190 @@
 
-// let constvar = { a:{a:"123"} };
-// constvar = "456";
+let constvar = { a:{a:"123"} };
+constvar = "456";
 
-// function* gen(a, b, c) {
-//     let ttt = this;
-//     let ada = "emm";
-//     let res1 = yield a + ada;
-//     println(res1, " ", ada);
-//     let bbb = res1 + 1000;
-//     let res2 = yield b + bbb;
-//     println(res2, " ", bbb);
-//     let ccc = res2 + 2000;
-//     let res3 = yield c + ccc;
-//     println(res3, " ", ccc);
-//     let ddd = res3 + 3000;
-//     return 666 + ddd;
-// }
+function* gen(a, b, c) {
+    let ttt = this;
+    let ada = "emm";
+    let res1 = yield a + ada;
+    println(res1, " ", ada);
+    let bbb = res1 + 1000;
+    let res2 = yield b + bbb;
+    println(res2, " ", bbb);
+    let ccc = res2 + 2000;
+    let res3 = yield c + ccc;
+    println(res3, " ", ccc);
+    let ddd = res3 + 3000;
+    return 666 + ddd;
+}
 
-// let g = gen(10, 20, 30);
-// let n1 = g.next(90000, 8);
-// println(n1.value, " ", n1.done);
-// let n2 = g.next(80000);
-// println(n2.value, " ", n2.done);
-// let n3 = g.next(70000);
-// println(n3.value, " ", n3.done);
-// let n4 = g.next(60000);
-// println(n4.value, " ", n4.done);
-// let n5 = g.next(50000);
-// println(n5.value, " ", n5.done);
-
-
-// {
-//     let a = 100;
-// }
+let g = gen(10, 20, 30);
+let n1 = g.next(90000, 8);
+println(n1.value, " ", n1.done);
+let n2 = g.next(80000);
+println(n2.value, " ", n2.done);
+let n3 = g.next(70000);
+println(n3.value, " ", n3.done);
+let n4 = g.next(60000);
+println(n4.value, " ", n4.done);
+let n5 = g.next(50000);
+println(n5.value, " ", n5.done);
 
 
-// let promise = new Promise(function(resolve, reject) {
-//     println("constructor");
-//     resolve(1);
-// });
-
-// promise.then(function(val) {
-//     println("promise1!! ", val);
-//     return 2;
-// }).then(function(val) {
-//     println("promise2!! ", val);
-// });
-
-// // promise.resolve(1);
-// // promise.resolve();
+{
+    let a = 100;
+}
 
 
-// async function asyncfunc2(par) {
-//     println("asyncfunc2 await begin!!");
-//     let res = await new Promise(function(resolve) {
-//         resolve(6666);
-//     });
-//     println("asyncfunc2 await ok1!!", res);
-//     res = await new Promise(function(resolve) {
-//         resolve(7777);
-//     });
-//     // throw "abc";
-//     println("asyncfunc2 await ok2!!", res);
-//     return par;
-// }
+let promise = new Promise(function(resolve, reject) {
+    println("constructor");
+    resolve(1);
+});
 
-// async function asyncfunc() {
-//     println("asyncfunc await begin!!");
-//     let res = await new Promise(function(resolve) {
-//         resolve(666);
-//     });
-//     println("asyncfunc await ok1!!", res);
-//     res = await new Promise(function(resolve) {
-//         resolve(777);
-//     });
-//     println("asyncfunc await ok2!!", res);
-//     res = await asyncfunc2(114514);
-//     println("asyncfunc await ok3!!", res);
-// }
+promise.then(function(val) {
+    println("promise1!! ", val);
+    return 2;
+}).then(function(val) {
+    println("promise2!! ", val);
+});
 
-// let res_promise1 = asyncfunc();
-// let res_promise66 = asyncfunc();
-
-// let res_promise2 = asyncfunc2(123);
+// promise.resolve(1);
+// promise.resolve();
 
 
-// // Promise.resolve(res_promise2);
+async function asyncfunc2(par) {
+    println("asyncfunc2 await begin!!");
+    let res = await new Promise(function(resolve) {
+        resolve(6666);
+    });
+    println("asyncfunc2 await ok1!!", res);
+    res = await new Promise(function(resolve) {
+        resolve(7777);
+    });
+    // throw "abc";
+    println("asyncfunc2 await ok2!!", res);
+    return par;
+}
 
-// let anonymousfunc = function() {
-//     try {
-//         try {
-//             let i = 0;
-//             while (i < 5) {
-//                 i = i + 1;
-//                 try {
-//                     try {
-//                         println("inner try while try2");
-//                         continue;
-//                         break;
-//                     }
-//                     finally {
-//                         println("inner try while finally2");
-//                         throw "sbsb666";
-//                         break;
-//                     }
-//                 }
-//                 finally {
-//                     println("inner try while finally");
-//                     break;
-//                 }
-//             }
-//             {
-//                 return 123321;
-//             }
-//         }
-//         finally {
-//             println("inner finally2");
-//             return 8888;
-//         }
-//         println("inner try");
-//         throw "inner error";
-//     }
-//     // catch (e) {
-//     //     println("inner catch:", e);
-//     // }
-//     finally {
-//         // println("inner finally");
-//         return 6666;
-//     }
-// };
+async function asyncfunc() {
+    println("asyncfunc await begin!!");
+    let res = await new Promise(function(resolve) {
+        resolve(666);
+    });
+    println("asyncfunc await ok1!!", res);
+    res = await new Promise(function(resolve) {
+        resolve(777);
+    });
+    println("asyncfunc await ok2!!", res);
+    res = await asyncfunc2(114514);
+    println("asyncfunc await ok3!!", res);
+}
 
-// let res = undefined;
-// try {
-//     res = anonymousfunc();
-// }
-// catch (e) {
-//     println("call catch:", e);
-// }
-// finally {
-//     println("call finally");
-// }
-// println("res:", res);
+let res_promise1 = asyncfunc();
+let res_promise66 = asyncfunc();
+
+let res_promise2 = asyncfunc2(123);
 
 
-// try {
-//     println("outer try");
-//     try {
-//         println("inner try");
-//         throw "inner error";
-//     }
-//     catch (e) {
-//         try {
-//             println("inner catch:", e);
-//             throw "new error from catch"; // 重新抛出
-//         }
-//         catch (e) {
-//             println("inner2 catch:", e);
-//             throw "new error from inner catch"; // 重新抛出
-//         }
-//         finally {
-//             println("inner2 finally");
-//             throw "sbsb";
-//         }
-//     }
-//     finally {
-//         println("inner finally");
-//     }
-// }
-// catch (e) {
-//     println("outer catch:", e);
-// }
-// finally {
-//     println("dawdawd outer finally");
-//     // throw "2b";
-// }
+// Promise.resolve(res_promise2);
+
+let anonymousfunc = function() {
+    try {
+        try {
+            let i = 0;
+            while (i < 5) {
+                i = i + 1;
+                try {
+                    try {
+                        println("inner try while try2");
+                        continue;
+                        break;
+                    }
+                    finally {
+                        println("inner try while finally2");
+                        throw "sbsb666";
+                        break;
+                    }
+                }
+                finally {
+                    println("inner try while finally");
+                    break;
+                }
+            }
+            {
+                return 123321;
+            }
+        }
+        finally {
+            println("inner finally2");
+            return 8888;
+        }
+        println("inner try");
+        throw "inner error";
+    }
+    // catch (e) {
+    //     println("inner catch:", e);
+    // }
+    finally {
+        // println("inner finally");
+        return 6666;
+    }
+};
+
+let res = undefined;
+try {
+    res = anonymousfunc();
+}
+catch (e) {
+    println("call catch:", e);
+}
+finally {
+    println("call finally");
+}
+println("res:", res);
 
 
-// let p = Promise.resolve(42);
-// p.then(function(val) { println(val); });
+try {
+    println("outer try");
+    try {
+        println("inner try");
+        throw "inner error";
+    }
+    catch (e) {
+        try {
+            println("inner catch:", e);
+            throw "new error from catch"; // 重新抛出
+        }
+        catch (e) {
+            println("inner2 catch:", e);
+            throw "new error from inner catch"; // 重新抛出
+        }
+        finally {
+            println("inner2 finally");
+            throw "sbsb";
+        }
+    }
+    finally {
+        println("inner finally");
+    }
+}
+catch (e) {
+    println("outer catch:", e);
+}
+finally {
+    println("dawdawd outer finally");
+    // throw "2b";
+}
 
 
+let p = Promise.resolve(42);
+p.then(function(val) { println(val); });
 
 
 
-// //anonymousfunc();
-// //anonymousfunc();
+
+
+//anonymousfunc();
+//anonymousfunc();
 
 
 
@@ -259,24 +259,24 @@ obj.sb.sb2 = tt;
 obj.sb.sb2();
 
 
-// let arr = [1, 2, 3];
-// println(arr[0]);
-// println(arr["1"]);
-// arr[1] = 666;
-// println(arr[1]);
+let arr = [1, 2, 3];
+println(arr[0]);
+println(arr["1"]);
+arr[1] = 666;
+println(arr[1]);
 
-// arr[1] = [6, "7", "8"];
-// println(arr["1"]["2"]);
-// println(arr[1][2]);
-// arr[1][2] = 888;
-// println(arr[1][2]);
-// println(arr["1"]["2"]);
+arr[1] = [6, "7", "8"];
+println(arr["1"]["2"]);
+println(arr[1][2]);
+arr[1][2] = 888;
+println(arr[1][2]);
+println(arr["1"]["2"]);
 
-// arr["1"] = tt;
-// arr["1"]();
+arr["1"] = tt;
+arr["1"]();
 
-// let sb = 1;
-// sb.emm = 666;
-// println(sb.emm);
+let sb = 1;
+sb.emm = 666;
+println(sb.emm);
 
-// println("abc" + 123);
+println("abc" + 123);

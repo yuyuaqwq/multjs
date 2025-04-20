@@ -52,12 +52,7 @@ const VarInfo* CodeGener::FindVarIndexByName(const std::string& var_name) {
 		else {
 			// 在上层函数作用域找到了，构建upvalue捕获链
 			auto scope_func = scopes_[i].function_def();
-			scope_func->closure_var_defs().emplace(
-				var_idx,
-				ClosureVarDef{
-					.arr_idx = uint32_t(scope_func->closure_var_defs().size()),
-				}
-			);
+			scope_func->AddClosureVar(var_idx, std::nullopt);
 
 			for (size_t j = i + 1; j < scopes_.size(); ++j) {
 				if (scope_func == scopes_[j].function_def()) {
@@ -67,14 +62,7 @@ const VarInfo* CodeGener::FindVarIndexByName(const std::string& var_name) {
 
 				// 为upvalue分配变量
 				find_var_info = &scopes_[j].AllocVar(var_name, var_info->flags);
-				scope_func->closure_var_defs().emplace(
-					find_var_info->var_idx,
-					ClosureVarDef{
-						.arr_idx = uint32_t(scope_func->closure_var_defs().size()),
-						.parent_var_idx = var_idx
-					}
-				);
-
+				scope_func->AddClosureVar(find_var_info->var_idx, var_idx);
 				var_idx = find_var_info->var_idx;
 			}
 		}

@@ -91,6 +91,7 @@ enum class TokenType {
     kKwLet,           // let
     kKwConst,         // const
     kKwImport,        // import
+    kKwAs,            // as
     kKwExport,        // export
     kKwFrom,          // from
     kKwClass,         // class

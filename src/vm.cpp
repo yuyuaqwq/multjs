@@ -64,7 +64,8 @@ bool Vm::InitClosure(const StackFrame& upper_stack_frame, Value* func_def_val) {
 			// 当前是顶级变量
 			continue;
 		}
-		auto parent_arr_idx = parent_func_obj->function_def().closure_var_defs()[*def.second.parent_var_idx].arr_idx;
+		auto& parent_closure_var_defs = parent_func_obj->function_def().closure_var_defs();
+		auto parent_arr_idx = parent_closure_var_defs[*def.second.parent_var_idx].arr_idx;
 		arr[def.second.arr_idx] = Value(UpValue(&parent_arr[parent_arr_idx]));
 	}
 
@@ -74,7 +75,7 @@ bool Vm::InitClosure(const StackFrame& upper_stack_frame, Value* func_def_val) {
 
 void Vm::BindClosureVars(StackFrame* stack_frame) {
 	auto& func_val = stack_frame->function_val();
-	if (func_val.IsUndefined()) {
+	if (func_val.IsUndefined() || func_val.IsFunctionDef()) {
 		return;
 	}
 
@@ -100,7 +101,7 @@ void Vm::BindClosureVars(StackFrame* stack_frame) {
 Value& Vm::GetVar(StackFrame* stack_frame, VarIndex idx) {
 	auto* var = &stack_frame->get(idx);
 	if (var->IsUpValue()) {
-		var = &var->up_value().get_value();
+		var = &var->up_value().Up();
 	}
 	return *var;
 }
@@ -108,7 +109,7 @@ Value& Vm::GetVar(StackFrame* stack_frame, VarIndex idx) {
 void Vm::SetVar(StackFrame* stack_frame, VarIndex idx, Value&& var) {
 	auto* var_ = &stack_frame->get(idx);
 	if (var_->IsUpValue()) {
-		var_ = &var_->up_value().get_value();
+		var_ = &var_->up_value().Up();
 	}
 	*var_ = std::move(var);
 }
@@ -390,9 +391,13 @@ void Vm::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 					obj_val = Value();
 				}
 				else {
-					obj_val = *prop;
+					if (prop->IsUpValue()) {
+						obj_val = prop->up_value().Up();
+					}
+					else {
+						obj_val = *prop;
+					}
 				}
-
 				break;
 			}
 			case OpcodeType::kPropertyStore: {

@@ -43,6 +43,7 @@ private:
 	Value parent_function_;
 
 	// 当前函数被子函数捕获的值，不在放到栈上，而是提升到堆上(包括UpValue)
+	// 模块导出的变量也保存到这里
 	std::vector<Value> closure_value_arr_;
 };
 
