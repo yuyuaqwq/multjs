@@ -39,9 +39,10 @@ bool Vm::InitClosure(const StackFrame& upper_stack_frame, Value* func_def_val) {
 	arr.resize(func_def.closure_var_defs().size());
 
 	// array需要初始化为upvalue，指向父函数的ArrayValue
-	// 如果没有父函数就不需要，即是顶层函数，默认初始化为未定义
+	// 如果没有父函数就不需要，即是顶层模块，默认初始化为未定义
 	auto& parent_func_val = upper_stack_frame.function_val();
 	if (parent_func_val.IsUndefined()) {
+		assert(func_def.IsModule());
 		return true;
 	}
 
@@ -82,7 +83,20 @@ void Vm::BindClosureVars(StackFrame* stack_frame) {
 	auto* func_def = stack_frame->function_def();
 	FunctionObject* func_obj;
 	if (func_def->IsModule()) {
-		func_obj = &stack_frame->function_val().module();
+		auto module_obj = &stack_frame->function_val().module();
+
+		// 额外绑定可能存在的导出变量到export_map
+		auto& arr = module_obj->closure_value_arr();
+		for (auto& pair : func_def->export_var_defs()) {
+			auto var_idx = pair.second;
+			auto iter = func_def->closure_var_defs().find(var_idx);
+			assert(iter != func_def->closure_var_defs().end());
+			module_obj->export_map().emplace(pair.first, Value(
+				UpValue(&arr[iter->second.arr_idx])
+			));
+		}
+
+		func_obj = module_obj;
 	}
 	else {
 		func_obj = &stack_frame->function_val().function();

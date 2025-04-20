@@ -11,9 +11,9 @@ public:
 
     virtual void ForEachChild(intrusive_list<Object>* list, void(*callback)(intrusive_list<Object>* list, const Value& child)) override {
         Object::ForEachChild(list, callback);
-        for (auto& val : export_) {
-            callback(list, val.first);
-            callback(list, val.second);
+        for (auto& pair : export_map_) {
+            callback(list, pair.first);
+            callback(list, pair.second);
         }
     }
 
@@ -22,18 +22,18 @@ public:
         if (prop) {
             return prop;
         }
-        auto iter = export_.find(key);
-        if (iter == export_.end()) {
+        auto iter = export_map_.find(key);
+        if (iter == export_map_.end()) {
             return nullptr;
         }
         return &iter->second;
     }
     
-private:
-    // value: upvalue
+    auto& export_map() { return export_map_; }
 
-    // upvalue指向了closure_value_arr_
-    PropertyMap export_;
+private:
+    // value是upvalue，指向closure_value_arr_中的变量
+    PropertyMap export_map_;
 };
 
 } // namespace mjs

@@ -85,6 +85,8 @@ public:
 
 	void AddExport(std::string_view name, VarIndex var_idx) {
 		exports_.emplace(Value(name.data()), var_idx);
+
+		AddClosureVar(var_idx, std::nullopt);
 	}
 
 	const auto& name() const { return name_; }
@@ -95,8 +97,8 @@ public:
 	const auto& byte_code() const { return byte_code_; }
 	auto& byte_code() { return byte_code_; }
 
-	const auto& exports() const { return exports_; }
-	auto& exports() { return exports_; }
+	const auto& export_var_defs() const { return export_var_defs_; }
+	auto& export_var_defs() { return export_var_defs_; }
 
 	const auto& closure_var_defs() const { return closure_var_defs_; }
 	auto& closure_var_defs() { return closure_var_defs_; }
@@ -112,7 +114,7 @@ private:
 
 	std::vector<VarInfo> var_info_;
 
-	std::unordered_map<Value, VarIndex, ValueHash> exports_;
+	std::unordered_map<Value, VarIndex, ValueHash> export_var_defs_;
 
 	ByteCode byte_code_;
 
@@ -125,6 +127,7 @@ private:
 	// upvalue变量记录，upvalue变量在当前作用域的索引
 	// 如果存在的话，则加载时需要创建FunctionObject
 
+	// 当前函数捕获的外部变量/被内部函数捕获的变量/模块导出的变量
 	// key: upvalue变量索引
 	std::unordered_map<VarIndex, ClosureVarDef> closure_var_defs_;
 
