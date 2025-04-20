@@ -21,6 +21,9 @@ Value Context::Compile(std::string_view script) {
 	auto codegener = CodeGener(runtime_, &parser);
 	auto module = codegener.Generate();
 
+	// ×ª»»Îª module_obj
+	vm_.InitClosure(StackFrame(&runtime_->stack()), &module);
+
 	return module;
 }
 

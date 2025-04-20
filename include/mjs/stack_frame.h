@@ -19,9 +19,9 @@ class Stack;
 class StackFrame : public noncopyable {
 public:
 	StackFrame(Stack* stack)
-		: stack_(stack){}
+		: stack_(stack) {}
 
-	StackFrame(const StackFrame& upper_stack_frame);
+	StackFrame(const StackFrame* upper_stack_frame);
 
 	void push(const Value& value);
 	void push(Value&& value);
@@ -35,6 +35,8 @@ public:
 	Value& get(ptrdiff_t index) const;
 	void set(ptrdiff_t index, const Value& value);
 	void set(ptrdiff_t index, Value&& value);
+
+	const auto& upper_stack_frame() const { return *upper_stack_frame_; }
 
 	size_t bottom() const { return bottom_; }
 	void set_bottom(size_t bottom) { bottom_ = bottom; }
@@ -53,6 +55,7 @@ public:
 
 private:
 	Stack* stack_;
+	const StackFrame* upper_stack_frame_ = nullptr;
 	size_t bottom_ = 0;	// 当前栈帧的栈底(在栈中的索引)
 
 	Value function_val_;
@@ -88,9 +91,11 @@ private:
 	std::vector<Value> vector_;
 };
 
-inline StackFrame::StackFrame(const StackFrame& upper_stack_frame) {
-	stack_ = upper_stack_frame.stack_;
-	bottom_ = upper_stack_frame.stack_->size();
+inline StackFrame::StackFrame(const StackFrame* upper_stack_frame)
+	: upper_stack_frame_(upper_stack_frame)
+{
+	stack_ = upper_stack_frame->stack_;
+	bottom_ = upper_stack_frame->stack_->size();
 }
 
 } // namespace mjs

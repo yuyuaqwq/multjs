@@ -33,7 +33,7 @@ public:
 	
 	template<typename It>
 	Value CallFunction(const StackFrame& upper_stack_frame, Value func_val, Value this_val, It begin, It end) {
-		auto stack_frame = StackFrame(upper_stack_frame);
+		auto stack_frame = StackFrame(&upper_stack_frame);
 
 		// 参数正序入栈
 		for (It it = begin; it != end; ++it) {

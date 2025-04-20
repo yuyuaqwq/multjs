@@ -38,7 +38,6 @@ bool Vm::InitClosure(const StackFrame& upper_stack_frame, Value* func_def_val) {
 	auto& arr = func_obj->closure_value_arr();
 	arr.resize(func_def.closure_var_defs().size());
 
-
 	// array需要初始化为upvalue，指向父函数的ArrayValue
 	// 如果没有父函数就不需要，即是顶层函数，默认初始化为未定义
 	auto& parent_func_val = upper_stack_frame.function_val();
@@ -155,7 +154,13 @@ void Vm::LoadConst(StackFrame* stack_frame, ConstIndex const_idx) {
 
 bool Vm::FunctionScheduling(StackFrame* stack_frame, uint32_t par_count) {
 	switch (stack_frame->function_val().type()) {
-	case ValueType::kFunctionDef:
+	case ValueType::kFunctionDef: {
+		// 这里可能需要初始化，因为可能由C++处调用一个需要提升的FunctionDef
+		auto func_val = stack_frame->function_val();
+		if (InitClosure(stack_frame->upper_stack_frame(), &func_val)) {
+			stack_frame->set_function_val(std::move(func_val));
+		}
+	}
 	case ValueType::kModuleObject:
 	case ValueType::kFunctionObject: {
 		stack_frame->set_function_def(function_def(stack_frame->function_val()));
@@ -293,7 +298,7 @@ void Vm::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 
 		auto* func_def = stack_frame->function_def();
 		while (stack_frame->pc() >= 0 && func_def && stack_frame->pc() < func_def->byte_code().Size()) {
-			OpcodeType opcode_; uint32_t par; auto pc = stack_frame->pc(); std::cout << func_def->byte_code().Disassembly(context_, pc, opcode_, par, func_def) << std::endl;
+			// OpcodeType opcode_; uint32_t par; auto pc = stack_frame->pc(); std::cout << func_def->byte_code().Disassembly(context_, pc, opcode_, par, func_def) << std::endl;
 			
 			auto opcode = func_def->byte_code().GetOpcode(stack_frame->pc());
 			stack_frame->set_pc(stack_frame->pc() + 1);
@@ -483,7 +488,7 @@ void Vm::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 				auto func_val = stack_frame->pop();
 				auto param_count = stack_frame->pop().u64();
 				
-				auto new_stack_frame = StackFrame(*stack_frame);
+				auto new_stack_frame = StackFrame(stack_frame);
 
 				// 参数已经在栈上了，调整bottom
 				new_stack_frame.set_bottom(

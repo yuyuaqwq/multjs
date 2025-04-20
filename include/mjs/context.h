@@ -28,10 +28,6 @@ public:
 	template<typename It>
 	Value CallFunction(Value* func_val, Value this_val, It begin, It end) {
         auto upper_stack_frame = StackFrame(&runtime_->stack());
-        // 如果传入的是一个func_def，那么可能需要加载为func_obj或module_obj
-        if (func_val->IsFunctionDef()) {
-            vm_.InitClosure(upper_stack_frame, func_val);
-        }
 		return vm_.CallFunction(upper_stack_frame, *func_val, std::move(this_val), begin, end);
 	}
 

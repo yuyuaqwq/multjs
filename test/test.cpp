@@ -15,7 +15,7 @@ int main() {
     Runtime rt;
     auto ctx = Context(&rt);
 
-    auto module = ctx.EvalByPath("test_module1.js");
+    auto module = ctx.EvalByPath("test3.js");
 
     ctx.ExecuteMicrotasks();
 

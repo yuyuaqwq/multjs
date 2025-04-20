@@ -516,7 +516,6 @@ void CodeGener::GenerateImportStat(ImportStat* stat) {
 	// 模块对象保存到变量
 	auto& var_info = AllocVar(stat->var_name, VarFlags::kConst);
 	cur_func_def_->byte_code().EmitVarStore(var_info.var_idx);
-
 }
 
 void CodeGener::GenerateExportStat(ExportStat* stat) {
