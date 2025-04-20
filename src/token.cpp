@@ -65,6 +65,9 @@ std::unordered_map<std::string, TokenType> g_keywords = {
 	{ "this", TokenType::kKwThis, },
 	{ "new", TokenType::kKwNew, },
 
+	
+	{ "default", TokenType::kKwDefault },
+
 	{ "import", TokenType::kKwImport },
 	{ "as", TokenType::kKwAs },
 	{ "export", TokenType::kKwExport },

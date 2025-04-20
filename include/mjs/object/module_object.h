@@ -9,6 +9,14 @@ public:
     ModuleObject(Context* context, FunctionDef* function_def)
         : FunctionObject(context, function_def) {}
 
+    virtual void ForEachChild(intrusive_list<Object>* list, void(*callback)(intrusive_list<Object>* list, const Value& child)) override {
+        Object::ForEachChild(list, callback);
+        for (auto& val : export_) {
+            callback(list, val.first);
+            callback(list, val.second);
+        }
+    }
+
     virtual Value* GetProperty(Context* context, const Value& key) override {
         auto prop = FunctionObject::GetProperty(context, key);
         if (prop) {

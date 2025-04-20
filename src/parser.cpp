@@ -45,6 +45,9 @@ std::unique_ptr<BlockStat> Parser::ParseBlockStat() {
 std::unique_ptr<Stat> Parser::ParseStat() {
 	auto token = lexer_->PeekToken();
 	switch (token.type()) {
+		case TokenType::kKwExport: {
+			return ParseExportStat(token.type());
+		}
 		case TokenType::kKwLet:
 		case TokenType::kKwConst: {
 			return ParseNewVarStat(token.type());
@@ -254,6 +257,21 @@ std::unique_ptr<NewVarStat> Parser::ParseNewVarStat(TokenType type) {
 	lexer_->MatchToken(TokenType::kSepSemi);
 	return  std::make_unique<NewVarStat>(var_name, std::move(exp), type);
 }
+
+std::unique_ptr<ExportStat> Parser::ParseExportStat(TokenType type) {
+	lexer_->MatchToken(type);
+	auto stat = ParseStat();
+	if (stat->GetType() == StatType::kExp) {
+		if (stat->get<ExpStat>().exp->GetType() == ExpType::kFunctionDecl) {
+			return std::make_unique<ExportStat>(std::move(stat));
+		}
+	}
+	if (stat->GetType() != StatType::kNewVar) {
+		throw ParserException("Statement that cannot be exported.");
+	}
+	return std::make_unique<ExportStat>(std::move(stat));
+}
+
 
 
 std::unique_ptr<Exp> Parser::ParseExp() {

@@ -36,6 +36,16 @@ enum class ExpValueCategory {
 struct Exp {
 	virtual ExpType GetType() const noexcept = 0;
 	ExpValueCategory value_category = ExpValueCategory::kRightValue;
+
+	template<typename ExpT>
+	ExpT& get() {
+		return *static_cast<ExpT*>(this);
+	}
+
+	template<typename ExpT>
+	const ExpT& get() const {
+		return *static_cast<const ExpT*>(this);
+	}
 };
 
 

@@ -91,8 +91,9 @@ bool CodeGener::IsInTypeScope(std::initializer_list<ScopeType> types, std::initi
 
 const VarInfo& CodeGener::GetVarByExp(Exp* exp) {
 	assert(exp->GetType() == ExpType::kIdentifier);
-	auto var_exp = static_cast<IdentifierExp*>(exp);
-	auto var_info = FindVarIndexByName(var_exp->name);
+
+	auto& var_exp = exp->get<IdentifierExp>();
+	auto var_info = FindVarIndexByName(var_exp.name);
 	if (!var_info) {
 		throw CodeGenerException("var not defined");
 	}
@@ -164,48 +165,48 @@ void CodeGener::GenerateBlock(BlockStat* block, bool entry_scope, ScopeType type
 void CodeGener::GenerateStat(Stat* stat) {
 	switch (stat->GetType()) {
 	case StatType::kBlock: {
-		GenerateBlock(static_cast<BlockStat*>(stat));
+		GenerateBlock(&stat->get<BlockStat>());
 		break;
 	}
 	case StatType::kExp: {
-		auto exp_stat = static_cast<ExpStat*>(stat)->exp.get();
+		auto exp = stat->get<ExpStat>().exp.get();
 		// 抛弃纯表达式语句的最终结果
-		if (exp_stat) {
-			GenerateExp(exp_stat);
+		if (exp) {
+			GenerateExp(exp);
 			cur_func_def_->byte_code().EmitOpcode(OpcodeType::kPop);
 		}
 		break;
 	}
 	case StatType::kReturn: {
-		GenerateReturnStat(static_cast<ReturnStat*>(stat));
+		GenerateReturnStat(&stat->get<ReturnStat>());
 		break;
 	}
 	case StatType::kNewVar: {
-		GenerateNewVarStat(static_cast<NewVarStat*>(stat));
+		GenerateNewVarStat(&stat->get<NewVarStat>());
 		break;
 	}
 	case StatType::kIf: {
-		GenerateIfStat(static_cast<IfStat*>(stat));
+		GenerateIfStat(&stat->get<IfStat>());
 		break;
 	}
 	case StatType::kWhile: {
-		GenerateWhileStat(static_cast<WhileStat*>(stat));
+		GenerateWhileStat(&stat->get<WhileStat>());
 		break;
 	}
 	case StatType::kContinue: {
-		GenerateContinueStat(static_cast<ContinueStat*>(stat));
+		GenerateContinueStat(&stat->get<ContinueStat>());
 		break;
 	}
 	case StatType::kBreak: {
-		GenerateBreakStat(static_cast<BreakStat*>(stat));
+		GenerateBreakStat(&stat->get<BreakStat>());
 		break;
 	}
 	case StatType::kTry: {
-		GenerateTryStat(static_cast<TryStat*>(stat));
+		GenerateTryStat(&stat->get<TryStat>());
 		break;
 	}
 	case StatType::kThrow: {
-		GenerateThrowStat(static_cast<ThrowStat*>(stat));
+		GenerateThrowStat(&stat->get<ThrowStat>());
 		break;
 	}
 	default:
@@ -494,7 +495,7 @@ void CodeGener::GenerateThrowStat(ThrowStat* stat) {
 void CodeGener::GenerateExp(Exp* exp) {
 	switch (exp->GetType()) {
 	case ExpType::kFunctionDecl:
-		GenerateFunctionDeclExp(static_cast<FuncDeclExp*>(exp));
+		GenerateFunctionDeclExp(&exp->get<FuncDeclExp>());
 		break;
 	case ExpType::kUndefined:
 	case ExpType::kNull:
@@ -508,10 +509,10 @@ void CodeGener::GenerateExp(Exp* exp) {
 		break;
 	}
 	case ExpType::kIdentifier: {
-
 		// 如果是标识符的话，找下ClassDefTable
-		auto ident_exp = static_cast<IdentifierExp*>(exp);
-		auto class_def = runtime_->class_def_table().find(ident_exp->name);
+		auto& ident_exp = exp->get<IdentifierExp>();
+
+		auto class_def = runtime_->class_def_table().find(ident_exp.name);
 		// 先不考虑js里定义的类
 		if (class_def) {
 			auto const_idx = AllocConst(Value(class_def));
@@ -530,13 +531,13 @@ void CodeGener::GenerateExp(Exp* exp) {
 		break;
 	}
 	case ExpType::kIndexedExp: {
-		auto idx_exp = static_cast<IndexedExp*>(exp);
+		auto& idx_exp = exp->get<IndexedExp>();
 
 		// 被访问的表达式，应该是一个数组对象，入栈这个表达式
-		GenerateExp(idx_exp->exp.get());
+		GenerateExp(idx_exp.exp.get());
 
 		// 判断下是否调用函数，是则dump
-		if (idx_exp->is_method_call) {
+		if (idx_exp.is_method_call) {
 			cur_func_def_->byte_code().EmitOpcode(OpcodeType::kDump);
 		}
 
@@ -546,7 +547,7 @@ void CodeGener::GenerateExp(Exp* exp) {
 
 		//}
 		//else {
-			GenerateExp(idx_exp->index_exp.get());
+			GenerateExp(idx_exp.index_exp.get());
 		//}
 
 		// 生成索引访问的指令
@@ -555,20 +556,20 @@ void CodeGener::GenerateExp(Exp* exp) {
 		break;
 	}
 	case ExpType::kDotExp: {
-		auto dot_exp = static_cast<MemberExp*>(exp);
+		auto& dot_exp = exp->get<MemberExp>();
 
 		// 成员访问表达式
-		auto prop_exp = dot_exp->prop_exp.get();
+		auto prop_exp = dot_exp.prop_exp.get();
 
 		//if (prop_exp->GetType() != ExpType::kIdentifier) {
 		//	throw CodeGenerException("Incorrect right value for attribute access.");
 		//}
 
 		// 左值表达式入栈
-		GenerateExp(dot_exp->exp.get());
+		GenerateExp(dot_exp.exp.get());
 
 		// 判断下是否调用函数，是则dump
-		if (dot_exp->is_method_call) {
+		if (dot_exp.is_method_call) {
 			cur_func_def_->byte_code().EmitOpcode(OpcodeType::kDump);
 		}
 
@@ -581,12 +582,12 @@ void CodeGener::GenerateExp(Exp* exp) {
 		return;
 	}
 	case ExpType::kUnaryOp: {
-		auto unary_op_exp = static_cast<UnaryOpExp*>(exp);
+		auto& unary_op_exp = exp->get<UnaryOpExp>();
 		// 表达式的值入栈
-		GenerateExp(unary_op_exp->operand.get());
+		GenerateExp(unary_op_exp.operand.get());
 
 		// 生成运算指令
-		switch (unary_op_exp->oper) {
+		switch (unary_op_exp.oper) {
 		case TokenType::kOpSub:
 			cur_func_def_->byte_code().EmitOpcode(OpcodeType::kNeg);
 			break;
@@ -601,16 +602,16 @@ void CodeGener::GenerateExp(Exp* exp) {
 		break;
 	}
 	case ExpType::kBinaryOp: {
-		auto bina_exp = static_cast<BinaryOpExp*>(exp);
+		auto& bina_exp = exp->get<BinaryOpExp>();
 
-		switch (bina_exp->oper) {
+		switch (bina_exp.oper) {
 		case TokenType::kOpAssign: {
 			// 赋值表达式
 			
 			// 右值表达式先入栈
-			GenerateExp(bina_exp->right_exp.get());
+			GenerateExp(bina_exp.right_exp.get());
 
-			auto lvalue_exp = bina_exp->left_exp.get();
+			auto lvalue_exp = bina_exp.left_exp.get();
 			if (lvalue_exp->value_category != ExpValueCategory::kLeftValue) {
 				throw CodeGenerException("The left side of the assignment operator must be an lvalue.");
 			}
@@ -629,30 +630,30 @@ void CodeGener::GenerateExp(Exp* exp) {
 				break;
 			}
 			case ExpType::kIndexedExp: {
-				auto indexed_exp = static_cast<IndexedExp*>(lvalue_exp);
+				auto& indexed_exp = lvalue_exp->get<IndexedExp>();
 
 				// obj["a"]["b"] = 100;
 
 				// 入栈的是obj["a"]
-				GenerateExp(indexed_exp->exp.get());
+				GenerateExp(indexed_exp.exp.get());
 
 				// 入栈["b"]
-				GenerateExp(indexed_exp->index_exp.get());
+				GenerateExp(indexed_exp.index_exp.get());
 
 				cur_func_def_->byte_code().EmitIndexedStore();
 
 				break;
 			}
 			case ExpType::kDotExp: {
-				auto dot_exp = static_cast<MemberExp*>(lvalue_exp);
+				auto& dot_exp = lvalue_exp->get<MemberExp>();
 
 				// 设置对象的属性
 				// 如：obj.a.b = 100;
 				// 先入栈obj.a这个对象
-				GenerateExp(dot_exp->exp.get());
+				GenerateExp(dot_exp.exp.get());
 
-				auto prop_exp = static_cast<IdentifierExp*>(dot_exp->prop_exp.get());
-				auto const_idx = AllocConst(MakeValue(prop_exp));
+				auto& prop_exp = dot_exp.prop_exp->get<IdentifierExp>();
+				auto const_idx = AllocConst(MakeValue(&prop_exp));
 				cur_func_def_->byte_code().EmitConstLoad(const_idx);
 
 				// 设置栈顶对象的成员
@@ -673,11 +674,11 @@ void CodeGener::GenerateExp(Exp* exp) {
 		// 其他二元运算
 		
 		// 左右表达式的值入栈
-		GenerateExp(bina_exp->left_exp.get());
-		GenerateExp(bina_exp->right_exp.get());
+		GenerateExp(bina_exp.left_exp.get());
+		GenerateExp(bina_exp.right_exp.get());
 
 		// 生成运算指令
-		switch (bina_exp->oper) {
+		switch (bina_exp.oper) {
 		case TokenType::kOpAdd:
 			cur_func_def_->byte_code().EmitOpcode(OpcodeType::kAdd);
 			break;
@@ -714,29 +715,29 @@ void CodeGener::GenerateExp(Exp* exp) {
 		break;
 	}
 	case ExpType::kNew: {
-		auto new_exp = static_cast<NewExp*>(exp);
-		GenerateParList(new_exp->par_list);
+		auto& new_exp = exp->get<NewExp>();
+		GenerateParList(new_exp.par_list);
 		
-		GenerateExp(new_exp->callee.get());
+		GenerateExp(new_exp.callee.get());
 		
 		cur_func_def_->byte_code().EmitOpcode(OpcodeType::kNew);
 		break;
 	}
 	case ExpType::kFunctionCall: {
-		auto func_call_exp = static_cast<FunctionCallExp*>(exp);
+		auto& func_call_exp = exp->get<FunctionCallExp>();
 
 		//if (func_call_exp->par_list.size() < const_table_[]->function_def()->par_count) {
 		//	throw CodeGenerException("Wrong number of parameters passed during function call");
 		//}
 
-		GenerateParList(func_call_exp->par_list);
-		GenerateExp(func_call_exp->func_obj.get());
+		GenerateParList(func_call_exp.par_list);
+		GenerateExp(func_call_exp.func_obj.get());
 
 		// 将this置于栈顶
-		if (func_call_exp->func_obj->GetType() == ExpType::kDotExp) {
+		if (func_call_exp.func_obj->GetType() == ExpType::kDotExp) {
 			cur_func_def_->byte_code().EmitOpcode(OpcodeType::kSwap);
 		}
-		else if (func_call_exp->func_obj->GetType() == ExpType::kIndexedExp) {
+		else if (func_call_exp.func_obj->GetType() == ExpType::kIndexedExp) {
 			cur_func_def_->byte_code().EmitOpcode(OpcodeType::kSwap);
 		}
 		else {
@@ -751,9 +752,7 @@ void CodeGener::GenerateExp(Exp* exp) {
 		break;
 	}
 	case ExpType::kYield: {
-		auto yield_exp = static_cast<YieldExp*>(exp);
-
-		GenerateExp(yield_exp->exp.get());
+		GenerateExp(exp->get<YieldExp>().exp.get());
 
 		cur_func_def_->byte_code().EmitOpcode(OpcodeType::kYield);
 		break;
@@ -829,38 +828,32 @@ Value CodeGener::MakeValue(Exp* exp) {
 		return Value(nullptr);
 	}
 	case ExpType::kBool: {
-		auto bool_exp = static_cast<BoolExp*>(exp);
-		return Value(bool_exp->value);
+		return Value(exp->get<BoolExp>().value);
 	}
 	case ExpType::kNumber: {
-		auto num_exp = static_cast<NumberExp*>(exp);
-		return Value(num_exp->value);
+		return Value(exp->get<NumberExp>().value);
 	}
 	case ExpType::kString: {
-		auto str_exp = static_cast<StringExp*>(exp);
-		return Value(str_exp->value);
+		return Value(exp->get<StringExp>().value);
 	}
 	case ExpType::kIdentifier: {
-		auto ident_exp = static_cast<IdentifierExp*>(exp);
-		return Value(ident_exp->name);
+		return Value(exp->get<IdentifierExp>().name);
 	}
 	// 无需GC回收，此处分配的对象不会引用Context分配的对象，因此不存在循环引用
 	// 应该是只读
 	case ExpType::kArrayLiteralExp: {
-		auto arr_exp = static_cast<ArrayLiteralExp*>(exp);
 		ArrayObject* arr_obj = new ArrayObject(nullptr);
 		double i = 0;
-		for (auto& exp : arr_exp->arr_litera) {
+		for (auto& exp : exp->get<ArrayLiteralExp>().arr_litera) {
 			// arr_obj->mutale_values().emplace_back(MakeValue(exp.get()));
-			auto const_idx = AllocConst(Value(i++).ToString());
+			auto const_idx = AllocConst(Value(i++)/*.ToString()*/);
 			arr_obj->SetProperty(nullptr, GetConstValueByIndex(const_idx), MakeValue(exp.get()));
 		}
 		return Value(arr_obj);
 	}
 	case ExpType::kObjectLiteralExp: {
-		auto obj_exp = static_cast<ObjectLiteralExp*>(exp);
 		Object* obj = new Object(nullptr);
-		for (auto& exp : obj_exp->obj_litera) {
+		for (auto& exp : exp->get<ObjectLiteralExp>().obj_litera) {
 			auto const_idx = AllocConst(Value(exp.first));
 			obj->SetProperty(nullptr, GetConstValueByIndex(const_idx), MakeValue(exp.second.get()));
 		}

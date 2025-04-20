@@ -28,10 +28,21 @@ enum class StatType {
 	kThrow,
 	kNewVar,
 	kBlock,
+	kExport,
 };
 
 struct Stat {
 	virtual StatType GetType() const noexcept = 0;
+
+	template<typename StatT>
+	StatT& get() {
+		return *static_cast<StatT*>(this);
+	}
+
+	template<typename StatT>
+	const StatT& get() const {
+		return *static_cast<const StatT*>(this);
+	}
 };
 
 struct BlockStat : public Stat {
@@ -172,6 +183,16 @@ struct NewVarStat : public Stat {
 	std::string var_name;
 	std::unique_ptr<Exp> exp;
 	TokenType keyword_type;
+};
+
+struct ExportStat : public Stat {
+	virtual StatType GetType() const noexcept {
+		return StatType::kExport;
+	}
+	ExportStat(std::unique_ptr<Stat> stat)
+		: stat(std::move(stat)) {}
+
+	std::unique_ptr<Stat> stat;
 };
 
 } // namespace mjs

@@ -44,6 +44,7 @@ public:
 	std::unique_ptr<ThrowStat> ParseThrowStat();
 
 	std::unique_ptr<NewVarStat> ParseNewVarStat(TokenType type);
+	std::unique_ptr<ExportStat> ParseExportStat(TokenType type);
 
 	std::unique_ptr<Exp> ParseExp();
 	std::unique_ptr<Exp> ParseExp20();
