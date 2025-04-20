@@ -12,15 +12,10 @@
 int main() {
     using namespace mjs;
 
-    std::fstream file;
-    file.open(R"(test_module1.js)");
-    auto content = std::string((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());;
-    file.close();
-
     Runtime rt;
     auto ctx = Context(&rt);
 
-    auto module = ctx.Eval(content);
+    auto module = ctx.EvalByPath("test_module1.js");
 
     ctx.ExecuteMicrotasks();
 

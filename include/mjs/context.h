@@ -23,6 +23,7 @@ public:
     Value CallModule(Value* value);
 
     Value Eval(std::string_view script);
+    Value EvalByPath(const char* path);
 
 	template<typename It>
 	Value CallFunction(Value* func_val, Value this_val, It begin, It end) {

@@ -11,6 +11,7 @@
 #include <mjs/object/async_object.h>
 #include <mjs/object/promise_object.h>
 #include <mjs/object/module_object.h>
+#include <mjs/class_def/promise_class_def.h>
 
 namespace mjs {
 
@@ -710,7 +711,7 @@ void Vm::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 					throw VmException("Can only provide string paths for module loading.");
 				}
 
-				stack_frame->push(context_->runtime().load_module_callback()(context_, path.string()));
+				stack_frame->push(context_->runtime().load_module()(context_, path.string()));
 
 				break;
 			}

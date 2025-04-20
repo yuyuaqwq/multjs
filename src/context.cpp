@@ -36,4 +36,9 @@ Value Context::Eval(std::string_view script) {
 	return module;
 }
 
+Value Context::EvalByPath(const char* path) {
+	auto module = runtime_->load_module()(this, path);
+	return module;
+}
+
 } // namespace mjs

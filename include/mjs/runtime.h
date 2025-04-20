@@ -1,12 +1,12 @@
 #pragma once
 
+#include <filesystem>
+
 #include <mjs/noncopyable.h>
 #include <mjs/const_pool.h>
 #include <mjs/stack_frame.h>
 
 #include <mjs/class_def/class_def.h>
-#include <mjs/class_def/generator_class_def.h>
-#include <mjs/class_def/promise_class_def.h>
 
 namespace mjs {
 
@@ -17,35 +17,15 @@ public:
 	using LoadModuleFunction = std::function<Value(Context* context, const char* path)>;
 
 public:
-	Runtime() {
-		class_def_table_.Register(std::make_unique<ClassDef>(ClassId::kBase, "Object"));
-		class_def_table_.Register(std::make_unique<ClassDef>(ClassId::kNumber, "Number"));
-		class_def_table_.Register(std::make_unique<ClassDef>(ClassId::kString, "String"));
-		class_def_table_.Register(std::make_unique<ClassDef>(ClassId::kArray, "Array"));
-		class_def_table_.Register(std::make_unique<GeneratorClassDef>());
-		class_def_table_.Register(std::make_unique<PromiseClassDef>());
+	Runtime();
 
-		set_load_module_callback([](Context* ctx, const char* path) -> Value {
-			//std::fstream file;
-			//file.open(path);
-			//auto content = std::string((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());;
-			//file.close();
-			//auto module = ctx->Eval(content);
-			//return module;
-			return Value();
-		});
+	void set_load_module(LoadModuleFunction load_module) {
+		load_module_ = load_module;
 	}
 
-
-
-	void set_load_module_callback(LoadModuleFunction callback) {
-		load_module_callback_ = callback;
+	const auto& load_module() const {
+		return load_module_;
 	}
-
-	const auto& load_module_callback() const {
-		return load_module_callback_;
-	}
-
 
 	const auto& const_pool() const { return const_pool_; }
 	auto& const_pool() { return const_pool_; }
@@ -57,11 +37,15 @@ public:
 	const auto& class_def_table() const { return class_def_table_; }
 	auto& class_def_table() { return class_def_table_; }
 
+	auto& module_cache() { return module_cache_; }
+
 private:
 	GlobalConstPool const_pool_;
 	ClassDefTable class_def_table_;
 
-	LoadModuleFunction load_module_callback_;
+	LoadModuleFunction load_module_;
+
+	std::unordered_map<std::filesystem::path, Value> module_cache_;
 };
 
 } // namespace mjs
