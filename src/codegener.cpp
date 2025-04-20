@@ -255,7 +255,7 @@ void CodeGener::GenerateNewVarStat(NewVarStat* stat) {
 	cur_func_def_->byte_code().EmitVarStore(var_info.var_idx);
 
 	if (stat->flags.is_export) {
-		cur_func_def_->AddExport(stat->var_name, var_info.var_idx);
+		cur_func_def_->AddExportVar(stat->var_name, var_info.var_idx);
 	}
 }
 
@@ -818,7 +818,7 @@ void CodeGener::GenerateFunctionDeclExp(FunctionDeclExp* exp) {
 		cur_func_def_->byte_code().EmitConstLoad(const_idx);
 
 		if (exp->flags.is_export) {
-			cur_func_def_->AddExport(exp->func_name, var_info.var_idx);
+			cur_func_def_->AddExportVar(exp->func_name, var_info.var_idx);
 		}
 	}
 

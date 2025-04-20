@@ -83,9 +83,8 @@ public:
 		);
 	}
 
-	void AddExport(std::string_view name, VarIndex var_idx) {
-		exports_.emplace(Value(name.data()), var_idx);
-
+	void AddExportVar(std::string_view name, VarIndex var_idx) {
+		export_var_defs_.emplace(Value(name.data()), var_idx);
 		AddClosureVar(var_idx, std::nullopt);
 	}
 
