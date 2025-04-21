@@ -51,11 +51,6 @@ StatType ForStat::GetType() const noexcept {
 	return StatType::kFor;
 }
 
-ForStat::ForStat(const std::string& var_name, std::unique_ptr<Exp> exp, std::unique_ptr<BlockStat> block)
-	: var_name(var_name)
-	, exp(std::move(exp))
-	, block(std::move(block)) {}
-
 StatType WhileStat::GetType() const noexcept {
 	return StatType::kWhile;
 }

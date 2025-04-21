@@ -51,6 +51,7 @@ private:
 	void GenerateIfStat(IfStat* stat);
 	void GenerateLabeleStat(LabelStat* stat);
 	void GenerateWhileStat(WhileStat* stat);
+	void GenerateForStat(ForStat* stat);
 	void GenerateContinueStat(ContinueStat* stat);
 	void GenerateBreakStat(BreakStat* stat);
 

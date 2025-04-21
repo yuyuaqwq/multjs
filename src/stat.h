@@ -93,10 +93,16 @@ struct ElseStat : public Stat {
 
 struct ForStat : public Stat {
 	virtual StatType GetType() const noexcept;
-	ForStat(const std::string& var_name, std::unique_ptr<Exp> exp,std::unique_ptr<BlockStat> block);
+	ForStat(std::unique_ptr<Stat> initialization, std::unique_ptr<Exp> condition
+		, std::unique_ptr<Exp> final_expression, std::unique_ptr<BlockStat> block)
+		: initialization(std::move(initialization))
+		, condition(std::move(condition))
+		, final_expression(std::move(final_expression))
+		, block(std::move(block)) {}
 
-	std::string var_name;
-	std::unique_ptr<Exp> exp;
+	std::unique_ptr<Stat> initialization;
+	std::unique_ptr<Exp> condition;
+	std::unique_ptr<Exp> final_expression;
 	std::unique_ptr<BlockStat> block;
 };
 

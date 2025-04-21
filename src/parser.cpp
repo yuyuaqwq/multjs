@@ -165,12 +165,39 @@ std::unique_ptr<ElseStat> Parser::ParseElseStat() {
 std::unique_ptr<ForStat> Parser::ParseForStat() {
 	lexer_->MatchToken(TokenType::kKwFor);
 	lexer_->MatchToken(TokenType::kSepLParen);
-	auto var_name = lexer_->MatchToken(TokenType::kIdentifier).str();
-	lexer_->MatchToken(TokenType::kSepColon);
-	auto exp = ParseExp();
+
+	std::unique_ptr<Stat> initialization;
+	auto token = lexer_->PeekToken();
+	if (token.Is(TokenType::kSepSemi)) {
+		lexer_->NextToken();
+	}
+	else {
+		if (token.Is(TokenType::kKwLet) || token.Is(TokenType::kKwConst)) {
+			initialization = ParseNewVarStat(token.type());
+		}
+		else {
+			initialization = ParseExpStat();
+		}
+	}
+
+	token = lexer_->PeekToken();
+	std::unique_ptr<Exp> condition;
+	if (!token.Is(TokenType::kSepSemi)) {
+		condition = ParseExp();
+	}
+	lexer_->MatchToken(TokenType::kSepSemi);
+
+	token = lexer_->PeekToken();
+	std::unique_ptr<Exp> final_expression;
+	if (!token.Is(TokenType::kSepRParen)) {
+		final_expression = ParseExp();
+	}
 	lexer_->MatchToken(TokenType::kSepRParen);
+
 	auto block = ParseBlockStat();
-	return std::make_unique<ForStat>(var_name, std::move(exp), std::move(block));
+
+	return std::make_unique<ForStat>(std::move(initialization), std::move(condition)
+		, std::move(final_expression), std::move(block));
 }
 
 std::unique_ptr<WhileStat> Parser::ParseWhileStat() {

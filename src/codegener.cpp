@@ -198,6 +198,10 @@ void CodeGener::GenerateStat(Stat* stat) {
 		GenerateWhileStat(&stat->get<WhileStat>());
 		break;
 	}
+	case StatType::kFor: {
+		GenerateForStat(&stat->get<ForStat>());
+		break;
+	}
 	case StatType::kLabel: {
 		GenerateLabeleStat(&stat->get<LabelStat>());
 		break;
@@ -432,6 +436,58 @@ void CodeGener::GenerateWhileStat(WhileStat* stat) {
 	GenerateIfEq(stat->exp.get());
 
 	GenerateBlock(stat->block.get(), true, ScopeType::kWhile);
+
+	// 重新回去看是否需要循环
+	cur_func_def_->byte_code().EmitOpcode(OpcodeType::kGoto);
+	cur_func_def_->byte_code().EmitPcOffset(0);
+	cur_func_def_->byte_code().RepairPc(cur_func_def_->byte_code().Size() - 3, loop_start_pc);
+
+	for (auto repair_end_pc : loop_repair_end_pc_list) {
+		// 修复跳出循环的指令的pc
+		cur_func_def_->byte_code().RepairPc(repair_end_pc, cur_func_def_->byte_code().Size());
+	}
+
+	cur_loop_start_pc_ = save_cur_loop_start_pc;
+	cur_loop_repair_end_pc_list_ = save_cur_loop_repair_end_pc_list;
+}
+
+void CodeGener::GenerateForStat(ForStat* stat) {
+	auto save_cur_loop_repair_end_pc_list = cur_loop_repair_end_pc_list_;
+	auto save_cur_loop_start_pc = cur_loop_start_pc_;
+
+	std::vector<Pc> loop_repair_end_pc_list;
+	cur_loop_repair_end_pc_list_ = &loop_repair_end_pc_list;
+
+	EntryScope(nullptr, ScopeType::kFor);
+
+	// initialization
+	GenerateStat(stat->initialization.get());
+
+	// 记录重新循环的pc
+	auto loop_start_pc = cur_func_def_->byte_code().Size();
+	cur_loop_start_pc_ = loop_start_pc;
+
+	if (cur_label_loop_start_pc_ && cur_label_loop_start_pc_ == kInvalidPc) {
+		cur_label_loop_start_pc_ = cur_loop_start_pc_;
+	}
+
+	// 表达式结果压栈
+	if (stat->condition) {
+		GenerateExp(stat->condition.get());
+	}
+
+	// 等待修复
+	loop_repair_end_pc_list.push_back(cur_func_def_->byte_code().Size());
+	// 提前写入跳转的指令
+	GenerateIfEq(stat->condition.get());
+
+	GenerateBlock(stat->block.get(), false);
+
+	if (stat->final_expression) {
+		GenerateExp(stat->final_expression.get());
+	}
+
+	ExitScope();
 
 	// 重新回去看是否需要循环
 	cur_func_def_->byte_code().EmitOpcode(OpcodeType::kGoto);
