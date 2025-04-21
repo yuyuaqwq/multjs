@@ -32,6 +32,7 @@ enum class OpcodeType {
 
 	// Module
 	kGetModule = 0x20,
+	kGetModuleAsync = 0x21,
 
 	// Store instructions
 	kVStore = 0x36,

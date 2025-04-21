@@ -87,6 +87,7 @@ std::unordered_map<OpcodeType, InstrInfo> g_instr_symbol{
     {OpcodeType::kFinallyGoto, {"finally_goto", {2}}},
 
     {OpcodeType::kGetModule, {"get_module", {}}},
+    {OpcodeType::kGetModuleAsync, {"get_module_async", {}}},
 
 };
 

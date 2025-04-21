@@ -258,9 +258,10 @@ std::unique_ptr<NewVarStat> Parser::ParseNewVarStat(TokenType type) {
 }
 
 std::unique_ptr<Stat> Parser::ParseImportStat(TokenType type) {
-	lexer_->MatchToken(type);
-	auto token = lexer_->NextToken();
+	auto token = lexer_->PeekTokenN(2);
 	if (token.Is(TokenType::kOpMul)) {
+		lexer_->MatchToken(type);
+		auto token = lexer_->NextToken();
 		lexer_->MatchToken(TokenType::kKwAs);
 		auto module_name = lexer_->MatchToken(TokenType::kIdentifier).str();
 		lexer_->MatchToken(TokenType::kKwFrom);
@@ -273,6 +274,10 @@ std::unique_ptr<Stat> Parser::ParseImportStat(TokenType type) {
 
 		// 解析下一个语句返回
 		return ParseStat();
+	}
+	else if (token.Is(TokenType::kSepLParen)) {
+		// 动态import
+		return ParseExpStat();
 	}
 	else {
 		throw ParserException("Unsupported module parsing.");
@@ -730,6 +735,14 @@ std::unique_ptr<Exp> Parser::ParsePrimaryExp() {
 	case TokenType::kKwThis: {
 		lexer_->NextToken();
 		exp = std::make_unique<ThisExp>();
+		break;
+	}
+	case TokenType::kKwImport: {
+		lexer_->NextToken();
+		lexer_->MatchToken(TokenType::kSepLParen);
+		auto path = lexer_->MatchToken(TokenType::kString).str();
+		lexer_->MatchToken(TokenType::kSepRParen);
+		exp = std::make_unique<ImportExp>(std::move(path));
 		break;
 	}
 	}

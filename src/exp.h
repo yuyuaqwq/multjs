@@ -26,6 +26,7 @@ enum class ExpType {
 	kFunctionDecl,
 	kFunctionCall,
 	kYield,
+	kImport,
 };
 
 enum class ExpValueCategory {
@@ -155,6 +156,19 @@ struct ThisExp : public Exp {
 	virtual ExpType GetType() const noexcept override {
 		return ExpType::kThis;
 	}
+};
+
+struct ImportExp : public Exp {
+	ImportExp(std::string path)
+		: path(std::move(path))
+	{
+		value_category = ExpValueCategory::kLeftValue;
+	}
+
+	virtual ExpType GetType() const noexcept override {
+		return ExpType::kImport;
+	}
+	std::string path;
 };
 
 struct MemberExp : public Exp {

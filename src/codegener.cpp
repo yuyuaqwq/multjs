@@ -791,6 +791,13 @@ void CodeGener::GenerateExp(Exp* exp) {
 		cur_func_def_->byte_code().EmitOpcode(OpcodeType::kYield);
 		break;
 	}
+	case ExpType::kImport: {
+		auto& import_exp = exp->get<ImportExp>();
+		auto const_idx = AllocConst(Value(import_exp.path));
+		cur_func_def_->byte_code().EmitConstLoad(const_idx);
+		cur_func_def_->byte_code().EmitOpcode(OpcodeType::kGetModuleAsync);
+		break;
+	}
 	default:
 		throw CodeGenerException("Unrecognized exp");
 		break;
