@@ -49,6 +49,7 @@ private:
 	void GenerateReturnStat(ReturnStat* stat);
 	void GenerateNewVarStat(NewVarStat* stat);
 	void GenerateIfStat(IfStat* stat);
+	void GenerateLabeleStat(LabelStat* stat);
 	void GenerateWhileStat(WhileStat* stat);
 	void GenerateContinueStat(ContinueStat* stat);
 	void GenerateBreakStat(BreakStat* stat);
@@ -80,6 +81,14 @@ private:
 	// 循环
 	uint32_t cur_loop_start_pc_ = 0;
 	std::vector<uint32_t>* cur_loop_repair_end_pc_list_ = nullptr;
+	struct LableInfo {
+		enum class Type {
+			kBreak,
+			kContinue,
+		} type;
+		uint32_t repair_pc;
+	};
+	std::unordered_map<std::string, std::vector<LableInfo>> label_map_;
 
 	// 异常
 	bool has_finally_ = false;  // 当前作用域是否关联finally块

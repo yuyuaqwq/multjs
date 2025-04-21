@@ -84,7 +84,9 @@ std::unique_ptr<Stat> Parser::ParseStat() {
 			return std::make_unique<ExpStat>(ParseFunctionDeclExp());
 		}
 		case TokenType::kIdentifier: {
-			// break;
+			if (lexer_->PeekTokenN(2).Is(TokenType::kSepColon)) {
+				return ParseLabelStat();
+			}
 		}
 		default: {
 			return ParseExpStat();
@@ -182,14 +184,22 @@ std::unique_ptr<WhileStat> Parser::ParseWhileStat() {
 
 std::unique_ptr<ContinueStat> Parser::ParseContinueStat() {
 	lexer_->MatchToken(TokenType::kKwContinue);
+	std::optional<std::string> label_name;
+	if (lexer_->PeekToken().Is(TokenType::kIdentifier)) {
+		label_name = lexer_->NextToken().str();
+	}
 	lexer_->MatchToken(TokenType::kSepSemi);
-	return std::make_unique<ContinueStat>();
+	return std::make_unique<ContinueStat>(std::move(label_name));
 }
 
 std::unique_ptr<BreakStat> Parser::ParseBreakStat() {
 	lexer_->MatchToken(TokenType::kKwBreak);
+	std::optional<std::string> label_name;
+	if (lexer_->PeekToken().Is(TokenType::kIdentifier)) {
+		label_name = lexer_->NextToken().str();
+	}
 	lexer_->MatchToken(TokenType::kSepSemi);
-	return std::make_unique<BreakStat>();
+	return std::make_unique<BreakStat>(std::move(label_name));
 }
 
 std::unique_ptr<ReturnStat> Parser::ParseReturnStat() {
@@ -247,6 +257,12 @@ std::unique_ptr<ThrowStat> Parser::ParseThrowStat() {
 	return std::make_unique<ThrowStat>(std::move(exp));
 }
 
+std::unique_ptr<LabelStat> Parser::ParseLabelStat() {
+	auto label_name = lexer_->MatchToken(TokenType::kIdentifier).str();
+	lexer_->MatchToken(TokenType::kSepColon);
+	auto stat = ParseStat();
+	return std::make_unique<LabelStat>(std::move(label_name), std::move(stat));
+}
 
 std::unique_ptr<NewVarStat> Parser::ParseNewVarStat(TokenType type) {
 	lexer_->MatchToken(type);

@@ -27,6 +27,7 @@ enum class StatType {
 	kFinally,
 	kThrow,
 	kNewVar,
+	kLabel,
 	kBlock,
 	kImport,
 	kExport,
@@ -111,11 +112,21 @@ struct WhileStat : public Stat {
 
 struct ContinueStat : public Stat {
 	virtual StatType GetType() const noexcept;
+
+	ContinueStat(std::optional<std::string> label_name)
+		: label_name(std::move(label_name)) {}
+
+	std::optional<std::string> label_name;
 };
 
 
 struct BreakStat : public Stat {
 	virtual StatType GetType() const noexcept;
+
+	BreakStat(std::optional<std::string> label_name)
+		: label_name(std::move(label_name)) {}
+
+	std::optional<std::string> label_name;
 };
 
 
@@ -175,6 +186,18 @@ struct ThrowStat : public Stat {
 	}
 
 	std::unique_ptr<Exp> exp;
+};
+
+struct LabelStat : public Stat {
+	virtual StatType GetType() const noexcept {
+		return StatType::kLabel;
+	}
+	LabelStat(std::string label_name, std::unique_ptr<Stat> stat)
+		: label_name(std::move(label_name)) 
+		, stat(std::move(stat)) {}
+
+	std::string label_name;
+	std::unique_ptr<Stat> stat;
 };
 
 struct NewVarStat : public Stat {

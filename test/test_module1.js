@@ -10,3 +10,32 @@ a();
 
 println("module1 loaded.", module2.PI, module2.square(module2.PI));
 
+let c = 0;
+label:
+while (c <= 10) {
+    while (c <= 10) {
+        c = c + 1;
+        println("c", c);
+        continue label;
+    }
+    println("c2", c);
+}
+
+c = 0;
+label:
+while (c <= 10) {
+    while (c <= 10) {
+        c = c + 1;
+        println("c", c);
+        break label;
+    }
+    println("c2", c);
+}
+
+// label:
+// while (c <= 10) {
+//     while (c <= 10) {
+//         c = c + 1;
+//         break label;
+//     }
+// }

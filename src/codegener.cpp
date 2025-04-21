@@ -198,6 +198,10 @@ void CodeGener::GenerateStat(Stat* stat) {
 		GenerateWhileStat(&stat->get<WhileStat>());
 		break;
 	}
+	case StatType::kLabel: {
+		GenerateLabeleStat(&stat->get<LabelStat>());
+		break;
+	}
 	case StatType::kContinue: {
 		GenerateContinueStat(&stat->get<ContinueStat>());
 		break;
@@ -370,6 +374,39 @@ void CodeGener::GenerateIfStat(IfStat* stat) {
 	}
 }
 
+void CodeGener::GenerateLabeleStat(LabelStat* stat) {
+	auto res = label_map_.emplace(stat->label_name, std::vector<LableInfo>());
+	if (!res.second) {
+		throw CodeGenerException("Duplicate label.");
+	}
+
+	auto save_cur_loop_start_pc = cur_loop_start_pc_;
+	cur_loop_start_pc_ = cur_func_def_->byte_code().Size();
+
+	GenerateStat(stat->stat.get());
+
+	for (auto& lable_info : res.first->second) {
+		switch (lable_info.type)
+		{
+		case LableInfo::Type::kBreak: {
+			cur_func_def_->byte_code().RepairPc(lable_info.repair_pc, cur_func_def_->byte_code().Size());
+			break;
+		}
+		case LableInfo::Type::kContinue: {
+			cur_func_def_->byte_code().RepairPc(lable_info.repair_pc, cur_loop_start_pc_);
+			break;
+		}
+		default:
+			throw CodeGenerException("Incorrect type.");
+			break;
+		}
+	}
+
+	label_map_.erase(res.first);
+
+	cur_loop_start_pc_ = save_cur_loop_start_pc;
+}
+
 void CodeGener::GenerateWhileStat(WhileStat* stat) {
 	auto save_cur_loop_repair_end_pc_list = cur_loop_repair_end_pc_list_;
 	auto save_cur_loop_start_pc = cur_loop_start_pc_;
@@ -417,14 +454,40 @@ void CodeGener::GenerateContinueStat(ContinueStat* stat) {
 		cur_func_def_->byte_code().EmitOpcode(OpcodeType::kGoto);
 	}
 	cur_func_def_->byte_code().EmitPcOffset(0);
-	cur_func_def_->byte_code().RepairPc(cur_func_def_->byte_code().Size() - 3, cur_loop_start_pc_);
+	if (stat->label_name) {
+		auto iter = label_map_.find(*stat->label_name);
+		if (iter == label_map_.end()) {
+			throw CodeGenerException("Label does not exist.");
+		}
+		iter->second.emplace_back(LableInfo { 
+			.type = LableInfo::Type::kContinue
+			, .repair_pc = cur_func_def_->byte_code().Size() - 3 
+		});
+	}
+	else {
+		cur_func_def_->byte_code().RepairPc(cur_func_def_->byte_code().Size() - 3, cur_loop_start_pc_);
+	}
 }
 
 void CodeGener::GenerateBreakStat(BreakStat* stat) {
 	if (cur_loop_repair_end_pc_list_ == nullptr) {
-		throw CodeGenerException("Cannot use break in acyclic scope");
+		throw CodeGenerException("Cannot use break in acyclic scope.");
 	}
-	cur_loop_repair_end_pc_list_->push_back(cur_func_def_->byte_code().Size());
+
+	if (stat->label_name) {
+		auto iter = label_map_.find(*stat->label_name);
+		if (iter == label_map_.end()) {
+			throw CodeGenerException("Label does not exist.");
+		}
+		iter->second.emplace_back(LableInfo { 
+			.type = LableInfo::Type::kBreak
+			, .repair_pc = cur_func_def_->byte_code().Size() 
+		});
+	}
+	else {
+		cur_loop_repair_end_pc_list_->emplace_back(cur_func_def_->byte_code().Size());
+	}
+	
 	// 无法提前得知结束pc，保存待修复pc，等待修复
 	if (IsInTypeScope({ ScopeType::kTryFinally,ScopeType::kCatchFinally, ScopeType::kFinally }, { ScopeType::kWhile, ScopeType::kFunction })) {
 		cur_func_def_->byte_code().EmitOpcode(OpcodeType::kFinallyGoto);
