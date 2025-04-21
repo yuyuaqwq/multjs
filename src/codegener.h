@@ -79,16 +79,24 @@ private:
 	std::vector<Scope> scopes_;
 
 	// 循环
-	uint32_t cur_loop_start_pc_ = 0;
+	uint32_t cur_loop_start_pc_ = kInvalidPc;
 	std::vector<uint32_t>* cur_loop_repair_end_pc_list_ = nullptr;
-	struct LableInfo {
+	struct LableRepairEntry {
 		enum class Type {
 			kBreak,
 			kContinue,
 		} type;
 		uint32_t repair_pc;
 	};
-	std::unordered_map<std::string, std::vector<LableInfo>> label_map_;
+	struct LableInfo {
+		uint32_t cur_loop_start_pc = kInvalidPc;
+		std::vector<LableRepairEntry> entrys;
+	};
+	// 每个label保存一个start loop
+	// 以及一个cur label
+	// for和while开始的时候，判断cur label没有start loop，就会填充
+	std::unordered_map<std::string, LableInfo> label_map_;
+	std::optional<uint32_t> cur_label_loop_start_pc_;
 
 	// 异常
 	bool has_finally_ = false;  // 当前作用域是否关联finally块

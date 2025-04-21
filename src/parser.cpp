@@ -170,7 +170,7 @@ std::unique_ptr<ForStat> Parser::ParseForStat() {
 	auto exp = ParseExp();
 	lexer_->MatchToken(TokenType::kSepRParen);
 	auto block = ParseBlockStat();
-	return  std::make_unique<ForStat>(var_name, std::move(exp), std::move(block));
+	return std::make_unique<ForStat>(var_name, std::move(exp), std::move(block));
 }
 
 std::unique_ptr<WhileStat> Parser::ParseWhileStat() {

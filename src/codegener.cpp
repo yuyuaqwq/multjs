@@ -375,25 +375,26 @@ void CodeGener::GenerateIfStat(IfStat* stat) {
 }
 
 void CodeGener::GenerateLabeleStat(LabelStat* stat) {
-	auto res = label_map_.emplace(stat->label_name, std::vector<LableInfo>());
+	auto res = label_map_.emplace(stat->label_name, LableInfo());
 	if (!res.second) {
 		throw CodeGenerException("Duplicate label.");
 	}
 
-	auto save_cur_loop_start_pc = cur_loop_start_pc_;
-	cur_loop_start_pc_ = cur_func_def_->byte_code().Size();
+	auto save_cur_label_loop_start_pc_ = cur_label_loop_start_pc_;
+	cur_label_loop_start_pc_ = kInvalidPc;
 
 	GenerateStat(stat->stat.get());
 
-	for (auto& lable_info : res.first->second) {
+	for (auto& lable_info : res.first->second.entrys) {
 		switch (lable_info.type)
 		{
-		case LableInfo::Type::kBreak: {
+		case LableRepairEntry::Type::kBreak: {
 			cur_func_def_->byte_code().RepairPc(lable_info.repair_pc, cur_func_def_->byte_code().Size());
 			break;
 		}
-		case LableInfo::Type::kContinue: {
-			cur_func_def_->byte_code().RepairPc(lable_info.repair_pc, cur_loop_start_pc_);
+		case LableRepairEntry::Type::kContinue: {
+			assert(*cur_label_loop_start_pc_ != kInvalidPc);
+			cur_func_def_->byte_code().RepairPc(lable_info.repair_pc, *cur_label_loop_start_pc_);
 			break;
 		}
 		default:
@@ -404,7 +405,7 @@ void CodeGener::GenerateLabeleStat(LabelStat* stat) {
 
 	label_map_.erase(res.first);
 
-	cur_loop_start_pc_ = save_cur_loop_start_pc;
+	cur_label_loop_start_pc_ = save_cur_label_loop_start_pc_;
 }
 
 void CodeGener::GenerateWhileStat(WhileStat* stat) {
@@ -417,6 +418,10 @@ void CodeGener::GenerateWhileStat(WhileStat* stat) {
 	// 记录重新循环的pc
 	auto loop_start_pc = cur_func_def_->byte_code().Size();
 	cur_loop_start_pc_ = loop_start_pc;
+
+	if (cur_label_loop_start_pc_ && cur_label_loop_start_pc_ == kInvalidPc) {
+		cur_label_loop_start_pc_ = cur_loop_start_pc_;
+	}
 
 	// 表达式结果压栈
 	GenerateExp(stat->exp.get());
@@ -459,8 +464,8 @@ void CodeGener::GenerateContinueStat(ContinueStat* stat) {
 		if (iter == label_map_.end()) {
 			throw CodeGenerException("Label does not exist.");
 		}
-		iter->second.emplace_back(LableInfo { 
-			.type = LableInfo::Type::kContinue
+		iter->second.entrys.emplace_back(LableRepairEntry { 
+			.type = LableRepairEntry::Type::kContinue
 			, .repair_pc = cur_func_def_->byte_code().Size() - 3 
 		});
 	}
@@ -479,8 +484,8 @@ void CodeGener::GenerateBreakStat(BreakStat* stat) {
 		if (iter == label_map_.end()) {
 			throw CodeGenerException("Label does not exist.");
 		}
-		iter->second.emplace_back(LableInfo { 
-			.type = LableInfo::Type::kBreak
+		iter->second.entrys.emplace_back(LableRepairEntry{
+			.type = LableRepairEntry::Type::kBreak
 			, .repair_pc = cur_func_def_->byte_code().Size() 
 		});
 	}
