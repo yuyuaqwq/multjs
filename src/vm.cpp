@@ -739,7 +739,7 @@ void Vm::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 				if (!path.IsString()) {
 					throw VmException("Can only provide string paths for module loading.");
 				}
-				auto module = context_->runtime().load_module()(context_, path.string());
+				auto module = context_->runtime().load_module_async()(context_, path.string());
 				if (!module.IsPromiseObject()) {
 					module = PromiseClassDef::Resolve(context_, std::move(module));
 				}

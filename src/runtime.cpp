@@ -16,7 +16,7 @@ Runtime::Runtime() {
 	class_def_table_.Register(std::make_unique<GeneratorClassDef>());
 	class_def_table_.Register(std::make_unique<PromiseClassDef>());
 
-	set_load_module([](Context* ctx, const char* path) -> Value {
+	auto load_module = [](Context* ctx, const char* path) -> Value {
 		namespace fs = std::filesystem;
 		// 缓存key相对路径转绝对路径
 		// 如果模块已被缓存，那么就直接返回缓存的模块
@@ -43,7 +43,10 @@ Runtime::Runtime() {
 
 		ctx->CallModule(&module);
 		return module;
-	});
+	};
+
+	set_load_module(load_module);
+	set_load_module_async(load_module);
 }
 
 } // namespace mjs
