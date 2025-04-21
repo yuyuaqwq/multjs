@@ -302,7 +302,7 @@ void Vm::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 		goto exit_;
 	}
 
-	std::cout << stack_frame->function_def()->Disassembly(context_);
+	// std::cout << stack_frame->function_def()->Disassembly(context_);
 
 	{
 		std::optional<Value> pending_error_val;

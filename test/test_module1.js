@@ -1,36 +1,36 @@
 import * as module2 from './test_module2.js';
 
-// async function a() {
-//     println("module1 func a.", module2.PI, module2.square(module2.PI));
-//     let mod = await import('./test_module2.js');
-//     println("module1 func a await ok.", mod.PI, mod.square(mod.PI));
-// }
+async function a() {
+    println("module1 func a.", module2.PI, module2.square(module2.PI));
+    let mod = await import('./test_module2.js');
+    println("module1 func a await ok.", mod.PI, mod.square(mod.PI));
+}
 
-// a();
+a();
 
-// println("module1 loaded.", module2.PI, module2.square(module2.PI));
+println("module1 loaded.", module2.PI, module2.square(module2.PI));
 
-// let c = 0;
-// label:
-// while (c <= 10) {
-//     while (c <= 10) {
-//         c = c + 1;
-//         println("c", c);
-//         continue label;
-//     }
-//     println("c2", c);
-// }
+let c = 0;
+label:
+while (c <= 10) {
+    while (c <= 10) {
+        c = c + 1;
+        println("c", c);
+        continue label;
+    }
+    println("c2", c);
+}
 
-// c = 0;
-// label:
-// while (c <= 10) {
-//     while (c <= 10) {
-//         c = c + 1;
-//         println("c", c);
-//         break label;
-//     }
-//     println("c2", c);
-// }
+c = 0;
+label:
+while (c <= 10) {
+    while (c <= 10) {
+        c = c + 1;
+        println("c", c);
+        break label;
+    }
+    println("c2", c);
+}
 
 label:
 for (let i = 0; i < 10; i = i + 1) {
