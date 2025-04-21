@@ -648,7 +648,7 @@ std::unique_ptr<Exp> Parser::ParseExp3() {
 
 
 std::unique_ptr<Exp> Parser::ParseExp2(bool match_lparen) {
-	auto exp = ParsePrimaryExp(); // 解析基本表达式（标识符、字面量等）
+	auto exp = ParseExp1();
 	do {
 		auto type = lexer_->PeekToken().type();
 		if (type == TokenType::kSepDot) {
@@ -694,7 +694,7 @@ std::unique_ptr<Exp> Parser::ParseExp1() {
 		return exp;
 	}
 	else {
-		return ParsePrimaryExp();
+		return ParsePrimaryExp(); // 解析基本表达式（标识符、字面量等）
 	}
 }
 

@@ -8,22 +8,26 @@ let arr = [3123, 231, "dawd", ["sbsb", 666]];
 // let obj = {fake:1243, sbsb:666};
 
 let qq = 1 + 2 - 3 + 4 - 5;
-println(qq);
+println(qq); // -1
 
-println(-(1.5864 + 12) * 666);
+println(-(1.5864 + 12) * 666); // -9,048.5424
 
 let a = 123;
 let b = 233;
 a = b = a + b + 4444;
 
-println(a, b);
+println(a, b); // 48004800
+
+function tick() {
+    return 666;
+}
 
 let t = tick();
 let i = 0;
 while (i < 10000) {
     i = i + 1.21;
 }
-println("i:", i, "    ", "tick:", tick() - t, "ms");
+println("i:", i, "    ", "tick:", tick() - t, "ms"); // 10000.649999998921
 
 i = 0;
 while (i < 100) {
@@ -34,7 +38,7 @@ while (i < 100) {
     if (i > 80) {
         let j = 0;
         while (j < 10) {
-            println("j:", j);
+            println("j:", j, "i", i);
             j = j + 1;
             if (j > 5) {
                 break;
