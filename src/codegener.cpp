@@ -384,54 +384,38 @@ void CodeGener::GenerateLabeleStat(LabelStat* stat) {
 		throw CodeGenerException("Duplicate label.");
 	}
 
-	auto save_cur_label_loop_start_pc_ = cur_label_loop_start_pc_;
-	cur_label_loop_start_pc_ = kInvalidPc;
+	auto save_cur_label_reloop_pc_ = cur_label_reloop_pc_;
+	cur_label_reloop_pc_ = kInvalidPc;
 
 	GenerateStat(stat->stat.get());
 
-	for (auto& lable_info : res.first->second.entrys) {
-		switch (lable_info.type)
-		{
-		case LableRepairEntry::Type::kBreak: {
-			cur_func_def_->byte_code().RepairPc(lable_info.repair_pc, cur_func_def_->byte_code().Size());
-			break;
-		}
-		case LableRepairEntry::Type::kContinue: {
-			assert(*cur_label_loop_start_pc_ != kInvalidPc);
-			cur_func_def_->byte_code().RepairPc(lable_info.repair_pc, *cur_label_loop_start_pc_);
-			break;
-		}
-		default:
-			throw CodeGenerException("Incorrect type.");
-			break;
-		}
-	}
+	RepairEntrys(res.first->second.entrys, cur_func_def_->byte_code().Size(), *cur_label_reloop_pc_);
 
 	label_map_.erase(res.first);
 
-	cur_label_loop_start_pc_ = save_cur_label_loop_start_pc_;
+	cur_label_reloop_pc_ = save_cur_label_reloop_pc_;
 }
 
 void CodeGener::GenerateWhileStat(WhileStat* stat) {
-	auto save_cur_loop_repair_end_pc_list = cur_loop_repair_end_pc_list_;
-	auto save_cur_loop_start_pc = cur_loop_start_pc_;
+	auto save_cur_loop_repair_entrys = cur_loop_repair_entrys_;
 
-	std::vector<Pc> loop_repair_end_pc_list;
-	cur_loop_repair_end_pc_list_ = &loop_repair_end_pc_list;
+	std::vector<RepairEntry> loop_repair_entrys;
+	cur_loop_repair_entrys_ = &loop_repair_entrys;
 
 	// 记录重新循环的pc
-	auto loop_start_pc = cur_func_def_->byte_code().Size();
-	cur_loop_start_pc_ = loop_start_pc;
-
-	if (cur_label_loop_start_pc_ && cur_label_loop_start_pc_ == kInvalidPc) {
-		cur_label_loop_start_pc_ = cur_loop_start_pc_;
+	auto reloop_pc = cur_func_def_->byte_code().Size();
+	if (cur_label_reloop_pc_ && cur_label_reloop_pc_ == kInvalidPc) {
+		cur_label_reloop_pc_ = reloop_pc;
 	}
 
 	// 表达式结果压栈
 	GenerateExp(stat->exp.get());
 
 	// 等待修复
-	loop_repair_end_pc_list.push_back(cur_func_def_->byte_code().Size());
+	loop_repair_entrys.emplace_back(RepairEntry {
+		.type = RepairEntry::Type::kBreak,
+	    .repair_pc = cur_func_def_->byte_code().Size(),
+	});
 	// 提前写入跳转的指令
 	GenerateIfEq(stat->exp.get());
 
@@ -440,36 +424,25 @@ void CodeGener::GenerateWhileStat(WhileStat* stat) {
 	// 重新回去看是否需要循环
 	cur_func_def_->byte_code().EmitOpcode(OpcodeType::kGoto);
 	cur_func_def_->byte_code().EmitPcOffset(0);
-	cur_func_def_->byte_code().RepairPc(cur_func_def_->byte_code().Size() - 3, loop_start_pc);
+	cur_func_def_->byte_code().RepairPc(cur_func_def_->byte_code().Size() - 3, reloop_pc);
 
-	for (auto repair_end_pc : loop_repair_end_pc_list) {
-		// 修复跳出循环的指令的pc
-		cur_func_def_->byte_code().RepairPc(repair_end_pc, cur_func_def_->byte_code().Size());
-	}
+	RepairEntrys(loop_repair_entrys, cur_func_def_->byte_code().Size(), reloop_pc);
 
-	cur_loop_start_pc_ = save_cur_loop_start_pc;
-	cur_loop_repair_end_pc_list_ = save_cur_loop_repair_end_pc_list;
+	cur_loop_repair_entrys_ = save_cur_loop_repair_entrys;
 }
 
 void CodeGener::GenerateForStat(ForStat* stat) {
-	auto save_cur_loop_repair_end_pc_list = cur_loop_repair_end_pc_list_;
-	auto save_cur_loop_start_pc = cur_loop_start_pc_;
+	auto save_cur_loop_repair_entrys = cur_loop_repair_entrys_;
 
-	std::vector<Pc> loop_repair_end_pc_list;
-	cur_loop_repair_end_pc_list_ = &loop_repair_end_pc_list;
+	std::vector<RepairEntry> loop_repair_entrys;
+	cur_loop_repair_entrys_ = &loop_repair_entrys;
 
 	EntryScope(nullptr, ScopeType::kFor);
 
 	// initialization
 	GenerateStat(stat->initialization.get());
 
-	// 记录重新循环的pc
-	auto loop_start_pc = cur_func_def_->byte_code().Size();
-	cur_loop_start_pc_ = loop_start_pc;
-
-	if (cur_label_loop_start_pc_ && cur_label_loop_start_pc_ == kInvalidPc) {
-		cur_label_loop_start_pc_ = cur_loop_start_pc_;
-	}
+	auto start_pc = cur_func_def_->byte_code().Size();
 
 	// 表达式结果压栈
 	if (stat->condition) {
@@ -477,11 +450,23 @@ void CodeGener::GenerateForStat(ForStat* stat) {
 	}
 
 	// 等待修复
-	loop_repair_end_pc_list.push_back(cur_func_def_->byte_code().Size());
+	loop_repair_entrys.emplace_back(RepairEntry{
+		.type = RepairEntry::Type::kBreak,
+		.repair_pc = cur_func_def_->byte_code().Size(),
+	});
 	// 提前写入跳转的指令
 	GenerateIfEq(stat->condition.get());
 
+	bool need_set_label = cur_label_reloop_pc_ && cur_label_reloop_pc_ == kInvalidPc;
+	cur_label_reloop_pc_ = std::nullopt;
+
 	GenerateBlock(stat->block.get(), false);
+
+	// 记录重新循环的pc
+	auto reloop_pc = cur_func_def_->byte_code().Size();
+	if (need_set_label) {
+		cur_label_reloop_pc_ = reloop_pc;
+	}
 
 	if (stat->final_expression) {
 		GenerateExp(stat->final_expression.get());
@@ -492,22 +477,36 @@ void CodeGener::GenerateForStat(ForStat* stat) {
 	// 重新回去看是否需要循环
 	cur_func_def_->byte_code().EmitOpcode(OpcodeType::kGoto);
 	cur_func_def_->byte_code().EmitPcOffset(0);
-	cur_func_def_->byte_code().RepairPc(cur_func_def_->byte_code().Size() - 3, loop_start_pc);
+	cur_func_def_->byte_code().RepairPc(cur_func_def_->byte_code().Size() - 3, start_pc);
 
-	for (auto repair_end_pc : loop_repair_end_pc_list) {
-		// 修复跳出循环的指令的pc
-		cur_func_def_->byte_code().RepairPc(repair_end_pc, cur_func_def_->byte_code().Size());
-	}
+	RepairEntrys(loop_repair_entrys, cur_func_def_->byte_code().Size(), reloop_pc);
 
-	cur_loop_start_pc_ = save_cur_loop_start_pc;
-	cur_loop_repair_end_pc_list_ = save_cur_loop_repair_end_pc_list;
+	cur_loop_repair_entrys_ = save_cur_loop_repair_entrys;
 }
 
 void CodeGener::GenerateContinueStat(ContinueStat* stat) {
-	if (cur_loop_repair_end_pc_list_ == nullptr) {
+	if (cur_loop_repair_entrys_ == nullptr) {
 		throw CodeGenerException("Cannot use break in acyclic scope");
 	}
-	// 跳回当前循环的起始pc
+
+	if (stat->label_name) {
+		auto iter = label_map_.find(*stat->label_name);
+		if (iter == label_map_.end()) {
+			throw CodeGenerException("Label does not exist.");
+		}
+		iter->second.entrys.emplace_back(RepairEntry{
+			.type = RepairEntry::Type::kContinue,
+			.repair_pc = cur_func_def_->byte_code().Size(),
+		});
+	}
+	else {
+		cur_loop_repair_entrys_->emplace_back(RepairEntry{
+			.type = RepairEntry::Type::kContinue,
+			.repair_pc = cur_func_def_->byte_code().Size(),
+		});
+	}
+
+	// 跳到当前循环的末尾pc，等待修复
 	if (IsInTypeScope({ ScopeType::kTryFinally,ScopeType::kCatchFinally, ScopeType::kFinally }, { ScopeType::kWhile, ScopeType::kFunction })) {
 		cur_func_def_->byte_code().EmitOpcode(OpcodeType::kFinallyGoto);
 	}
@@ -515,23 +514,10 @@ void CodeGener::GenerateContinueStat(ContinueStat* stat) {
 		cur_func_def_->byte_code().EmitOpcode(OpcodeType::kGoto);
 	}
 	cur_func_def_->byte_code().EmitPcOffset(0);
-	if (stat->label_name) {
-		auto iter = label_map_.find(*stat->label_name);
-		if (iter == label_map_.end()) {
-			throw CodeGenerException("Label does not exist.");
-		}
-		iter->second.entrys.emplace_back(LableRepairEntry { 
-			.type = LableRepairEntry::Type::kContinue
-			, .repair_pc = cur_func_def_->byte_code().Size() - 3 
-		});
-	}
-	else {
-		cur_func_def_->byte_code().RepairPc(cur_func_def_->byte_code().Size() - 3, cur_loop_start_pc_);
-	}
 }
 
 void CodeGener::GenerateBreakStat(BreakStat* stat) {
-	if (cur_loop_repair_end_pc_list_ == nullptr) {
+	if (cur_loop_repair_entrys_ == nullptr) {
 		throw CodeGenerException("Cannot use break in acyclic scope.");
 	}
 
@@ -540,13 +526,16 @@ void CodeGener::GenerateBreakStat(BreakStat* stat) {
 		if (iter == label_map_.end()) {
 			throw CodeGenerException("Label does not exist.");
 		}
-		iter->second.entrys.emplace_back(LableRepairEntry{
-			.type = LableRepairEntry::Type::kBreak
-			, .repair_pc = cur_func_def_->byte_code().Size() 
+		iter->second.entrys.emplace_back(RepairEntry{
+			.type = RepairEntry::Type::kBreak,
+			.repair_pc = cur_func_def_->byte_code().Size(),
 		});
 	}
 	else {
-		cur_loop_repair_end_pc_list_->emplace_back(cur_func_def_->byte_code().Size());
+		cur_loop_repair_entrys_->emplace_back(RepairEntry{
+			.type = RepairEntry::Type::kBreak,
+			.repair_pc = cur_func_def_->byte_code().Size(),
+		});
 	}
 	
 	// 无法提前得知结束pc，保存待修复pc，等待修复
@@ -1041,6 +1030,25 @@ void CodeGener::GenerateParList(const std::vector<std::unique_ptr<Exp>>& par_lis
 
 	auto const_idx = AllocConst(Value(par_list.size()));
 	cur_func_def_->byte_code().EmitConstLoad(const_idx);
+}
+
+void CodeGener::RepairEntrys(const std::vector<RepairEntry>& entrys, Pc end_pc, Pc reloop_pc) {
+	for (auto& repair_info : entrys) {
+		switch (repair_info.type) {
+		case RepairEntry::Type::kBreak: {
+			cur_func_def_->byte_code().RepairPc(repair_info.repair_pc, end_pc);
+			break;
+		}
+		case RepairEntry::Type::kContinue: {
+			assert(reloop_pc != kInvalidPc);
+			cur_func_def_->byte_code().RepairPc(repair_info.repair_pc, reloop_pc);
+			break;
+		}
+		default:
+			throw CodeGenerException("Incorrect type.");
+			break;
+		}
+	}
 }
 
 } // namespace mjs

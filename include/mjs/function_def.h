@@ -31,7 +31,7 @@ public:
 public:
 	FunctionDef(std::string name, uint32_t par_count) noexcept;
 
-	std::string Disassembly(Context* context);
+	std::string Disassembly(Context* context) const;
 
 	void SetGenerator() {
 		type_ = FunctionType::kGenerator;

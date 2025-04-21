@@ -26,6 +26,15 @@ public:
 class Runtime;
 class CodeGener : public noncopyable {
 public:
+	struct RepairEntry {
+		enum class Type {
+			kBreak,
+			kContinue,
+		} type;
+		Pc repair_pc;
+	};
+
+public:
 	CodeGener(Runtime* runtime, Parser* parser);
 
 	void RegisterCppFunction(const std::string& func_name, CppFunction func);
@@ -69,6 +78,8 @@ private:
 	Value MakeValue(Exp* exp);
 	void GenerateParList(const std::vector<std::unique_ptr<Exp>>& par_list);
 
+	void RepairEntrys(const std::vector<RepairEntry>& entrys, Pc end_pc, Pc reloop_pc);
+
 private:
 	Runtime* runtime_;
 	Parser* parser_;
@@ -80,24 +91,17 @@ private:
 	std::vector<Scope> scopes_;
 
 	// 循环
-	uint32_t cur_loop_start_pc_ = kInvalidPc;
-	std::vector<uint32_t>* cur_loop_repair_end_pc_list_ = nullptr;
-	struct LableRepairEntry {
-		enum class Type {
-			kBreak,
-			kContinue,
-		} type;
-		uint32_t repair_pc;
-	};
+	std::vector<RepairEntry>* cur_loop_repair_entrys_ = nullptr;
+
 	struct LableInfo {
-		uint32_t cur_loop_start_pc = kInvalidPc;
-		std::vector<LableRepairEntry> entrys;
+		Pc cur_loop_start_pc = kInvalidPc;
+		std::vector<RepairEntry> entrys;
 	};
 	// 每个label保存一个start loop
 	// 以及一个cur label
 	// for和while开始的时候，判断cur label没有start loop，就会填充
 	std::unordered_map<std::string, LableInfo> label_map_;
-	std::optional<uint32_t> cur_label_loop_start_pc_;
+	std::optional<Pc> cur_label_reloop_pc_;
 
 	// 异常
 	bool has_finally_ = false;  // 当前作用域是否关联finally块

@@ -315,7 +315,7 @@ std::string ByteCode::Disassembly(Context* context, Pc& pc, OpcodeType& opcode, 
 
     if (opcode == OpcodeType::kGoto) {
         str += "To:";
-        str += std::to_string(pc - 3 + last_par);
+        str += std::to_string(int16_t(pc - 3 + last_par));
         str += "\t";
     }
 
