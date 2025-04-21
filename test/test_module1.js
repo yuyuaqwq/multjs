@@ -32,7 +32,12 @@ while (c <= 10) {
     println("c2", c);
 }
 
+label:
 for (let i = 0; i < 10; i = i + 1) {
+    for (let j = 0; j < 10; j = j + 1) {
+        println("i", i, "j", j);
+        break label;
+    }
     println("i", i);
 }
 
