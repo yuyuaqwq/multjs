@@ -55,6 +55,10 @@ public:
 	virtual Value* GetProperty(Context* context, const Value& key);
 	virtual void DelProperty(Context* context, const Value& key);
 
+	virtual void SetIndexed(Context* context, const Value& key, Value&& val);
+	virtual Value* GetIndexed(Context* context, const Value& key);
+	virtual void DelIndexed(Context* context, const Value& key);
+
 	virtual ClassId class_id() const { return ClassId::kBase; }
 
 	auto ref_count() const { return tag_.ref_count_; }

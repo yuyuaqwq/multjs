@@ -443,7 +443,7 @@ void Vm::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 				auto& obj_val = stack_frame->get(-1);
 				auto& obj = obj_val.object();
 
-				auto prop = obj.GetProperty(context_, idx_val);
+				auto prop = obj.GetIndexed(context_, idx_val);
 				if (!prop) {
 					obj_val = Value();
 				}
@@ -459,7 +459,7 @@ void Vm::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 				auto obj_val = stack_frame->pop();
 				auto& obj = obj_val.object();
 
-				obj.SetProperty(context_, idx_val, stack_frame->pop());
+				obj.SetIndexed(context_, idx_val, stack_frame->pop());
 				break;
 			}
 			case OpcodeType::kAdd: {
@@ -549,9 +549,6 @@ void Vm::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 				break;
 			}
 			case OpcodeType::kAwait: {
-				// 表达式如果是一个promise对象，判断状态
-				// 否则继续执行
-
 				auto val = stack_frame->pop();
 
 				if (!val.IsPromiseObject()) {

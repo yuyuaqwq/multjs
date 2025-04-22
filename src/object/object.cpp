@@ -56,6 +56,19 @@ void Object::DelProperty(Context* context, const Value& key) {
 	property_map_->erase(key);
 }
 
+void Object::SetIndexed(Context* context, const Value& key, Value&& val) {
+	return SetProperty(context, key, std::move(val));
+}
+
+Value* Object::GetIndexed(Context* context, const Value& key) {
+	return GetProperty(context, key);
+}
+
+void Object::DelIndexed(Context* context, const Value& key) {
+	return DelProperty(context, key);
+}
+
+
 void Object::Reference() {
 	++tag_.ref_count_;
 }

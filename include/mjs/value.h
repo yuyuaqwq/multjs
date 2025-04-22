@@ -18,6 +18,7 @@ enum class ValueType : uint32_t {
 	kUndefined = 0,
 	kNull,
 	kBoolean,
+	kInteger,
 	kNumber,
 	kString,
 
@@ -33,9 +34,7 @@ enum class ValueType : uint32_t {
 	kModuleObject,
 
 	// 内部使用
-	kI64,
 	kU64,
-
 	kStringView, // String优化
 
 	kClassDef,
@@ -270,7 +269,7 @@ struct ValueHash {
 		case ValueType::kObject:
 			// 使用对象地址计算哈希
 			return std::hash<const void*>()(&val.object());
-		case ValueType::kI64:
+		case ValueType::kInteger:
 			return std::hash<int64_t>()(val.i64());
 		case ValueType::kU64:
 			return std::hash<uint64_t>()(val.u64());
