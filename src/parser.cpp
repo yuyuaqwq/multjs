@@ -733,9 +733,14 @@ std::unique_ptr<Exp> Parser::ParsePrimaryExp() {
 		exp = std::make_unique<BoolExp>(false);
 		break;
 	}
-	case TokenType::kNumber: {
+	case TokenType::kFloatLiteral: {
 		lexer_->NextToken();
-		exp = std::make_unique<NumberExp>(std::stod(token.str()));
+		exp = std::make_unique<FloatExp>(std::stod(token.str()));
+		break;
+	}
+	case TokenType::kIntLiteral: {
+		lexer_->NextToken();
+		exp = std::make_unique<IntExp>(std::stoll(token.str()));
 		break;
 	}
 	case TokenType::kString: {

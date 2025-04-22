@@ -6,13 +6,38 @@ namespace mjs {
 
 class ArrayObject : public Object {
 public:
-    using Object::Object;
+    ArrayObject(Context* context, size_t length)
+        : Object(context)
+        , values_(length) {}
 
-    // std::vector<Value>& mutale_values() { return values_; }
+    void SetIndexed(Context* context, const Value& key, Value&& val) override {
+        if (key.i64() < 0 || key.i64() > values_.size()) {
+            // throw;
+        }
+        values_[key.i64()] = std::move(val);
+    }
+
+    Value* GetIndexed(Context* context, const Value& key) override {
+        if (key.i64() < 0 || key.i64() > values_.size()) {
+            // throw;
+        }
+        return &values_[key.i64()];
+    }
+
+    Object* New(Context* context) override {
+        auto obj = new ArrayObject(context, values_.size());
+        return obj;
+    }
+
+
+    Object* Copy(Object* new_obj, Context* context) override {
+        auto* arr_obj = static_cast<ArrayObject*>(new_obj);
+        arr_obj->values_ = values_;
+        return Object::Copy(arr_obj, context);
+    }
 
 private:
-    // 优化项，优先从vector中查找，找不到才找prop_map
-    // std::vector<Value> values_;
+    std::vector<Value> values_;
 };
 
 } // namespace mjs

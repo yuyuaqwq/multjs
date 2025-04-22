@@ -160,7 +160,8 @@ void Vm::LoadConst(StackFrame* stack_frame, ConstIndex const_idx) {
 		return;
 	}
 	else if (value.IsObject()) {
-		stack_frame->push(Value(value.object().Copy(context_)));
+		auto* new_obj = value.object().New(context_);
+		stack_frame->push(Value(value.object().Copy(new_obj, context_)));
 		return;
 	}
 	stack_frame->push(value);
@@ -438,7 +439,6 @@ void Vm::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 			}
 			case OpcodeType::kIndexedLoad: {
 				auto idx_val = stack_frame->pop();
-				idx_val = idx_val.ToString();
 
 				auto& obj_val = stack_frame->get(-1);
 				auto& obj = obj_val.object();
@@ -454,7 +454,6 @@ void Vm::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 			}
 			case OpcodeType::kIndexedStore: {
 				auto idx_val = stack_frame->pop();
-				idx_val = idx_val.ToString();
 
 				auto obj_val = stack_frame->pop();
 				auto& obj = obj_val.object();

@@ -11,7 +11,8 @@ enum class ExpType {
 	kUndefined,
 	kNull,
 	kBool,
-	kNumber,
+	kInt,
+	kFloat,
 	kString,
 	kUnaryOp,
 	kBinaryOp,
@@ -72,14 +73,24 @@ struct BoolExp : public Exp {
 	bool value;
 };
 
-struct NumberExp : public Exp {
+struct FloatExp : public Exp {
 	virtual ExpType GetType() const noexcept override {
-		return ExpType::kNumber;
+		return ExpType::kFloat;
 	}
-	NumberExp(double value) noexcept
+	FloatExp(double value) noexcept
 		: value(value) {}
 
 	double value;
+};
+
+struct IntExp : public Exp {
+	virtual ExpType GetType() const noexcept override {
+		return ExpType::kInt;
+	}
+	IntExp(int64_t value) noexcept
+		: value(value) {}
+
+	int64_t value;
 };
 
 struct StringExp : public Exp {

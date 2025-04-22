@@ -647,7 +647,8 @@ void CodeGener::GenerateExp(Exp* exp) {
 	case ExpType::kUndefined:
 	case ExpType::kNull:
 	case ExpType::kBool:
-	case ExpType::kNumber:
+	case ExpType::kInt:
+	case ExpType::kFloat:
 	case ExpType::kString:
 	case ExpType::kArrayLiteralExp:
 	case ExpType::kObjectLiteralExp: {
@@ -988,8 +989,11 @@ Value CodeGener::MakeValue(Exp* exp) {
 	case ExpType::kBool: {
 		return Value(exp->get<BoolExp>().value);
 	}
-	case ExpType::kNumber: {
-		return Value(exp->get<NumberExp>().value);
+	case ExpType::kFloat: {
+		return Value(exp->get<FloatExp>().value);
+	}
+	case ExpType::kInt: {
+		return Value(exp->get<IntExp>().value);
 	}
 	case ExpType::kString: {
 		return Value(exp->get<StringExp>().value);
@@ -1000,12 +1004,12 @@ Value CodeGener::MakeValue(Exp* exp) {
 	// 无需GC回收，此处分配的对象不会引用Context分配的对象，因此不存在循环引用
 	// 应该是只读
 	case ExpType::kArrayLiteralExp: {
-		ArrayObject* arr_obj = new ArrayObject(nullptr);
-		double i = 0;
+		ArrayObject* arr_obj = new ArrayObject(nullptr, exp->get<ArrayLiteralExp>().arr_litera.size());
+		int64_t i = 0;
 		for (auto& exp : exp->get<ArrayLiteralExp>().arr_litera) {
 			// arr_obj->mutale_values().emplace_back(MakeValue(exp.get()));
 			auto const_idx = AllocConst(Value(i++)/*.ToString()*/);
-			arr_obj->SetProperty(nullptr, GetConstValueByIndex(const_idx), MakeValue(exp.get()));
+			arr_obj->SetIndexed(nullptr, GetConstValueByIndex(const_idx), MakeValue(exp.get()));
 		}
 		return Value(arr_obj);
 	}

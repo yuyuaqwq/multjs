@@ -174,17 +174,17 @@ Token Lexer::ReadNextToken() {
 
     // Number
     if (c == 'N' && TestStr("aN")) {
-        token.set_type(TokenType::kNumber);
+        token.set_type(TokenType::kFloatLiteral);
         token.set_str("NaN");
         return token;
     }
     else if (c == 'I' && TestStr("nfinity")) {
-        token.set_type(TokenType::kNumber);
+        token.set_type(TokenType::kFloatLiteral);
         token.set_str("Infinity");
         return token;
     }
     else if (c == '0') {
-        token.set_type(TokenType::kNumber);
+        token.set_type(TokenType::kIntLiteral);
         token.mutable_str()->push_back(c);
         char next_char = PeekChar();
         if (next_char == 'x' || next_char == 'X') {
@@ -213,7 +213,7 @@ Token Lexer::ReadNextToken() {
         }
         else {
             // Normal number starting with 0
-            while (IsDigit(c = NextChar()) || c == '.') {
+            while (IsDigit(c = NextChar())) {
                 token.mutable_str()->push_back(c);
             }
             SkipChar(-1);
@@ -223,7 +223,7 @@ Token Lexer::ReadNextToken() {
     else if (IsDigit(c)) {
         // Float and integer parsing, including scientific notation
         bool point = false, exp = false;
-        token.set_type(TokenType::kNumber);
+        token.set_type(TokenType::kIntLiteral);
         token.mutable_str()->push_back(c);
         while (c = NextChar()) {
             if (c == '.' && !point && !exp) {
@@ -244,6 +244,9 @@ Token Lexer::ReadNextToken() {
                 break;
             }
             token.mutable_str()->push_back(c);
+        }
+        if (point == true || exp == true) {
+            token.set_type(TokenType::kFloatLiteral);
         }
         return token;
     }

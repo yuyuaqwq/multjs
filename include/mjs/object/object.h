@@ -41,14 +41,18 @@ public:
 		return Value("object");
 	}
 
-	virtual Object* Copy(Context* context) {
+	virtual Object* New(Context* context) {
 		auto obj = new Object(context);
-		obj->prototype_ = prototype_;
-		if (property_map_) {
-			obj->property_map_ = new PropertyMap();
-			*obj->property_map_ = *property_map_;
-		}
 		return obj;
+	}
+
+	virtual Object* Copy(Object* new_obj, Context* context) {
+		new_obj->prototype_ = prototype_;
+		if (property_map_) {
+			new_obj->property_map_ = new PropertyMap();
+			*new_obj->property_map_ = *property_map_;
+		}
+		return new_obj;
 	}
 
 	virtual void SetProperty(Context* context, const Value& key, Value&& val);

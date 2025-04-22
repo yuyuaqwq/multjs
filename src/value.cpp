@@ -24,17 +24,17 @@ Value::Value(bool boolean) {
 }
 
 Value::Value(double number) {
-	tag_.type_ = ValueType::kNumber;
+	tag_.type_ = ValueType::kFloat64;
 	value_.f64_ = number;
 }
 
 Value::Value(int64_t i64) {
-	tag_.type_ = ValueType::kInteger;
+	tag_.type_ = ValueType::kInt64;
 	value_.i64_ = i64;
 }
 
 Value::Value(int32_t i32) {
-	tag_.type_ = ValueType::kInteger;
+	tag_.type_ = ValueType::kInt64;
 	value_.i64_ = i32;
 }
 
@@ -88,12 +88,12 @@ Value::Value(ModuleObject* module_) {
 
 
 Value::Value(uint64_t u64) {
-	tag_.type_ = ValueType::kU64;
+	tag_.type_ = ValueType::kUInt64;
 	value_.u64_ = u64;
 }
 
 Value::Value(uint32_t u32) {
-	tag_.type_ = ValueType::kU64;
+	tag_.type_ = ValueType::kUInt64;
 	value_.u64_ = u32;
 }
 
@@ -176,17 +176,17 @@ ptrdiff_t Value::Comparer(const Value& rhs) const {
 		return 0;
 	case ValueType::kBoolean:
 		return static_cast<ptrdiff_t>(boolean()) - static_cast<ptrdiff_t>(rhs.boolean());
-	case ValueType::kNumber:
-		return number() - rhs.number();
+	case ValueType::kFloat64:
+		return float64() - rhs.float64();
 	case ValueType::kString:
 	case ValueType::kStringView:
 		if (string() == rhs.string()) return 0;
 		return std::strcmp(string(), rhs.string());
 	case ValueType::kObject:
 		return &object() - &rhs.object();
-	case ValueType::kInteger:
+	case ValueType::kInt64:
 		return i64() - rhs.i64();
-	case ValueType::kU64:
+	case ValueType::kUInt64:
 		return u64() - rhs.u64();
 	case ValueType::kFunctionDef:
 	case ValueType::kCppFunction:
@@ -211,8 +211,8 @@ bool Value::operator==(const Value& rhs) const {
 }
 
 Value Value::operator+(const Value& rhs) const {
-	if (IsNumber() && rhs.IsNumber()) {
-		return Value(number() + rhs.number());
+	if (IsFloat() && rhs.IsFloat()) {
+		return Value(float64() + rhs.float64());
 	}
 	else if (IsString() && !rhs.IsString()) {
 		return Value(std::format("{}{}", string(), rhs.ToString().string()));
@@ -229,8 +229,8 @@ Value Value::operator+(const Value& rhs) const {
 }
 
 Value Value::operator-(const Value& rhs) const {
-	if (IsNumber() && rhs.IsNumber()) {
-		return Value(number() - rhs.number());
+	if (IsFloat() && rhs.IsFloat()) {
+		return Value(float64() - rhs.float64());
 	}
 	else {
 		throw std::runtime_error("Subtraction not supported for these Value types.");
@@ -238,8 +238,8 @@ Value Value::operator-(const Value& rhs) const {
 }
 
 Value Value::operator*(const Value& rhs) const {
-	if (IsNumber() && rhs.IsNumber()) {
-		return Value(number() * rhs.number());
+	if (IsFloat() && rhs.IsFloat()) {
+		return Value(float64() * rhs.float64());
 	}
 	else {
 		throw std::runtime_error("Multiplication not supported for these Value types.");
@@ -247,11 +247,11 @@ Value Value::operator*(const Value& rhs) const {
 }
 
 Value Value::operator/(const Value& rhs) const {
-	if (IsNumber() && rhs.IsNumber()) {
-		if (rhs.number() == 0) {
+	if (IsFloat() && rhs.IsFloat()) {
+		if (rhs.float64() == 0) {
 			throw std::runtime_error("Division by zero.");
 		}
-		return Value(number() / rhs.number());
+		return Value(float64() / rhs.float64());
 	}
 	else {
 		throw std::runtime_error("Division not supported for these Value types.");
@@ -259,8 +259,8 @@ Value Value::operator/(const Value& rhs) const {
 }
 
 Value Value::operator-() const {
-	if (IsNumber()) {
-		return Value(-number());
+	if (IsFloat()) {
+		return Value(-float64());
 	}
 	else {
 		throw std::runtime_error("Neg not supported for these Value types.");
@@ -268,7 +268,7 @@ Value Value::operator-() const {
 }
 
 Value& Value::operator++() {
-	if (IsNumber()) {
+	if (IsFloat()) {
 		++value_.f64_;
 	}
 	else {
@@ -278,7 +278,7 @@ Value& Value::operator++() {
 }
 
 Value& Value::operator--() {
-	if (IsNumber()) {
+	if (IsFloat()) {
 		--value_.f64_;
 	}
 	else {
@@ -288,7 +288,7 @@ Value& Value::operator--() {
 }
 
 Value Value::operator++(int) {
-	if (IsNumber()) {
+	if (IsFloat()) {
 		Value old = *this;
 		++value_.f64_;
 		return old;
@@ -299,7 +299,7 @@ Value Value::operator++(int) {
 }
 
 Value Value::operator--(int) {
-	if (IsNumber()) {
+	if (IsFloat()) {
 		Value old = *this;
 		--value_.f64_;
 		return old;
@@ -315,13 +315,13 @@ ValueType Value::type() const {
 }
 
 
-double Value::number() const { 
-	assert(IsNumber());
+double Value::float64() const { 
+	assert(IsFloat());
 	return value_.f64_;
 }
 
-void Value::set_number(double number) { 
-	assert(IsNumber());
+void Value::set_float64(double number) { 
+	assert(IsFloat());
 	value_.f64_ = number;
 }
 
@@ -421,8 +421,8 @@ bool Value::IsBoolean() const {
 	return type() == ValueType::kBoolean;
 }
 
-bool Value::IsNumber() const {
-	return type() == ValueType::kNumber;
+bool Value::IsFloat() const {
+	return type() == ValueType::kFloat64;
 }
 
 bool Value::IsString() const {
@@ -432,7 +432,7 @@ bool Value::IsString() const {
 
 bool Value::IsObject() const {
 	return type() == ValueType::kObject
-		|| type() == ValueType::kNumberObject
+		|| type() == ValueType::kFloatObject
 		|| type() == ValueType::kStringObject
 		|| type() == ValueType::kArrayObject
 		|| type() == ValueType::kFunctionObject
@@ -475,11 +475,11 @@ bool Value::IsPromiseReject() const {
 
 
 bool Value::IsI64() const {
-	return type() == ValueType::kInteger;
+	return type() == ValueType::kInt64;
 }
 
 bool Value::IsU64() const {
-	return type() == ValueType::kU64;
+	return type() == ValueType::kUInt64;
 }
 
 bool Value::IsClassDef() const {
@@ -510,14 +510,14 @@ Value Value::ToString() const {
 		return Value("null");
 	case ValueType::kBoolean:
 		return Value(boolean() ? "true" : "false");
-	case ValueType::kNumber:
-		return Value(std::format("{}", number()));
+	case ValueType::kFloat64:
+		return Value(std::format("{}", float64()));
 	case ValueType::kString: 
 	case ValueType::kStringView: 
 		return *this;
-	case ValueType::kInteger:
+	case ValueType::kInt64:
 		return Value(std::format("{}", i64()));
-	case ValueType::kU64:
+	case ValueType::kUInt64:
 		return Value(std::format("{}", u64()));
 	case ValueType::kFunctionDef:
 		return Value(std::format("function_def:{}", function_def().name()));
@@ -544,11 +544,11 @@ Value Value::ToBoolean() const {
 		return Value(false);
 	case ValueType::kBoolean:
 		return *this;
-	case ValueType::kNumber:
-		if (std::isnan(number())) {
+	case ValueType::kFloat64:
+		if (std::isnan(float64())) {
 			return Value(false);
 		}
-		return Value(number() == 0);
+		return Value(float64() == 0);
 	case ValueType::kString: {
 		return Value(value_.string_->empty());
 	}

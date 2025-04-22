@@ -18,13 +18,13 @@ enum class ValueType : uint32_t {
 	kUndefined = 0,
 	kNull,
 	kBoolean,
-	kInteger,
-	kNumber,
+	kInt64,
+	kFloat64,
 	kString,
 
 	// 对象
 	kObject,
-	kNumberObject,
+	kFloatObject,
 	kStringObject,
 	kArrayObject,
 	kFunctionObject,
@@ -34,7 +34,7 @@ enum class ValueType : uint32_t {
 	kModuleObject,
 
 	// 内部使用
-	kU64,
+	kUInt64,
 	kStringView, // String优化
 
 	kClassDef,
@@ -135,8 +135,8 @@ public:
 
 	ValueType type() const;
 
-	double number() const;
-	void set_number(double number);
+	double float64() const;
+	void set_float64(double number);
 
 	bool boolean() const;
 	void set_boolean(bool boolean);
@@ -170,7 +170,7 @@ public:
 	bool IsUndefined() const;
 	bool IsNull() const;
 	bool IsBoolean() const;
-	bool IsNumber() const;
+	bool IsFloat() const;
 	bool IsString() const;
 
 	// 新对象必须添加到IsObject中，否则会内存泄露
@@ -260,8 +260,8 @@ struct ValueHash {
 			return 1;
 		case ValueType::kBoolean:
 			return std::hash<bool>()(val.boolean());
-		case ValueType::kNumber:
-			return std::hash<double>()(val.number());
+		case ValueType::kFloat64:
+			return std::hash<double>()(val.float64());
 		case ValueType::kString:
 		case ValueType::kStringView:
 			// 使用字符串内容计算哈希
@@ -269,9 +269,9 @@ struct ValueHash {
 		case ValueType::kObject:
 			// 使用对象地址计算哈希
 			return std::hash<const void*>()(&val.object());
-		case ValueType::kInteger:
+		case ValueType::kInt64:
 			return std::hash<int64_t>()(val.i64());
-		case ValueType::kU64:
+		case ValueType::kUInt64:
 			return std::hash<uint64_t>()(val.u64());
 		case ValueType::kFunctionDef:
 		case ValueType::kCppFunction:
