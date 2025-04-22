@@ -29,12 +29,12 @@ Value::Value(double number) {
 }
 
 Value::Value(int64_t i64) {
-	tag_.type_ = ValueType::kI64;
+	tag_.type_ = ValueType::kInteger;
 	value_.i64_ = i64;
 }
 
 Value::Value(int32_t i32) {
-	tag_.type_ = ValueType::kI64;
+	tag_.type_ = ValueType::kInteger;
 	value_.i64_ = i32;
 }
 
@@ -184,7 +184,7 @@ ptrdiff_t Value::Comparer(const Value& rhs) const {
 		return std::strcmp(string(), rhs.string());
 	case ValueType::kObject:
 		return &object() - &rhs.object();
-	case ValueType::kI64:
+	case ValueType::kInteger:
 		return i64() - rhs.i64();
 	case ValueType::kU64:
 		return u64() - rhs.u64();
@@ -475,7 +475,7 @@ bool Value::IsPromiseReject() const {
 
 
 bool Value::IsI64() const {
-	return type() == ValueType::kI64;
+	return type() == ValueType::kInteger;
 }
 
 bool Value::IsU64() const {
@@ -515,7 +515,7 @@ Value Value::ToString() const {
 	case ValueType::kString: 
 	case ValueType::kStringView: 
 		return *this;
-	case ValueType::kI64:
+	case ValueType::kInteger:
 		return Value(std::format("{}", i64()));
 	case ValueType::kU64:
 		return Value(std::format("{}", u64()));
