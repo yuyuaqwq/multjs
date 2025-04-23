@@ -13,6 +13,11 @@
 
 namespace mjs {
 
+// 未来调整：
+// 保持和js标准一致，属性只能是string或者symbol
+// 但其他类型不会自动转换为string，而是抛出异常
+// key可以修改为ConstIndex
+
 class Runtime;
 class Context;
 class Object
