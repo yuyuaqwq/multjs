@@ -21,6 +21,7 @@ enum class ValueType : uint32_t {
 	kInt64,
 	kFloat64,
 	kString,
+	kSymbol,
 
 	// ∂‘œÛ
 	kObject,
@@ -183,8 +184,8 @@ public:
 	bool IsPromiseResolve() const;
 	bool IsPromiseReject() const;
 
-	bool IsI64() const;
-	bool IsU64() const;
+	bool IsInt64() const;
+	bool IsUInt64() const;
 	bool IsClassDef() const;
 	bool IsUpValue() const;
 	bool IsFunctionDef() const;

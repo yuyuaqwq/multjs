@@ -9,12 +9,12 @@
 namespace mjs {
 
 Runtime::Runtime() {
-	class_def_table_.Register(std::make_unique<ClassDef>(ClassId::kBase, "Object"));
-	class_def_table_.Register(std::make_unique<ClassDef>(ClassId::kNumber, "Number"));
-	class_def_table_.Register(std::make_unique<ClassDef>(ClassId::kString, "String"));
-	class_def_table_.Register(std::make_unique<ClassDef>(ClassId::kArray, "Array"));
-	class_def_table_.Register(std::make_unique<GeneratorClassDef>());
-	class_def_table_.Register(std::make_unique<PromiseClassDef>());
+	class_def_table_.Register(std::make_unique<ClassDef>(this, ClassId::kBase, "Object"));
+	class_def_table_.Register(std::make_unique<ClassDef>(this, ClassId::kNumber, "Number"));
+	class_def_table_.Register(std::make_unique<ClassDef>(this, ClassId::kString, "String"));
+	class_def_table_.Register(std::make_unique<ClassDef>(this, ClassId::kArray, "Array"));
+	class_def_table_.Register(std::make_unique<GeneratorClassDef>(this));
+	class_def_table_.Register(std::make_unique<PromiseClassDef>(this));
 
 	auto load_module = [](Context* ctx, const char* path) -> Value {
 		namespace fs = std::filesystem;

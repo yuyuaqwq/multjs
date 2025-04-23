@@ -214,6 +214,9 @@ Value Value::operator+(const Value& rhs) const {
 	if (IsFloat() && rhs.IsFloat()) {
 		return Value(f64() + rhs.f64());
 	}
+	else if (IsInt64() && rhs.IsInt64()) {
+		return Value(i64() + rhs.i64());
+	}
 	else if (IsString() && !rhs.IsString()) {
 		return Value(std::format("{}{}", string(), rhs.ToString().string()));
 	}
@@ -380,11 +383,11 @@ ModuleObject& Value::module() const {
 }
 
 int64_t Value::i64() const {
-	assert(IsI64());
+	assert(IsInt64());
 	return value_.i64_;
 }
 uint64_t Value::u64() const {
-	assert(IsU64());
+	assert(IsUInt64());
 	return value_.u64_;
 }
 
@@ -474,11 +477,11 @@ bool Value::IsPromiseReject() const {
 }
 
 
-bool Value::IsI64() const {
+bool Value::IsInt64() const {
 	return type() == ValueType::kInt64;
 }
 
-bool Value::IsU64() const {
+bool Value::IsUInt64() const {
 	return type() == ValueType::kUInt64;
 }
 

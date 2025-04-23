@@ -6,11 +6,11 @@ namespace mjs {
 
 class GeneratorClassDef : public ClassDef {
 public:
-	GeneratorClassDef()
-		: ClassDef(ClassId::kGenerator, "Generator")
+	GeneratorClassDef(Runtime* runtime)
+		: ClassDef(runtime, ClassId::kGenerator, "Generator")
 	{
 		// key到时候优化到runtime的const pool里
-		property_map_.NewMethod(Value("next"), Value(ValueType::kGeneratorNext));
+		property_map_.NewMethod(runtime, "next", Value(ValueType::kGeneratorNext));
 	}
 };
 

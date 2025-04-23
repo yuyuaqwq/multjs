@@ -49,7 +49,7 @@ class Runtime;
 class Object;
 class ClassDef : public noncopyable {
 public:
-	ClassDef(ClassId id, std::string name)
+	ClassDef(Runtime* runtime, ClassId id, std::string name)
 		: id_(id)
 		, name_(std::move(name)) {}
 	virtual ~ClassDef() = default;

@@ -6,7 +6,7 @@ namespace mjs {
 
 class PromiseClassDef : public ClassDef {
 public:
-	PromiseClassDef();
+	PromiseClassDef(Runtime* runtime);
 
 	virtual Value Constructor(Context* context, uint32_t par_count, const StackFrame& stack) override;
 

@@ -6,10 +6,10 @@
 
 namespace mjs {
 
-PromiseClassDef::PromiseClassDef()
-	: ClassDef(ClassId::kPromise, "Promise")
+PromiseClassDef::PromiseClassDef(Runtime* runtime)
+	: ClassDef(runtime, ClassId::kPromise, "Promise")
 {
-	property_map_.NewMethod(Value("then"), Value([](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
+	property_map_.NewMethod(runtime, "then", Value([](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
 		auto& promise = stack.this_val().promise();
 		Value on_fulfilled;
 		Value on_rejected;
@@ -22,7 +22,7 @@ PromiseClassDef::PromiseClassDef()
 		return promise.Then(context, on_fulfilled, on_rejected);
 	}));
 
-	static_property_map_.NewMethod(Value("resolve"), Value([](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
+	static_property_map_.NewMethod(runtime, "resolve", Value([](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
 		Value value;
 		if (par_count > 0) {
 			value = stack.get(0);
@@ -30,7 +30,7 @@ PromiseClassDef::PromiseClassDef()
 		return Resolve(context, std::move(value));
 	}));
 
-	static_property_map_.NewMethod(Value("reject"), Value([](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
+	static_property_map_.NewMethod(runtime, "reject", Value([](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
 		return Value();
 	}));
 }

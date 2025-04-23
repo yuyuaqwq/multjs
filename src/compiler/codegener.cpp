@@ -1008,8 +1008,7 @@ Value CodeGener::MakeValue(Exp* exp) {
 		ArrayObject* arr_obj = new ArrayObject(nullptr, exp->get<ArrayLiteralExp>().arr_litera.size());
 		int64_t i = 0;
 		for (auto& exp : exp->get<ArrayLiteralExp>().arr_litera) {
-			// arr_obj->mutale_values().emplace_back(MakeValue(exp.get()));
-			auto const_idx = AllocConst(Value(i++)/*.ToString()*/);
+			auto const_idx = AllocConst(Value(i++));
 			arr_obj->SetIndexed(nullptr, GetConstValueByIndex(const_idx), MakeValue(exp.get()));
 		}
 		return Value(arr_obj);
