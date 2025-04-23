@@ -173,7 +173,7 @@ void Value::operator=(Value&& r) noexcept {
 }
 
 ptrdiff_t Value::Comparer(const Value& rhs) const {
-	if (const_index() == rhs.const_index()) {
+	if (const_index() != 0 && const_index() == rhs.const_index()) {
 		return 0;
 	}
 
@@ -192,7 +192,7 @@ ptrdiff_t Value::Comparer(const Value& rhs) const {
 		return f64() - rhs.f64();
 	case ValueType::kString:
 	case ValueType::kStringView:
-		/*if (string() == rhs.string()) return 0;*/
+		if (string() == rhs.string()) return 0;
 		return std::strcmp(string(), rhs.string());
 	case ValueType::kObject:
 		return &object() - &rhs.object();
