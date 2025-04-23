@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <optional>
 
 namespace mjs {
 
@@ -10,7 +11,11 @@ public:
 	using Base = std::string;
 	using Base::Base;
 
-	String(std::string&& str) : Base(std::move(str)) {}  // 添加一个接受 std::string 的构造函数
+	String(std::string&& str) 
+		: Base(std::move(str))
+	{
+		hash_ = std::hash<std::string>()(*this);
+	}
 
 	void Reference() {
 		++ref_count_;
@@ -22,9 +27,14 @@ public:
 			delete this;
 		}
 	}
+	
+	size_t hash() {
+		return hash_;
+	}
 
 private:
 	uint32_t ref_count_ = 0;
+	size_t hash_;
 };
 
 } // namespace mjs

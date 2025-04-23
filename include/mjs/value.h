@@ -264,8 +264,8 @@ struct ValueHash {
 		case ValueType::kFloat64:
 			return std::hash<double>()(val.f64());
 		case ValueType::kString:
+			return val.value_.string_->hash();
 		case ValueType::kStringView:
-			// 使用字符串内容计算哈希
 			return std::hash<std::string>()(val.string());
 		case ValueType::kObject:
 			// 使用对象地址计算哈希
