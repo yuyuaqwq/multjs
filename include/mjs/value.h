@@ -135,7 +135,7 @@ public:
 
 	ValueType type() const;
 
-	double float64() const;
+	double f64() const;
 	void set_float64(double number);
 
 	bool boolean() const;
@@ -261,7 +261,7 @@ struct ValueHash {
 		case ValueType::kBoolean:
 			return std::hash<bool>()(val.boolean());
 		case ValueType::kFloat64:
-			return std::hash<double>()(val.float64());
+			return std::hash<double>()(val.f64());
 		case ValueType::kString:
 		case ValueType::kStringView:
 			// 使用字符串内容计算哈希

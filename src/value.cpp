@@ -177,7 +177,7 @@ ptrdiff_t Value::Comparer(const Value& rhs) const {
 	case ValueType::kBoolean:
 		return static_cast<ptrdiff_t>(boolean()) - static_cast<ptrdiff_t>(rhs.boolean());
 	case ValueType::kFloat64:
-		return float64() - rhs.float64();
+		return f64() - rhs.f64();
 	case ValueType::kString:
 	case ValueType::kStringView:
 		if (string() == rhs.string()) return 0;
@@ -212,7 +212,7 @@ bool Value::operator==(const Value& rhs) const {
 
 Value Value::operator+(const Value& rhs) const {
 	if (IsFloat() && rhs.IsFloat()) {
-		return Value(float64() + rhs.float64());
+		return Value(f64() + rhs.f64());
 	}
 	else if (IsString() && !rhs.IsString()) {
 		return Value(std::format("{}{}", string(), rhs.ToString().string()));
@@ -230,7 +230,7 @@ Value Value::operator+(const Value& rhs) const {
 
 Value Value::operator-(const Value& rhs) const {
 	if (IsFloat() && rhs.IsFloat()) {
-		return Value(float64() - rhs.float64());
+		return Value(f64() - rhs.f64());
 	}
 	else {
 		throw std::runtime_error("Subtraction not supported for these Value types.");
@@ -239,7 +239,7 @@ Value Value::operator-(const Value& rhs) const {
 
 Value Value::operator*(const Value& rhs) const {
 	if (IsFloat() && rhs.IsFloat()) {
-		return Value(float64() * rhs.float64());
+		return Value(f64() * rhs.f64());
 	}
 	else {
 		throw std::runtime_error("Multiplication not supported for these Value types.");
@@ -248,10 +248,10 @@ Value Value::operator*(const Value& rhs) const {
 
 Value Value::operator/(const Value& rhs) const {
 	if (IsFloat() && rhs.IsFloat()) {
-		if (rhs.float64() == 0) {
+		if (rhs.f64() == 0) {
 			throw std::runtime_error("Division by zero.");
 		}
-		return Value(float64() / rhs.float64());
+		return Value(f64() / rhs.f64());
 	}
 	else {
 		throw std::runtime_error("Division not supported for these Value types.");
@@ -260,7 +260,7 @@ Value Value::operator/(const Value& rhs) const {
 
 Value Value::operator-() const {
 	if (IsFloat()) {
-		return Value(-float64());
+		return Value(-f64());
 	}
 	else {
 		throw std::runtime_error("Neg not supported for these Value types.");
@@ -315,7 +315,7 @@ ValueType Value::type() const {
 }
 
 
-double Value::float64() const { 
+double Value::f64() const { 
 	assert(IsFloat());
 	return value_.f64_;
 }
@@ -511,7 +511,7 @@ Value Value::ToString() const {
 	case ValueType::kBoolean:
 		return Value(boolean() ? "true" : "false");
 	case ValueType::kFloat64:
-		return Value(std::format("{}", float64()));
+		return Value(std::format("{}", f64()));
 	case ValueType::kString: 
 	case ValueType::kStringView: 
 		return *this;
@@ -545,10 +545,10 @@ Value Value::ToBoolean() const {
 	case ValueType::kBoolean:
 		return *this;
 	case ValueType::kFloat64:
-		if (std::isnan(float64())) {
+		if (std::isnan(f64())) {
 			return Value(false);
 		}
-		return Value(float64() == 0);
+		return Value(f64() == 0);
 	case ValueType::kString: {
 		return Value(value_.string_->empty());
 	}
