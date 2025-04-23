@@ -12,37 +12,37 @@ Lexer::~Lexer() noexcept = default;
 
 // 获取下一字符
 char Lexer::NextChar() noexcept {
-    if (idx_ < src_.size()) {
-        return src_[idx_++];
+    if (pos_ < src_.size()) {
+        return src_[pos_++];
     }
     return 0;
 }
 
 char Lexer::PeekChar() noexcept {
-    if (idx_ < src_.size()) {
-        return src_[idx_];
+    if (pos_ < src_.size()) {
+        return src_[pos_];
     }
     return 0;
 }
 
 // 跳过指定字符数
 void Lexer::SkipChar(int count) noexcept {
-    idx_ += count;
+    pos_ += count;
 }
 
 bool Lexer::TestStr(const std::string& str) {
-    return !src_.compare(idx_, str.size(), str);
+    return !src_.compare(pos_, str.size(), str);
 }
 
 bool Lexer::TestChar(char c) {
-    return src_[idx_] == c;
+    return src_[pos_] == c;
 }
 
 
 // 前瞻Token
 Token Lexer::PeekToken() {
     // 如果没有前瞻过
-    if (peek_.Is(TokenType::kNil)) {
+    if (peek_.is(TokenType::kNil)) {
         peek_ = NextToken();
     }
     return peek_;
@@ -50,20 +50,20 @@ Token Lexer::PeekToken() {
 
 // 前瞻自此往后第N个Token
 Token Lexer::PeekTokenN(uint32_t n) {
-    auto idx = idx_;
+    auto idx = pos_;
     auto line = line_;
 
     if (n == 1) {
         return PeekToken();
     }
-    else if (n > 1 && !peek_.Is(TokenType::kNil)) {
+    else if (n > 1 && !peek_.is(TokenType::kNil)) {
         n -= 1;
     }
     
     for (uint32_t i = 0; i < n; ++i) {
         if (i + 1 == n) {
             auto token = ReadNextToken();
-            idx_ = idx;
+            pos_ = idx;
             line_ = line;
             return token;
         }
@@ -81,7 +81,7 @@ inline static bool IsAlpha(char c) {
 
 // 获取下一Token
 Token Lexer::NextToken() {
-    if (!peek_.Is(TokenType::kNil)) {
+    if (!peek_.is(TokenType::kNil)) {
         // 如果有前瞻保存的token，返回前瞻的结果
         Token token = std::move(peek_);
         peek_.set_type(TokenType::kNil);
@@ -93,7 +93,7 @@ Token Lexer::NextToken() {
 // 匹配下一Token
 Token Lexer::MatchToken(TokenType type) {
     auto token = NextToken();
-    if (token.Is(type)) {
+    if (token.is(type)) {
         return token;
     }
     throw LexerException("cannot match token");
@@ -185,7 +185,7 @@ Token Lexer::ReadNextToken() {
         return token;
     }
     else if (c == '0') {
-        token.set_type(TokenType::kIntLiteral);
+        token.set_type(TokenType::kIntegerLiteral);
         token.mutable_str()->push_back(c);
         char next_char = PeekChar();
         if (next_char == 'x' || next_char == 'X') {
@@ -224,7 +224,7 @@ Token Lexer::ReadNextToken() {
     else if (IsDigit(c)) {
         // Float and integer parsing, including scientific notation
         bool point = false, exp = false;
-        token.set_type(TokenType::kIntLiteral);
+        token.set_type(TokenType::kIntegerLiteral);
         token.mutable_str()->push_back(c);
         while (c = NextChar()) {
             if (c == '.' && !point && !exp) {
@@ -255,7 +255,7 @@ Token Lexer::ReadNextToken() {
     // String
     if (c == '\'' || c == '\"') {
         char quote_type = c; // 记录引号类型（单引号或双引号）
-        size_t begin_pos = idx_; // 记录字符串开始位置
+        size_t begin_pos = pos_; // 记录字符串开始位置
         std::string str_value;
         while (true) {
             c = NextChar();

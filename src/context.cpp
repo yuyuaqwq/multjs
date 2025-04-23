@@ -16,7 +16,7 @@ Value Context::Compile(std::string_view script) {
 	auto lexer = compiler::Lexer(script.data());
 
 	auto parser = compiler::Parser(&lexer);
-	parser.ParseSource();
+	parser.ParseProgram();
 
 	auto codegener = compiler::CodeGener(runtime_, &parser);
 	auto module = codegener.Generate();

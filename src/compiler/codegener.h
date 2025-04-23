@@ -54,7 +54,7 @@ private:
 	const VarInfo* FindVarIndexByName(const std::string& name);
 	bool IsInTypeScope(std::initializer_list<ScopeType> types, std::initializer_list<ScopeType> end_types);
 	
-	const VarInfo& GetVarByExp(Exp* exp);
+	const VarInfo& GetVarByExp(Expression* exp);
 
 	void GenerateBlock(BlockStat* block, bool entry_scope = true, ScopeType type = ScopeType::kNone);
 	void GenerateStat(Stat* stat);
@@ -73,13 +73,13 @@ private:
 	void GenerateImportStat(ImportStat* stat);
 	void GenerateExportStat(ExportStat* stat);
 
-	void GenerateExp(Exp* exp);
-	void GenerateIfEq(Exp* exp);
+	void GenerateExp(Expression* exp);
+	void GenerateIfEq(Expression* exp);
 
 	void GenerateFunctionDeclExp(FunctionDeclExp* exp);
 
-	Value MakeValue(Exp* exp);
-	void GenerateParList(const std::vector<std::unique_ptr<Exp>>& par_list);
+	Value MakeValue(Expression* exp);
+	void GenerateParList(const std::vector<std::unique_ptr<Expression>>& par_list);
 
 	void RepairEntrys(const std::vector<RepairEntry>& entrys, Pc end_pc, Pc reloop_pc);
 

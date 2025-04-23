@@ -23,73 +23,76 @@ class Parser : public noncopyable {
 public:
 	Parser(Lexer* t_lexer);
 
-	void ParseSource();
-	std::unique_ptr<BlockStat> ParseBlockStat();
-	std::unique_ptr<Stat> ParseStat();
+	std::unique_ptr<Identifier> ParseIdentifier();
+	std::unique_ptr<Expression> ParseLiteral();
+	std::unique_ptr<ArrayExpression> ParseArrayExpression();
+	std::unique_ptr<ObjectExpression> ParseObjectExpression();
+	std::unique_ptr<FunctionExpression> ParseFunctionExpression();
+	std::unique_ptr<MemberExpression> ParseMemberExpression(std::unique_ptr<Expression> object);
 
-	std::unique_ptr<ExpStat> ParseExpStat();
+
+	void ParseProgram();
+	std::unique_ptr<BlockStatement> ParseBlockStatement();
+	std::unique_ptr<Statement> ParseStatement();
+
+	std::unique_ptr<ExpressionStatement> ParseExpressionStatement();
 
 	std::vector<std::string> ParseParNameList();
-	std::unique_ptr<IfStat> ParseIfStat();
-	std::unique_ptr<ElseIfStat> ParseElseIfStat();
-	std::unique_ptr<ElseStat> ParseElseStat();
+	std::unique_ptr<IfStatement> ParseIfStatement();
 
-	std::unique_ptr<ForStat> ParseForStat();
-	std::unique_ptr<WhileStat> ParseWhileStat();
-	std::unique_ptr<ContinueStat> ParseContinueStat();
-	std::unique_ptr<BreakStat> ParseBreakStat();
-	std::unique_ptr<ReturnStat> ParseReturnStat();
-	std::unique_ptr<TryStat> ParseTryStat();
-	std::unique_ptr<CatchStat> ParseCatchStat();
-	std::unique_ptr<FinallyStat> ParseFinallyStat();
-	std::unique_ptr<ThrowStat> ParseThrowStat();
+	std::unique_ptr<ForStatement> ParseForStatement();
+	std::unique_ptr<WhileStatement> ParseWhileStatement();
+	std::unique_ptr<ContinueStatement> ParseContinueStatement();
+	std::unique_ptr<BreakStatement> ParseBreakStatement();
+	std::unique_ptr<ReturnStatement> ParseReturnStatement();
+	std::unique_ptr<TryStatement> ParseTryStatement();
+	std::unique_ptr<CatchClause> ParseCatchClause();
+	std::unique_ptr<FinallyClause> ParseFinallyClause();
+	std::unique_ptr<ThrowStatement> ParseThrowStatement();
 
-	std::unique_ptr<LabelStat> ParseLabelStat();
-	std::unique_ptr<NewVarStat> ParseNewVarStat(TokenType type);
+	std::unique_ptr<LabeledStatement> ParseLabeledStatement();
+	std::unique_ptr<VariableDeclaration> ParseVariableDeclaration(TokenType kind);
 
-	std::unique_ptr<Stat> ParseImportStat(TokenType type);
-	std::unique_ptr<ExportStat> ParseExportStat(TokenType type);
+	std::unique_ptr<Statement> ParseImportStatement(TokenType type);
+	std::unique_ptr<ExportDeclaration> ParseExportDeclaration(TokenType type);
 
-	std::unique_ptr<Exp> ParseExp();
-	std::unique_ptr<Exp> ParseExp20();
-	std::unique_ptr<Exp> ParseExp19();
-	std::unique_ptr<Exp> ParseExp18();
-	std::unique_ptr<Exp> ParseExp17();
-	std::unique_ptr<Exp> ParseExp16();
-	std::unique_ptr<Exp> ParseExp15();
-	std::unique_ptr<Exp> ParseExp14();
-	std::unique_ptr<Exp> ParseExp13();
-	std::unique_ptr<Exp> ParseExp12();
-	std::unique_ptr<Exp> ParseExp11();
-	std::unique_ptr<Exp> ParseExp10();
-	std::unique_ptr<Exp> ParseExp9();
-	std::unique_ptr<Exp> ParseExp8();
-	std::unique_ptr<Exp> ParseExp7();
-	std::unique_ptr<Exp> ParseExp6();
-	std::unique_ptr<Exp> ParseExp5();
-	std::unique_ptr<Exp> ParseExp4();
+	std::unique_ptr<Expression> ParseExpression();
+	std::unique_ptr<Expression> ParseExpression20();
+	std::unique_ptr<Expression> ParseExpression19();
+	std::unique_ptr<Expression> ParseExpression18();
+	std::unique_ptr<Expression> ParseExpression17();
+	std::unique_ptr<Expression> ParseExpression16();
+	std::unique_ptr<Expression> ParseExpression15();
+	std::unique_ptr<Expression> ParseExpression14();
+	std::unique_ptr<Expression> ParseExpression13();
+	std::unique_ptr<Expression> ParseExpression12();
+	std::unique_ptr<Expression> ParseExpression11();
+	std::unique_ptr<Expression> ParseExpression10();
+	std::unique_ptr<Expression> ParseExpression9();
+	std::unique_ptr<Expression> ParseExpression8();
+	std::unique_ptr<Expression> ParseExpression7();
+	std::unique_ptr<Expression> ParseExpression6();
+	std::unique_ptr<Expression> ParseExpression5();
+	std::unique_ptr<Expression> ParseExpression4();
 
-	std::unique_ptr<Exp> ParseNewExp();
-	std::unique_ptr<Exp> ParseExp3();
+	std::unique_ptr<Expression> ParseNewExpression();
+	std::unique_ptr<Expression> ParseExpression3();
 	
-	std::unique_ptr<Exp> ParseExp2(bool match_lparen);
+	std::unique_ptr<Expression> ParseExpression2(bool match_lparen);
 
-	std::unique_ptr<Exp> ParseExp1();
+	std::unique_ptr<Expression> ParseExpression1();
 
-	std::unique_ptr<IdentifierExp> ParseIdentifierExp();
-	std::unique_ptr<Exp> ParsePrimaryExp();
 
-	std::unique_ptr<FunctionDeclExp> ParseFunctionDeclExp();
-	std::vector<std::unique_ptr<Exp>> ParseExpList(TokenType begin, TokenType end, bool allow_comma_end);
+	std::vector<std::unique_ptr<Expression>> ParseExpressionList(TokenType begin, TokenType end, bool allow_comma_end);
 
-	const auto& src_stats() const { return src_stats_; }
-	const auto& import_stats() const { return import_stats_; }
+	const auto& src_statements() const { return src_statements_; }
+	const auto& import_declarations() const { return import_declarations_; }
 
 private:
 	Lexer* lexer_;
 
-	std::vector<std::unique_ptr<Stat>> src_stats_;
-	std::vector<std::unique_ptr<ImportStat>> import_stats_;
+	std::vector<std::unique_ptr<Statement>> src_statements_;
+	std::vector<std::unique_ptr<ImportDeclaration>> import_declarations_;
 };
 
 } // namespace compiler

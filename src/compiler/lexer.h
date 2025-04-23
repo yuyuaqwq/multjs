@@ -10,6 +10,9 @@
 namespace mjs {
 namespace compiler {
 
+using SourcePos = uint32_t;
+using SourceLine = uint32_t;
+
 class LexerException : public std::exception {
 public:
 	using Base = std::exception;
@@ -26,6 +29,8 @@ public:
 	Token NextToken();
 	Token MatchToken(TokenType type);
 
+	SourcePos pos() const { return pos_; }
+
 private:
 	char NextChar() noexcept;
 	char PeekChar() noexcept;
@@ -37,9 +42,9 @@ private:
 
 private:
 	std::string src_;
-	size_t idx_ = 0;
+	SourcePos pos_ = 0;
 	Token peek_;
-	int32_t line_ = 1;
+	SourceLine line_ = 1;
 };
 
 } // namespace compiler

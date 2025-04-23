@@ -5,299 +5,472 @@
 #include <map>
 #include <unordered_map>
 
+#include <mjs/noncopyable.h>
+
 namespace mjs {
 namespace compiler {
 
-enum class ExpType {
-	kUndefined,
-	kNull,
-	kBool,
-	kInt,
-	kFloat,
-	kString,
-	kUnaryOp,
-	kBinaryOp,
-	kTernaryOp,
-	kIdentifier,
-	kThis,
-	kArrayLiteralExp,
-	kObjectLiteralExp,
-	kIndexedExp,
-	kDotExp,
-	kNew,
-	kFunctionDecl,
-	kFunctionCall,
-	kYield,
-	kImport,
+enum class ValueCategory {
+    kLValue,
+    kRValue,
 };
 
-enum class ExpValueCategory {
-	kLeftValue,
-	kRightValue,
+enum class ExpressionType {
+    kIdentifier,
+    kUndefined,
+    kNull,
+    kBoolean,
+    kInteger,
+    kFloat,
+    kString,
+    kThisExpression,
+    kArrayExpression,
+    kObjectExpression,
+    kFunctionExpression,
+
+    kArrowFunctionExpression,
+    kClassExpression,
+    kTemplateLiteral,
+    kTaggedTemplateExpression,
+
+    kMemberExpression,
+    kCallExpression,
+    kNewExpression,
+    kAssigenmentExpression,
+    kUnaryExpression,
+    kBinaryExpression,
+    kConditionalExpression,
+
+    kYieldExpression,
+
+    kImportExpression,
 };
 
-struct Exp {
-	virtual ExpType GetType() const noexcept = 0;
-	ExpValueCategory value_category = ExpValueCategory::kRightValue;
+class Expression : public noncopyable {
+public:
+    Expression(SourcePos start, SourcePos end)
+        : start_(start), end_(end) {}
+    virtual ~Expression() = default;
 
-	template<typename ExpT>
-	ExpT& get() {
-		return *static_cast<ExpT*>(this);
-	}
+    virtual ExpressionType type() const noexcept = 0;
 
-	template<typename ExpT>
-	const ExpT& get() const {
-		return *static_cast<const ExpT*>(this);
-	}
+    bool is(ExpressionType type) const {
+        return type == this->type();
+    }
+
+    template<typename T>
+    T& as() {
+        return *static_cast<T*>(this);
+    }
+
+    template<typename T>
+    const T& as() const {
+        return *static_cast<const T*>(this);
+    }
+
+    ValueCategory value_category() const { return value_category_; }
+    void set_value_category(ValueCategory category) {
+        value_category_ = category;
+    }
+    SourcePos start() const { return start_; }
+    SourcePos end() const { return end_; }
+
+private:
+    ValueCategory value_category_ = ValueCategory::kRValue;
+    SourcePos start_;
+    SourcePos end_;
+};
+
+class Identifier : public Expression {
+public:
+    Identifier(SourcePos start, SourcePos end, std::string&& name)
+        : Expression(start, end), name_(std::move(name)) {
+        set_value_category(ValueCategory::kLValue);
+    }
+
+    ExpressionType type() const noexcept override {
+        return ExpressionType::kIdentifier;
+    }
+
+    const std::string& name() const { return name_; }
+
+private:
+    std::string name_;
+};
+
+// Literal Expressions
+class UndefinedLiteral : public Expression {
+public:
+    UndefinedLiteral(SourcePos start, SourcePos end)
+        : Expression(start, end) {}
+
+    ExpressionType type() const noexcept override {
+        return ExpressionType::kUndefined;
+    }
+};
+
+class NullLiteral : public Expression {
+public:
+    NullLiteral(SourcePos start, SourcePos end)
+        : Expression(start, end) {}
+
+    ExpressionType type() const noexcept override {
+        return ExpressionType::kNull;
+    }
+};
+
+class BooleanLiteral : public Expression {
+public:
+    BooleanLiteral(SourcePos start, SourcePos end, bool value)
+        : Expression(start, end), value_(value) {}
+
+    ExpressionType type() const noexcept override {
+        return ExpressionType::kBoolean;
+    }
+
+    bool value() const { return value_; }
+
+private:
+    bool value_;
+};
+
+class IntegerLiteral : public Expression {
+public:
+    IntegerLiteral(SourcePos start, SourcePos end, double value)
+        : Expression(start, end), value_(value) {}
+
+    ExpressionType type() const noexcept override {
+        return ExpressionType::kInteger;
+    }
+
+    int64_t value() const { return value_; }
+
+private:
+    int64_t value_;
+};
+
+class FloatLiteral : public Expression {
+public:
+    FloatLiteral(SourcePos start, SourcePos end, double value)
+        : Expression(start, end), value_(value) {}
+
+    ExpressionType type() const noexcept override {
+        return ExpressionType::kFloat;
+    }
+
+    double value() const { return value_; }
+
+private:
+    double value_;
+};
+
+class StringLiteral : public Expression {
+public:
+    StringLiteral(SourcePos start, SourcePos end, std::string&& value)
+        : Expression(start, end), value_(std::move(value)) {}
+
+    ExpressionType type() const noexcept override {
+        return ExpressionType::kString;
+    }
+    
+    const std::string& value() const { return value_; }
+
+private:
+    std::string value_;
+};
+
+class ThisExpression : public Expression {
+public:
+    ThisExpression(SourcePos start, SourcePos end)
+        : Expression(start, end) {}
+
+    ExpressionType type() const noexcept override {
+        return ExpressionType::kThisExpression;
+    }
+};
+
+class ArrayExpression : public Expression {
+public:
+    ArrayExpression(SourcePos start, SourcePos end,
+                std::vector<std::unique_ptr<Expression>>&& elements)
+        : Expression(start, end), elements_(std::move(elements)) {}
+
+    ExpressionType type() const noexcept override {
+        return ExpressionType::kArrayExpression;
+    }
+
+    const std::vector<std::unique_ptr<Expression>>& elements() const { return elements_; }
+
+private:
+    std::vector<std::unique_ptr<Expression>> elements_;
+};
+
+class ObjectExpression : public Expression {
+public:
+    struct Property {
+        std::string key;
+        std::unique_ptr<Expression> value;
+        bool shorthand;
+        bool computed;
+    };
+
+    ObjectExpression(SourcePos start, SourcePos end, std::vector<Property>&& properties)
+        : Expression(start, end), properties_(std::move(properties)) {}
+
+    ExpressionType type() const noexcept override {
+        return ExpressionType::kObjectExpression;
+    }
+
+    const std::vector<Property>& properties() const { return properties_; }
+
+private:
+    std::vector<Property> properties_;
+};
+
+class BlockStatement;
+class FunctionExpression : public Expression {
+public:
+    FunctionExpression(SourcePos start, SourcePos end,
+                std::string id, std::vector<std::string>&& params,
+                std::unique_ptr<BlockStatement> body, 
+                bool is_generator, bool is_async, bool is_module)
+        : Expression(start, end), id_(std::move(id)),
+        params_(std::move(params)), body_(std::move(body)),
+        is_generator_(is_generator), is_async_(is_async), is_module_(is_module) {}
+
+    ExpressionType type() const noexcept override {
+        return ExpressionType::kFunctionExpression;
+    }
+
+    const std::string& id() const { return id_; }
+    const std::vector<std::string>& params() const { return params_; }
+    const std::unique_ptr<BlockStatement>& body() const { return body_; }
+    bool is_generator() const { return is_generator_; }
+    bool is_async() const { return is_async_; }
+
+    bool is_export() const { return is_export_; }
+    void set_is_export(bool is_export) { is_export_ = is_export; }
+
+
+private:
+    std::string id_;
+    std::vector<std::string> params_;
+    std::unique_ptr<BlockStatement> body_;
+
+    struct {
+        uint32_t is_export_ : 1;
+        uint32_t is_generator_ : 1;
+        uint32_t is_async_ : 1;
+        uint32_t is_module_ : 1;
+    };
+
 };
 
 
-struct UndefinedExp : public Exp {
-	virtual ExpType GetType() const noexcept override {
-		return ExpType::kUndefined;
-	}
+class MemberExpression : public Expression {
+public:
+    MemberExpression(SourcePos start,  SourcePos end,
+                std::unique_ptr<Expression> object,
+                std::unique_ptr<Expression> property,
+                bool computed, bool optional)
+        : Expression(start, end), object_(std::move(object)),
+        property_(std::move(property)), computed_(computed), optional_(optional) {
+        if (!computed) {
+            set_value_category(ValueCategory::kLValue);
+        }
+    }
+
+    ExpressionType type() const noexcept override {
+        return ExpressionType::kMemberExpression;
+    }
+
+    const std::unique_ptr<Expression>& object() const { return object_; }
+    const std::unique_ptr<Expression>& property() const { return property_; }
+    bool computed() const { return computed_; }
+    bool optional() const { return optional_; }
+
+private:
+    std::unique_ptr<Expression> object_;
+    std::unique_ptr<Expression> property_;
+    bool computed_;
+    bool optional_;
 };
 
-struct NullExp : public Exp {
-	virtual ExpType GetType() const noexcept override {
-		return ExpType::kNull;
-	}
+class CallExpression : public Expression {
+public:
+    CallExpression(SourcePos start, SourcePos end, 
+                std::unique_ptr<Expression> callee,
+                std::vector<std::unique_ptr<Expression>>&& arguments)
+        : Expression(start, end), callee_(std::move(callee)),
+        arguments_(std::move(arguments)) {}
+
+    ExpressionType type() const noexcept override {
+        return ExpressionType::kCallExpression;
+    }
+
+    const std::unique_ptr<Expression>& callee() const { return callee_; }
+    const std::vector<std::unique_ptr<Expression>>& arguments() const { return arguments_; }
+
+private:
+    std::unique_ptr<Expression> callee_;
+    std::vector<std::unique_ptr<Expression>> arguments_;
 };
 
-struct BoolExp : public Exp {
-	virtual ExpType GetType() const noexcept override {
-		return ExpType::kBool;
-	}
-	BoolExp(bool value) noexcept
-		: value(value) {}
+class NewExpression : public Expression {
+public:
+    NewExpression(SourcePos start, SourcePos end, 
+                std::unique_ptr<Expression> callee,
+                std::vector<std::unique_ptr<Expression>>&& arguments)
+        : Expression(start, end), callee_(std::move(callee)), 
+          arguments_(std::move(arguments)) {}
 
-	bool value;
+    ExpressionType type() const noexcept override {
+        return ExpressionType::kNewExpression;
+    }
+
+    const std::unique_ptr<Expression>& callee() const { return callee_; }
+    const std::vector<std::unique_ptr<Expression>>& arguments() const { return arguments_; }
+
+private:
+    std::unique_ptr<Expression> callee_;
+    std::vector<std::unique_ptr<Expression>> arguments_;
 };
 
-struct FloatExp : public Exp {
-	virtual ExpType GetType() const noexcept override {
-		return ExpType::kFloat;
-	}
-	FloatExp(double value) noexcept
-		: value(value) {}
+class AssigenmentExpression : public Expression {
+public:
+    AssigenmentExpression(SourcePos start, SourcePos end, 
+                TokenType op, std::unique_ptr<Expression> left,
+                std::unique_ptr<Expression> right)
+        : Expression(start, end), operator_(op), left_(std::move(left)), right_(std::move(right)) {}
 
-	double value;
-};
+    ExpressionType type() const noexcept override {
+        return ExpressionType::kAssigenmentExpression;
+    }
 
-struct IntExp : public Exp {
-	virtual ExpType GetType() const noexcept override {
-		return ExpType::kInt;
-	}
-	IntExp(int64_t value) noexcept
-		: value(value) {}
+    TokenType op() const { return operator_; }
+    const std::unique_ptr<Expression>& left() const { return left_; }
+    const std::unique_ptr<Expression>& right() const { return right_; }
 
-	int64_t value;
-};
-
-struct StringExp : public Exp {
-	virtual ExpType GetType() const noexcept override {
-		return ExpType::kString;
-	}
-	StringExp(const std::string& value)
-		: value(value) {}
-
-
-	std::string value;
-};
-
-
-
-struct UnaryOpExp : public Exp {
-	UnaryOpExp(TokenType oper, std::unique_ptr<Exp> operand)
-		: oper(oper)
-		, operand(std::move(operand)) {}
-
-	virtual ExpType GetType() const noexcept override {
-		return ExpType::kUnaryOp;
-	}
-
-	TokenType oper;
-	std::unique_ptr<Exp> operand;
+private:
+    TokenType operator_;
+    std::unique_ptr<Expression> left_;
+    std::unique_ptr<Expression> right_;
 };
 
 
-struct BinaryOpExp : public Exp {
-	virtual ExpType GetType() const noexcept override {
-		return ExpType::kBinaryOp;
-	}
-	BinaryOpExp(std::unique_ptr<Exp> left_exp, TokenType oper, std::unique_ptr<Exp> right_exp)
-		: left_exp(std::move(left_exp))
-		, oper(oper)
-		, right_exp(std::move(right_exp)) {}
+class UnaryExpression : public Expression {
+public:
+    UnaryExpression(SourcePos start, SourcePos end,
+                TokenType op, std::unique_ptr<Expression> argument)
+        : Expression(start, end), operator_(op), argument_(std::move(argument)) {}
 
-	std::unique_ptr<Exp> left_exp;
-	TokenType oper;
-	std::unique_ptr<Exp> right_exp;
+    ExpressionType type() const noexcept override {
+        return ExpressionType::kUnaryExpression;
+    }
+
+    TokenType op() const { return operator_; }
+    const std::unique_ptr<Expression>& argument() const { return argument_; }
+
+private:
+    TokenType operator_;
+    std::unique_ptr<Expression> argument_;
 };
 
-struct TernaryOpExp : public Exp {
-	virtual ExpType GetType() const noexcept override {
-		return ExpType::kTernaryOp;
-	}
-	TernaryOpExp(TokenType oper, std::unique_ptr<Exp> exp1, std::unique_ptr<Exp> exp2, std::unique_ptr<Exp> exp3)
-		: oper(oper)
-		, exp1(std::move(exp1))
-		, exp2(std::move(exp2))
-		, exp3(std::move(exp3)) {}
+class BinaryExpression : public Expression {
+public:
+    BinaryExpression(SourcePos start, SourcePos end,
+                TokenType op, std::unique_ptr<Expression> left,
+                std::unique_ptr<Expression> right)
+        : Expression(start, end), operator_(op), left_(std::move(left)), right_(std::move(right)) {}
 
-	TokenType oper;
-	std::unique_ptr<Exp> exp1;
-	std::unique_ptr<Exp> exp2;
-	std::unique_ptr<Exp> exp3;
+    ExpressionType type() const noexcept override {
+        return ExpressionType::kBinaryExpression;
+    }
+
+    TokenType op() const { return operator_; }
+    const std::unique_ptr<Expression>& left() const { return left_; }
+    const std::unique_ptr<Expression>& right() const { return right_; }
+
+private:
+    TokenType operator_;
+    std::unique_ptr<Expression> left_;
+    std::unique_ptr<Expression> right_;
 };
 
-struct IdentifierExp : public Exp {
-	virtual ExpType GetType() const noexcept override {
-		return ExpType::kIdentifier;
-	}
-	IdentifierExp(const std::string& name)
-		: name(name)
-	{
-		value_category = ExpValueCategory::kLeftValue;
-	}
+class ConditionalExpression : public Expression {
+public:
+    ConditionalExpression(SourcePos start, SourcePos end,
+                std::unique_ptr<Expression> test,
+                std::unique_ptr<Expression> consequent,
+                std::unique_ptr<Expression> alternate)
+        : Expression(start, end), test_(std::move(test)),
+        consequent_(std::move(consequent)), alternate_(std::move(alternate)) {}
 
-	std::string name;
+    ExpressionType type() const noexcept override {
+        return ExpressionType::kConditionalExpression;
+    }
+
+    const std::unique_ptr<Expression>& test() const { return test_; }
+    const std::unique_ptr<Expression>& consequent() const { return consequent_; }
+    const std::unique_ptr<Expression>& alternate() const { return alternate_; }
+
+private:
+    std::unique_ptr<Expression> test_;
+    std::unique_ptr<Expression> consequent_;
+    std::unique_ptr<Expression> alternate_;
 };
 
-struct ThisExp : public Exp {
-	virtual ExpType GetType() const noexcept override {
-		return ExpType::kThis;
-	}
+
+class YieldExpression : public Expression {
+public:
+    YieldExpression(SourcePos start, SourcePos end, 
+                std::unique_ptr<Expression> argument)
+        : Expression(start, end), argument_(std::move(argument)) {}
+
+    ExpressionType type() const noexcept override {
+        return ExpressionType::kYieldExpression;
+    }
+
+    const std::unique_ptr<Expression>& argument() const { return argument_; }
+
+private:
+    std::unique_ptr<Expression> argument_;
 };
 
-struct ImportExp : public Exp {
-	ImportExp(std::string path)
-		: path(std::move(path))
-	{
-		value_category = ExpValueCategory::kLeftValue;
-	}
+class AwaitExpression : public Expression {
+public:
+    AwaitExpression(SourcePos start, SourcePos end,
+        std::unique_ptr<Expression> argument)
+        : Expression(start, end), argument_(std::move(argument)) {}
 
-	virtual ExpType GetType() const noexcept override {
-		return ExpType::kImport;
-	}
-	std::string path;
+    ExpressionType type() const noexcept override {
+        return ExpressionType::kYieldExpression;
+    }
+
+    const std::unique_ptr<Expression>& argument() const { return argument_; }
+
+private:
+    std::unique_ptr<Expression> argument_;
 };
 
-struct MemberExp : public Exp {
-	virtual ExpType GetType() const noexcept override {
-		return ExpType::kDotExp;
-	}
-	MemberExp(std::unique_ptr<Exp> exp, std::unique_ptr<Exp> prop_exp, bool is_method_call)
-		: exp(std::move(exp))
-		, prop_exp(std::move(prop_exp))
-		, is_method_call(is_method_call)
-	{
-		if (!is_method_call) {
-			value_category = ExpValueCategory::kLeftValue;
-		}
-	}
 
-	std::unique_ptr<Exp> exp;
-	std::unique_ptr<Exp> prop_exp;
-	bool is_method_call;
+class ImportExpression : public Expression {
+public:
+    ImportExpression(SourcePos start, SourcePos end, std::string source)
+        : Expression(start, end), source_(std::move(source)) {
+        set_value_category(ValueCategory::kLValue);
+    }
+
+    ExpressionType type() const noexcept override {
+        return ExpressionType::kImportExpression;
+    }
+
+    const std::string& source() const { return source_; }
+
+private:
+    std::string source_;
 };
 
-struct IndexedExp : public Exp {
-	virtual ExpType GetType() const noexcept override {
-		return ExpType::kIndexedExp;
-	}
-	IndexedExp(std::unique_ptr<Exp> exp, std::unique_ptr<Exp> index_exp, bool is_method_call)
-		: exp(std::move(exp))
-		, index_exp(std::move(index_exp))
-		, is_method_call(is_method_call)
-	{
-		if (!is_method_call) {
-			value_category = ExpValueCategory::kLeftValue;
-		}
-	}
-
-	std::unique_ptr<Exp> exp;
-	std::unique_ptr<Exp> index_exp;
-	bool is_method_call;
-};
-
-struct ArrayLiteralExp : public Exp {
-	virtual ExpType GetType() const noexcept override {
-		return ExpType::kArrayLiteralExp;
-	}
-	ArrayLiteralExp(std::vector<std::unique_ptr<Exp>>&& arr_litera)
-		: arr_litera(std::move(arr_litera)) {}
-
-	std::vector<std::unique_ptr<Exp>> arr_litera;
-};
-
-struct ObjectLiteralExp : public Exp {
-	virtual ExpType GetType() const noexcept override {
-		return ExpType::kObjectLiteralExp;
-	}
-	ObjectLiteralExp(std::unordered_map<std::string, std::unique_ptr<Exp>>&& obj_litera)
-		: obj_litera(std::move(obj_litera)) {}
-
-	std::unordered_map<std::string, std::unique_ptr<Exp>> obj_litera;
-};
-
-struct NewExp : public Exp {
-	NewExp(std::unique_ptr<Exp> callee, std::vector<std::unique_ptr<Exp>>&& par_list)
-		: callee(std::move(callee))
-		, par_list(std::move(par_list)){}
-
-	virtual ExpType GetType() const noexcept override {
-		return ExpType::kNew;
-	}
-
-	std::unique_ptr<Exp> callee;
-	std::vector<std::unique_ptr<Exp>> par_list;
-};
-
-struct BlockStat;
-struct FunctionDeclExp : public Exp {
-	virtual ExpType GetType() const noexcept {
-		return ExpType::kFunctionDecl;
-	}
-
-	FunctionDeclExp(const std::string& func_name, const std::vector<std::string>& par_list
-		, std::unique_ptr<BlockStat> block, FunctionType func_type) 
-		: func_name(func_name)
-		, par_list(par_list)
-		, block(std::move(block))
-		, func_type(func_type) {}
-
-	std::string func_name;
-	std::vector<std::string> par_list;
-	std::unique_ptr<BlockStat> block;
-
-	FunctionType func_type;
-	struct {
-		uint32_t is_export : 1 = 0;
-	} flags;
-};
-
-struct FunctionCallExp : public Exp {
-	virtual ExpType GetType() const noexcept override {
-		return ExpType::kFunctionCall;
-	}
-	FunctionCallExp(std::unique_ptr<Exp> func_obj, std::vector<std::unique_ptr<Exp>>&& par_list)
-		: func_obj(std::move(func_obj))
-		, par_list(std::move(par_list)) {}
-
-	std::unique_ptr<Exp> func_obj;
-	std::vector<std::unique_ptr<Exp>> par_list;
-};
-
-struct YieldExp : public Exp {
-	virtual ExpType GetType() const noexcept override {
-		return ExpType::kYield;
-	}
-	YieldExp(std::unique_ptr<Exp> exp)
-		: exp(std::move(exp)) {}
-
-	std::unique_ptr<Exp> exp;
-};
 
 } // namespace compiler
 } // namespace mjs

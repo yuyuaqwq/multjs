@@ -50,7 +50,6 @@ enum class ValueType : uint32_t {
 	kPromiseResolve,
 	kPromiseReject,
 
-	
 	kReferenceCounter,
 };
 

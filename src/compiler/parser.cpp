@@ -18,100 +18,273 @@ namespace compiler {
 Parser::Parser(Lexer* lexer)
 	: lexer_(lexer) {}
 
+std::unique_ptr<Identifier> Parser::ParseIdentifier() {
+	auto start = lexer_->pos();
+	auto token = lexer_->MatchToken(TokenType::kIdentifier);
+	auto end = lexer_->pos();
+	auto exp = std::make_unique<Identifier>(start, end, token.str());
+	exp->set_value_category(ValueCategory::kLValue);
+	return exp;
+}
 
-void Parser::ParseSource() {
-	while (!lexer_->PeekToken().Is(TokenType::kEof)) {
-		src_stats_.emplace_back(ParseStat());
+std::unique_ptr<Expression> Parser::ParseLiteral() {
+	auto start = lexer_->pos();
+	auto token = lexer_->PeekToken();
+	std::unique_ptr<Expression> exp;
+	switch (token.type()) {
+	//case TokenType::kKwAsync:
+	//case TokenType::kKwFunction:
+	//	exp = ParseFunctionExpression();
+	//	break;
+	case TokenType::kUndefined:
+		lexer_->NextToken();
+		exp = std::make_unique<UndefinedLiteral>(start, lexer_->pos());
+		break;
+	case TokenType::kNull: {
+		lexer_->NextToken();
+		exp = std::make_unique<NullLiteral>(start, lexer_->pos());
+		break;
+	}
+	case TokenType::kTrue: {
+		lexer_->NextToken();
+		exp = std::make_unique<BooleanLiteral>(start, lexer_->pos(), true);
+		break;
+	}
+	case TokenType::kFalse: {
+		lexer_->NextToken();
+		exp = std::make_unique<BooleanLiteral>(start, lexer_->pos(), false);
+		break;
+	}
+	case TokenType::kFloatLiteral: {
+		lexer_->NextToken();
+		exp = std::make_unique<FloatLiteral>(start, lexer_->pos(), std::stod(token.str()));
+		break;
+	}
+	case TokenType::kIntegerLiteral: {
+		lexer_->NextToken();
+		exp = std::make_unique<IntegerLiteral>(start, lexer_->pos(), std::stoll(token.str()));
+		break;
+	}
+	case TokenType::kString: {
+		lexer_->NextToken();
+		exp = std::make_unique<StringLiteral>(start, lexer_->pos(), token.str());
+		break;
+	}
+	//case TokenType::kSepLBrack: {
+	//	exp = ParseArrayExpression();
+	//	break;
+	//}
+	//case TokenType::kSepLCurly: {
+	//	exp = ParseObjectExpression();
+	//	break;
+	//}
+	//case TokenType::kIdentifier: {
+	//	exp = ParseIdentifier();
+	//	break;
+	//}
+	//case TokenType::kKwThis: {
+	//	lexer_->NextToken();
+	//	exp = std::make_unique<ThisExpression>();
+	//	break;
+	//}
+	//case TokenType::kKwImport: {
+	//	lexer_->NextToken();
+	//	lexer_->MatchToken(TokenType::kSepLParen);
+	//	auto path = lexer_->MatchToken(TokenType::kString).str();
+	//	lexer_->MatchToken(TokenType::kSepRParen);
+	//	exp = std::make_unique<ImportExpression>(std::move(path));
+	//	break;
+	//}
+	}
+
+	if (!exp) {
+		throw ParserException("Unable to parse expression.");
+	}
+	return exp;
+}
+
+std::unique_ptr<ArrayExpression> Parser::ParseArrayExpression() {
+	auto start = lexer_->pos();
+	auto arr_literal = ParseExpressionList(TokenType::kSepLBrack, TokenType::kSepRBrack, true);
+	auto end = lexer_->pos();
+	return std::make_unique<ArrayExpression>(start, end, std::move(arr_literal));
+}
+
+std::unique_ptr<ObjectExpression> Parser::ParseObjectExpression() {
+	auto start = lexer_->pos();
+	lexer_->NextToken();
+	std::unordered_map<std::string, std::unique_ptr<Expression>> obj_literal;
+	if (!lexer_->PeekToken().is(TokenType::kSepRCurly)) {
+		do {
+			auto ident = lexer_->MatchToken(TokenType::kIdentifier);
+			lexer_->MatchToken(TokenType::kSepColon);
+			// ParseExpression20会解析kSepComma，避免
+			obj_literal.emplace(ident.str(), ParseExpression19());
+			if (!lexer_->PeekToken().is(TokenType::kSepComma)) {
+				break;
+			}
+			if (lexer_->PeekToken().is(TokenType::kSepRCurly)) {
+				break;
+			}
+			lexer_->NextToken();
+		} while (true);
+	}
+	lexer_->MatchToken(TokenType::kSepRCurly);
+	auto end = lexer_->pos();
+	return std::make_unique<ObjectExpression>(start, end, std::move(obj_literal));
+}
+
+std::unique_ptr<FunctionExpression> Parser::ParseFunctionExpression() {
+	auto start = lexer_->pos();
+	bool is_async = false;
+	bool is_generator = false;
+	if (lexer_->PeekToken().is(TokenType::kKwAsync)) {
+		lexer_->NextToken();
+		is_async = true;
+	}
+	lexer_->MatchToken(TokenType::kKwFunction);
+	if (lexer_->PeekToken().is(TokenType::kOpMul)) {
+		if (is_async) {
+			throw ParserException("Does not support asynchronous generator function.");
+		}
+		// 生成器函数
+		lexer_->NextToken();
+		is_generator = true;
+	}
+	std::string id;
+	if (lexer_->PeekToken().is(TokenType::kIdentifier)) {
+		id = lexer_->NextToken().str();
+	}
+	auto params = ParseParNameList();
+	auto block = ParseBlockStatement();
+
+	auto end = lexer_->pos();
+	return std::make_unique<FunctionExpression>(start, end, id, std::move(params), std::move(block), is_async, is_generator, false);
+}
+
+std::unique_ptr<MemberExpression> Parser::ParseMemberExpression(std::unique_ptr<Expression> object) {
+	auto start = lexer_->pos();
+
+	std::unique_ptr<Expression> member;
+
+	bool computed = false;
+	auto token = lexer_->NextToken();
+	if (token.is(TokenType::kSepDot)) {
+		member = ParseLiteral();
+	}
+	else if (token.is(TokenType::kSepLBrack)) {
+		member = ParseExpression();
+		lexer_->MatchToken(TokenType::kSepRBrack);
+		computed = true;
+	}
+	else {
+		throw;
+	}
+
+	bool is_method_call = false;
+	if (lexer_->PeekToken().type() == TokenType::kSepLParen) {
+		is_method_call = true;
+	}
+
+	auto end = lexer_->pos();
+
+	return std::make_unique<MemberExpression>(start, end, std::move(object), std::move(member), computed, false);
+}
+
+
+void Parser::ParseProgram() {
+	while (!lexer_->PeekToken().is(TokenType::kEof)) {
+		src_statements_.emplace_back(ParseStatement());
 	}
 }
 
-std::unique_ptr<BlockStat> Parser::ParseBlockStat() {
+std::unique_ptr<BlockStatement> Parser::ParseBlockStatement() {
 	lexer_->MatchToken(TokenType::kSepLCurly);
 
-	std::vector<std::unique_ptr<Stat>> stat_list;
+	std::vector<std::unique_ptr<Statement>> stat_list;
 
-	while (!lexer_->PeekToken().Is(TokenType::kSepRCurly)) {
-		stat_list.push_back(ParseStat());
+	while (!lexer_->PeekToken().is(TokenType::kSepRCurly)) {
+		stat_list.push_back(ParseStatement());
 	}
 
 	lexer_->MatchToken(TokenType::kSepRCurly);
 
-	return std::make_unique<BlockStat>(std::move(stat_list));
+	return std::make_unique<BlockStatement>(std::move(stat_list));
 }
 
-std::unique_ptr<Stat> Parser::ParseStat() {
+std::unique_ptr<Statement> Parser::ParseStatement() {
 	auto token = lexer_->PeekToken();
 	switch (token.type()) {
-		case TokenType::kKwImport: {
-			return ParseImportStat(token.type());
-		}
-		case TokenType::kKwExport: {
-			return ParseExportStat(token.type());
+		case TokenType::kIdentifier: {
+			if (lexer_->PeekTokenN(2).is(TokenType::kSepColon)) {
+				return ParseLabeledStatement();
+			}
 		}
 		case TokenType::kKwLet:
 		case TokenType::kKwConst: {
-			return ParseNewVarStat(token.type());
-		}
-		case TokenType::kSepLCurly: {
-			return ParseBlockStat();
+			return ParseVariableDeclaration(token.type());
 		}
 		case TokenType::kKwIf: {
-			return ParseIfStat();
+			return ParseIfStatement();
 		}
 		case TokenType::kKwFor: {
-			return ParseForStat();
+			return ParseForStatement();
 		}
 		case TokenType::kKwWhile: {
-			return ParseWhileStat();
+			return ParseWhileStatement();
 		}
 		case TokenType::kKwContinue: {
-			return ParseContinueStat();
+			return ParseContinueStatement();
 		}
 		case TokenType::kKwBreak: {
-			return ParseBreakStat();
+			return ParseBreakStatement();
 		}
 		case TokenType::kKwReturn: {
-			return ParseReturnStat();
+			return ParseReturnStatement();
 		}
 		case TokenType::kKwTry: {
-			return ParseTryStat();
+			return ParseTryStatement();
 		}
 		case TokenType::kKwThrow: {
-			return ParseThrowStat();
+			return ParseThrowStatement();
 		}
 		case TokenType::kKwAsync:
 		case TokenType::kKwFunction: {
 			// 如果是直接定义，就不需要添加分号
-			return std::make_unique<ExpStat>(ParseFunctionDeclExp());
+			return std::make_unique<ExpressionStatement>(ParseFunctionExpression());
 		}
-		case TokenType::kIdentifier: {
-			if (lexer_->PeekTokenN(2).Is(TokenType::kSepColon)) {
-				return ParseLabelStat();
-			}
+		case TokenType::kSepLCurly: {
+			return ParseBlockStatement();
+		}
+		case TokenType::kKwImport: {
+			return ParseImportStatement(token.type());
+		}
+		case TokenType::kKwExport: {
+			return ParseExportDeclaration(token.type());
 		}
 		default: {
-			return ParseExpStat();
+			return ParseExpressionStatement();
 		}
 	}
 }
 
-std::unique_ptr<ExpStat> Parser::ParseExpStat() {
-	if (lexer_->PeekToken().Is(TokenType::kSepSemi)) {
+std::unique_ptr<ExpressionStatement> Parser::ParseExpressionStatement() {
+	if (lexer_->PeekToken().is(TokenType::kSepSemi)) {
 		lexer_->NextToken();
-		return std::make_unique<ExpStat>(nullptr);
+		return std::make_unique<ExpressionStatement>(nullptr);
 	}
-	auto exp = ParseExp();
+	auto exp = ParseExpression();
 	lexer_->MatchToken(TokenType::kSepSemi);
-	return std::make_unique<ExpStat>(std::move(exp));
+	return std::make_unique<ExpressionStatement>(std::move(exp));
 }
 
 std::vector<std::string> Parser::ParseParNameList() {
 	lexer_->MatchToken(TokenType::kSepLParen);
 	std::vector<std::string> parList;
-	if (!lexer_->PeekToken().Is(TokenType::kSepRParen)) {
+	if (!lexer_->PeekToken().is(TokenType::kSepRParen)) {
 		do {
 			parList.push_back(lexer_->MatchToken(TokenType::kIdentifier).str());
-			if (!lexer_->PeekToken().Is(TokenType::kSepComma)) {
+			if (!lexer_->PeekToken().is(TokenType::kSepComma)) {
 				break;
 			}
 			lexer_->NextToken();
@@ -121,189 +294,174 @@ std::vector<std::string> Parser::ParseParNameList() {
 	return parList;
 }
 
-std::unique_ptr<IfStat> Parser::ParseIfStat() {
+std::unique_ptr<IfStatement> Parser::ParseIfStatement() {
 	lexer_->NextToken();
 
 	lexer_->MatchToken(TokenType::kSepLParen);
-	auto exp = ParseExp();
+	auto test = ParseExpression();
 	lexer_->MatchToken(TokenType::kSepRParen);
 
-	auto block = ParseBlockStat();
+	auto consequent = ParseBlockStatement();
 
-	std::vector<std::unique_ptr<ElseIfStat>> else_if_stat_list;
-
+	std::unique_ptr<Statement> alternate;
 	auto token = lexer_->PeekToken();
-
-	std::unique_ptr<ElseStat> else_stat;
-	while (token.Is(TokenType::kKwElse)) {
+	if (token.is(TokenType::kKwElse)) {
 		lexer_->NextToken();
 		token = lexer_->PeekToken();
-		if (token.Is(TokenType::kKwIf)) {
-			else_if_stat_list.push_back(ParseElseIfStat());
-			token = lexer_->PeekToken();
-			continue;
+
+		if (token.is(TokenType::kKwIf)) {
+			alternate = ParseIfStatement();
 		}
-		else_stat = ParseElseStat();
-		break;
+		else {
+			alternate = ParseBlockStatement();
+		}
 	}
-	return std::make_unique<IfStat>(std::move(exp), std::move(block), std::move(else_if_stat_list), std::move(else_stat));
+	return std::make_unique<IfStatement>(std::move(test), std::move(consequent), std::move(alternate));
 }
 
-std::unique_ptr<ElseIfStat> Parser::ParseElseIfStat() {
-	lexer_->MatchToken(TokenType::kKwIf);
-	lexer_->MatchToken(TokenType::kSepLParen);
-	auto exp = ParseExp();
-	lexer_->MatchToken(TokenType::kSepRParen);
-	auto block = ParseBlockStat();
-	return std::make_unique<ElseIfStat>(std::move(exp), std::move(block));
-}
-
-std::unique_ptr<ElseStat> Parser::ParseElseStat() {
-	auto block = ParseBlockStat();
-	return std::make_unique<ElseStat>(std::move(block));
-}
-
-std::unique_ptr<ForStat> Parser::ParseForStat() {
+std::unique_ptr<ForStatement> Parser::ParseForStatement() {
 	lexer_->MatchToken(TokenType::kKwFor);
 	lexer_->MatchToken(TokenType::kSepLParen);
 
-	std::unique_ptr<Stat> initialization;
+	std::unique_ptr<Statement> initialization;
 	auto token = lexer_->PeekToken();
-	if (token.Is(TokenType::kSepSemi)) {
+	if (token.is(TokenType::kSepSemi)) {
 		lexer_->NextToken();
 	}
 	else {
-		if (token.Is(TokenType::kKwLet) || token.Is(TokenType::kKwConst)) {
-			initialization = ParseNewVarStat(token.type());
+		if (token.is(TokenType::kKwLet) || token.is(TokenType::kKwConst)) {
+			initialization = ParseVariableDeclaration(token.type());
 		}
 		else {
-			initialization = ParseExpStat();
+			initialization = ParseExpressionStatement();
 		}
 	}
 
 	token = lexer_->PeekToken();
-	std::unique_ptr<Exp> condition;
-	if (!token.Is(TokenType::kSepSemi)) {
-		condition = ParseExp();
+	std::unique_ptr<Expression> condition;
+	if (!token.is(TokenType::kSepSemi)) {
+		condition = ParseExpression();
 	}
 	lexer_->MatchToken(TokenType::kSepSemi);
 
 	token = lexer_->PeekToken();
-	std::unique_ptr<Exp> final_expression;
-	if (!token.Is(TokenType::kSepRParen)) {
-		final_expression = ParseExp();
+	std::unique_ptr<Expression> final_expression;
+	if (!token.is(TokenType::kSepRParen)) {
+		final_expression = ParseExpression();
 	}
 	lexer_->MatchToken(TokenType::kSepRParen);
 
-	auto block = ParseBlockStat();
+	auto block = ParseBlockStatement();
 
-	return std::make_unique<ForStat>(std::move(initialization), std::move(condition)
+	return std::make_unique<ForStatement>(std::move(initialization), std::move(condition)
 		, std::move(final_expression), std::move(block));
 }
 
-std::unique_ptr<WhileStat> Parser::ParseWhileStat() {
+std::unique_ptr<WhileStatement> Parser::ParseWhileStatement() {
 	lexer_->MatchToken(TokenType::kKwWhile);
 	lexer_->MatchToken(TokenType::kSepLParen);
-	auto exp = ParseExp();
+	auto exp = ParseExpression();
 	lexer_->MatchToken(TokenType::kSepRParen);
-	auto block = ParseBlockStat();
-	return std::make_unique<WhileStat>(std::move(exp), std::move(block));
+	auto block = ParseBlockStatement();
+	return std::make_unique<WhileStatement>(std::move(exp), std::move(block));
 }
 
-std::unique_ptr<ContinueStat> Parser::ParseContinueStat() {
+std::unique_ptr<ContinueStatement> Parser::ParseContinueStatement() {
 	lexer_->MatchToken(TokenType::kKwContinue);
 	std::optional<std::string> label_name;
-	if (lexer_->PeekToken().Is(TokenType::kIdentifier)) {
+	if (lexer_->PeekToken().is(TokenType::kIdentifier)) {
 		label_name = lexer_->NextToken().str();
 	}
 	lexer_->MatchToken(TokenType::kSepSemi);
-	return std::make_unique<ContinueStat>(std::move(label_name));
+	return std::make_unique<ContinueStatement>(std::move(label_name));
 }
 
-std::unique_ptr<BreakStat> Parser::ParseBreakStat() {
+std::unique_ptr<BreakStatement> Parser::ParseBreakStatement() {
 	lexer_->MatchToken(TokenType::kKwBreak);
 	std::optional<std::string> label_name;
-	if (lexer_->PeekToken().Is(TokenType::kIdentifier)) {
+	if (lexer_->PeekToken().is(TokenType::kIdentifier)) {
 		label_name = lexer_->NextToken().str();
 	}
 	lexer_->MatchToken(TokenType::kSepSemi);
-	return std::make_unique<BreakStat>(std::move(label_name));
+	return std::make_unique<BreakStatement>(std::move(label_name));
 }
 
-std::unique_ptr<ReturnStat> Parser::ParseReturnStat() {
+std::unique_ptr<ReturnStatement> Parser::ParseReturnStatement() {
 	lexer_->MatchToken(TokenType::kKwReturn);
-	std::unique_ptr<Exp> exp;
-	if (!lexer_->PeekToken().Is(TokenType::kSepSemi)) {
-		exp = ParseExp();
+	std::unique_ptr<Expression> exp;
+	if (!lexer_->PeekToken().is(TokenType::kSepSemi)) {
+		exp = ParseExpression();
 	}
 	lexer_->MatchToken(TokenType::kSepSemi);
-	return std::make_unique<ReturnStat>(std::move(exp));
+	return std::make_unique<ReturnStatement>(std::move(exp));
 }
 
-std::unique_ptr<TryStat> Parser::ParseTryStat() {
+std::unique_ptr<TryStatement> Parser::ParseTryStatement() {
 	lexer_->MatchToken(TokenType::kKwTry);
 
-	auto block = ParseBlockStat();
+	auto block = ParseBlockStatement();
 
 	auto token = lexer_->PeekToken();
 
-	std::unique_ptr<CatchStat> catch_stat;
-	if (token.Is(TokenType::kKwCatch)) {
-		catch_stat = ParseCatchStat();
+	std::unique_ptr<CatchClause> catch_stat;
+	if (token.is(TokenType::kKwCatch)) {
+		catch_stat = ParseCatchClause();
 		token = lexer_->PeekToken();
 	}
 
-	std::unique_ptr<FinallyStat> finally_stat;
-	if (token.Is(TokenType::kKwFinally)) {
-		finally_stat = ParseFinallyStat();
+	std::unique_ptr<FinallyClause> finally_stat;
+	if (token.is(TokenType::kKwFinally)) {
+		finally_stat = ParseFinallyClause();
 	}
 
-	return std::make_unique<TryStat>(std::move(block), std::move(catch_stat), std::move(finally_stat));
+	return std::make_unique<TryStatement>(std::move(block), std::move(catch_stat), std::move(finally_stat));
 }
 
-std::unique_ptr<CatchStat> Parser::ParseCatchStat() {
+std::unique_ptr<CatchClause> Parser::ParseCatchClause() {
 	lexer_->MatchToken(TokenType::kKwCatch);
 
 	lexer_->MatchToken(TokenType::kSepLParen);
-	auto exp = ParseIdentifierExp();
+	auto exp = ParseIdentifier();
 	lexer_->MatchToken(TokenType::kSepRParen);
 
-	auto block = ParseBlockStat();
+	auto block = ParseBlockStatement();
 
-	return std::make_unique<CatchStat>(std::move(exp), std::move(block));
+	return std::make_unique<CatchClause>(std::move(exp), std::move(block));
 }
 
-std::unique_ptr<FinallyStat> Parser::ParseFinallyStat() {
+std::unique_ptr<FinallyClause> Parser::ParseFinallyClause() {
 	lexer_->MatchToken(TokenType::kKwFinally);
-	auto block = ParseBlockStat();
-	return std::make_unique<FinallyStat>(std::move(block));
+	auto block = ParseBlockStatement();
+	return std::make_unique<FinallyClause>(std::move(block));
 }
 
-std::unique_ptr<ThrowStat> Parser::ParseThrowStat() {
+std::unique_ptr<ThrowStatement> Parser::ParseThrowStatement() {
 	lexer_->MatchToken(TokenType::kKwThrow);
-	auto exp = ParseExp();
-	return std::make_unique<ThrowStat>(std::move(exp));
+	auto exp = ParseExpression();
+	return std::make_unique<ThrowStatement>(std::move(exp));
 }
 
-std::unique_ptr<LabelStat> Parser::ParseLabelStat() {
+std::unique_ptr<LabeledStatement> Parser::ParseLabeledStatement() {
 	auto label_name = lexer_->MatchToken(TokenType::kIdentifier).str();
 	lexer_->MatchToken(TokenType::kSepColon);
-	auto stat = ParseStat();
-	return std::make_unique<LabelStat>(std::move(label_name), std::move(stat));
+	auto stat = ParseStatement();
+	return std::make_unique<LabeledStatement>(std::move(label_name), std::move(stat));
 }
 
-std::unique_ptr<NewVarStat> Parser::ParseNewVarStat(TokenType type) {
-	lexer_->MatchToken(type);
-	auto var_name = lexer_->MatchToken(TokenType::kIdentifier).str();
+std::unique_ptr<VariableDeclaration> Parser::ParseVariableDeclaration(TokenType kind) {
+	SourcePos start = lexer_->pos();
+	lexer_->MatchToken(kind);
+	auto name = lexer_->MatchToken(TokenType::kIdentifier).str();
 	lexer_->MatchToken(TokenType::kOpAssign);
-	auto exp = ParseExp();
+	auto init = ParseExpression();
 	lexer_->MatchToken(TokenType::kSepSemi);
-	return std::make_unique<NewVarStat>(std::move(var_name), std::move(exp), type);
+	SourcePos end = lexer_->pos();
+	return std::make_unique<VariableDeclaration>(start, end, std::move(name), std::move(init), kind);
 }
 
-std::unique_ptr<Stat> Parser::ParseImportStat(TokenType type) {
+std::unique_ptr<Statement> Parser::ParseImportStatement(TokenType type) {
 	auto token = lexer_->PeekTokenN(2);
-	if (token.Is(TokenType::kOpMul)) {
+	if (token.is(TokenType::kOpMul)) {
 		lexer_->MatchToken(type);
 		auto token = lexer_->NextToken();
 		lexer_->MatchToken(TokenType::kKwAs);
@@ -313,103 +471,103 @@ std::unique_ptr<Stat> Parser::ParseImportStat(TokenType type) {
 		auto path = lexer_->MatchToken(TokenType::kString).str();
 
 		// 静态import会被提升，单独保存
-		auto import_stat = std::make_unique<ImportStat>(std::move(path), std::move(module_name));
-		import_stats_.emplace_back(std::move(import_stat));
+		auto import_stat = std::make_unique<ImportDeclaration>(std::move(path), std::move(module_name));
+		import_declarations_.emplace_back(std::move(import_stat));
 
 		// 解析下一个语句返回
-		return ParseStat();
+		return ParseStatement();
 	}
-	else if (token.Is(TokenType::kSepLParen)) {
+	else if (token.is(TokenType::kSepLParen)) {
 		// 动态import
-		return ParseExpStat();
+		return ParseExpressionStatement();
 	}
 	else {
 		throw ParserException("Unsupported module parsing.");
 	}
 }
 
-std::unique_ptr<ExportStat> Parser::ParseExportStat(TokenType type) {
+std::unique_ptr<ExportDeclaration> Parser::ParseExportDeclaration(TokenType type) {
 	lexer_->MatchToken(type);
-	auto stat = ParseStat();
-	if (stat->GetType() == StatType::kExp) {
-		auto& exp = stat->get<ExpStat>().exp;
-		if (exp->GetType() == ExpType::kFunctionDecl) {
-			auto& func_decl_exp = exp->get<FunctionDeclExp>();
-			func_decl_exp.flags.is_export = true;
-			return std::make_unique<ExportStat>(std::move(stat));
+	auto stat = ParseStatement();
+	if (stat->is(StatementType::kExpression)) {
+		auto& exp = stat->as<ExpressionStatement>().expression();
+		if (exp->is(ExpressionType::kFunctionExpression)) {
+			auto& func_decl_exp = exp->as<FunctionExpression>();
+			func_decl_exp.set_is_export(true);
+			return std::make_unique<ExportDeclaration>(std::move(stat));
 		}
 	}
-	if (stat->GetType() == StatType::kNewVar) {
-		auto& new_var_stat = stat->get<NewVarStat>();
-		new_var_stat.flags.is_export = true;
+	if (stat->is(StatementType::kVariableDeclaration)) {
+		auto& var_decl = stat->as<VariableDeclaration>();
+		var_decl.set_is_export(true);
 	}
 	else {
 		throw ParserException("Statement that cannot be exported.");
 	}
-	return std::make_unique<ExportStat>(std::move(stat));
+	return std::make_unique<ExportDeclaration>(std::move(stat));
 }
 
 
 
-std::unique_ptr<Exp> Parser::ParseExp() {
-	return ParseExp20();
+std::unique_ptr<Expression> Parser::ParseExpression() {
+	return ParseExpression20();
 }
 
-std::unique_ptr<Exp> Parser::ParseExp20() {
-	auto exp = ParseExp19();
+std::unique_ptr<Expression> Parser::ParseExpression20() {
+	auto exp = ParseExpression19();
 	do {
 		auto type = lexer_->PeekToken().type();
 		if (type != TokenType::kSepComma) {
 			break;
 		}
 		lexer_->NextToken();
-		exp = std::make_unique<BinaryOpExp>(std::move(exp), type, ParseExp19());
+		exp = std::make_unique<BinaryExpression>(std::move(exp), type, ParseExpression19());
 	} while (true);
 	return exp;
 }
 
-std::unique_ptr<Exp> Parser::ParseExp19() {
+std::unique_ptr<Expression> Parser::ParseExpression19() {
 	auto type = lexer_->PeekToken().type();
 	if (type == TokenType::kKwYield) {
 		lexer_->NextToken();
 
-		std::unique_ptr<Exp> yielded_value = ParseExp18();
-		return std::make_unique<YieldExp>(std::move(yielded_value));
+		std::unique_ptr<Expression> yielded_value = ParseExpression18();
+		return std::make_unique<YieldExpression>(std::move(yielded_value));
 	}
 
-	return ParseExp18();
+	return ParseExpression18();
 }
 
 
-std::unique_ptr<Exp> Parser::ParseExp18() {
+std::unique_ptr<Expression> Parser::ParseExpression18() {
 	// 赋值，右结合
-	auto exp = ParseExp17();
+	auto exp = ParseExpression17();
 	auto type = lexer_->PeekToken().type();
 	if (type != TokenType::kOpAssign) {
 		return exp;
 	}
 	lexer_->NextToken();
-	exp = std::make_unique<BinaryOpExp>(std::move(exp), type, ParseExp18());
+	exp = std::make_unique<BinaryExpression>(std::move(exp), type, ParseExpression18());
 	return exp;
 }
 
-std::unique_ptr<Exp> Parser::ParseExp17() {
+std::unique_ptr<Expression> Parser::ParseExpression17() {
 	// 三元，右结合
-	auto exp = ParseExp16();
+	auto exp = ParseExpression16();
 	auto type = lexer_->PeekToken().type();
 	if (type != TokenType::kSepQuestion) {
 		return exp;
 	}
 	lexer_->NextToken();
-	auto exp2 = ParseExp17();
+	auto exp2 = ParseExpression17();
 	lexer_->MatchToken(TokenType::kSepColon);
-	auto exp3 = ParseExp17();
-	exp = std::make_unique<TernaryOpExp>(TokenType::kOpTernary, std::move(exp), std::move(exp2), std::move(exp3));
+	auto exp3 = ParseExpression17();
+	exp = std::make_unique<ConditionalExpression>(TokenType::kOpTernary, std::move(exp), std::move(exp2), std::move(exp3));
 	return exp;
 }
 
-std::unique_ptr<Exp> Parser::ParseExp16() {
-	auto exp = ParseExp15();
+std::unique_ptr<Expression> Parser::ParseExpression16() {
+	auto exp = ParseExpression15();
 	do {
 		auto type = lexer_->PeekToken().type();
 		if (type != TokenType::kOpOr
@@ -417,65 +575,65 @@ std::unique_ptr<Exp> Parser::ParseExp16() {
 			break;
 		}
 		lexer_->NextToken();
-		exp = std::make_unique<BinaryOpExp>(std::move(exp), type, ParseExp15());
+		exp = std::make_unique<BinaryExpression>(std::move(exp), type, ParseExpression15());
 	} while (true);
 	return exp;
 }
 
-std::unique_ptr<Exp> Parser::ParseExp15() {
-	auto exp = ParseExp14();
+std::unique_ptr<Expression> Parser::ParseExpression15() {
+	auto exp = ParseExpression14();
 	do {
 		auto type = lexer_->PeekToken().type();
 		if (type != TokenType::kOpAnd) {
 			break;
 		}
 		lexer_->NextToken();
-		exp = std::make_unique<BinaryOpExp>(std::move(exp), type, ParseExp14());
+		exp = std::make_unique<BinaryExpression>(std::move(exp), type, ParseExpression14());
 	} while (true);
 	return exp;
 }
 
-std::unique_ptr<Exp> Parser::ParseExp14() {
-	auto exp = ParseExp13();
+std::unique_ptr<Expression> Parser::ParseExpression14() {
+	auto exp = ParseExpression13();
 	do {
 		auto type = lexer_->PeekToken().type();
 		if (type != TokenType::kOpBitOr) {
 			break;
 		}
 		lexer_->NextToken();
-		exp = std::make_unique<BinaryOpExp>(std::move(exp), type, ParseExp13());
+		exp = std::make_unique<BinaryExpression>(std::move(exp), type, ParseExpression13());
 	} while (true);
 	return exp;
 }
 
-std::unique_ptr<Exp> Parser::ParseExp13() {
-	auto exp = ParseExp12();
+std::unique_ptr<Expression> Parser::ParseExpression13() {
+	auto exp = ParseExpression12();
 	do {
 		auto type = lexer_->PeekToken().type();
 		if (type != TokenType::kOpBitXor) {
 			break;
 		}
 		lexer_->NextToken();
-		exp = std::make_unique<BinaryOpExp>(std::move(exp), type, ParseExp12());
+		exp = std::make_unique<BinaryExpression>(std::move(exp), type, ParseExpression12());
 	} while (true);
 	return exp;
 }
 
-std::unique_ptr<Exp> Parser::ParseExp12() {
-	auto exp = ParseExp11();
+std::unique_ptr<Expression> Parser::ParseExpression12() {
+	auto exp = ParseExpression11();
 	do {
 		auto type = lexer_->PeekToken().type();
 		if (type != TokenType::kOpBitAnd) {
 			break;
 		}
 		lexer_->NextToken();
-		exp = std::make_unique<BinaryOpExp>(std::move(exp), type, ParseExp11());
+		exp = std::make_unique<BinaryExpression>(std::move(exp), type, ParseExpression11());
 	} while (true);
 	return exp;
 }
 
-std::unique_ptr<Exp> Parser::ParseExp11() {
-	auto exp = ParseExp10();
+std::unique_ptr<Expression> Parser::ParseExpression11() {
+	auto exp = ParseExpression10();
 	do {
 		auto type = lexer_->PeekToken().type();
 		if (type != TokenType::kOpNe
@@ -485,13 +643,13 @@ std::unique_ptr<Exp> Parser::ParseExp11() {
 			break;
 		}
 		lexer_->NextToken();
-		exp = std::make_unique<BinaryOpExp>(std::move(exp), type, ParseExp10());
+		exp = std::make_unique<BinaryExpression>(std::move(exp), type, ParseExpression10());
 	} while (true);
 	return exp;
 }
 
-std::unique_ptr<Exp> Parser::ParseExp10() {
-	auto exp = ParseExp9();
+std::unique_ptr<Expression> Parser::ParseExpression10() {
+	auto exp = ParseExpression9();
 	do {
 		auto type = lexer_->PeekToken().type();
 		if (type != TokenType::kOpLt
@@ -503,13 +661,13 @@ std::unique_ptr<Exp> Parser::ParseExp10() {
 			break;
 		}
 		lexer_->NextToken();
-		exp = std::make_unique<BinaryOpExp>(std::move(exp), type, ParseExp9());
+		exp = std::make_unique<BinaryExpression>(std::move(exp), type, ParseExpression9());
 	} while (true);
 	return exp;
 }
 
-std::unique_ptr<Exp> Parser::ParseExp9() {
-	auto exp = ParseExp8();
+std::unique_ptr<Expression> Parser::ParseExpression9() {
+	auto exp = ParseExpression8();
 	do {
 		auto type = lexer_->PeekToken().type();
 		if (type != TokenType::kOpShiftLeft
@@ -518,13 +676,13 @@ std::unique_ptr<Exp> Parser::ParseExp9() {
 			break;
 		}
 		lexer_->NextToken();
-		exp = std::make_unique<BinaryOpExp>(std::move(exp), type, ParseExp8());
+		exp = std::make_unique<BinaryExpression>(std::move(exp), type, ParseExpression8());
 	} while (true);
 	return exp;
 }
 
-std::unique_ptr<Exp> Parser::ParseExp8() {
-	auto exp = ParseExp7();
+std::unique_ptr<Expression> Parser::ParseExpression8() {
+	auto exp = ParseExpression7();
 	do {
 		auto type = lexer_->PeekToken().type();
 		if (type != TokenType::kOpAdd
@@ -532,13 +690,13 @@ std::unique_ptr<Exp> Parser::ParseExp8() {
 			break;
 		}
 		lexer_->NextToken();
-		exp = std::make_unique<BinaryOpExp>(std::move(exp), type, ParseExp7());
+		exp = std::make_unique<BinaryExpression>(std::move(exp), type, ParseExpression7());
 	} while (true);
 	return exp;
 }
 
-std::unique_ptr<Exp> Parser::ParseExp7() {
-	auto exp = ParseExp6();
+std::unique_ptr<Expression> Parser::ParseExpression7() {
+	auto exp = ParseExpression6();
 	do {
 		auto type = lexer_->PeekToken().type();
 		if (type != TokenType::kOpMul
@@ -547,26 +705,26 @@ std::unique_ptr<Exp> Parser::ParseExp7() {
 			break;
 		}
 		lexer_->NextToken();
-		exp = std::make_unique<BinaryOpExp>(std::move(exp), type, ParseExp6());
+		exp = std::make_unique<BinaryExpression>(std::move(exp), type, ParseExpression6());
 	} while (true);
 	return exp;
 }
 
-std::unique_ptr<Exp> Parser::ParseExp6() {
+std::unique_ptr<Expression> Parser::ParseExpression6() {
 	// .. ** ..，右结合
-	auto exp = ParseExp5();
+	auto exp = ParseExpression5();
 	auto type = lexer_->PeekToken().type();
 	if (type != TokenType::kOpPower) {
 		return exp;
 	}
 	lexer_->NextToken();
-	exp = std::make_unique<UnaryOpExp>(type, ParseExp6());
+	exp = std::make_unique<UnaryExpression>(type, ParseExpression6());
 	return exp;
 }
 
-std::unique_ptr<Exp> Parser::ParseExp5() {
+std::unique_ptr<Expression> Parser::ParseExpression5() {
 	auto token = lexer_->PeekToken();
-	std::unique_ptr<Exp> exp;
+	std::unique_ptr<Expression> exp;
 	switch (token.type()) {
 	case TokenType::kOpNot:
 	case TokenType::kOpBitNot:
@@ -577,35 +735,35 @@ std::unique_ptr<Exp> Parser::ParseExp5() {
 	case TokenType::kKwDelete:
 	case TokenType::kKwAwait: {
 		lexer_->NextToken();
-		exp = std::make_unique<UnaryOpExp>(token.type(), ParseExp5());
+		exp = std::make_unique<UnaryExpression>(token.type(), ParseExpression5());
 		break;
 	}
 	case TokenType::kOpInc: {
 		lexer_->NextToken();
-		exp = ParseExp5();
-		if (exp->value_category != ExpValueCategory::kLeftValue) {
+		exp = ParseExpression5();
+		if (exp->value_category() != ValueCategory::kLValue) {
 			throw ParserException("Only use auto inc on lvalue.");
 		}
-		exp = std::make_unique<UnaryOpExp>(TokenType::kOpPrefixInc, std::move(exp));
+		exp = std::make_unique<UnaryExpression>(TokenType::kOpPrefixInc, std::move(exp));
 		break;
 	}
 	case TokenType::kOpDec: {
 		lexer_->NextToken();
-		exp = ParseExp5();
-		if (exp->value_category != ExpValueCategory::kLeftValue) {
+		exp = ParseExpression5();
+		if (exp->value_category() != ValueCategory::kLValue) {
 			throw ParserException("Only use auto dec on lvalue.");
 		}
-		exp = std::make_unique<UnaryOpExp>(TokenType::kOpPrefixDec, std::move(exp));
+		exp = std::make_unique<UnaryExpression>(TokenType::kOpPrefixDec, std::move(exp));
 		break;
 	}
 	default:
-		exp = ParseExp4();
+		exp = ParseExpression4();
 	}
 	return exp;
 }
 
-std::unique_ptr<Exp> Parser::ParseExp4() {
-	auto exp = ParseExp3();
+std::unique_ptr<Expression> Parser::ParseExpression4() {
+	auto exp = ParseExpression3();
 	do {
 		auto type = lexer_->PeekToken().type();
 		if (type != TokenType::kOpInc
@@ -613,69 +771,51 @@ std::unique_ptr<Exp> Parser::ParseExp4() {
 			break;
 		}
 		lexer_->NextToken();
-		exp = std::make_unique<UnaryOpExp>(TokenType::kOpSuffixInc, std::move(exp));
+		exp = std::make_unique<UnaryExpression>(TokenType::kOpSuffixInc, std::move(exp));
 	} while (true);
 	return exp;
 }
 
-std::unique_ptr<Exp> Parser::ParseNewExp() {
+std::unique_ptr<Expression> Parser::ParseNewExpression() {
 	lexer_->NextToken();
-	std::unique_ptr<Exp> callee;
+	std::unique_ptr<Expression> callee;
 
 	auto type = lexer_->PeekToken().type();
 	if (type == TokenType::kKwNew) {
-		callee = ParseNewExp();
+		callee = ParseNewExpression();
 	}
 	else {
-		callee = ParseExp2(false);
+		callee = ParseExpression2(false);
 	}
 
-	std::vector<std::unique_ptr<Exp>> args;
-	if (lexer_->PeekToken().Is(TokenType::kSepLParen)) {
-		args = ParseExpList(TokenType::kSepLParen, TokenType::kSepRParen, false);
+	std::vector<std::unique_ptr<Expression>> args;
+	if (lexer_->PeekToken().is(TokenType::kSepLParen)) {
+		args = ParseExpressionList(TokenType::kSepLParen, TokenType::kSepRParen, false);
 	}
-	auto exp = std::make_unique<NewExp>(std::move(callee), std::move(args));
+	auto exp = std::make_unique<NewExpression>(std::move(callee), std::move(args));
 
 	return exp;
 }
 
-std::unique_ptr<Exp> Parser::ParseExp3() {
+std::unique_ptr<Expression> Parser::ParseExpression3() {
 	auto type = lexer_->PeekToken().type();
 	if (type == TokenType::kKwNew) {
-		return ParseNewExp();
+		return ParseNewExpression();
 	}
-	return ParseExp2(true);
+	return ParseExpression2(true);
 }
 
 
-std::unique_ptr<Exp> Parser::ParseExp2(bool match_lparen) {
-	auto exp = ParseExp1();
+std::unique_ptr<Expression> Parser::ParseExpression2(bool match_lparen) {
+	auto exp = ParseExpression1();
 	do {
-		auto type = lexer_->PeekToken().type();
-		if (type == TokenType::kSepDot) {
-			lexer_->NextToken();
-			auto member = ParsePrimaryExp();
-
-			bool is_method_call = false;
-			if (lexer_->PeekToken().type() == TokenType::kSepLParen) {
-				is_method_call = true;
-			}
-			exp = std::make_unique<MemberExp>(std::move(exp), std::move(member), is_method_call);
+		auto token = lexer_->PeekToken();
+		if (token.is(TokenType::kSepDot) || token.is(TokenType::kSepLBrack)) {
+			exp = ParseMemberExpression(std::move(exp));
 		}
-		else if (type == TokenType::kSepLBrack) {
-			lexer_->NextToken();
-			auto index = ParseExp();
-			lexer_->MatchToken(TokenType::kSepRBrack);
-
-			bool is_method_call = false;
-			if (lexer_->PeekToken().type() == TokenType::kSepLParen) {
-				is_method_call = true;
-			}
-			exp = std::make_unique<IndexedExp>(std::move(exp), std::move(index), is_method_call);
-		}
-		else if (match_lparen && type == TokenType::kSepLParen) {
-			auto args = ParseExpList(TokenType::kSepLParen, TokenType::kSepRParen, false);
-			exp = std::make_unique<FunctionCallExp>(std::move(exp), std::move(args));
+		else if (match_lparen && token.is(TokenType::kSepLParen)) {
+			auto args = ParseExpressionList(TokenType::kSepLParen, TokenType::kSepRParen, false);
+			exp = std::make_unique<CallExpression>(std::move(exp), std::move(args));
 		}
 		else {
 			break;
@@ -686,158 +826,32 @@ std::unique_ptr<Exp> Parser::ParseExp2(bool match_lparen) {
 
 
 
-std::unique_ptr<Exp> Parser::ParseExp1() {
+std::unique_ptr<Expression> Parser::ParseExpression1() {
 	auto type = lexer_->PeekToken().type();
-	if (lexer_->PeekToken().Is(TokenType::kSepLParen)) {
+	if (lexer_->PeekToken().is(TokenType::kSepLParen)) {
 		lexer_->NextToken();
-		auto exp = ParseExp();
+		auto exp = ParseExpression();
 		lexer_->MatchToken(TokenType::kSepRParen);
 		return exp;
 	}
 	else {
-		return ParsePrimaryExp(); // 解析基本表达式（标识符、字面量等）
+		return ParseLiteral(); // 解析基本表达式（标识符、字面量等）
 	}
 }
 
 
-std::unique_ptr<IdentifierExp> Parser::ParseIdentifierExp() {
-	auto token = lexer_->MatchToken(TokenType::kIdentifier);
-	auto exp = std::make_unique<IdentifierExp>(token.str());
-	exp->value_category = ExpValueCategory::kLeftValue;
-	return exp;
-}
 
-std::unique_ptr<Exp> Parser::ParsePrimaryExp() {
-	auto token = lexer_->PeekToken();
-	std::unique_ptr<Exp> exp;
-	switch (token.type()) {
-	case TokenType::kKwAsync:
-	case TokenType::kKwFunction:
-		exp = ParseFunctionDeclExp();
-		break;
-	case TokenType::kUndefined:
-		lexer_->NextToken();
-		exp = std::make_unique<UndefinedExp>();
-		break;
-	case TokenType::kNull: {
-		lexer_->NextToken();
-		exp = std::make_unique<NullExp>();
-		break;
-	}
-	case TokenType::kTrue: {
-		lexer_->NextToken();
-		exp = std::make_unique<BoolExp>(true);
-		break;
-	}
-	case TokenType::kFalse: {
-		lexer_->NextToken();
-		exp = std::make_unique<BoolExp>(false);
-		break;
-	}
-	case TokenType::kFloatLiteral: {
-		lexer_->NextToken();
-		exp = std::make_unique<FloatExp>(std::stod(token.str()));
-		break;
-	}
-	case TokenType::kIntLiteral: {
-		lexer_->NextToken();
-		exp = std::make_unique<IntExp>(std::stoll(token.str()));
-		break;
-	}
-	case TokenType::kString: {
-		lexer_->NextToken();
-		exp = std::make_unique<StringExp>(token.str());
-		break;
-	}
-	case TokenType::kSepLBrack: {
-		// 数组字面量
-		auto arr_literal = ParseExpList(TokenType::kSepLBrack, TokenType::kSepRBrack, true);
-		exp = std::make_unique<ArrayLiteralExp>(std::move(arr_literal));
-		break;
-	}
-	case TokenType::kSepLCurly: {
-		// 可能是对象字面量
-		lexer_->NextToken();
-		std::unordered_map<std::string, std::unique_ptr<Exp>> obj_literal;
-		if (!lexer_->PeekToken().Is(TokenType::kSepRCurly)) {
-			do {
-				auto ident = lexer_->MatchToken(TokenType::kIdentifier);
-				lexer_->MatchToken(TokenType::kSepColon);
-				// ParseExp20会解析kSepComma，避免
-				obj_literal.emplace(ident.str(), ParseExp19());
-				if (!lexer_->PeekToken().Is(TokenType::kSepComma)) {
-					break;
-				}
-				if (lexer_->PeekToken().Is(TokenType::kSepRCurly)) {
-					break;
-				}
-				lexer_->NextToken();
-			} while (true);
-		}
-		lexer_->MatchToken(TokenType::kSepRCurly);
-		exp = std::make_unique<ObjectLiteralExp>(std::move(obj_literal));
-		break;
-	}
-	case TokenType::kIdentifier: {
-		exp = ParseIdentifierExp();
-		break;
-	case TokenType::kKwThis: {
-		lexer_->NextToken();
-		exp = std::make_unique<ThisExp>();
-		break;
-	}
-	case TokenType::kKwImport: {
-		lexer_->NextToken();
-		lexer_->MatchToken(TokenType::kSepLParen);
-		auto path = lexer_->MatchToken(TokenType::kString).str();
-		lexer_->MatchToken(TokenType::kSepRParen);
-		exp = std::make_unique<ImportExp>(std::move(path));
-		break;
-	}
-	}
-	}
-
-	if (!exp) {
-		throw ParserException("Unable to parse expression.");
-	}
-	return exp;
-}
-
-std::unique_ptr<FunctionDeclExp> Parser::ParseFunctionDeclExp() {
-	FunctionType type = FunctionType::kNormal;
-	if (lexer_->PeekToken().Is(TokenType::kKwAsync)) {
-		lexer_->NextToken();
-		type = FunctionType::kAsync;
-	}
-	lexer_->MatchToken(TokenType::kKwFunction);
-	if (lexer_->PeekToken().Is(TokenType::kOpMul)) {
-		if (type != FunctionType::kNormal) {
-			throw ParserException("Does not support asynchronous generator function.");
-		}
-		// 生成器函数
-		lexer_->NextToken();
-		type = FunctionType::kGenerator;
-	}
-	std::string func_name;
-	if (lexer_->PeekToken().Is(TokenType::kIdentifier)) {
-		func_name = lexer_->NextToken().str();
-	}
-	auto par_list = ParseParNameList();
-	auto block = ParseBlockStat();
-	return std::make_unique<FunctionDeclExp>(func_name, par_list, std::move(block), type);
-}
-
-std::vector<std::unique_ptr<Exp>> Parser::ParseExpList(TokenType begin, TokenType end, bool allow_comma_end) {
+std::vector<std::unique_ptr<Expression>> Parser::ParseExpressionList(TokenType begin, TokenType end, bool allow_comma_end) {
 	lexer_->MatchToken(begin);
-	std::vector<std::unique_ptr<Exp>> par_list;
-	if (!lexer_->PeekToken().Is(end)) {
+	std::vector<std::unique_ptr<Expression>> par_list;
+	if (!lexer_->PeekToken().is(end)) {
 		do {
-			// ParseExp19会解析kSepComma，避免
-			par_list.emplace_back(ParseExp18());
-			if (!lexer_->PeekToken().Is(TokenType::kSepComma)) {
+			// ParseExpression19会解析kSepComma，避免
+			par_list.emplace_back(ParseExpression18());
+			if (!lexer_->PeekToken().is(TokenType::kSepComma)) {
 				break;
 			}
-			if (allow_comma_end && lexer_->PeekToken().Is(end)) {
+			if (allow_comma_end && lexer_->PeekToken().is(end)) {
 				break;
 			}
 			lexer_->NextToken();

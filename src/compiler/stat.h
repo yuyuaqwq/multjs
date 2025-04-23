@@ -4,6 +4,7 @@
 #include <memory>
 #include <string>
 
+#include <mjs/noncopyable.h>
 #include <mjs/function_def.h>
 #include <mjs/class_def/class_def.h>
 
@@ -13,234 +14,344 @@
 namespace mjs {
 namespace compiler {
 
-enum class StatType {
-	kExp,
-	kIf,
-	kElseIf,
-	kElse,
-	kFor,
-	kWhile,
-	kContinue,
-	kBreak,
-	kReturn,
-	kTry,
-	kCatch,
-	kFinally,
-	kThrow,
-	kNewVar,
-	kLabel,
-	kBlock,
-	kImport,
-	kExport,
+enum class StatementType {
+    kExpression,
+    kIf,
+    kFor,
+    kWhile,
+    kContinue,
+    kBreak,
+    kReturn,
+    kTry,
+    kCatch,
+    kFinally,
+    kThrow,
+    kVariableDeclaration,
+    kLabeled,
+    kBlock,
+    kImport,
+    kExport,
 };
 
-struct Stat {
-	virtual StatType GetType() const noexcept = 0;
+class Statement : public noncopyable {
+public:
+    Statement(SourcePos start, SourcePos end)
+        : start_(start), end_(end) {}
 
-	template<typename StatT>
-	StatT& get() {
-		return *static_cast<StatT*>(this);
-	}
+    virtual ~Statement() = default;
 
-	template<typename StatT>
-	const StatT& get() const {
-		return *static_cast<const StatT*>(this);
-	}
+    virtual StatementType type() const noexcept = 0;
+
+    bool is(StatementType type) const {
+        return type == this->type();
+    }
+
+    template<typename T>
+    T& as() {
+        return *static_cast<T*>(this);
+    }
+
+    template<typename T>
+    const T& as() const {
+        return *static_cast<const T*>(this);
+    }
+
+    SourcePos start() const { return start_; }
+    SourcePos end() const { return end_; }
+
+private:
+    SourcePos start_;
+    SourcePos end_;
 };
 
-struct BlockStat : public Stat {
-	virtual StatType GetType() const noexcept;
-	BlockStat(std::vector<std::unique_ptr<Stat>>&& stat_list);
+class ExpressionStatement : public Statement {
+public:
+    ExpressionStatement(SourcePos start, SourcePos end, std::unique_ptr<Expression> expression) 
+        : Statement(start, end), expression_(std::move(expression)) {}
+    
+    StatementType type() const noexcept override { return StatementType::kExpression; }
 
-	std::vector<std::unique_ptr<Stat>> stat_list;
+    const std::unique_ptr<Expression>& expression() const { return expression_; }
+
+private:
+    std::unique_ptr<Expression> expression_;
 };
 
-struct ExpStat : public Stat {
-	virtual StatType GetType() const noexcept;
-	ExpStat(std::unique_ptr<Exp> exp);
+class IfStatement : public Statement {
+public:
+    IfStatement(SourcePos start, SourcePos end,
+                std::unique_ptr<Expression> test, 
+                std::unique_ptr<BlockStatement> consequent,
+                std::unique_ptr<Statement> alternate)
+        : Statement(start, end),
+          test_(std::move(test)),
+          consequent_(std::move(consequent)),
+          alternate_(std::move(alternate)) {}
+    
+    StatementType type() const noexcept override { return StatementType::kIf; }
 
-	std::unique_ptr<Exp> exp;
+    const std::unique_ptr<Expression>& test() const { return test_; }
+    const std::unique_ptr<BlockStatement>& consequent() const { return consequent_; }
+    const std::unique_ptr<Statement>& alternate() const { return alternate_; }
+
+private:
+    std::unique_ptr<Expression> test_;
+    std::unique_ptr<BlockStatement> consequent_;
+    std::unique_ptr<Statement> alternate_;
 };
 
-struct ElseIfStat;
-struct ElseStat;
-struct IfStat : public Stat {
-	virtual StatType GetType() const noexcept;
-	IfStat(std::unique_ptr<Exp> exp, std::unique_ptr<BlockStat> block, std::vector<std::unique_ptr<ElseIfStat>>&& else_if_stat_list, std::unique_ptr<ElseStat> else_stat);
+class ForStatement : public Statement {
+public:
+    ForStatement(SourcePos start, SourcePos end,
+                std::unique_ptr<Statement> init,
+                std::unique_ptr<Expression> test,
+                std::unique_ptr<Expression> update,
+                std::unique_ptr<BlockStatement> body)
+        : Statement(start, end),
+          init_(std::move(init)),
+          test_(std::move(test)),
+          update_(std::move(update)),
+          body_(std::move(body)) {}
+    
+    StatementType type() const noexcept override { return StatementType::kFor; }
 
-	std::unique_ptr<Exp> exp;
-	std::unique_ptr<BlockStat> block;
-	std::vector<std::unique_ptr<ElseIfStat>> else_if_stat_list;
-	std::unique_ptr<ElseStat> else_stat;
+    const std::unique_ptr<Statement>& init() const { return init_; }
+    const std::unique_ptr<Expression>& test() const { return test_; }
+    const std::unique_ptr<Expression>& update() const { return update_; }
+    const std::unique_ptr<BlockStatement>& body() const { return body_; }
+
+private:
+    std::unique_ptr<Statement> init_;
+    std::unique_ptr<Expression> test_;
+    std::unique_ptr<Expression> update_;
+    std::unique_ptr<BlockStatement> body_;
 };
 
+class WhileStatement : public Statement {
+public:
+    WhileStatement(SourcePos start, SourcePos end,
+                  std::unique_ptr<Expression> test, 
+                  std::unique_ptr<BlockStatement> body)
+        : Statement(start, end),
+          test_(std::move(test)),
+          body_(std::move(body)) {}
+    
+    StatementType type() const noexcept override { return StatementType::kWhile; }
 
-struct ElseIfStat : public Stat {
-	virtual StatType GetType() const noexcept;
-	ElseIfStat(std::unique_ptr<Exp> exp, std::unique_ptr<BlockStat> block);
+    const std::unique_ptr<Expression>& test() const { return test_; }
+    const std::unique_ptr<BlockStatement>& body() const { return body_; }
 
-	std::unique_ptr<Exp> exp;
-	std::unique_ptr<BlockStat> block;
+private:
+    std::unique_ptr<Expression> test_;
+    std::unique_ptr<BlockStatement> body_;
 };
 
+class ContinueStatement : public Statement {
+public:
+    explicit ContinueStatement(SourcePos start, SourcePos end, 
+                             std::optional<std::string> label)
+        : Statement(start, end), label_(std::move(label)) {}
+    
+    StatementType type() const noexcept override { return StatementType::kContinue; }
 
-struct ElseStat : public Stat {
-	virtual StatType GetType() const noexcept;
-	ElseStat(std::unique_ptr<BlockStat> t_block);
+    const std::optional<std::string>& label() const { return label_; }
 
-	std::unique_ptr<BlockStat> block;
+private:
+    std::optional<std::string> label_;
 };
 
+class BreakStatement : public Statement {
+public:
+    explicit BreakStatement(SourcePos start, SourcePos end,
+                          std::optional<std::string> label)
+        : Statement(start, end), label_(std::move(label)) {}
+    
+    StatementType type() const noexcept override { return StatementType::kBreak; }
 
-struct ForStat : public Stat {
-	virtual StatType GetType() const noexcept;
-	ForStat(std::unique_ptr<Stat> initialization, std::unique_ptr<Exp> condition
-		, std::unique_ptr<Exp> final_expression, std::unique_ptr<BlockStat> block)
-		: initialization(std::move(initialization))
-		, condition(std::move(condition))
-		, final_expression(std::move(final_expression))
-		, block(std::move(block)) {}
+    const std::optional<std::string>& label() const { return label_; }
 
-	std::unique_ptr<Stat> initialization;
-	std::unique_ptr<Exp> condition;
-	std::unique_ptr<Exp> final_expression;
-	std::unique_ptr<BlockStat> block;
+private:
+    std::optional<std::string> label_;
 };
 
+class ReturnStatement : public Statement {
+public:
+    explicit ReturnStatement(SourcePos start, SourcePos end,
+                           std::unique_ptr<Expression> argument)
+        : Statement(start, end), argument_(std::move(argument)) {}
+    
+    StatementType type() const noexcept override { return StatementType::kReturn; }
 
-struct WhileStat : public Stat {
-	virtual StatType GetType() const noexcept;
-	WhileStat(std::unique_ptr<Exp> exp, std::unique_ptr<BlockStat> block);
+    const std::unique_ptr<Expression>& argument() const { return argument_; }
 
-	std::unique_ptr<Exp> exp;
-	std::unique_ptr<BlockStat> block;
+private:
+    std::unique_ptr<Expression> argument_;
 };
 
+class CatchClause : public Statement {
+public:
+    CatchClause(SourcePos start, SourcePos end,
+               std::unique_ptr<Identifier> param, 
+               std::unique_ptr<BlockStatement> body)
+        : Statement(start, end),
+          param_(std::move(param)),
+          body_(std::move(body)) {}
+    
+    StatementType type() const noexcept override { return StatementType::kCatch; }
 
-struct ContinueStat : public Stat {
-	virtual StatType GetType() const noexcept;
+    const std::unique_ptr<Identifier>& param() const { return param_; }
+    const std::unique_ptr<BlockStatement>& body() const { return body_; }
 
-	ContinueStat(std::optional<std::string> label_name)
-		: label_name(std::move(label_name)) {}
-
-	std::optional<std::string> label_name;
+private:
+    std::unique_ptr<Identifier> param_;
+    std::unique_ptr<BlockStatement> body_;
 };
 
+class FinallyClause : public Statement {
+public:
+    explicit FinallyClause(SourcePos start, SourcePos end,
+                         std::unique_ptr<BlockStatement> body)
+        : Statement(start, end), body_(std::move(body)) {}
+    
+    StatementType type() const noexcept override { return StatementType::kFinally; }
 
-struct BreakStat : public Stat {
-	virtual StatType GetType() const noexcept;
+    const std::unique_ptr<BlockStatement>& body() const { return body_; }
 
-	BreakStat(std::optional<std::string> label_name)
-		: label_name(std::move(label_name)) {}
-
-	std::optional<std::string> label_name;
+private:
+    std::unique_ptr<BlockStatement> body_;
 };
 
+class TryStatement : public Statement {
+public:
+    TryStatement(SourcePos start, SourcePos end,
+                std::unique_ptr<BlockStatement> block, 
+                std::unique_ptr<CatchClause> handler,
+                std::unique_ptr<FinallyClause> finalizer)
+        : Statement(start, end),
+          block_(std::move(block)),
+          handler_(std::move(handler)),
+          finalizer_(std::move(finalizer)) {}
+    
+    StatementType type() const noexcept override { return StatementType::kTry; }
 
-struct ReturnStat : public Stat {
-	virtual StatType GetType() const noexcept;
-	ReturnStat(std::unique_ptr<Exp> exp);
+    const std::unique_ptr<BlockStatement>& block() const { return block_; }
+    const std::unique_ptr<CatchClause>& handler() const { return handler_; }
+    const std::unique_ptr<FinallyClause>& finalizer() const { return finalizer_; }
 
-	std::unique_ptr<Exp> exp;
+private:
+    std::unique_ptr<BlockStatement> block_;
+    std::unique_ptr<CatchClause> handler_;
+    std::unique_ptr<FinallyClause> finalizer_;
 };
 
-struct CatchStat : public Stat {
-	CatchStat(std::unique_ptr<IdentifierExp> exp, std::unique_ptr<BlockStat> block)
-		: exp(std::move(exp))
-		, block(std::move(block)) {}
+class ThrowStatement : public Statement {
+public:
+    explicit ThrowStatement(SourcePos start, SourcePos end,
+                          std::unique_ptr<Expression> argument)
+        : Statement(start, end), argument_(std::move(argument)) {}
+    
+    StatementType type() const noexcept override { return StatementType::kThrow; }
 
-	virtual StatType GetType() const noexcept override {
-		return StatType::kCatch;
-	}
+    const std::unique_ptr<Expression>& argument() const { return argument_; }
 
-	std::unique_ptr<IdentifierExp> exp;
-	std::unique_ptr<BlockStat> block;
+private:
+    std::unique_ptr<Expression> argument_;
 };
 
-struct FinallyStat : public Stat {
-	FinallyStat(std::unique_ptr<BlockStat> block)
-		: block(std::move(block)) {}
+class LabeledStatement : public Statement {
+public:
+    LabeledStatement(SourcePos start, SourcePos end,
+                    std::string label, 
+                    std::unique_ptr<Statement> body)
+        : Statement(start, end),
+          label_(std::move(label)),
+          body_(std::move(body)) {}
+    
+    StatementType type() const noexcept override { return StatementType::kLabeled; }
 
-	virtual StatType GetType() const noexcept override {
-		return StatType::kFinally;
-	}
+    const std::string& label() const { return label_; }
+    const std::unique_ptr<Statement>& body() const { return body_; }
 
-	std::unique_ptr<BlockStat> block;
+private:
+    std::string label_;
+    std::unique_ptr<Statement> body_;
 };
 
-struct TryStat : public Stat {
-	TryStat(std::unique_ptr<BlockStat> block, std::unique_ptr<CatchStat> catch_stat
-		, std::unique_ptr<FinallyStat> finally_stat)
-		: block(std::move(block))
-		, catch_stat(std::move(catch_stat))
-		, finally_stat(std::move(finally_stat)) {}
+class VariableDeclaration : public Statement {
+public:
+    VariableDeclaration(SourcePos start, SourcePos end,
+                       std::string name, 
+                       std::unique_ptr<Expression> init,
+                       TokenType kind)
+        : Statement(start, end),
+          name_(std::move(name)),
+          init_(std::move(init)),
+          kind_(kind) {
+        is_export_ = false;
+    }
+    
+    StatementType type() const noexcept override { return StatementType::kVariableDeclaration; }
 
-	virtual StatType GetType() const noexcept override {
-		return StatType::kTry;
-	}
+    const std::string& name() const { return name_; }
+    const std::unique_ptr<Expression>& init() const { return init_; }
+    TokenType kind() const { return kind_; }
+    bool is_export() const { return is_export_; }
+    void set_is_export(bool is_export) { is_export_ = is_export; }
 
-	std::unique_ptr<BlockStat> block;
-	std::unique_ptr<CatchStat> catch_stat;
-	std::unique_ptr<FinallyStat> finally_stat;
+private:
+    std::string name_;
+    std::unique_ptr<Expression> init_;
+    TokenType kind_;
+
+    struct {
+        uint32_t is_export_ : 1;
+    };
 };
 
-struct ThrowStat : public Stat {
-	ThrowStat(std::unique_ptr<Exp> exp)
-		: exp(std::move(exp)) {}
+class BlockStatement : public Statement {
+public:
+    BlockStatement(SourcePos start, SourcePos end, std::vector<std::unique_ptr<Statement>>&& statements)
+        : Statement(start, end), statements_(std::move(statements)) {}
 
-	virtual StatType GetType() const noexcept override {
-		return StatType::kThrow;
-	}
+    StatementType type() const noexcept override { return StatementType::kBlock; }
 
-	std::unique_ptr<Exp> exp;
+    const std::vector<std::unique_ptr<Statement>>& statements() const { return statements_; }
+
+private:
+    std::vector<std::unique_ptr<Statement>> statements_;
 };
 
-struct LabelStat : public Stat {
-	virtual StatType GetType() const noexcept {
-		return StatType::kLabel;
-	}
-	LabelStat(std::string label_name, std::unique_ptr<Stat> stat)
-		: label_name(std::move(label_name)) 
-		, stat(std::move(stat)) {}
+class ImportDeclaration : public Statement {
+public:
+    ImportDeclaration(SourcePos start, SourcePos end,
+                     std::string source, 
+                     std::string name)
+        : Statement(start, end),
+          source_(std::move(source)),
+          name_(std::move(name)) {}
+    
+    StatementType type() const noexcept override { return StatementType::kImport; }
 
-	std::string label_name;
-	std::unique_ptr<Stat> stat;
+    const std::string& source() const { return source_; }
+    const std::string& name() const { return name_; }
+
+private:
+    std::string source_;
+    std::string name_;
 };
 
-struct NewVarStat : public Stat {
-	virtual StatType GetType() const noexcept;
-	NewVarStat(std::string var_name, std::unique_ptr<Exp> exp, TokenType keyword_type);
+class ExportDeclaration : public Statement {
+public:
+    explicit ExportDeclaration(SourcePos start, SourcePos end,
+                             std::unique_ptr<Statement> declaration)
+        : Statement(start, end), declaration_(std::move(declaration)) {}
+    
+    StatementType type() const noexcept override { return StatementType::kExport; }
 
-	std::string var_name;
-	std::unique_ptr<Exp> exp;
-	TokenType keyword_type;
+    const std::unique_ptr<Statement>& declaration() const { return declaration_; }
 
-	struct {
-		uint32_t is_export = 1;
-	} flags;
-};
-
-
-struct ImportStat : public Stat {
-	virtual StatType GetType() const noexcept {
-		return StatType::kImport;
-	}
-	ImportStat(std::string path, std::string var_name)
-		: path(std::move(path))
-		, var_name(std::move(var_name)) {}
-
-	std::string path;
-	std::string var_name;
-};
-
-struct ExportStat : public Stat {
-	virtual StatType GetType() const noexcept {
-		return StatType::kExport;
-	}
-	ExportStat(std::unique_ptr<Stat> stat)
-		: stat(std::move(stat)) {}
-
-	std::unique_ptr<Stat> stat;
+private:
+    std::unique_ptr<Statement> declaration_;
 };
 
 } // namespace compiler

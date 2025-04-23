@@ -21,7 +21,7 @@ enum class TokenType {
     kIdentifier,   // [a-zA-Z_][a-zA-Z0-9_]*
 
     kFloatLiteral,  // 浮点数
-    kIntLiteral,  // 整数
+    kIntegerLiteral,  // 整数
 
     // 分隔符
     kSepSemi,         // ;
@@ -124,7 +124,7 @@ enum class TokenType {
 
 class Token {
 public:
-	bool Is(TokenType type) const noexcept {
+	bool is(TokenType type) const noexcept {
         return type_ == type;
     }
 
