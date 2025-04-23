@@ -3,6 +3,7 @@
 #include <mjs/opcode.h>
 #include <mjs/stack_frame.h>
 #include <mjs/object/object.h>
+#include <mjs/class_def/generator_class_def.h>
 
 namespace mjs {
 
@@ -14,9 +15,9 @@ public:
         , function_(function)
         , stack_(0) {}
 
-    virtual ~GeneratorObject() override = default;
+    ~GeneratorObject() override = default;
 
-    virtual void ForEachChild(intrusive_list<Object>* list, void(*callback)(intrusive_list<Object>* list, const Value& child)) override {
+    void ForEachChild(intrusive_list<Object>* list, void(*callback)(intrusive_list<Object>* list, const Value& child)) override {
         Object::ForEachChild(list, callback);
         callback(list, function_);
         for (auto& val : stack_.vector()) {
@@ -24,7 +25,7 @@ public:
         }
     }
 
-    virtual Value ToString() override {
+    Value ToString() override {
         return Value(std::format("generator_object:{}", function_def().name()));
     }
 
@@ -49,8 +50,11 @@ public:
 
         // 每次都得new
         auto ret_obj = Value(new Object(context));
-        ret_obj.object().SetProperty(context, Value("value"), std::move(ret_value));
-        ret_obj.object().SetProperty(context, Value("done"), Value(IsClosed()));
+
+        auto& class_def = context->runtime().class_def_table().get<GeneratorClassDef>(class_id());
+
+        ret_obj.object().SetProperty(context, class_def.value_const_idx(), std::move(ret_value));
+        ret_obj.object().SetProperty(context, class_def.done_const_idx(), Value(IsClosed()));
         return ret_obj;
     }
 
@@ -59,7 +63,7 @@ public:
 
     }
 
-    virtual ClassId class_id() const override { return ClassId::kGenerator; }
+    ClassId class_id() const override { return ClassId::kGenerator; }
 
     auto& stack() { return stack_; }
 

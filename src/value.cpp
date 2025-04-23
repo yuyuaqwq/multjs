@@ -191,7 +191,9 @@ ptrdiff_t Value::Comparer(const Value& rhs) const {
 	case ValueType::kFloat64:
 		return f64() - rhs.f64();
 	case ValueType::kString:
-		if (value_.string_->hash() != rhs.value_.string_->hash()) return value_.string_->hash() - rhs.value_.string_->hash();
+		if (rhs.type() == ValueType::kString && value_.string_->hash() != rhs.value_.string_->hash()) {
+			return value_.string_->hash() - rhs.value_.string_->hash();
+		}
 		return std::strcmp(string(), rhs.string());
 	case ValueType::kStringView:
 		if (string() == rhs.string()) return 0;

@@ -42,8 +42,8 @@ public:
 
 	void EmitGoto();
 
-	void EmitPropertyLoad();
-	void EmitPropertyStore();
+	void EmitPropertyLoad(ConstIndex const_idx);
+	void EmitPropertyStore(ConstIndex const_idx);
 
 	void EmitIndexedLoad();
 	void EmitIndexedStore();

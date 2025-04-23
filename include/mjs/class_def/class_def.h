@@ -57,11 +57,11 @@ public:
 	// 如果允许被new构造，重写该函数，new相关对象并返回，如new ArrayObject()
 	virtual Value Constructor(Context* context, uint32_t par_count, const StackFrame& stack) { throw std::runtime_error("Types that are not allowed to be constructed."); }
 
-	virtual void SetProperty(Runtime* runtime, const Value& key, Value&& val) {
+	virtual void SetProperty(Runtime* runtime, ConstIndex key, Value&& val) {
 		property_map_[key] = std::move(val);
 	}
 
-	virtual Value* GetProperty(Runtime* runtime, const Value& key) {
+	virtual Value* GetProperty(Runtime* runtime, ConstIndex key) {
 		auto iter = property_map_.find(key);
 		if (iter != property_map_.end()) {
 			return &iter->second;
@@ -69,21 +69,21 @@ public:
 		return nullptr;
 	}
 
-	virtual bool HasProperty(Runtime* runtime, const Value& key) {
+	virtual bool HasProperty(Runtime* runtime, ConstIndex key) {
 		auto iter = property_map_.find(key);
 		return iter != property_map_.end();
 	}
 
-	virtual bool DelProperty(Runtime* context, const Value& key) {
+	virtual bool DelProperty(Runtime* context, ConstIndex key) {
 		auto res = property_map_.erase(key);
 		return res > 0;
 	}
 
-	virtual void SetStaticProperty(Runtime* runtime, const Value& key, Value&& val) {
+	virtual void SetStaticProperty(Runtime* runtime, ConstIndex key, Value&& val) {
 		static_property_map_[key] = std::move(val);
 	}
 
-	virtual Value* GetStaticProperty(Runtime* runtime, const Value& key) {
+	virtual Value* GetStaticProperty(Runtime* runtime, ConstIndex key) {
 		auto iter = static_property_map_.find(key);
 		if (iter != static_property_map_.end()) {
 			return &iter->second;
@@ -91,12 +91,12 @@ public:
 		return nullptr;
 	}
 
-	virtual bool HasStaticProperty(Runtime* runtime, const Value& key) {
+	virtual bool HasStaticProperty(Runtime* runtime, ConstIndex key) {
 		auto iter = static_property_map_.find(key);
 		return iter != static_property_map_.end();
 	}
 
-	virtual void DelStaticProperty(Context* context, const Value& key) {
+	virtual void DelStaticProperty(Context* context, ConstIndex key) {
 		static_property_map_.erase(key);
 	}
 
@@ -137,8 +137,13 @@ public:
 		return iter->second;
 	}
 
-	ClassDef& at(ClassId class_id) {
+	ClassDef& get(ClassId class_id) {
 		return *class_def_arr_.at(static_cast<uint32_t>(class_id));
+	}
+
+	template<typename ClassDefT>
+	ClassDefT& get(ClassId class_id) {
+		return static_cast<ClassDefT&>(get(class_id));
 	}
 
 private:

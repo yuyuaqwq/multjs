@@ -8,7 +8,7 @@ class PromiseClassDef : public ClassDef {
 public:
 	PromiseClassDef(Runtime* runtime);
 
-	virtual Value Constructor(Context* context, uint32_t par_count, const StackFrame& stack) override;
+	Value Constructor(Context* context, uint32_t par_count, const StackFrame& stack) override;
 
 	static Value Resolve(Context* context, Value value);
 };

@@ -13,10 +13,8 @@
 
 namespace mjs {
 
-// 未来调整：
 // 保持和js标准一致，属性只能是string或者symbol
 // 但其他类型不会自动转换为string，而是抛出异常
-// key可以修改为ConstIndex
 
 class Runtime;
 class Context;
@@ -36,7 +34,6 @@ public:
 		callback(list, prototype_);
 		if (property_map_) {
 			for (auto& pair : *property_map_) {
-				callback(list, pair.first);
 				callback(list, pair.second);
 			}
 		}
@@ -60,9 +57,9 @@ public:
 		return new_obj;
 	}
 
-	virtual void SetProperty(Context* context, const Value& key, Value&& val);
-	virtual Value* GetProperty(Context* context, const Value& key);
-	virtual void DelProperty(Context* context, const Value& key);
+	virtual void SetProperty(Context* context, ConstIndex key, Value&& val);
+	virtual Value* GetProperty(Context* context, ConstIndex key);
+	virtual void DelProperty(Context* context, ConstIndex key);
 
 	virtual void SetIndexed(Context* context, const Value& key, Value&& val);
 	virtual Value* GetIndexed(Context* context, const Value& key);

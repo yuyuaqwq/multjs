@@ -12,12 +12,11 @@ public:
     virtual void ForEachChild(intrusive_list<Object>* list, void(*callback)(intrusive_list<Object>* list, const Value& child)) override {
         Object::ForEachChild(list, callback);
         for (auto& pair : export_map_) {
-            callback(list, pair.first);
             callback(list, pair.second);
         }
     }
 
-    virtual Value* GetProperty(Context* context, const Value& key) override {
+    virtual Value* GetProperty(Context* context, ConstIndex key) override {
         auto prop = FunctionObject::GetProperty(context, key);
         if (prop) {
             return prop;

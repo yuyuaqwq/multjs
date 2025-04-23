@@ -724,9 +724,7 @@ void CodeGener::GenerateExp(Exp* exp) {
 
 		// 访问对象成员
 		auto const_idx = AllocConst(MakeValue(prop_exp));
-		cur_func_def_->byte_code().EmitConstLoad(const_idx);
-
-		cur_func_def_->byte_code().EmitPropertyLoad();
+		cur_func_def_->byte_code().EmitPropertyLoad(const_idx);
 
 		return;
 	}
@@ -803,10 +801,7 @@ void CodeGener::GenerateExp(Exp* exp) {
 
 				auto& prop_exp = dot_exp.prop_exp->get<IdentifierExp>();
 				auto const_idx = AllocConst(MakeValue(&prop_exp));
-				cur_func_def_->byte_code().EmitConstLoad(const_idx);
-
-				// 设置栈顶对象的成员
-				cur_func_def_->byte_code().EmitPropertyStore();
+				cur_func_def_->byte_code().EmitPropertyStore(const_idx);
 				
 				break;
 			}
@@ -1017,7 +1012,7 @@ Value CodeGener::MakeValue(Exp* exp) {
 		Object* obj = new Object(nullptr);
 		for (auto& exp : exp->get<ObjectLiteralExp>().obj_litera) {
 			auto const_idx = AllocConst(Value(exp.first));
-			obj->SetProperty(nullptr, GetConstValueByIndex(const_idx), MakeValue(exp.second.get()));
+			obj->SetProperty(nullptr, const_idx, MakeValue(exp.second.get()));
 		}
 		return Value(obj);
 	}

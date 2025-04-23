@@ -91,7 +91,7 @@ void Vm::BindClosureVars(StackFrame* stack_frame) {
 			auto var_idx = pair.second;
 			auto iter = func_def->closure_var_defs().find(var_idx);
 			assert(iter != func_def->closure_var_defs().end());
-			module_obj->export_map().emplace(context_->runtime().const_pool()[pair.first], Value(
+			module_obj->export_map().emplace(pair.first, Value(
 				UpValue(&arr[iter->second.arr_idx])
 			));
 		}
@@ -390,16 +390,17 @@ void Vm::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 				break;
 			}
 			case OpcodeType::kPropertyLoad: {
-				auto key_val = stack_frame->pop();
+				auto const_idx = func_def->byte_code().GetI32(stack_frame->pc());
+				stack_frame->set_pc(stack_frame->pc() + 4);
 				auto& obj_val = stack_frame->get(-1);
 				Value* prop = nullptr;
 				if (obj_val.IsObject()) {
 					auto& obj = obj_val.object();
-					prop = obj.GetProperty(context_, key_val);
+					prop = obj.GetProperty(context_, const_idx);
 				}
 				else if (obj_val.IsClassDef()) {
 					auto& class_def = obj_val.class_def();
-					prop = class_def.GetStaticProperty(&context_->runtime(), key_val);
+					prop = class_def.GetStaticProperty(&context_->runtime(), const_idx);
 				}
 				else {
 					// 非Object类型，根据类型来处理
@@ -421,12 +422,13 @@ void Vm::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 				break;
 			}
 			case OpcodeType::kPropertyStore: {
-				auto key_val = stack_frame->pop();
+				auto const_idx = func_def->byte_code().GetI32(stack_frame->pc());
+				stack_frame->set_pc(stack_frame->pc() + 4);
 				auto obj_val = stack_frame->pop();
 				auto val = stack_frame->pop();
 				if (obj_val.IsObject()) {
 					auto& obj = obj_val.object();
-					obj.SetProperty(context_, key_val, std::move(val));
+					obj.SetProperty(context_, const_idx, std::move(val));
 				}
 				else {
 					// 非Object类型，根据类型来处理

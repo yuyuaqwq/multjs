@@ -188,12 +188,14 @@ void ByteCode::EmitVarLoad(VarIndex idx) {
     }
 }
 
-void ByteCode::EmitPropertyLoad() {
+void ByteCode::EmitPropertyLoad(ConstIndex const_idx) {
     EmitOpcode(OpcodeType::kPropertyLoad);
+    EmitU32(const_idx);
 }
 
-void ByteCode::EmitPropertyStore() {
+void ByteCode::EmitPropertyStore(ConstIndex const_idx) {
     EmitOpcode(OpcodeType::kPropertyStore);
+    EmitU32(const_idx);
 }
 
 

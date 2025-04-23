@@ -23,13 +23,13 @@ Object::~Object() {
 	unlink();
 }
 
-void Object::SetProperty(Context* context, const Value& key, Value&& val) {
+void Object::SetProperty(Context* context, ConstIndex key, Value&& val) {
 	assert(!context || !tag_.is_const_);
 	if (!property_map_) property_map_ = new PropertyMap();
 	(*property_map_)[key] = std::move(val);
 }
 
-Value* Object::GetProperty(Context* context, const Value& key) {
+Value* Object::GetProperty(Context* context, ConstIndex key) {
 	// 1. 查找自身属性
 	if (property_map_) {
 		auto iter = property_map_->find(key);
@@ -39,7 +39,7 @@ Value* Object::GetProperty(Context* context, const Value& key) {
 	}
 		
 	// 2. class def查找
-	auto& class_def = context->runtime().class_def_table().at(class_id());
+	auto& class_def = context->runtime().class_def_table().get(class_id());
 	auto val = class_def.GetProperty(&context->runtime(), key);
 	if (val) return val;
 
@@ -50,22 +50,31 @@ Value* Object::GetProperty(Context* context, const Value& key) {
 	return nullptr;
 }
 
-void Object::DelProperty(Context* context, const Value& key) {
+void Object::DelProperty(Context* context, ConstIndex key) {
 	assert(!tag_.is_const_);
 	if (!property_map_) return;
 	property_map_->erase(key);
 }
 
 void Object::SetIndexed(Context* context, const Value& key, Value&& val) {
-	return SetProperty(context, key, std::move(val));
+	if (!key.IsString() || key.const_index() == kConstInvaildIndex) {
+		throw std::runtime_error("todo");
+	}
+	return SetProperty(context, key.const_index(), std::move(val));
 }
 
 Value* Object::GetIndexed(Context* context, const Value& key) {
-	return GetProperty(context, key);
+	if (!key.IsString() || key.const_index() == kConstInvaildIndex) {
+		throw std::runtime_error("todo");
+	}
+	return GetProperty(context, key.const_index());
 }
 
 void Object::DelIndexed(Context* context, const Value& key) {
-	return DelProperty(context, key);
+	if (!key.IsString() || key.const_index() == kConstInvaildIndex) {
+		throw std::runtime_error("todo");
+	}
+	return DelProperty(context, key.const_index());
 }
 
 
