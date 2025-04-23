@@ -6,19 +6,19 @@
 #include <mjs/runtime.h>
 #include <mjs/object/module_object.h>
 
-#include "lexer.h"
-#include "parser.h"
-#include "codegener.h"
+#include "compiler/lexer.h"
+#include "compiler/parser.h"
+#include "compiler/codegener.h"
 
 namespace mjs {
 
 Value Context::Compile(std::string_view script) {
-	auto lexer = Lexer(script.data());
+	auto lexer = compiler::Lexer(script.data());
 
-	auto parser = Parser(&lexer);
+	auto parser = compiler::Parser(&lexer);
 	parser.ParseSource();
 
-	auto codegener = CodeGener(runtime_, &parser);
+	auto codegener = compiler::CodeGener(runtime_, &parser);
 	auto module = codegener.Generate();
 
 	// ×ª»»Îª module_obj

@@ -1,6 +1,7 @@
 #include "stat.h"
 
 namespace mjs {
+namespace compiler {
 
 StatType ExpStat::GetType() const noexcept {
 	return StatType::kExp;
@@ -85,4 +86,5 @@ NewVarStat::NewVarStat(std::string var_name, std::unique_ptr<Exp> exp, TokenType
 	, keyword_type(keyword_type) {}
 
 
+} // namespace compiler
 } // namespace mjs

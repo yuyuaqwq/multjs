@@ -6,6 +6,7 @@
 #include <mjs/object/array_object.h>
 
 namespace mjs {
+namespace compiler {
 
 CodeGener::CodeGener(Runtime* runtime, Parser* parser)
 	: runtime_(runtime)
@@ -1055,4 +1056,5 @@ void CodeGener::RepairEntrys(const std::vector<RepairEntry>& entrys, Pc end_pc, 
 	}
 }
 
+} // namespace compiler
 } // namespace mjs

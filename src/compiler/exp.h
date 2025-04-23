@@ -6,6 +6,7 @@
 #include <unordered_map>
 
 namespace mjs {
+namespace compiler {
 
 enum class ExpType {
 	kUndefined,
@@ -298,4 +299,5 @@ struct YieldExp : public Exp {
 	std::unique_ptr<Exp> exp;
 };
 
+} // namespace compiler
 } // namespace mjs

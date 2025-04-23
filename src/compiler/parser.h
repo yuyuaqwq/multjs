@@ -11,6 +11,7 @@
 #include "exp.h"
 
 namespace mjs {
+namespace compiler {
 
 class ParserException : public std::exception {
 public:
@@ -91,4 +92,5 @@ private:
 	std::vector<std::unique_ptr<ImportStat>> import_stats_;
 };
 
+} // namespace compiler
 } // namespace mjs

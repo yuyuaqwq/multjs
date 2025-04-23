@@ -16,6 +16,10 @@
 
 namespace mjs {
 
+class Runtime;
+
+namespace compiler {
+
 // 代码生成时发生的异常
 class CodeGenerException : public std::exception{
 public:
@@ -23,7 +27,6 @@ public:
 	using Base::Base;
 };
 
-class Runtime;
 class CodeGener : public noncopyable {
 public:
 	struct RepairEntry {
@@ -107,4 +110,5 @@ private:
 	bool has_finally_ = false;  // 当前作用域是否关联finally块
 };
 
+} // namespace compiler
 } // namespace mjs

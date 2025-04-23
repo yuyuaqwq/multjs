@@ -11,6 +11,7 @@
 #include "exp.h"
 
 namespace mjs {
+namespace compiler {
 
 enum class StatType {
 	kExp,
@@ -242,4 +243,5 @@ struct ExportStat : public Stat {
 	std::unique_ptr<Stat> stat;
 };
 
+} // namespace compiler
 } // namespace mjs

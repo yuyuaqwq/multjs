@@ -8,6 +8,7 @@
 #include "token.h"
 
 namespace mjs {
+namespace compiler {
 
 class LexerException : public std::exception {
 public:
@@ -41,4 +42,5 @@ private:
 	int32_t line_ = 1;
 };
 
+} // namespace compiler
 } // namespace mjs

@@ -1,11 +1,7 @@
 #include "token.h"
 
 namespace mjs {
-
-bool Token::Is(TokenType type) const noexcept {
-	return type_ == type;
-}
-
+namespace compiler {
 
 std::unordered_map<std::string, TokenType> g_operators = {
 	{ ";", TokenType::kSepSemi },
@@ -74,4 +70,5 @@ std::unordered_map<std::string, TokenType> g_keywords = {
 	{ "export", TokenType::kKwExport },
 };
 
+} // namespace compiler
 } // namespace msj

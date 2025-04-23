@@ -439,7 +439,6 @@ void Vm::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 			}
 			case OpcodeType::kIndexedLoad: {
 				auto idx_val = stack_frame->pop();
-
 				auto& obj_val = stack_frame->get(-1);
 				auto& obj = obj_val.object();
 
@@ -454,7 +453,6 @@ void Vm::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 			}
 			case OpcodeType::kIndexedStore: {
 				auto idx_val = stack_frame->pop();
-
 				auto obj_val = stack_frame->pop();
 				auto& obj = obj_val.object();
 
@@ -725,7 +723,6 @@ void Vm::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 				}
 
 				stack_frame->push(context_->runtime().load_module()(context_, path.string()));
-
 				break;
 			}
 			case OpcodeType::kGetModuleAsync: {
@@ -734,9 +731,6 @@ void Vm::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 					throw VmException("Can only provide string paths for module loading.");
 				}
 				auto module = context_->runtime().load_module_async()(context_, path.string());
-				if (!module.IsPromiseObject()) {
-					module = PromiseClassDef::Resolve(context_, std::move(module));
-				}
 				stack_frame->push(std::move(module));
 				break;
 			}

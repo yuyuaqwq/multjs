@@ -13,6 +13,7 @@ exp0 = number
 */
 
 namespace mjs {
+namespace compiler {
 
 Parser::Parser(Lexer* lexer)
 	: lexer_(lexer) {}
@@ -846,4 +847,5 @@ std::vector<std::unique_ptr<Exp>> Parser::ParseExpList(TokenType begin, TokenTyp
 	return par_list;
 }
 
+} // namespace compiler
 } // namespace parser

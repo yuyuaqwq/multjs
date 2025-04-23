@@ -4,6 +4,7 @@
 #include <unordered_map>
 
 namespace mjs {
+namespace compiler {
 
 enum class TokenType {
     kNil = 0,      // ¿Õtoken
@@ -123,7 +124,9 @@ enum class TokenType {
 
 class Token {
 public:
-	bool Is(TokenType type) const noexcept;
+	bool Is(TokenType type) const noexcept {
+        return type_ == type;
+    }
 
 	TokenType type() const { return type_; }
 	void set_type(TokenType type) { type_ = type; }
@@ -144,4 +147,5 @@ private:
 extern std::unordered_map<std::string, TokenType> g_operators;
 extern std::unordered_map<std::string, TokenType> g_keywords;
 
+} // namespace compiler
 } // namespace msj

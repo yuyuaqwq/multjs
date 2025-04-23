@@ -7,6 +7,7 @@
 #include <mjs/object/function_object.h>
 
 namespace mjs {
+namespace compiler {
 
 class ScopeException : public std::exception{
 public:
@@ -103,4 +104,5 @@ private:
 	ScopeType type_;
 };
 
+} // namespace compiler
 } // namespace mjs

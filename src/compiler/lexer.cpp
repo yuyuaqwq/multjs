@@ -3,6 +3,7 @@
 #include <format>
 
 namespace mjs {
+namespace compiler {
 
 Lexer::Lexer(const char* src)
     : src_(src) {}
@@ -320,4 +321,5 @@ Token Lexer::ReadNextToken() {
     throw LexerException("cannot parse token");
 }
 
+} // namespace compiler
 } // namespace msj
