@@ -173,7 +173,7 @@ void Value::operator=(Value&& r) noexcept {
 }
 
 ptrdiff_t Value::Comparer(const Value& rhs) const {
-	if (const_index() != 0 && const_index() == rhs.const_index()) {
+	if (const_index() != kConstInvaildIndex && const_index() == rhs.const_index()) {
 		return 0;
 	}
 
@@ -219,7 +219,7 @@ bool Value::operator>(const Value& rhs) const {
 }
 
 bool Value::operator==(const Value& rhs) const {
-	if (const_index() != 0 && const_index() != rhs.const_index()) {
+	if (const_index() != kConstInvaildIndex && const_index() != rhs.const_index()) {
 		return false;
 	}
 	return Comparer(rhs) == 0;
