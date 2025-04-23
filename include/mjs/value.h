@@ -49,6 +49,9 @@ enum class ValueType : uint32_t {
 
 	kPromiseResolve,
 	kPromiseReject,
+
+	
+	kReferenceCounter,
 };
 
 class Context;
@@ -88,6 +91,8 @@ public:
 	explicit Value(double number);
 	explicit Value(const char* string_u8);
 	explicit Value(std::string str);
+
+	explicit Value(ReferenceCounter* rc);
 
 	explicit Value(Object* object);
 	explicit Value(FunctionObject* func);
@@ -156,7 +161,6 @@ public:
 	AsyncObject& async() const;
 	ModuleObject& module() const;
 
-
 	int64_t i64() const;
 	uint64_t u64() const;
 
@@ -164,6 +168,12 @@ public:
 	const UpValue& up_value() const;
 	FunctionDef& function_def() const;
 	CppFunction cpp_function() const;
+
+	ReferenceCounter& reference_counter() const;
+	template<typename ReferenceCounterT>
+	ReferenceCounterT& reference_counter() const {
+		return *static_cast<ReferenceCounterT*>(reference_counter());
+	}
 
 	ConstIndex const_index() const { return tag_.const_index_; }
 	void set_const_index(ConstIndex const_index) { tag_.const_index_ = const_index; }
@@ -173,6 +183,8 @@ public:
 	bool IsBoolean() const;
 	bool IsFloat() const;
 	bool IsString() const;
+
+	bool IsReferenceCounter() const;
 
 	// 新对象必须添加到IsObject中，否则会内存泄露
 	bool IsObject() const;
@@ -211,10 +223,6 @@ private:
 		struct {
 			ValueType type_ : 15;
 			uint32_t exception_ : 1;	// 是否是异常返回
-
-			// 常量池
-			uint32_t read_only_ : 1;	// 用于常量池中的Value，在复制时不会触发引用计数的增加，析构时不会减少引用计数
-			
 			ConstIndex const_index_;	// 非0则是来自常量池的value
 		};
 	} tag_;
@@ -224,6 +232,9 @@ private:
 		bool boolean_;
 		double f64_;
 		String* string_;
+
+		ReferenceCounter* rc_;
+
 
 		Object* object_;
 

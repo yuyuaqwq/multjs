@@ -118,7 +118,7 @@ Value CodeGener::Generate() {
 	scopes_.clear();
 
 	// 创建模块的函数定义
-	cur_func_def_ = new FunctionDef("module", 0);
+	cur_func_def_ = new FunctionDef(runtime_, "module", 0);
 	cur_func_def_->SetModule();
 	AllocConst(Value(cur_func_def_));
 
@@ -920,7 +920,7 @@ void CodeGener::GenerateExp(Exp* exp) {
 }
 
 void CodeGener::GenerateFunctionDeclExp(FunctionDeclExp* exp) {
-	auto const_idx = AllocConst(Value(new FunctionDef(exp->func_name, exp->par_list.size())));
+	auto const_idx = AllocConst(Value(new FunctionDef(runtime_, exp->func_name, exp->par_list.size())));
 	auto& func_def = GetConstValueByIndex(const_idx).function_def();
 	if (exp->func_type == FunctionType::kGenerator) {
 		func_def.SetGenerator();

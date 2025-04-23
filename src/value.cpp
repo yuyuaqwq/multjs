@@ -49,6 +49,13 @@ Value::Value(std::string str) {
 	value_.string_->Reference();
 }
 
+Value::Value(ReferenceCounter* rc) {
+	tag_.type_ = ValueType::kReferenceCounter;
+	value_.rc_ = rc;
+	value_.rc_->Reference();
+}
+
+
 Value::Value(Object* object) {
 	tag_.type_ = ValueType::kObject;
 	value_.object_ = object;
@@ -110,6 +117,7 @@ Value::Value(ClassDef* class_def) {
 Value::Value(FunctionDef* function_def) {
 	tag_.type_ = ValueType::kFunctionDef;
 	value_.function_def_ = function_def;
+	value_.function_def_->Reference();
 }
 
 Value::Value(CppFunction cpp_func) {
@@ -411,6 +419,10 @@ CppFunction Value::cpp_function() const {
 	return value_.cpp_func_;
 }
 
+ReferenceCounter& Value::reference_counter() const {
+	assert(IsReferenceCounter());
+	return *static_cast<ReferenceCounter*>(value_.rc_);
+}
 
 bool Value::IsUndefined() const {
 	return type() == ValueType::kUndefined;
@@ -431,6 +443,12 @@ bool Value::IsFloat() const {
 bool Value::IsString() const {
 	return type() == ValueType::kString
 		|| type() == ValueType::kStringView;
+}
+
+bool Value::IsReferenceCounter() const {
+	return type() == ValueType::kReferenceCounter
+		|| type() == ValueType::kString
+		|| type() == ValueType::kFunctionDef;
 }
 
 bool Value::IsObject() const {
@@ -565,46 +583,35 @@ Value Value::ToBoolean() const {
 
 
 void Value::Clear() {
-	if (IsString()) {
-		if (type() == ValueType::kString) {
-			value_.string_->Dereference();
-		}
-		else if (type() == ValueType::kStringView) {
-
-		}
-	}
-	else if (IsObject()) {
+	if (IsObject()) {
 		object().Dereference();
 	}
-	else if (IsFunctionDef() && const_index() != 0) {
-		delete value_.function_def_;
+	else if (IsReferenceCounter()) {
+		value_.rc_->Dereference();
 	}
 }
 
 void Value::Copy(const Value& r) {
 	tag_.type_ = r.tag_.type_;
+	tag_.exception_ = r.tag_.exception_;
+	tag_.const_index_ = r.tag_.const_index_;
 	if (r.IsObject()) {
 		value_.object_ = r.value_.object_;
 		object().Reference();
 	}
-	else if (r.IsString()) {
-		if (r.type() == ValueType::kString) {
-			value_.string_ = r.value_.string_;
-			value_.string_->Reference();
-		}
-		else {
-			value_.string_view_ = r.value_.string_view_;
-		}
+	else if (r.IsReferenceCounter()) {
+		value_.full_ = r.value_.full_;
+		value_.rc_->Reference();
 	}
 	else {
 		value_.full_ = r.value_.full_;
 	}
-	tag_.exception_ = r.tag_.exception_;
 }
 
 void Value::Move(Value&& r) {
 	tag_.full_ = r.tag_.full_;
 	value_ = r.value_;
+	r.tag_.full_ = 0;
 	r.tag_.type_ = ValueType::kUndefined;
 }
 

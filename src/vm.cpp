@@ -91,7 +91,7 @@ void Vm::BindClosureVars(StackFrame* stack_frame) {
 			auto var_idx = pair.second;
 			auto iter = func_def->closure_var_defs().find(var_idx);
 			assert(iter != func_def->closure_var_defs().end());
-			module_obj->export_map().emplace(pair.first, Value(
+			module_obj->export_map().emplace(context_->runtime().const_pool()[pair.first], Value(
 				UpValue(&arr[iter->second.arr_idx])
 			));
 		}

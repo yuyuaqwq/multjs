@@ -4,10 +4,10 @@
 #include <unordered_map>
 #include <optional>
 
+#include <mjs/reference_counter.h>
 #include <mjs/exception.h>
 #include <mjs/var_def.h>
 #include <mjs/bytecode.h>
-#include <mjs/value.h>
 
 namespace mjs {
 
@@ -19,7 +19,9 @@ struct ClosureVarDef {
 	std::optional<VarIndex> parent_var_idx;
 };
 
-class FunctionDef : public noncopyable {
+class Runtime;
+// 不会有循环引用问题，仅使用引用计数管理
+class FunctionDef : public ReferenceCounter {
 public:
 	struct VarInfo {
 		std::string name;
@@ -29,7 +31,7 @@ public:
 	};
 
 public:
-	FunctionDef(std::string name, uint32_t par_count) noexcept;
+	FunctionDef(Runtime* runtime, std::string name, uint32_t par_count) noexcept;
 
 	std::string Disassembly(Context* context) const;
 
@@ -83,10 +85,7 @@ public:
 		);
 	}
 
-	void AddExportVar(std::string_view name, VarIndex var_idx) {
-		export_var_defs_.emplace(Value(std::string(name)), var_idx);
-		AddClosureVar(var_idx, std::nullopt);
-	}
+	void AddExportVar(std::string name, VarIndex var_idx);
 
 	const auto& name() const { return name_; }
 
@@ -106,6 +105,8 @@ public:
 	auto& exception_table() { return exception_table_; }
 
 private:
+	Runtime* runtime_;
+
 	std::string name_;
 
 	uint32_t par_count_;
@@ -113,7 +114,7 @@ private:
 
 	std::vector<VarInfo> var_info_;
 
-	std::unordered_map<Value, VarIndex, ValueHash> export_var_defs_;
+	std::unordered_map<ConstIndex, VarIndex> export_var_defs_;
 
 	ByteCode byte_code_;
 
