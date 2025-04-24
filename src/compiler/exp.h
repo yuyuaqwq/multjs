@@ -36,7 +36,7 @@ enum class ExpressionType {
     kMemberExpression,
     kCallExpression,
     kNewExpression,
-    kAssigenmentExpression,
+    kAssignmentExpression,
     kUnaryExpression,
     kBinaryExpression,
     kConditionalExpression,
@@ -336,15 +336,15 @@ private:
     std::vector<std::unique_ptr<Expression>> arguments_;
 };
 
-class AssigenmentExpression : public Expression {
+class AssignmentExpression : public Expression {
 public:
-    AssigenmentExpression(SourcePos start, SourcePos end, 
+    AssignmentExpression(SourcePos start, SourcePos end, 
                 TokenType op, std::unique_ptr<Expression> left,
                 std::unique_ptr<Expression> right)
         : Expression(start, end), operator_(op), left_(std::move(left)), right_(std::move(right)) {}
 
     ExpressionType type() const noexcept override {
-        return ExpressionType::kAssigenmentExpression;
+        return ExpressionType::kAssignmentExpression;
     }
 
     TokenType op() const { return operator_; }

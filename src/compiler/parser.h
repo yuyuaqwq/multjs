@@ -23,14 +23,39 @@ class Parser : public noncopyable {
 public:
 	Parser(Lexer* t_lexer);
 
-	std::unique_ptr<Identifier> ParseIdentifier();
-	std::unique_ptr<Expression> ParseLiteral();
+	std::unique_ptr<Expression> ParseExpression();
+	std::unique_ptr<Expression> ParseCommaExpression();
+	std::unique_ptr<Expression> ParseYieldFunctionOrAssignment();
+	std::unique_ptr<YieldExpression> ParseYieldExpression();
+	std::unique_ptr<FunctionExpression> ParseFunctionOrGeneratorExpression();
+	std::unique_ptr<Expression> ParseAssignmentExpression();
+	std::unique_ptr<Expression> ParseTernaryExpression();
+	std::unique_ptr<Expression> ParseLogicalOrExpression();
+	std::unique_ptr<Expression> ParseLogicalAndExpression();
+	std::unique_ptr<Expression> ParseBitwiseOrExpression();
+	std::unique_ptr<Expression> ParseBitwiseXorExpression();
+	std::unique_ptr<Expression> ParseBitwiseAndExpression();
+	std::unique_ptr<Expression> ParseEqualityExpression();
+	std::unique_ptr<Expression> ParseRelationalExpression();
+	std::unique_ptr<Expression> ParseShiftExpression();
+	std::unique_ptr<Expression> ParseAdditiveExpression();
+	std::unique_ptr<Expression> ParseMultiplicativeExpression();
+	std::unique_ptr<Expression> ParseExponentiationExpression();
+	std::unique_ptr<Expression> ParseUnaryExpression();
+	std::unique_ptr<Expression> ParsePostfixExpression();
+	std::unique_ptr<Expression> ParseNewOrMemberExpression();
+	std::unique_ptr<NewExpression> ParseNewExpression();
+	std::unique_ptr<Expression> ParseMemberOrCallExpression(bool match_lparen);
+	std::unique_ptr<MemberExpression> ParseMemberExpression(std::unique_ptr<Expression> object);
+	std::unique_ptr<CallExpression> ParseCallExpression(std::unique_ptr<Expression> callee);
+	std::unique_ptr<ImportExpression> ParseImportExpression();
+	std::unique_ptr<Expression> ParsePrimaryExpression();
 	std::unique_ptr<ArrayExpression> ParseArrayExpression();
 	std::unique_ptr<ObjectExpression> ParseObjectExpression();
-	std::unique_ptr<FunctionExpression> ParseFunctionExpression();
-	std::unique_ptr<MemberExpression> ParseMemberExpression(std::unique_ptr<Expression> object);
-
-
+	std::unique_ptr<ThisExpression> ParseThis();
+	std::unique_ptr<Expression> ParseLiteral();
+	std::unique_ptr<Identifier> ParseIdentifier();
+	
 	void ParseProgram();
 	std::unique_ptr<BlockStatement> ParseBlockStatement();
 	std::unique_ptr<Statement> ParseStatement();
@@ -55,32 +80,6 @@ public:
 
 	std::unique_ptr<Statement> ParseImportStatement(TokenType type);
 	std::unique_ptr<ExportDeclaration> ParseExportDeclaration(TokenType type);
-
-	std::unique_ptr<Expression> ParseExpression();
-	std::unique_ptr<Expression> ParseExpression20();
-	std::unique_ptr<Expression> ParseExpression19();
-	std::unique_ptr<Expression> ParseExpression18();
-	std::unique_ptr<Expression> ParseExpression17();
-	std::unique_ptr<Expression> ParseExpression16();
-	std::unique_ptr<Expression> ParseExpression15();
-	std::unique_ptr<Expression> ParseExpression14();
-	std::unique_ptr<Expression> ParseExpression13();
-	std::unique_ptr<Expression> ParseExpression12();
-	std::unique_ptr<Expression> ParseExpression11();
-	std::unique_ptr<Expression> ParseExpression10();
-	std::unique_ptr<Expression> ParseExpression9();
-	std::unique_ptr<Expression> ParseExpression8();
-	std::unique_ptr<Expression> ParseExpression7();
-	std::unique_ptr<Expression> ParseExpression6();
-	std::unique_ptr<Expression> ParseExpression5();
-	std::unique_ptr<Expression> ParseExpression4();
-
-	std::unique_ptr<Expression> ParseNewExpression();
-	std::unique_ptr<Expression> ParseExpression3();
-	
-	std::unique_ptr<Expression> ParseExpression2(bool match_lparen);
-
-	std::unique_ptr<Expression> ParseExpression1();
 
 
 	std::vector<std::unique_ptr<Expression>> ParseExpressionList(TokenType begin, TokenType end, bool allow_comma_end);
