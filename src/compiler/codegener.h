@@ -11,8 +11,8 @@
 
 #include "parser.h"
 #include "scope.h"
-#include "stat.h"
-#include "exp.h"
+#include "statement.h"
+#include "expression.h"
 
 namespace mjs {
 

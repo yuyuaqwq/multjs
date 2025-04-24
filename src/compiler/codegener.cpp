@@ -298,7 +298,7 @@ void CodeGener::GenerateExpression(Expression* exp) {
 	}
 	case ExpressionType::kImportExpression: {
 		auto& import_exp = exp->as<ImportExpression>();
-		auto const_idx = AllocConst(Value(import_exp.source()));
+		auto const_idx = AllocConst(MakeValue(import_exp.source().get()));
 		cur_func_def_->byte_code().EmitConstLoad(const_idx);
 		cur_func_def_->byte_code().EmitOpcode(OpcodeType::kGetModuleAsync);
 		break;

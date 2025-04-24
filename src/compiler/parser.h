@@ -7,8 +7,8 @@
 #include <mjs/noncopyable.h>
 
 #include "lexer.h"
-#include "stat.h"
-#include "exp.h"
+#include "statement.h"
+#include "expression.h"
 
 namespace mjs {
 namespace compiler {

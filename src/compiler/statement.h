@@ -9,7 +9,7 @@
 #include <mjs/class_def/class_def.h>
 
 #include "token.h"
-#include "exp.h"
+#include "expression.h"
 
 namespace mjs {
 namespace compiler {

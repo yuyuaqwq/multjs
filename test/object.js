@@ -1,17 +1,10 @@
 
-async function aa(m) {
-    let mod : object = await import(m);
-    // mod["sb"] = 0;
-}
-
-aa("666.ts");
-
-let number : number = 123;
+let number = 123;
 
 let constvar = { a:{a:"123"} };
 constvar = "456";
 
-function tt(a : string, b : string) : number {
+function tt(a, b) {
     println("tt:", 100, a, b);
     return 100;
 }

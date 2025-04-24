@@ -459,7 +459,7 @@ private:
 
 class ImportExpression : public Expression {
 public:
-    ImportExpression(SourcePos start, SourcePos end, std::string source)
+    ImportExpression(SourcePos start, SourcePos end, std::unique_ptr<Expression> source)
         : Expression(start, end), source_(std::move(source)) {
         set_value_category(ValueCategory::kLValue);
     }
@@ -468,10 +468,10 @@ public:
         return ExpressionType::kImportExpression;
     }
 
-    const std::string& source() const { return source_; }
+    const std::unique_ptr<Expression>& source() const { return source_; }
 
 private:
-    std::string source_;
+    std::unique_ptr<Expression> source_;
 };
 
 

@@ -455,7 +455,7 @@ std::unique_ptr<ImportExpression> Parser::ParseImportExpression() {
 	auto start = lexer_->pos();
 	lexer_->MatchToken(TokenType::kKwImport);
 	lexer_->MatchToken(TokenType::kSepLParen);
-	auto source = lexer_->MatchToken(TokenType::kString).str();
+	auto source = ParseExpression();
 	lexer_->MatchToken(TokenType::kSepRParen);
 	auto end = lexer_->pos();
 	return std::make_unique<ImportExpression>(start, end, std::move(source));
