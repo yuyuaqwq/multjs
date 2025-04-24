@@ -86,6 +86,9 @@ public:
 	std::vector<std::string> ParseParNameList();
 	std::vector<std::unique_ptr<Expression>> ParseExpressionList(TokenType begin, TokenType end, bool allow_comma_end);
 
+	void ParseTypeAnnotation();
+
+
 	const auto& src_statements() const { return src_statements_; }
 	const auto& import_declarations() const { return import_declarations_; }
 

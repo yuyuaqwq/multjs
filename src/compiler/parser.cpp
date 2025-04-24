@@ -87,6 +87,9 @@ std::unique_ptr<FunctionExpression> Parser::ParseFunctionOrGeneratorExpression()
 		id = lexer_->NextToken().str();
 	}
 	auto params = ParseParNameList();
+
+	ParseTypeAnnotation();
+
 	auto block = ParseBlockStatement();
 
 	auto end = lexer_->pos();
@@ -712,10 +715,7 @@ std::unique_ptr<VariableDeclaration> Parser::ParseVariableDeclaration(TokenType 
 	lexer_->MatchToken(kind);
 	auto name = lexer_->MatchToken(TokenType::kIdentifier).str();
 
-	if (lexer_->PeekToken().is(TokenType::kSepColon)) {
-		lexer_->NextToken();
-		lexer_->MatchToken(TokenType::kIdentifier);
-	}
+	ParseTypeAnnotation();
 
 	lexer_->MatchToken(TokenType::kOpAssign);
 	auto init = ParseExpression();
@@ -942,6 +942,9 @@ std::vector<std::string> Parser::ParseParNameList() {
 	if (!lexer_->PeekToken().is(TokenType::kSepRParen)) {
 		do {
 			parList.push_back(lexer_->MatchToken(TokenType::kIdentifier).str());
+
+			ParseTypeAnnotation();
+
 			if (!lexer_->PeekToken().is(TokenType::kSepComma)) {
 				break;
 			}
@@ -970,6 +973,13 @@ std::vector<std::unique_ptr<Expression>> Parser::ParseExpressionList(TokenType b
 	}
 	lexer_->MatchToken(end);
 	return par_list;
+}
+
+void Parser::ParseTypeAnnotation() {
+	if (lexer_->PeekToken().is(TokenType::kSepColon)) {
+		lexer_->NextToken();
+		lexer_->MatchToken(TokenType::kIdentifier);
+	}
 }
 
 } // namespace compiler
