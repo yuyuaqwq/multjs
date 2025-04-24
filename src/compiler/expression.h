@@ -460,9 +460,7 @@ private:
 class ImportExpression : public Expression {
 public:
     ImportExpression(SourcePos start, SourcePos end, std::unique_ptr<Expression> source)
-        : Expression(start, end), source_(std::move(source)) {
-        set_value_category(ValueCategory::kLValue);
-    }
+        : Expression(start, end), source_(std::move(source)) {}
 
     ExpressionType type() const noexcept override {
         return ExpressionType::kImportExpression;
