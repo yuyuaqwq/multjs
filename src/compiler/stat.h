@@ -15,22 +15,35 @@ namespace mjs {
 namespace compiler {
 
 enum class StatementType {
-    kExpression,
+    // 模块相关
+    kImport,
+    kExport,
+    
+    // 声明语句
+    kVariableDeclaration,
+    
+    // 控制流
     kIf,
+    kLabeled,
+    
+    // 循环及控制
     kFor,
     kWhile,
     kContinue,
     kBreak,
+    
+    // 函数控制
     kReturn,
+    
+    // 异常处理
     kTry,
     kCatch,
     kFinally,
     kThrow,
-    kVariableDeclaration,
-    kLabeled,
+    
+    // 基本语句
+    kExpression,
     kBlock,
-    kImport,
-    kExport,
 };
 
 class Statement : public noncopyable {
@@ -64,30 +77,84 @@ private:
     SourcePos end_;
 };
 
-class ExpressionStatement : public Statement {
-public:
-    ExpressionStatement(SourcePos start, SourcePos end, std::unique_ptr<Expression> expression) 
-        : Statement(start, end), expression_(std::move(expression)) {}
-    
-    StatementType type() const noexcept override { return StatementType::kExpression; }
 
-    const std::unique_ptr<Expression>& expression() const { return expression_; }
+class ImportDeclaration : public Statement {
+public:
+    ImportDeclaration(SourcePos start, SourcePos end,
+        std::string source,
+        std::string name)
+        : Statement(start, end),
+        source_(std::move(source)),
+        name_(std::move(name)) {}
+
+    StatementType type() const noexcept override { return StatementType::kImport; }
+
+    const std::string& source() const { return source_; }
+    const std::string& name() const { return name_; }
 
 private:
-    std::unique_ptr<Expression> expression_;
+    std::string source_;
+    std::string name_;
 };
+
+class ExportDeclaration : public Statement {
+public:
+    explicit ExportDeclaration(SourcePos start, SourcePos end,
+        std::unique_ptr<Statement> declaration)
+        : Statement(start, end), declaration_(std::move(declaration)) {}
+
+    StatementType type() const noexcept override { return StatementType::kExport; }
+
+    const std::unique_ptr<Statement>& declaration() const { return declaration_; }
+
+private:
+    std::unique_ptr<Statement> declaration_;
+};
+
+
+class VariableDeclaration : public Statement {
+public:
+    VariableDeclaration(SourcePos start, SourcePos end,
+        std::string name,
+        std::unique_ptr<Expression> init,
+        TokenType kind)
+        : Statement(start, end),
+        name_(std::move(name)),
+        init_(std::move(init)),
+        kind_(kind) {
+        is_export_ = false;
+    }
+
+    StatementType type() const noexcept override { return StatementType::kVariableDeclaration; }
+
+    const std::string& name() const { return name_; }
+    const std::unique_ptr<Expression>& init() const { return init_; }
+    TokenType kind() const { return kind_; }
+    bool is_export() const { return is_export_; }
+    void set_is_export(bool is_export) { is_export_ = is_export; }
+
+private:
+    std::string name_;
+    std::unique_ptr<Expression> init_;
+    TokenType kind_;
+
+    struct {
+        uint32_t is_export_ : 1;
+    };
+};
+
 
 class IfStatement : public Statement {
 public:
     IfStatement(SourcePos start, SourcePos end,
-                std::unique_ptr<Expression> test, 
-                std::unique_ptr<BlockStatement> consequent,
-                std::unique_ptr<Statement> alternate)
+        std::unique_ptr<Expression> test,
+        std::unique_ptr<BlockStatement> consequent,
+        std::unique_ptr<Statement> alternate)
         : Statement(start, end),
-          test_(std::move(test)),
-          consequent_(std::move(consequent)),
-          alternate_(std::move(alternate)) {}
-    
+        test_(std::move(test)),
+        consequent_(std::move(consequent)),
+        alternate_(std::move(alternate)) {}
+
     StatementType type() const noexcept override { return StatementType::kIf; }
 
     const std::unique_ptr<Expression>& test() const { return test_; }
@@ -100,19 +167,39 @@ private:
     std::unique_ptr<Statement> alternate_;
 };
 
+class LabeledStatement : public Statement {
+public:
+    LabeledStatement(SourcePos start, SourcePos end,
+        std::string label,
+        std::unique_ptr<Statement> body)
+        : Statement(start, end),
+        label_(std::move(label)),
+        body_(std::move(body)) {}
+
+    StatementType type() const noexcept override { return StatementType::kLabeled; }
+
+    const std::string& label() const { return label_; }
+    const std::unique_ptr<Statement>& body() const { return body_; }
+
+private:
+    std::string label_;
+    std::unique_ptr<Statement> body_;
+};
+
+
 class ForStatement : public Statement {
 public:
     ForStatement(SourcePos start, SourcePos end,
-                std::unique_ptr<Statement> init,
-                std::unique_ptr<Expression> test,
-                std::unique_ptr<Expression> update,
-                std::unique_ptr<BlockStatement> body)
+        std::unique_ptr<Statement> init,
+        std::unique_ptr<Expression> test,
+        std::unique_ptr<Expression> update,
+        std::unique_ptr<BlockStatement> body)
         : Statement(start, end),
-          init_(std::move(init)),
-          test_(std::move(test)),
-          update_(std::move(update)),
-          body_(std::move(body)) {}
-    
+        init_(std::move(init)),
+        test_(std::move(test)),
+        update_(std::move(update)),
+        body_(std::move(body)) {}
+
     StatementType type() const noexcept override { return StatementType::kFor; }
 
     const std::unique_ptr<Statement>& init() const { return init_; }
@@ -130,12 +217,12 @@ private:
 class WhileStatement : public Statement {
 public:
     WhileStatement(SourcePos start, SourcePos end,
-                  std::unique_ptr<Expression> test, 
-                  std::unique_ptr<BlockStatement> body)
+        std::unique_ptr<Expression> test,
+        std::unique_ptr<BlockStatement> body)
         : Statement(start, end),
-          test_(std::move(test)),
-          body_(std::move(body)) {}
-    
+        test_(std::move(test)),
+        body_(std::move(body)) {}
+
     StatementType type() const noexcept override { return StatementType::kWhile; }
 
     const std::unique_ptr<Expression>& test() const { return test_; }
@@ -148,10 +235,10 @@ private:
 
 class ContinueStatement : public Statement {
 public:
-    explicit ContinueStatement(SourcePos start, SourcePos end, 
-                             std::optional<std::string> label)
+    explicit ContinueStatement(SourcePos start, SourcePos end,
+        std::optional<std::string> label)
         : Statement(start, end), label_(std::move(label)) {}
-    
+
     StatementType type() const noexcept override { return StatementType::kContinue; }
 
     const std::optional<std::string>& label() const { return label_; }
@@ -163,9 +250,9 @@ private:
 class BreakStatement : public Statement {
 public:
     explicit BreakStatement(SourcePos start, SourcePos end,
-                          std::optional<std::string> label)
+        std::optional<std::string> label)
         : Statement(start, end), label_(std::move(label)) {}
-    
+
     StatementType type() const noexcept override { return StatementType::kBreak; }
 
     const std::optional<std::string>& label() const { return label_; }
@@ -174,12 +261,13 @@ private:
     std::optional<std::string> label_;
 };
 
+
 class ReturnStatement : public Statement {
 public:
     explicit ReturnStatement(SourcePos start, SourcePos end,
-                           std::unique_ptr<Expression> argument)
+        std::unique_ptr<Expression> argument)
         : Statement(start, end), argument_(std::move(argument)) {}
-    
+
     StatementType type() const noexcept override { return StatementType::kReturn; }
 
     const std::unique_ptr<Expression>& argument() const { return argument_; }
@@ -191,12 +279,12 @@ private:
 class CatchClause : public Statement {
 public:
     CatchClause(SourcePos start, SourcePos end,
-               std::unique_ptr<Identifier> param, 
-               std::unique_ptr<BlockStatement> body)
+        std::unique_ptr<Identifier> param,
+        std::unique_ptr<BlockStatement> body)
         : Statement(start, end),
-          param_(std::move(param)),
-          body_(std::move(body)) {}
-    
+        param_(std::move(param)),
+        body_(std::move(body)) {}
+
     StatementType type() const noexcept override { return StatementType::kCatch; }
 
     const std::unique_ptr<Identifier>& param() const { return param_; }
@@ -210,9 +298,9 @@ private:
 class FinallyClause : public Statement {
 public:
     explicit FinallyClause(SourcePos start, SourcePos end,
-                         std::unique_ptr<BlockStatement> body)
+        std::unique_ptr<BlockStatement> body)
         : Statement(start, end), body_(std::move(body)) {}
-    
+
     StatementType type() const noexcept override { return StatementType::kFinally; }
 
     const std::unique_ptr<BlockStatement>& body() const { return body_; }
@@ -224,14 +312,14 @@ private:
 class TryStatement : public Statement {
 public:
     TryStatement(SourcePos start, SourcePos end,
-                std::unique_ptr<BlockStatement> block, 
-                std::unique_ptr<CatchClause> handler,
-                std::unique_ptr<FinallyClause> finalizer)
+        std::unique_ptr<BlockStatement> block,
+        std::unique_ptr<CatchClause> handler,
+        std::unique_ptr<FinallyClause> finalizer)
         : Statement(start, end),
-          block_(std::move(block)),
-          handler_(std::move(handler)),
-          finalizer_(std::move(finalizer)) {}
-    
+        block_(std::move(block)),
+        handler_(std::move(handler)),
+        finalizer_(std::move(finalizer)) {}
+
     StatementType type() const noexcept override { return StatementType::kTry; }
 
     const std::unique_ptr<BlockStatement>& block() const { return block_; }
@@ -258,54 +346,18 @@ private:
     std::unique_ptr<Expression> argument_;
 };
 
-class LabeledStatement : public Statement {
-public:
-    LabeledStatement(SourcePos start, SourcePos end,
-                    std::string label, 
-                    std::unique_ptr<Statement> body)
-        : Statement(start, end),
-          label_(std::move(label)),
-          body_(std::move(body)) {}
-    
-    StatementType type() const noexcept override { return StatementType::kLabeled; }
 
-    const std::string& label() const { return label_; }
-    const std::unique_ptr<Statement>& body() const { return body_; }
+class ExpressionStatement : public Statement {
+public:
+    ExpressionStatement(SourcePos start, SourcePos end, std::unique_ptr<Expression> expression)
+        : Statement(start, end), expression_(std::move(expression)) {}
+
+    StatementType type() const noexcept override { return StatementType::kExpression; }
+
+    const std::unique_ptr<Expression>& expression() const { return expression_; }
 
 private:
-    std::string label_;
-    std::unique_ptr<Statement> body_;
-};
-
-class VariableDeclaration : public Statement {
-public:
-    VariableDeclaration(SourcePos start, SourcePos end,
-                       std::string name, 
-                       std::unique_ptr<Expression> init,
-                       TokenType kind)
-        : Statement(start, end),
-          name_(std::move(name)),
-          init_(std::move(init)),
-          kind_(kind) {
-        is_export_ = false;
-    }
-    
-    StatementType type() const noexcept override { return StatementType::kVariableDeclaration; }
-
-    const std::string& name() const { return name_; }
-    const std::unique_ptr<Expression>& init() const { return init_; }
-    TokenType kind() const { return kind_; }
-    bool is_export() const { return is_export_; }
-    void set_is_export(bool is_export) { is_export_ = is_export; }
-
-private:
-    std::string name_;
-    std::unique_ptr<Expression> init_;
-    TokenType kind_;
-
-    struct {
-        uint32_t is_export_ : 1;
-    };
+    std::unique_ptr<Expression> expression_;
 };
 
 class BlockStatement : public Statement {
@@ -319,39 +371,6 @@ public:
 
 private:
     std::vector<std::unique_ptr<Statement>> statements_;
-};
-
-class ImportDeclaration : public Statement {
-public:
-    ImportDeclaration(SourcePos start, SourcePos end,
-                     std::string source, 
-                     std::string name)
-        : Statement(start, end),
-          source_(std::move(source)),
-          name_(std::move(name)) {}
-    
-    StatementType type() const noexcept override { return StatementType::kImport; }
-
-    const std::string& source() const { return source_; }
-    const std::string& name() const { return name_; }
-
-private:
-    std::string source_;
-    std::string name_;
-};
-
-class ExportDeclaration : public Statement {
-public:
-    explicit ExportDeclaration(SourcePos start, SourcePos end,
-                             std::unique_ptr<Statement> declaration)
-        : Statement(start, end), declaration_(std::move(declaration)) {}
-    
-    StatementType type() const noexcept override { return StatementType::kExport; }
-
-    const std::unique_ptr<Statement>& declaration() const { return declaration_; }
-
-private:
-    std::unique_ptr<Statement> declaration_;
 };
 
 } // namespace compiler

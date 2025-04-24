@@ -8,9 +8,15 @@
 #include <mjs/const_def.h>
 #include <mjs/var_def.h>
 #include <mjs/opcode.h>
-#include <mjs/function_type.h>
 
 namespace mjs {
+
+enum class FunctionType {
+	kNormal,
+	kGenerator,
+	kAsync,
+	kModule,
+};
 
 inline static OpcodeType operator+(OpcodeType a, size_t b) {
 	return static_cast<OpcodeType>(static_cast<size_t>(a) + b);

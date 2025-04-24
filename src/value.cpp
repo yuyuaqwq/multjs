@@ -236,6 +236,12 @@ Value Value::operator+(const Value& rhs) const {
 	else if (IsInt64() && rhs.IsInt64()) {
 		return Value(i64() + rhs.i64());
 	}
+	else if (IsInt64() && rhs.IsFloat()) {
+		return Value(i64() + rhs.f64());
+	}
+	else if (IsFloat() && rhs.IsInt64()) {
+		return Value(f64() + rhs.i64());
+	}
 	else if (IsString() && !rhs.IsString()) {
 		return Value(std::format("{}{}", string(), rhs.ToString().string()));
 	}
@@ -254,6 +260,15 @@ Value Value::operator-(const Value& rhs) const {
 	if (IsFloat() && rhs.IsFloat()) {
 		return Value(f64() - rhs.f64());
 	}
+	else if (IsInt64() && rhs.IsInt64()) {
+		return Value(i64() - rhs.i64());
+	}
+	else if (IsInt64() && rhs.IsFloat()) {
+		return Value(i64() - rhs.f64());
+	}
+	else if (IsFloat() && rhs.IsInt64()) {
+		return Value(f64() - rhs.i64());
+	}
 	else {
 		throw std::runtime_error("Subtraction not supported for these Value types.");
 	}
@@ -262,6 +277,15 @@ Value Value::operator-(const Value& rhs) const {
 Value Value::operator*(const Value& rhs) const {
 	if (IsFloat() && rhs.IsFloat()) {
 		return Value(f64() * rhs.f64());
+	}
+	else if (IsInt64() && rhs.IsInt64()) {
+		return Value(i64() * rhs.i64());
+	}
+	else if (IsInt64() && rhs.IsFloat()) {
+		return Value(i64() * rhs.f64());
+	}
+	else if (IsFloat() && rhs.IsInt64()) {
+		return Value(f64() * rhs.i64());
 	}
 	else {
 		throw std::runtime_error("Multiplication not supported for these Value types.");

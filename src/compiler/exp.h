@@ -16,7 +16,7 @@ enum class ValueCategory {
 };
 
 enum class ExpressionType {
-    kIdentifier,
+    // 基础字面量
     kUndefined,
     kNull,
     kBoolean,
@@ -24,26 +24,40 @@ enum class ExpressionType {
     kFloat,
     kString,
     kThisExpression,
+
+    // 数据结构
     kArrayExpression,
     kObjectExpression,
-    kFunctionExpression,
 
+    // 函数/类相关
+    kFunctionExpression,
     kArrowFunctionExpression,
     kClassExpression,
+
+    // 模板字符串
     kTemplateLiteral,
     kTaggedTemplateExpression,
 
+    // 成员访问与调用
     kMemberExpression,
     kCallExpression,
     kNewExpression,
-    kAssignmentExpression,
+
+    // 运算表达式
     kUnaryExpression,
     kBinaryExpression,
+    kAssignmentExpression,
     kConditionalExpression,
 
+    // 控制流相关
     kYieldExpression,
+    kAwaitExpression,
 
+    // 模块相关
     kImportExpression,
+
+    // 标识符（放在最后，因为它是引用其他表达式的基础）
+    kIdentifier,
 };
 
 class Expression : public noncopyable {
@@ -81,24 +95,7 @@ private:
     SourcePos end_;
 };
 
-class Identifier : public Expression {
-public:
-    Identifier(SourcePos start, SourcePos end, std::string&& name)
-        : Expression(start, end), name_(std::move(name)) {
-        set_value_category(ValueCategory::kLValue);
-    }
 
-    ExpressionType type() const noexcept override {
-        return ExpressionType::kIdentifier;
-    }
-
-    const std::string& name() const { return name_; }
-
-private:
-    std::string name_;
-};
-
-// Literal Expressions
 class UndefinedLiteral : public Expression {
 public:
     UndefinedLiteral(SourcePos start, SourcePos end)
@@ -189,6 +186,7 @@ public:
     }
 };
 
+
 class ArrayExpression : public Expression {
 public:
     ArrayExpression(SourcePos start, SourcePos end,
@@ -226,6 +224,7 @@ public:
 private:
     std::vector<Property> properties_;
 };
+
 
 class BlockStatement;
 class FunctionExpression : public Expression {
@@ -272,12 +271,13 @@ public:
     MemberExpression(SourcePos start,  SourcePos end,
                 std::unique_ptr<Expression> object,
                 std::unique_ptr<Expression> property,
-                bool computed, bool optional)
+                bool is_method_call, bool computed, bool optional)
         : Expression(start, end), object_(std::move(object)),
-        property_(std::move(property)), computed_(computed), optional_(optional) {
-        if (!computed) {
+        property_(std::move(property)), computed_(computed), 
+        is_method_call_(is_method_call), optional_(optional) {
+        //if (!computed) {
             set_value_category(ValueCategory::kLValue);
-        }
+        //}
     }
 
     ExpressionType type() const noexcept override {
@@ -286,12 +286,14 @@ public:
 
     const std::unique_ptr<Expression>& object() const { return object_; }
     const std::unique_ptr<Expression>& property() const { return property_; }
+    bool is_method_call() const { return is_method_call_; }
     bool computed() const { return computed_; }
     bool optional() const { return optional_; }
 
 private:
     std::unique_ptr<Expression> object_;
     std::unique_ptr<Expression> property_;
+    bool is_method_call_;
     bool computed_;
     bool optional_;
 };
@@ -336,26 +338,6 @@ private:
     std::vector<std::unique_ptr<Expression>> arguments_;
 };
 
-class AssignmentExpression : public Expression {
-public:
-    AssignmentExpression(SourcePos start, SourcePos end, 
-                TokenType op, std::unique_ptr<Expression> left,
-                std::unique_ptr<Expression> right)
-        : Expression(start, end), operator_(op), left_(std::move(left)), right_(std::move(right)) {}
-
-    ExpressionType type() const noexcept override {
-        return ExpressionType::kAssignmentExpression;
-    }
-
-    TokenType op() const { return operator_; }
-    const std::unique_ptr<Expression>& left() const { return left_; }
-    const std::unique_ptr<Expression>& right() const { return right_; }
-
-private:
-    TokenType operator_;
-    std::unique_ptr<Expression> left_;
-    std::unique_ptr<Expression> right_;
-};
 
 
 class UnaryExpression : public Expression {
@@ -385,6 +367,27 @@ public:
 
     ExpressionType type() const noexcept override {
         return ExpressionType::kBinaryExpression;
+    }
+
+    TokenType op() const { return operator_; }
+    const std::unique_ptr<Expression>& left() const { return left_; }
+    const std::unique_ptr<Expression>& right() const { return right_; }
+
+private:
+    TokenType operator_;
+    std::unique_ptr<Expression> left_;
+    std::unique_ptr<Expression> right_;
+};
+
+class AssignmentExpression : public Expression {
+public:
+    AssignmentExpression(SourcePos start, SourcePos end,
+        TokenType op, std::unique_ptr<Expression> left,
+        std::unique_ptr<Expression> right)
+        : Expression(start, end), operator_(op), left_(std::move(left)), right_(std::move(right)) {}
+
+    ExpressionType type() const noexcept override {
+        return ExpressionType::kAssignmentExpression;
     }
 
     TokenType op() const { return operator_; }
@@ -444,7 +447,7 @@ public:
         : Expression(start, end), argument_(std::move(argument)) {}
 
     ExpressionType type() const noexcept override {
-        return ExpressionType::kYieldExpression;
+        return ExpressionType::kAwaitExpression;
     }
 
     const std::unique_ptr<Expression>& argument() const { return argument_; }
@@ -469,6 +472,24 @@ public:
 
 private:
     std::string source_;
+};
+
+
+class Identifier : public Expression {
+public:
+    Identifier(SourcePos start, SourcePos end, std::string&& name)
+        : Expression(start, end), name_(std::move(name)) {
+        set_value_category(ValueCategory::kLValue);
+    }
+
+    ExpressionType type() const noexcept override {
+        return ExpressionType::kIdentifier;
+    }
+
+    const std::string& name() const { return name_; }
+
+private:
+    std::string name_;
 };
 
 

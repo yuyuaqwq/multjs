@@ -44,6 +44,36 @@ public:
 	Value Generate();
 
 private:
+	void GenerateExpression(Expression* exp);
+	void GenerateFunctionExpression(FunctionExpression* exp);
+
+	void GenerateStatement(Statement* stat);
+
+	void GenerateImportDeclaration(ImportDeclaration* stat);
+	void GenerateExportDeclaration(ExportDeclaration* stat);
+
+	void GenerateVariableDeclaration(VariableDeclaration* stat);
+
+	void GenerateIfStatement(IfStatement* stat);
+	void GenerateLabeledStatement(LabeledStatement* stat);
+
+	void GenerateForStatement(ForStatement* stat);
+	void GenerateWhileStatement(WhileStatement* stat);
+	void GenerateContinueStatement(ContinueStatement* stat);
+	void GenerateBreakStatement(BreakStatement* stat);
+
+	void GenerateReturnStatement(ReturnStatement* stat);
+
+	void GenerateTryStatement(TryStatement* stat);
+	void GenerateThrowStatement(ThrowStatement* stat);
+
+	void GenerateBlock(BlockStatement* block, bool entry_scope = true, ScopeType type = ScopeType::kNone);
+	
+
+	void GenerateIfEq(Expression* exp);
+	void GenerateParList(const std::vector<std::unique_ptr<Expression>>& par_list);
+
+
 	void EntryScope(FunctionDef* sub_func = nullptr, ScopeType type = ScopeType::kNone);
 	void ExitScope();
 
@@ -53,33 +83,10 @@ private:
 	const VarInfo& AllocVar(const std::string& name, VarFlags flags = VarFlags::kNone);
 	const VarInfo* FindVarIndexByName(const std::string& name);
 	bool IsInTypeScope(std::initializer_list<ScopeType> types, std::initializer_list<ScopeType> end_types);
-	
-	const VarInfo& GetVarByExp(Expression* exp);
 
-	void GenerateBlock(BlockStat* block, bool entry_scope = true, ScopeType type = ScopeType::kNone);
-	void GenerateStat(Stat* stat);
-	void GenerateReturnStat(ReturnStat* stat);
-	void GenerateNewVarStat(NewVarStat* stat);
-	void GenerateIfStat(IfStat* stat);
-	void GenerateLabeleStat(LabelStat* stat);
-	void GenerateWhileStat(WhileStat* stat);
-	void GenerateForStat(ForStat* stat);
-	void GenerateContinueStat(ContinueStat* stat);
-	void GenerateBreakStat(BreakStat* stat);
-
-	void GenerateTryStat(TryStat* stat);
-	void GenerateThrowStat(ThrowStat* stat);
-
-	void GenerateImportStat(ImportStat* stat);
-	void GenerateExportStat(ExportStat* stat);
-
-	void GenerateExp(Expression* exp);
-	void GenerateIfEq(Expression* exp);
-
-	void GenerateFunctionDeclExp(FunctionDeclExp* exp);
+	const VarInfo& GetVarByExpression(Expression* exp);
 
 	Value MakeValue(Expression* exp);
-	void GenerateParList(const std::vector<std::unique_ptr<Expression>>& par_list);
 
 	void RepairEntrys(const std::vector<RepairEntry>& entrys, Pc end_pc, Pc reloop_pc);
 

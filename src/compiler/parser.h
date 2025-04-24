@@ -23,6 +23,8 @@ class Parser : public noncopyable {
 public:
 	Parser(Lexer* t_lexer);
 
+	void ParseProgram();
+
 	std::unique_ptr<Expression> ParseExpression();
 	std::unique_ptr<Expression> ParseCommaExpression();
 	std::unique_ptr<Expression> ParseYieldFunctionOrAssignment();
@@ -43,7 +45,7 @@ public:
 	std::unique_ptr<Expression> ParseExponentiationExpression();
 	std::unique_ptr<Expression> ParseUnaryExpression();
 	std::unique_ptr<Expression> ParsePostfixExpression();
-	std::unique_ptr<Expression> ParseNewOrMemberExpression();
+	std::unique_ptr<Expression> ParseNewImportOrMemberExpression();
 	std::unique_ptr<NewExpression> ParseNewExpression();
 	std::unique_ptr<Expression> ParseMemberOrCallExpression(bool match_lparen);
 	std::unique_ptr<MemberExpression> ParseMemberExpression(std::unique_ptr<Expression> object);
@@ -56,32 +58,32 @@ public:
 	std::unique_ptr<Expression> ParseLiteral();
 	std::unique_ptr<Identifier> ParseIdentifier();
 	
-	void ParseProgram();
-	std::unique_ptr<BlockStatement> ParseBlockStatement();
 	std::unique_ptr<Statement> ParseStatement();
 
-	std::unique_ptr<ExpressionStatement> ParseExpressionStatement();
+	std::unique_ptr<Statement> ParseImportStatement(TokenType type);
+	std::unique_ptr<ExportDeclaration> ParseExportDeclaration(TokenType type);
 
-	std::vector<std::string> ParseParNameList();
+	std::unique_ptr<VariableDeclaration> ParseVariableDeclaration(TokenType kind);
+
 	std::unique_ptr<IfStatement> ParseIfStatement();
+	std::unique_ptr<LabeledStatement> ParseLabeledStatement();
 
 	std::unique_ptr<ForStatement> ParseForStatement();
 	std::unique_ptr<WhileStatement> ParseWhileStatement();
 	std::unique_ptr<ContinueStatement> ParseContinueStatement();
 	std::unique_ptr<BreakStatement> ParseBreakStatement();
+	
 	std::unique_ptr<ReturnStatement> ParseReturnStatement();
+
 	std::unique_ptr<TryStatement> ParseTryStatement();
 	std::unique_ptr<CatchClause> ParseCatchClause();
 	std::unique_ptr<FinallyClause> ParseFinallyClause();
 	std::unique_ptr<ThrowStatement> ParseThrowStatement();
 
-	std::unique_ptr<LabeledStatement> ParseLabeledStatement();
-	std::unique_ptr<VariableDeclaration> ParseVariableDeclaration(TokenType kind);
+	std::unique_ptr<BlockStatement> ParseBlockStatement();
+	std::unique_ptr<ExpressionStatement> ParseExpressionStatement();
 
-	std::unique_ptr<Statement> ParseImportStatement(TokenType type);
-	std::unique_ptr<ExportDeclaration> ParseExportDeclaration(TokenType type);
-
-
+	std::vector<std::string> ParseParNameList();
 	std::vector<std::unique_ptr<Expression>> ParseExpressionList(TokenType begin, TokenType end, bool allow_comma_end);
 
 	const auto& src_statements() const { return src_statements_; }

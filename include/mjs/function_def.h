@@ -112,13 +112,13 @@ private:
 	uint32_t par_count_;
 	uint32_t var_count_ = 0;		// 包括par_count
 
+	FunctionType type_ = FunctionType::kNormal;
+
 	std::vector<VarInfo> var_info_;
 
 	std::unordered_map<ConstIndex, VarIndex> export_var_defs_;
 
 	ByteCode byte_code_;
-
-	FunctionType type_ = FunctionType::kNormal;
 
 	// 优化方向：
 	// 如果所有记录都没有捕获外部变量，都是顶级upvalue变量
