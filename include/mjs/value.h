@@ -140,9 +140,6 @@ public:
 
 	ValueType type() const;
 
-	double f64() const;
-	void set_float64(double number);
-
 	bool boolean() const;
 	void set_boolean(bool boolean);
 
@@ -160,6 +157,8 @@ public:
 	AsyncObject& async() const;
 	ModuleObject& module() const;
 
+	double f64() const;
+	void set_float64(double number);
 	int64_t i64() const;
 	uint64_t u64() const;
 
@@ -180,7 +179,7 @@ public:
 	bool IsUndefined() const;
 	bool IsNull() const;
 	bool IsBoolean() const;
-	bool IsFloat() const;
+	bool IsNumber() const;
 	bool IsString() const;
 
 	bool IsReferenceCounter() const;
@@ -195,6 +194,7 @@ public:
 	bool IsPromiseResolve() const;
 	bool IsPromiseReject() const;
 
+	bool IsFloat() const;
 	bool IsInt64() const;
 	bool IsUInt64() const;
 	bool IsClassDef() const;
@@ -205,6 +205,7 @@ public:
 
 	Value ToString() const;
 	Value ToBoolean() const;
+	Value ToNumber() const;
 
 	bool IsException() const { return tag_.exception_; }
 	void SetException() { tag_.exception_ = 1; }

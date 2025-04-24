@@ -230,145 +230,222 @@ bool Value::operator==(const Value& rhs) const {
 }
 
 Value Value::operator+(const Value& rhs) const {
-	if (IsFloat() && rhs.IsFloat()) {
-		return Value(f64() + rhs.f64());
+	switch (type()) {
+	case ValueType::kFloat64: {
+		switch (rhs.type()) {
+		case ValueType::kFloat64: {
+			return Value(f64() + rhs.f64());
+		}
+		case ValueType::kInt64: {
+			return Value(f64() + double(rhs.i64()));
+		}
+		case ValueType::kStringView:
+		case ValueType::kString: {
+			return Value(std::format("{}{}", ToString().string(), rhs.string()));
+		}
+		}
+		break;
 	}
-	else if (IsInt64() && rhs.IsInt64()) {
-		return Value(i64() + rhs.i64());
+	case ValueType::kInt64: {
+		switch (rhs.type()) {
+		case ValueType::kFloat64: {
+			return Value(double(i64()) + rhs.f64());
+		}
+		case ValueType::kInt64: {
+			return Value(i64() + i64());
+		}
+		case ValueType::kStringView:
+		case ValueType::kString: {
+			return Value(std::format("{}{}", ToString().string(), rhs.string()));
+		}
+		}
+		break;
 	}
-	else if (IsInt64() && rhs.IsFloat()) {
-		return Value(i64() + rhs.f64());
+	case ValueType::kStringView:
+	case ValueType::kString: {
+		switch (rhs.type()) {
+		case ValueType::kFloat64:
+		case ValueType::kInt64: {
+			return Value(std::format("{}{}", string(), rhs.ToString().string()));
+		}
+		case ValueType::kStringView:
+		case ValueType::kString: {
+			return Value(std::format("{}{}", string(), rhs.string()));
+		}
+		}
 	}
-	else if (IsFloat() && rhs.IsInt64()) {
-		return Value(f64() + rhs.i64());
 	}
-	else if (IsString() && !rhs.IsString()) {
-		return Value(std::format("{}{}", string(), rhs.ToString().string()));
-	}
-	else if (!IsString() && rhs.IsString()) {
-		return Value(std::format("{}{}", ToString().string(), rhs.string()));
-	}
-	else if (IsString() && rhs.IsString()) {
-		return Value(std::format("{}{}", string(), string()));
-	}
-	else {
-		throw std::runtime_error("Addition not supported for these Value types.");
-	}
+	throw std::runtime_error("Addition not supported for these Value types.");
 }
 
 Value Value::operator-(const Value& rhs) const {
-	if (IsFloat() && rhs.IsFloat()) {
-		return Value(f64() - rhs.f64());
+	switch (type()) {
+	case ValueType::kFloat64: {
+		switch (rhs.type()) {
+		case ValueType::kFloat64: {
+			return Value(f64() - rhs.f64());
+		}
+		case ValueType::kInt64: {
+			return Value(f64() - double(rhs.i64()));
+		}
+		}
+		break;
 	}
-	else if (IsInt64() && rhs.IsInt64()) {
-		return Value(i64() - rhs.i64());
+	case ValueType::kInt64: {
+		switch (rhs.type()) {
+		case ValueType::kFloat64: {
+			return Value(double(i64()) - rhs.f64());
+		}
+		case ValueType::kInt64: {
+			return Value(i64() - i64());
+		}
+		}
+		break;
 	}
-	else if (IsInt64() && rhs.IsFloat()) {
-		return Value(i64() - rhs.f64());
 	}
-	else if (IsFloat() && rhs.IsInt64()) {
-		return Value(f64() - rhs.i64());
-	}
-	else {
-		throw std::runtime_error("Subtraction not supported for these Value types.");
-	}
+
+	throw std::runtime_error("Subtraction not supported for these Value types.");
+	
 }
 
 Value Value::operator*(const Value& rhs) const {
-	if (IsFloat() && rhs.IsFloat()) {
-		return Value(f64() * rhs.f64());
+	switch (type()) {
+	case ValueType::kFloat64: {
+		switch (rhs.type()) {
+		case ValueType::kFloat64: {
+			return Value(f64() * rhs.f64());
+		}
+		case ValueType::kInt64: {
+			return Value(f64() * double(rhs.i64()));
+		}
+		}
+		break;
 	}
-	else if (IsInt64() && rhs.IsInt64()) {
-		return Value(i64() * rhs.i64());
+	case ValueType::kInt64: {
+		switch (rhs.type()) {
+		case ValueType::kFloat64: {
+			return Value(double(i64()) * rhs.f64());
+		}
+		case ValueType::kInt64: {
+			return Value(i64() * i64());
+		}
+		}
+		break;
 	}
-	else if (IsInt64() && rhs.IsFloat()) {
-		return Value(i64() * rhs.f64());
 	}
-	else if (IsFloat() && rhs.IsInt64()) {
-		return Value(f64() * rhs.i64());
-	}
-	else {
-		throw std::runtime_error("Multiplication not supported for these Value types.");
-	}
+
+	throw std::runtime_error("Multiplication not supported for these Value types.");
 }
 
 Value Value::operator/(const Value& rhs) const {
-	if (IsFloat() && rhs.IsFloat()) {
-		if (rhs.f64() == 0) {
-			throw std::runtime_error("Division by zero.");
+	switch (type()) {
+	case ValueType::kFloat64: {
+		switch (rhs.type()) {
+		case ValueType::kFloat64: {
+			return Value(f64() / rhs.f64());
 		}
-		return Value(f64() / rhs.f64());
+		case ValueType::kInt64: {
+			return Value(f64() / double(rhs.i64()));
+		}
+		}
+		break;
 	}
-	else {
-		throw std::runtime_error("Division not supported for these Value types.");
+	case ValueType::kInt64: {
+		switch (rhs.type()) {
+		case ValueType::kFloat64: {
+			return Value(double(i64()) / rhs.f64());
+		}
+		case ValueType::kInt64: {
+			return Value(double(i64()) / double(i64()));
+		}
+		}
+		break;
 	}
+	}
+	throw std::runtime_error("Division not supported for these Value types.");
 }
 
 Value Value::operator-() const {
-	if (IsFloat()) {
+	switch (type()) {
+	case ValueType::kFloat64: {
 		return Value(-f64());
 	}
-	else {
-		throw std::runtime_error("Neg not supported for these Value types.");
+	case ValueType::kInt64: {
+		return Value(-i64());
 	}
+	}
+	throw std::runtime_error("Neg not supported for these Value types.");
 }
 
 Value& Value::operator++() {
-	if (IsFloat()) {
+	switch (type()) {
+	case ValueType::kFloat64: {
 		++value_.f64_;
+		break;
 	}
-	else {
+	case ValueType::kInt64: {
+		++value_.i64_;
+		break;
+	}
+	default:
 		throw std::runtime_error("Neg not supported for these Value types.");
 	}
 	return *this;
 }
 
 Value& Value::operator--() {
-	if (IsFloat()) {
+	switch (type()) {
+	case ValueType::kFloat64: {
 		--value_.f64_;
+		break;
 	}
-	else {
+	case ValueType::kInt64: {
+		--value_.i64_;
+		break;
+	}
+	default:
 		throw std::runtime_error("Neg not supported for these Value types.");
 	}
 	return *this;
 }
 
 Value Value::operator++(int) {
-	if (IsFloat()) {
-		Value old = *this;
+	Value old = *this;
+	switch (type()) {
+	case ValueType::kFloat64: {
 		++value_.f64_;
-		return old;
+		break;
 	}
-	else {
+	case ValueType::kInt64: {
+		++value_.i64_;
+		break;
+	}
+	default:
 		throw std::runtime_error("Neg not supported for these Value types.");
 	}
+	return old;
 }
 
 Value Value::operator--(int) {
-	if (IsFloat()) {
-		Value old = *this;
+	Value old = *this;
+	switch (type()) {
+	case ValueType::kFloat64: {
 		--value_.f64_;
-		return old;
+		break;
 	}
-	else {
+	case ValueType::kInt64: {
+		--value_.i64_;
+		break;
+	}
+	default:
 		throw std::runtime_error("Neg not supported for these Value types.");
 	}
+	return old;
 }
 
 
 ValueType Value::type() const { 
 	return tag_.type_;
-}
-
-
-double Value::f64() const { 
-	assert(IsFloat());
-	return value_.f64_;
-}
-
-void Value::set_float64(double number) { 
-	assert(IsFloat());
-	value_.f64_ = number;
 }
 
 
@@ -425,6 +502,17 @@ ModuleObject& Value::module() const {
 	return *reinterpret_cast<ModuleObject*>(value_.object_);
 }
 
+
+double Value::f64() const {
+	assert(IsFloat());
+	return value_.f64_;
+}
+
+void Value::set_float64(double number) {
+	assert(IsFloat());
+	value_.f64_ = number;
+}
+
 int64_t Value::i64() const {
 	assert(IsInt64());
 	return value_.i64_;
@@ -459,6 +547,7 @@ ReferenceCounter& Value::reference_counter() const {
 	return *static_cast<ReferenceCounter*>(value_.rc_);
 }
 
+
 bool Value::IsUndefined() const {
 	return type() == ValueType::kUndefined;
 }
@@ -471,8 +560,8 @@ bool Value::IsBoolean() const {
 	return type() == ValueType::kBoolean;
 }
 
-bool Value::IsFloat() const {
-	return type() == ValueType::kFloat64;
+bool Value::IsNumber() const {
+	return IsFloat() || IsInt64();
 }
 
 bool Value::IsString() const {
@@ -529,6 +618,10 @@ bool Value::IsPromiseReject() const {
 	return type() == ValueType::kPromiseReject;
 }
 
+
+bool Value::IsFloat() const {
+	return type() == ValueType::kFloat64;
+}
 
 bool Value::IsInt64() const {
 	return type() == ValueType::kInt64;
@@ -612,10 +705,21 @@ Value Value::ToBoolean() const {
 		return Value(string() != nullptr && string()[0] != '\0');
 	}
 	default:
-		throw std::runtime_error("Need to add new types.");
+		throw std::runtime_error("Incorrect value type.");
 	}
 }
 
+Value Value::ToNumber() const {
+	switch (type()) {
+	case ValueType::kFloat64:
+		return Value(f64());
+	case ValueType::kInt64: {
+		return Value(double(i64()));
+	}
+	default:
+		throw std::runtime_error("Incorrect value type.");
+	}
+}
 
 void Value::Clear() {
 	if (IsObject()) {
