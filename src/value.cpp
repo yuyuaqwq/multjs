@@ -462,8 +462,7 @@ void Value::set_boolean(bool boolean) {
 
 const char* Value::string() const {
 	assert(IsString());
-	switch (type())
-	{
+	switch (type()) {
 	case ValueType::kString:
 		return value_.string_->c_str();
 	case ValueType::kStringView:
