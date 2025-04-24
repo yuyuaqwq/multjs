@@ -462,13 +462,15 @@ void Value::set_boolean(bool boolean) {
 
 const char* Value::string() const {
 	assert(IsString());
-	if (type() == ValueType::kString) {
+	switch (type())
+	{
+	case ValueType::kString:
 		return value_.string_->c_str();
-	}
-	else if (type() == ValueType::kStringView) {
+	case ValueType::kStringView:
 		return value_.string_view_;
+	default:
+		return nullptr;
 	}
-	return nullptr;
 }
 
 
@@ -565,29 +567,43 @@ bool Value::IsNumber() const {
 }
 
 bool Value::IsString() const {
-	return type() == ValueType::kString
-		|| type() == ValueType::kStringView;
+	switch (type()) {
+	case ValueType::kString:
+	case ValueType::kStringView:
+		return true;
+	default:
+		return false;
+	}
 }
 
 bool Value::IsReferenceCounter() const {
-	return type() == ValueType::kReferenceCounter
-		|| type() == ValueType::kString
-		|| type() == ValueType::kFunctionDef;
+	switch (type()) {
+	case ValueType::kReferenceCounter:
+	case ValueType::kString:
+	case ValueType::kFunctionDef:
+		return true;
+	default:
+		return false;
+	}
 }
 
 bool Value::IsObject() const {
-	return type() == ValueType::kObject
-		|| type() == ValueType::kFloatObject
-		|| type() == ValueType::kStringObject
-		|| type() == ValueType::kArrayObject
-		|| type() == ValueType::kFunctionObject
-		|| type() == ValueType::kGeneratorObject
-		|| type() == ValueType::kPromiseObject
-		|| type() == ValueType::kPromiseResolve
-		|| type() == ValueType::kPromiseReject
-		|| type() == ValueType::kAsyncObject
-		|| type() == ValueType::kModuleObject
-		;
+	switch (type()) {
+	case ValueType::kObject:
+	case ValueType::kFloatObject:
+	case ValueType::kStringObject:
+	case ValueType::kArrayObject:
+	case ValueType::kFunctionObject:
+	case ValueType::kGeneratorObject:
+	case ValueType::kPromiseObject:
+	case ValueType::kPromiseResolve:
+	case ValueType::kPromiseReject:
+	case ValueType::kAsyncObject:
+	case ValueType::kModuleObject:
+		return true;
+	default:
+		return false;
+	}
 }
 
 bool Value::IsFunctionObject() const {
