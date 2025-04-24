@@ -1,4 +1,6 @@
 
+let number : number = 123;
+
 let constvar = { a:{a:"123"} };
 constvar = "456";
 
@@ -6,7 +8,7 @@ function tt() {
     println("tt:", 100);
     return 100;
 }
-let obj = {};
+let obj = { sb: 123};
 obj.sb = tt;
 obj.sb = obj.sb2 = obj.sb();
 println(obj.sb, " ", obj.sb2);
@@ -16,11 +18,13 @@ obj.sb.sb2 = tt;
 obj.sb.sb2();
 
 
-let arr = [1, 2, 3];
+let arr = [1, 2, "123"];
 println(arr[0]);
 println(arr[1]);
 arr[1] = 666;
 println(arr[1]);
+
+arr[50] = 1;
 
 arr[1] = [6, "7", "8"];
 println(arr[1][2]);

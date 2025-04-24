@@ -17,11 +17,10 @@ enum class TokenType {
     //kNan,          // Nan
     //kInfinity,     // Infinity
     //kNumber,       // 通用数字类型
-    kString,       // 字符串
-    kIdentifier,   // [a-zA-Z_][a-zA-Z0-9_]*
-
     kFloatLiteral,  // 浮点数
     kIntegerLiteral,  // 整数
+    kString,       // 字符串
+    kIdentifier,   // [a-zA-Z_][a-zA-Z0-9_]*
 
     // 分隔符
     kSepSemi,         // ;

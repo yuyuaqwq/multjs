@@ -711,6 +711,12 @@ std::unique_ptr<VariableDeclaration> Parser::ParseVariableDeclaration(TokenType 
 	auto start = lexer_->pos();
 	lexer_->MatchToken(kind);
 	auto name = lexer_->MatchToken(TokenType::kIdentifier).str();
+
+	if (lexer_->PeekToken().is(TokenType::kSepColon)) {
+		lexer_->NextToken();
+		lexer_->MatchToken(TokenType::kIdentifier);
+	}
+
 	lexer_->MatchToken(TokenType::kOpAssign);
 	auto init = ParseExpression();
 	lexer_->MatchToken(TokenType::kSepSemi);
