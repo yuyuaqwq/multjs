@@ -44,6 +44,14 @@ enum class StatementType {
     // 基本语句
     kExpression,
     kBlock,
+
+    // 类型
+    kTypeAnnotation,
+    kPredefinedType,
+    kNamedType,
+    kLieralType,
+    kUnionType,
+    kFunctionType,
 };
 
 class Statement : public noncopyable {
@@ -371,6 +379,86 @@ public:
 
 private:
     std::vector<std::unique_ptr<Statement>> statements_;
+};
+
+
+
+enum class PredefinedTypeKeyword {
+    kNumber,
+    kString,
+    kBoolean,
+    kAny,
+    kVoid,
+};
+
+class Type : public Statement {
+    using Statement::Statement;
+};
+
+class PredefinedType : public Type {
+public:
+    PredefinedType(SourcePos start, SourcePos end, PredefinedTypeKeyword keyword)
+        : Type(start, end), keyword_(keyword) {}
+
+    StatementType type() const noexcept override { return StatementType::kPredefinedType; }
+
+    const PredefinedTypeKeyword& keyword() const { return keyword_; }
+
+private:
+    PredefinedTypeKeyword keyword_;
+};
+
+class NamedType : public Type {
+public:
+    NamedType(SourcePos start, SourcePos end, std::string&& name)
+        : Type(start, end), name_(std::move(name)) {}
+
+    StatementType type() const noexcept override { return StatementType::kNamedType; }
+
+private:
+    std::string name_;
+    std::vector<std::unique_ptr<Type>> upper_types_;
+};
+
+class LieralType : public Type {
+public:
+    LieralType(SourcePos start, SourcePos end, std::unique_ptr<Expression>&& value)
+        : Type(start, end), value_(std::move(value)) {}
+
+    StatementType type() const noexcept override { return StatementType::kLieralType; }
+
+private:
+    std::unique_ptr<Expression> value_;
+};
+
+class UnionType : public Type {
+public:
+    UnionType(SourcePos start, SourcePos end, std::vector<std::unique_ptr<Type>>&& types)
+        : Type(start, end), types_(std::move(types)) {}
+
+    StatementType type() const noexcept override { return StatementType::kUnionType; }
+
+private:
+    std::vector<std::unique_ptr<Type>> types_;
+};
+
+class FunctionType : public Type {
+private:
+    std::unique_ptr<Type> return_types_;
+    std::vector<std::unique_ptr<Type>> param_types_;
+};
+
+class TypeAnnotation : public Statement {
+public:
+    TypeAnnotation(SourcePos start, SourcePos end, std::unique_ptr<Type>&& type_p)
+        : Statement(start, end), type_p_(std::move(type_p)) {}
+
+    StatementType type() const noexcept override { return StatementType::kTypeAnnotation; }
+
+    const std::unique_ptr<Type>& type_p() const { return type_p_; }
+
+private:
+    std::unique_ptr<Type> type_p_;
 };
 
 } // namespace compiler

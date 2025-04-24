@@ -6,7 +6,7 @@ async function aa(m) {
 
 aa("666.ts");
 
-let number : number = 123;
+let number : number | string = 123;
 
 let constvar = { a:{a:"123"} };
 constvar = "456";

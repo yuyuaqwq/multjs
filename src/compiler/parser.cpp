@@ -1,5 +1,7 @@
 #include "parser.h"
 
+#include <unordered_set>
+
 /* EBNF
 exp = exp3
 exp3 = exp2 {oper3 exp2}
@@ -86,7 +88,7 @@ std::unique_ptr<FunctionExpression> Parser::ParseFunctionOrGeneratorExpression()
 	if (lexer_->PeekToken().is(TokenType::kIdentifier)) {
 		id = lexer_->NextToken().str();
 	}
-	auto params = ParseParNameList();
+	auto params = ParseParams();
 
 	ParseTypeAnnotation();
 
@@ -388,7 +390,7 @@ std::unique_ptr<NewExpression> Parser::ParseNewExpression() {
 
 	std::vector<std::unique_ptr<Expression>> arguments;
 	if (lexer_->PeekToken().is(TokenType::kSepLParen)) {
-		arguments = ParseExpressionList(TokenType::kSepLParen, TokenType::kSepRParen, false);
+		arguments = ParseExpressions(TokenType::kSepLParen, TokenType::kSepRParen, false);
 	}
 	auto end = lexer_->pos();
 	auto exp = std::make_unique<NewExpression>(start, end, std::move(callee), std::move(arguments));
@@ -445,7 +447,7 @@ std::unique_ptr<MemberExpression> Parser::ParseMemberExpression(std::unique_ptr<
 std::unique_ptr<CallExpression> Parser::ParseCallExpression(std::unique_ptr<Expression> callee) {
 	auto start = lexer_->pos();
 
-	auto arguments = ParseExpressionList(TokenType::kSepLParen, TokenType::kSepRParen, false);
+	auto arguments = ParseExpressions(TokenType::kSepLParen, TokenType::kSepRParen, false);
 
 	auto end = lexer_->pos();
 	return std::make_unique<CallExpression>(start, end, std::move(callee), std::move(arguments));
@@ -490,7 +492,7 @@ std::unique_ptr<Expression> Parser::ParsePrimaryExpression() {
 
 std::unique_ptr<ArrayExpression> Parser::ParseArrayExpression() {
 	auto start = lexer_->pos();
-	auto arr_literal = ParseExpressionList(TokenType::kSepLBrack, TokenType::kSepRBrack, true);
+	auto arr_literal = ParseExpressions(TokenType::kSepLBrack, TokenType::kSepRBrack, true);
 	auto end = lexer_->pos();
 	return std::make_unique<ArrayExpression>(start, end, std::move(arr_literal));
 }
@@ -531,6 +533,14 @@ std::unique_ptr<ThisExpression> Parser::ParseThis() {
 }
 
 std::unique_ptr<Expression> Parser::ParseLiteral() {
+	auto exp = TryParseLiteral();
+	if (!exp) {
+		throw ParserException("Unable to parse expression.");
+	}
+	return exp;
+}
+
+std::unique_ptr<Expression> Parser::TryParseLiteral() {
 	auto start = lexer_->pos();
 	auto token = lexer_->PeekToken();
 	std::unique_ptr<Expression> exp;
@@ -555,12 +565,12 @@ std::unique_ptr<Expression> Parser::ParseLiteral() {
 		exp = std::make_unique<BooleanLiteral>(start, lexer_->pos(), false);
 		break;
 	}
-	case TokenType::kFloatLiteral: {
+	case TokenType::kFloat: {
 		lexer_->NextToken();
 		exp = std::make_unique<FloatLiteral>(start, lexer_->pos(), std::stod(token.str()));
 		break;
 	}
-	case TokenType::kIntegerLiteral: {
+	case TokenType::kInteger: {
 		lexer_->NextToken();
 		exp = std::make_unique<IntegerLiteral>(start, lexer_->pos(), std::stoll(token.str()));
 		break;
@@ -571,12 +581,9 @@ std::unique_ptr<Expression> Parser::ParseLiteral() {
 		break;
 	}
 	}
-
-	if (!exp) {
-		throw ParserException("Unable to parse expression.");
-	}
 	return exp;
 }
+
 
 std::unique_ptr<Identifier> Parser::ParseIdentifier() {
 	auto start = lexer_->pos();
@@ -936,7 +943,7 @@ std::unique_ptr<ExpressionStatement> Parser::ParseExpressionStatement() {
 }
 
 
-std::vector<std::string> Parser::ParseParNameList() {
+std::vector<std::string> Parser::ParseParams() {
 	lexer_->MatchToken(TokenType::kSepLParen);
 	std::vector<std::string> parList;
 	if (!lexer_->PeekToken().is(TokenType::kSepRParen)) {
@@ -955,7 +962,7 @@ std::vector<std::string> Parser::ParseParNameList() {
 	return parList;
 }
 
-std::vector<std::unique_ptr<Expression>> Parser::ParseExpressionList(TokenType begin, TokenType end, bool allow_comma_end) {
+std::vector<std::unique_ptr<Expression>> Parser::ParseExpressions(TokenType begin, TokenType end, bool allow_comma_end) {
 	lexer_->MatchToken(begin);
 	std::vector<std::unique_ptr<Expression>> par_list;
 	if (!lexer_->PeekToken().is(end)) {
@@ -975,11 +982,65 @@ std::vector<std::unique_ptr<Expression>> Parser::ParseExpressionList(TokenType b
 	return par_list;
 }
 
-void Parser::ParseTypeAnnotation() {
+
+
+std::unique_ptr<TypeAnnotation> Parser::ParseTypeAnnotation() {
+	auto start = lexer_->pos();
 	if (lexer_->PeekToken().is(TokenType::kSepColon)) {
 		lexer_->NextToken();
-		lexer_->MatchToken(TokenType::kIdentifier);
+		auto end = lexer_->pos();
+		return std::make_unique<TypeAnnotation>(start, end, ParseUnionType());
 	}
+	return nullptr;
+}
+
+std::unique_ptr<UnionType> Parser::ParseUnionType() {
+	auto start = lexer_->pos();
+	auto types = std::vector<std::unique_ptr<Type>>();
+
+	static auto predefined_type = std::unordered_map<std::string, PredefinedTypeKeyword>{
+		{ "number", PredefinedTypeKeyword::kNumber },
+		{ "string", PredefinedTypeKeyword::kString },
+		{ "boolean", PredefinedTypeKeyword::kBoolean },
+		{ "any", PredefinedTypeKeyword::kAny },
+		{ "void", PredefinedTypeKeyword::kVoid },
+	};
+
+	do {
+		auto token = lexer_->PeekToken();
+		if (token.is(TokenType::kIdentifier)) {
+			auto start = lexer_->pos();
+			lexer_->NextToken();
+			auto iter = predefined_type.find(token.str());
+			auto end = lexer_->pos();
+			if (iter != predefined_type.end()) {
+				types.emplace_back(std::make_unique<PredefinedType>(start, end, iter->second));
+			}
+			else {
+				types.emplace_back(std::make_unique<NamedType>(start, end, std::string(token.str())));
+			}
+		}
+		else {
+			auto start = lexer_->pos();
+			auto literal = TryParseLiteral();
+			auto end = lexer_->pos();
+			if (literal) {
+				types.emplace_back(std::make_unique<LieralType>(start, end,std::move(literal)));
+			}
+			else {
+				throw ParserException("Type annotation incorrect.");
+			}
+		}
+
+		token = lexer_->PeekToken();
+		if (!token.is(TokenType::kUnionType)) {
+			break;
+		}
+		lexer_->NextToken();
+	} while (true);
+
+	auto end = lexer_->pos();
+	return std::make_unique<UnionType>(start, end, std::move(types));
 }
 
 } // namespace compiler

@@ -56,6 +56,7 @@ public:
 	std::unique_ptr<ObjectExpression> ParseObjectExpression();
 	std::unique_ptr<ThisExpression> ParseThis();
 	std::unique_ptr<Expression> ParseLiteral();
+	std::unique_ptr<Expression> TryParseLiteral();
 	std::unique_ptr<Identifier> ParseIdentifier();
 	
 	std::unique_ptr<Statement> ParseStatement();
@@ -83,10 +84,11 @@ public:
 	std::unique_ptr<BlockStatement> ParseBlockStatement();
 	std::unique_ptr<ExpressionStatement> ParseExpressionStatement();
 
-	std::vector<std::string> ParseParNameList();
-	std::vector<std::unique_ptr<Expression>> ParseExpressionList(TokenType begin, TokenType end, bool allow_comma_end);
+	std::vector<std::string> ParseParams();
+	std::vector<std::unique_ptr<Expression>> ParseExpressions(TokenType begin, TokenType end, bool allow_comma_end);
 
-	void ParseTypeAnnotation();
+	std::unique_ptr<TypeAnnotation> ParseTypeAnnotation();
+	std::unique_ptr<UnionType> ParseUnionType();
 
 
 	const auto& src_statements() const { return src_statements_; }

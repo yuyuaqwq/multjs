@@ -175,17 +175,17 @@ Token Lexer::ReadNextToken() {
 
     // Number
     if (c == 'N' && TestStr("aN")) {
-        token.set_type(TokenType::kFloatLiteral);
+        token.set_type(TokenType::kFloat);
         token.set_str("NaN");
         return token;
     }
     else if (c == 'I' && TestStr("nfinity")) {
-        token.set_type(TokenType::kFloatLiteral);
+        token.set_type(TokenType::kFloat);
         token.set_str("Infinity");
         return token;
     }
     else if (c == '0') {
-        token.set_type(TokenType::kIntegerLiteral);
+        token.set_type(TokenType::kInteger);
         token.mutable_str()->push_back(c);
         char next_char = PeekChar();
         if (next_char == 'x' || next_char == 'X') {
@@ -224,7 +224,7 @@ Token Lexer::ReadNextToken() {
     else if (IsDigit(c)) {
         // Float and integer parsing, including scientific notation
         bool point = false, exp = false;
-        token.set_type(TokenType::kIntegerLiteral);
+        token.set_type(TokenType::kInteger);
         token.mutable_str()->push_back(c);
         while (c = NextChar()) {
             if (c == '.' && !point && !exp) {
@@ -247,7 +247,7 @@ Token Lexer::ReadNextToken() {
             token.mutable_str()->push_back(c);
         }
         if (point == true || exp == true) {
-            token.set_type(TokenType::kFloatLiteral);
+            token.set_type(TokenType::kFloat);
         }
         return token;
     }

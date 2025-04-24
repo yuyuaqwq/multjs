@@ -17,8 +17,8 @@ enum class TokenType {
     //kNan,          // Nan
     //kInfinity,     // Infinity
     //kNumber,       // 通用数字类型
-    kFloatLiteral,  // 浮点数
-    kIntegerLiteral,  // 整数
+    kFloat,  // 浮点数
+    kInteger,  // 整数
     kString,       // 字符串
     kIdentifier,   // [a-zA-Z_][a-zA-Z0-9_]*
 
@@ -118,6 +118,9 @@ enum class TokenType {
     kOpNullishCoalescing, // ?? 空值合并运算符
     kOpOptionalChain,     // ?. 可选链运算符
     kOpTernary,           // ?: 三元运算符
+
+    // 类型
+    kUnionType,       // |
 };
 
 
