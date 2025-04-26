@@ -22,19 +22,20 @@ class Object
 	: public noncopyable
 	, public intrusive_list<Object>::node {
 public:
+	Object(Runtime* runtime);
 	Object(Context* context);
-
+	
 	virtual ~Object();
 
 	void Reference();
 	void Dereference();
 	void WeakDereference();
 
-	virtual void ForEachChild(intrusive_list<Object>* list, void(*callback)(intrusive_list<Object>* list, const Value& child)) {
-		callback(list, prototype_);
+	virtual void ForEachChild(Context* context, intrusive_list<Object>* list, void(*callback)(Context* context, intrusive_list<Object>* list, const Value& child)) {
+		callback(context, list, prototype_);
 		if (property_map_) {
 			for (auto& pair : *property_map_) {
-				callback(list, pair.second);
+				callback(context, list, pair.second);
 			}
 		}
 	}
@@ -51,8 +52,7 @@ public:
 	virtual Object* Copy(Object* new_obj, Context* context) {
 		new_obj->prototype_ = prototype_;
 		if (property_map_) {
-			new_obj->property_map_ = new PropertyMap();
-			*new_obj->property_map_ = *property_map_;
+			new_obj->property_map_ = property_map_->Copy(context);
 		}
 		return new_obj;
 	}

@@ -41,7 +41,7 @@ public:
             std::cout << " ref_count:" << cur.ref_count();
             std::cout << std::endl;
 
-            cur.ForEachChild(nullptr, [](intrusive_list<Object>* list, const Value& child) {
+            cur.ForEachChild(this, nullptr, [](Context* context, intrusive_list<Object>* list, const Value& child) {
                 std::cout << "\t\t" << child.ToString().string();
                 if (child.IsObject()) {
                     std::cout << " ref_count:" << child.object().ref_count();
@@ -63,7 +63,7 @@ public:
             Object& cur = *it;
             assert(!cur.gc_mark());
 
-            cur.ForEachChild(&tmp_list, [](intrusive_list<Object>* list, const Value& child) {
+            cur.ForEachChild(this, &tmp_list, [](Context* context, intrusive_list<Object>* list, const Value& child) {
                 if (!child.IsObject()) return;
                 auto& obj = child.object();
                 assert(obj.ref_count() > 0);
@@ -97,7 +97,7 @@ public:
             // 剩下的都是不可回收的对象，先清除一下标记
             cur.set_gc_mark(false);
 
-            cur.ForEachChild(&object_list_, [](intrusive_list<Object>* list, const Value& child) {
+            cur.ForEachChild(this, &object_list_, [](Context* context, intrusive_list<Object>* list, const Value& child) {
                 if (!child.IsObject()) return;
                 auto& obj = child.object();
                 // 被不可回收的对象引用的子对象，当然也不能回收，挂回主链表
@@ -117,7 +117,7 @@ public:
         while (it != tmp_list.end()) {
             Object& cur = *it;
 
-            cur.ForEachChild(&object_list_, [](intrusive_list<Object>* list, const Value& child) {
+            cur.ForEachChild(this, &object_list_, [](Context* context, intrusive_list<Object>* list, const Value& child) {
                 if (!child.IsObject()) return;
                 auto& obj = child.object();
                 obj.Reference();
@@ -151,11 +151,8 @@ public:
 		}
 	}
 
-
-
 	auto& runtime() const { return *runtime_; }
-	// LocalConstPool& const_pool() { return local_const_pool_; }
-
+	LocalConstPool& const_pool() { return local_const_pool_; }
 	const auto& microtask_queue() const { return microtask_queue_; }
 	auto& microtask_queue() { return microtask_queue_; }
 
@@ -164,7 +161,7 @@ private:
 
 	intrusive_list<Object> object_list_;
 
-	// LocalConstPool local_const_pool_;
+	LocalConstPool local_const_pool_;
 
 	Vm vm_;
 

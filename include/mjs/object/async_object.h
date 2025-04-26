@@ -15,9 +15,9 @@ public:
         res_promise_ = Value(new PromiseObject(context, Value()));
     }
 
-    virtual void ForEachChild(intrusive_list<Object>* list, void(*callback)(intrusive_list<Object>* list, const Value& child)) override {
-        GeneratorObject::ForEachChild(list, callback);
-        callback(list, res_promise_);
+    virtual void ForEachChild(Context* context, intrusive_list<Object>* list, void(*callback)(Context* context, intrusive_list<Object>* list, const Value& child)) override {
+        GeneratorObject::ForEachChild(context, list, callback);
+        callback(context, list, res_promise_);
     }
 
     virtual Value ToString() override {

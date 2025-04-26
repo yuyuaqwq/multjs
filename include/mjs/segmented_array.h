@@ -70,7 +70,7 @@ public:
 		return (*this)[index];
 	}
 
-	size_t size() {
+	size_t size() const {
 		return size_;
 	}
 
@@ -82,7 +82,7 @@ public:
 
 private:
 	std::array<std::unique_ptr<StaticArray>, kStaticArraySize> pool_;
-	IndexT size_ = 1;
+	IndexT size_ = IndexT(1);
 };
 
 } // namespace mjs

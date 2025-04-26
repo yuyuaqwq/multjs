@@ -17,11 +17,11 @@ public:
 		operator=(std::move(other));
 	}
 
-	void ForEachChild(intrusive_list<Object>* list, void(*callback)(intrusive_list<Object>* list, const Value& child)) {
-		callback(list, func_);
-		callback(list, this_val_);
+	void ForEachChild(Context* context, intrusive_list<Object>* list, void(*callback)(Context* context, intrusive_list<Object>* list, const Value& child)) {
+		callback(context, list, func_);
+		callback(context, list, this_val_);
 		for (auto& val : argv_) {
-			callback(list, val);
+			callback(context, list, val);
 		}
 	}
 

@@ -10,6 +10,11 @@
 #include <mjs/const_def.h>
 #include <mjs/value.h>
 
+// 常量池设计
+// 全局常量位于全局常量池
+
+// 运行时创建的常量位于运行时常量池，通过引用计数来回收
+
 namespace mjs {
 
 class GlobalConstPool : public SegmentedArray<Value, ConstIndex, 1024> {
@@ -36,7 +41,7 @@ public:
 		val.set_const_index(idx);
 		auto res = map_.emplace(val, idx);
 
-		//idx = ConstToGlobalIndex(idx);
+		idx = idx.to_global_index();
 		return idx;
 	}
 
@@ -49,6 +54,32 @@ public:
 		return std::nullopt;
 	}
 
+	const Value& operator[](ConstIndex index) const {
+		return const_cast<GlobalConstPool*>(this)->operator[](index);
+	}
+
+	Value& operator[](ConstIndex index) {
+		index.from_global_index();
+		auto& val = Base::operator[](index);
+		return val;
+	}
+
+	const Value& at(ConstIndex index) const {
+		index.from_global_index();
+		if (index < 0 || index >= size()) {
+			throw std::out_of_range("Index out of range");
+		}
+		return (*this)[index];
+	}
+
+	Value& at(ConstIndex index) {
+		index.from_global_index();
+		if (index < 0 || index >= size()) {
+			throw std::out_of_range("Index out of range");
+		}
+		return (*this)[index];
+	}
+
 	void clear() {
 		map_.clear();
 		Base::clear();
@@ -56,7 +87,7 @@ public:
 
 private:
 	std::mutex mutex_;
-	std::unordered_map<Value, ConstIndex, ValueHash> map_;
+	std::unordered_map<Value, ConstIndex> map_;
 };
 
 class LocalConstPool : public noncopyable {
@@ -66,12 +97,50 @@ public:
 	ConstIndex insert(const Value& value);
 	ConstIndex insert(Value&& value);
 
-	const Value& get(ConstIndex index) const;
-	Value& get(ConstIndex index);
+	const Value& at(ConstIndex index) const;
+	Value& at(ConstIndex index);
+
+	const Value& operator[](ConstIndex index) const {
+		return const_cast<LocalConstPool*>(this)->operator[](index);
+	}
+
+	Value& operator[](ConstIndex index) {
+		index.from_local_index();
+		auto& val = *pool_[index].value_;
+		return val;
+	}
+
+	void ReferenceConst(ConstIndex index) {
+		index.from_local_index();
+		auto& node = pool_[index];
+		++node.reference_count_;
+	}
+
+	void DereferenceConst(ConstIndex index) {
+		index.from_local_index();
+		auto& node = pool_[index];
+		assert(node.reference_count_ > 0);
+		--node.reference_count_;
+		if (node.reference_count_ == 0) {
+			erase(index);
+		}
+	}
 
 private:
-	std::unordered_map<Value, ConstIndex, ValueHash> const_map_;
-	std::vector<Value*> pool_;
+	void erase(ConstIndex index);
+
+private:
+	std::unordered_map<Value, ConstIndex> map_;
+
+	size_t first_ = -1;
+	struct Node {
+		union {
+			Value* value_;
+			size_t next_;
+		};
+		uint32_t reference_count_ = 0;
+	};
+	std::vector<Node> pool_;
 };
 
 } // namespace mjs

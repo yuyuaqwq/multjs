@@ -49,6 +49,12 @@ Value::Value(std::string str) {
 	value_.string_->Reference();
 }
 
+Value::Value(Symbol* symbol) {
+	tag_.type_ = ValueType::kString;
+	value_.symbol_ = symbol;
+	value_.symbol_->Reference();
+}
+
 Value::Value(ReferenceCounter* rc) {
 	tag_.type_ = ValueType::kReferenceCounter;
 	value_.rc_ = rc;
@@ -173,7 +179,7 @@ void Value::operator=(Value&& r) noexcept {
 }
 
 ptrdiff_t Value::Comparer(const Value& rhs) const {
-	if (const_index() != kConstInvaildIndex && const_index() == rhs.const_index()) {
+	if (const_index().is_invalid()  && const_index() == rhs.const_index()) {
 		return 0;
 	}
 
@@ -198,6 +204,9 @@ ptrdiff_t Value::Comparer(const Value& rhs) const {
 	case ValueType::kStringView:
 		if (string() == rhs.string()) return 0;
 		return std::strcmp(string(), rhs.string());
+	case ValueType::kSymbol:
+		// 全局symbol也需要比较指针是否相等
+		return &symbol() == &rhs.symbol();
 	case ValueType::kObject:
 		return &object() - &rhs.object();
 	case ValueType::kInt64:
@@ -223,7 +232,7 @@ bool Value::operator>(const Value& rhs) const {
 }
 
 bool Value::operator==(const Value& rhs) const {
-	if (const_index() != kConstInvaildIndex && const_index() != rhs.const_index()) {
+	if (const_index().is_invalid() && const_index() != rhs.const_index()) {
 		return false;
 	}
 	return Comparer(rhs) == 0;
@@ -472,6 +481,31 @@ const char* Value::string() const {
 	}
 }
 
+const Symbol& Value::symbol() const {
+	assert(IsSymbol());
+	return *value_.symbol_;
+}
+
+
+double Value::f64() const {
+	assert(IsFloat());
+	return value_.f64_;
+}
+
+void Value::set_float64(double number) {
+	assert(IsFloat());
+	value_.f64_ = number;
+}
+
+int64_t Value::i64() const {
+	assert(IsInt64());
+	return value_.i64_;
+}
+uint64_t Value::u64() const {
+	assert(IsUInt64());
+	return value_.u64_;
+}
+
 
 Object& Value::object() const {
 	assert(IsObject());
@@ -503,25 +537,6 @@ ModuleObject& Value::module() const {
 	return *reinterpret_cast<ModuleObject*>(value_.object_);
 }
 
-
-double Value::f64() const {
-	assert(IsFloat());
-	return value_.f64_;
-}
-
-void Value::set_float64(double number) {
-	assert(IsFloat());
-	value_.f64_ = number;
-}
-
-int64_t Value::i64() const {
-	assert(IsInt64());
-	return value_.i64_;
-}
-uint64_t Value::u64() const {
-	assert(IsUInt64());
-	return value_.u64_;
-}
 
 ClassDef& Value::class_def() const {
 	assert(IsClassDef());
@@ -575,10 +590,15 @@ bool Value::IsString() const {
 	}
 }
 
+bool Value::IsSymbol() const {
+	return tag_.type_ == ValueType::kSymbol;
+}
+
 bool Value::IsReferenceCounter() const {
 	switch (type()) {
 	case ValueType::kReferenceCounter:
 	case ValueType::kString:
+	case ValueType::kSymbol:
 	case ValueType::kFunctionDef:
 		return true;
 	default:

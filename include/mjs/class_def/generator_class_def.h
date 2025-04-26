@@ -9,8 +9,7 @@ public:
 	GeneratorClassDef(Runtime* runtime)
 		: ClassDef(runtime, ClassId::kGenerator, "Generator")
 	{
-		// key到时候优化到runtime的const pool里
-		property_map_.NewMethod(runtime, "next", Value(ValueType::kGeneratorNext));
+		property_map_.emplace(runtime, "next", Value(ValueType::kGeneratorNext));
 
 		value_const_idx_ = runtime->const_pool().insert(Value("value"));
 		done_const_idx_ = runtime->const_pool().insert(Value("done"));

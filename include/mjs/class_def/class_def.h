@@ -36,6 +36,7 @@ enum class ClassId {
 	kBase,
 	kNumber,
 	kString,
+	kSymbol,
 	kArray,
 	kGenerator,
 	kPromise,
@@ -51,14 +52,16 @@ class ClassDef : public noncopyable {
 public:
 	ClassDef(Runtime* runtime, ClassId id, std::string name)
 		: id_(id)
-		, name_(std::move(name)) {}
+		, name_(std::move(name))
+		, property_map_(runtime) 
+		, static_property_map_(runtime) {}
 	virtual ~ClassDef() = default;
 
 	// 如果允许被new构造，重写该函数，new相关对象并返回，如new ArrayObject()
 	virtual Value Constructor(Context* context, uint32_t par_count, const StackFrame& stack) { throw std::runtime_error("Types that are not allowed to be constructed."); }
 
 	virtual void SetProperty(Runtime* runtime, ConstIndex key, Value&& val) {
-		property_map_[key] = std::move(val);
+		property_map_.set(runtime, key, std::move(val));
 	}
 
 	virtual Value* GetProperty(Runtime* runtime, ConstIndex key) {
@@ -74,13 +77,13 @@ public:
 		return iter != property_map_.end();
 	}
 
-	virtual bool DelProperty(Runtime* context, ConstIndex key) {
-		auto res = property_map_.erase(key);
+	virtual bool DelProperty(Runtime* runtime, ConstIndex key) {
+		auto res = property_map_.erase(runtime, key);
 		return res > 0;
 	}
 
 	virtual void SetStaticProperty(Runtime* runtime, ConstIndex key, Value&& val) {
-		static_property_map_[key] = std::move(val);
+		static_property_map_.set(runtime, key, std::move(val));
 	}
 
 	virtual Value* GetStaticProperty(Runtime* runtime, ConstIndex key) {
@@ -96,8 +99,8 @@ public:
 		return iter != static_property_map_.end();
 	}
 
-	virtual void DelStaticProperty(Context* context, ConstIndex key) {
-		static_property_map_.erase(key);
+	virtual void DelStaticProperty(Runtime* runtime, ConstIndex key) {
+		static_property_map_.erase(runtime, key);
 	}
 
 
@@ -137,17 +140,17 @@ public:
 		return iter->second;
 	}
 
-	ClassDef& get(ClassId class_id) {
+	ClassDef& at(ClassId class_id) {
 		return *class_def_arr_.at(static_cast<uint32_t>(class_id));
 	}
 
 	template<typename ClassDefT>
-	ClassDefT& get(ClassId class_id) {
-		return static_cast<ClassDefT&>(get(class_id));
+	ClassDefT& at(ClassId class_id) {
+		return static_cast<ClassDefT&>(at(class_id));
 	}
 
 private:
-	ConstIndex insert(ClassDefUnique class_def) {
+	uint32_t insert(ClassDefUnique class_def) {
 		auto lock = std::lock_guard(mutex_);
 		return class_def_arr_.insert(std::move(class_def));
 	}

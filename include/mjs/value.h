@@ -9,6 +9,8 @@
 
 #include <mjs/const_def.h>
 #include <mjs/string.h>
+#include <mjs/symbol.h>
+#include <mjs/up_value.h>
 #include <mjs/exception.h>
 
 namespace mjs {
@@ -56,8 +58,6 @@ enum class ValueType : uint32_t {
 class Context;
 class StackFrame;
 
-class Value;
-
 class Object;
 class FunctionObject;
 class GeneratorObject;
@@ -66,17 +66,6 @@ class AsyncObject;
 class ModuleObject;
 
 class ClassDef;
-
-class UpValue {
-public:
-	UpValue() = default;
-	UpValue(Value* up) : up_(up) {}
-
-	Value& Up() const;
-
-private:
-	Value* up_ = nullptr;
-};
 class FunctionDef;
 
 class Value {
@@ -90,6 +79,7 @@ public:
 	explicit Value(double number);
 	explicit Value(const char* string_u8);
 	explicit Value(std::string str);
+	explicit Value(Symbol* symbol);
 
 	explicit Value(ReferenceCounter* rc);
 
@@ -142,25 +132,24 @@ public:
 
 	bool boolean() const;
 	void set_boolean(bool boolean);
-
 	const char* string() const;
+	const Symbol& symbol() const;
+
+	double f64() const;
+	void set_float64(double number);
+	int64_t i64() const;
+	uint64_t u64() const;
 
 	Object& object() const;
 	template<typename ObjectT>
 	ObjectT& object() const {
 		return static_cast<ObjectT&>(object());
 	}
-
 	FunctionObject& function() const;
 	GeneratorObject& generator() const;
 	PromiseObject& promise() const;
 	AsyncObject& async() const;
 	ModuleObject& module() const;
-
-	double f64() const;
-	void set_float64(double number);
-	int64_t i64() const;
-	uint64_t u64() const;
 
 	ClassDef& class_def() const;
 	const UpValue& up_value() const;
@@ -176,11 +165,44 @@ public:
 	ConstIndex const_index() const { return tag_.const_index_; }
 	void set_const_index(ConstIndex const_index) { tag_.const_index_ = const_index; }
 
+	size_t hash() const {
+		switch (type()) {
+		case mjs::ValueType::kUndefined:
+			return 0;
+		case mjs::ValueType::kNull:
+			return 1;
+		case mjs::ValueType::kBoolean:
+			return std::hash<bool>()(boolean());
+		case mjs::ValueType::kFloat64:
+			return std::hash<double>()(f64());
+		case mjs::ValueType::kString:
+			return value_.string_->hash();
+		case mjs::ValueType::kStringView:
+			return std::hash<std::string>()(string());
+		case mjs::ValueType::kObject:
+			// 使用对象地址计算哈希
+			return std::hash<const void*>()(&object());
+		case mjs::ValueType::kInt64:
+			return std::hash<int64_t>()(i64());
+		case mjs::ValueType::kUInt64:
+			return std::hash<uint64_t>()(u64());
+		case mjs::ValueType::kFunctionDef:
+		case mjs::ValueType::kCppFunction:
+		case mjs::ValueType::kUpValue:
+		case mjs::ValueType::kClassDef:
+			// 使用内部值计算哈希
+			return std::hash<uint64_t>()(value_.full_);
+		default:
+			throw std::runtime_error("Unhashable value type.");
+		}
+	}
+
 	bool IsUndefined() const;
 	bool IsNull() const;
 	bool IsBoolean() const;
 	bool IsNumber() const;
 	bool IsString() const;
+	bool IsSymbol() const;
 
 	bool IsReferenceCounter() const;
 
@@ -216,8 +238,6 @@ private:
 	void Move(Value&& r);
 
 private:
-	friend class ValueHash;
-
 	union {
 		uint64_t full_ = 0;
 		struct {
@@ -232,9 +252,9 @@ private:
 		bool boolean_;
 		double f64_;
 		String* string_;
+		Symbol* symbol_;
 
 		ReferenceCounter* rc_;
-
 
 		Object* object_;
 
@@ -253,49 +273,15 @@ private:
 	} value_;
 };
 
-inline Value& UpValue::Up() const {
-	Value* val = up_;
-	while (val->IsUpValue()) {
-		val = val->up_value().up_;
-	}
-	return *val;
-}
-
 using CppFunction = Value::CppFunction;
 
-struct ValueHash {
-	size_t operator()(const Value& val) const {
-		switch (val.type()) {
-		case ValueType::kUndefined:
-			return 0;
-		case ValueType::kNull:
-			return 1;
-		case ValueType::kBoolean:
-			return std::hash<bool>()(val.boolean());
-		case ValueType::kFloat64:
-			return std::hash<double>()(val.f64());
-		case ValueType::kString:
-			return val.value_.string_->hash();
-		case ValueType::kStringView:
-			return std::hash<std::string>()(val.string());
-		case ValueType::kObject:
-			// 使用对象地址计算哈希
-			return std::hash<const void*>()(&val.object());
-		case ValueType::kInt64:
-			return std::hash<int64_t>()(val.i64());
-		case ValueType::kUInt64:
-			return std::hash<uint64_t>()(val.u64());
-		case ValueType::kFunctionDef:
-		case ValueType::kCppFunction:
-		case ValueType::kUpValue:
-		case ValueType::kClassDef:
-			// 使用内部值计算哈希
-			return std::hash<uint64_t>()(val.value_.full_);
-		default:
-			throw std::runtime_error("Unhashable value type.");
-		}
-	}
-};
-
-
 } // namespace mjs
+
+namespace std {
+	template<>
+	struct hash<mjs::Value> {
+		size_t operator()(const mjs::Value& val) const {
+			return val.hash();
+		}
+	};
+}

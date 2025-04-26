@@ -7,12 +7,13 @@ namespace mjs {
 class ModuleObject : public FunctionObject {
 public:
     ModuleObject(Context* context, FunctionDef* function_def)
-        : FunctionObject(context, function_def) {}
+        : FunctionObject(context, function_def)
+        , export_map_(context) {}
 
-    virtual void ForEachChild(intrusive_list<Object>* list, void(*callback)(intrusive_list<Object>* list, const Value& child)) override {
-        Object::ForEachChild(list, callback);
+    virtual void ForEachChild(Context* context, intrusive_list<Object>* list, void(*callback)(Context* context, intrusive_list<Object>* list, const Value& child)) override {
+        Object::ForEachChild(context, list, callback);
         for (auto& pair : export_map_) {
-            callback(list, pair.second);
+            callback(context, list, pair.second);
         }
     }
 

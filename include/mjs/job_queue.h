@@ -11,9 +11,9 @@ public:
     using Base = std::deque<Job>;
     using Base::Base;
 
-    void ForEachChild(intrusive_list<Object>* list, void(*callback)(intrusive_list<Object>* list, const Value& child)) {
+    void ForEachChild(Context* context, intrusive_list<Object>* list, void(*callback)(Context* context, intrusive_list<Object>* list, const Value& child)) {
         for (auto& job : *this) {
-            job.ForEachChild(list, callback);
+            job.ForEachChild(context, list, callback);
         }
     }
 };

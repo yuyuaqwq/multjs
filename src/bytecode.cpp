@@ -121,7 +121,7 @@ VarIndex ByteCode::GetVarIndex(Pc* pc) {
 ConstIndex ByteCode::GetConstIndex(Pc* pc) {
     auto pc_ = *pc;
     *pc += sizeof(ConstIndex);
-    return GetI32(pc_);
+    return ConstIndex(GetI32(pc_));
 }
 
 
@@ -262,7 +262,7 @@ std::string ByteCode::Disassembly(Context* context, Pc& pc, OpcodeType& opcode, 
 
     if (opcode >= OpcodeType::kCLoad_0 && opcode <= OpcodeType::kCLoad_5) {
         auto idx = opcode - OpcodeType::kCLoad_0;
-        const auto& val = context->runtime().const_pool().at(idx);
+        const auto& val = context->runtime().const_pool().at(ConstIndex(idx));
         if (val.IsString()) {
             str += "\"";
         }
@@ -274,7 +274,7 @@ std::string ByteCode::Disassembly(Context* context, Pc& pc, OpcodeType& opcode, 
     }
     else if (opcode == OpcodeType::kCLoad) {
         auto idx = par;
-        const auto& val = context->runtime().const_pool().at(idx);
+        const auto& val = context->runtime().const_pool().at(ConstIndex(idx));
         if (val.IsString()) {
             str += "\"";
         }

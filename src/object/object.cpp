@@ -5,6 +5,11 @@
 
 namespace mjs {
 
+Object::Object(Runtime* runtime) {
+	// 仅runtime使用的对象就提前new
+	property_map_ = new PropertyMap(runtime);
+}
+
 Object::Object(Context* context) {
 	// 挂入context obj链表
 	if (context) {
@@ -25,8 +30,8 @@ Object::~Object() {
 
 void Object::SetProperty(Context* context, ConstIndex key, Value&& val) {
 	assert(!context || !tag_.is_const_);
-	if (!property_map_) property_map_ = new PropertyMap();
-	(*property_map_)[key] = std::move(val);
+	if (!property_map_) property_map_ = new PropertyMap(context);
+	property_map_->set(context, key, std::move(val));
 }
 
 Value* Object::GetProperty(Context* context, ConstIndex key) {
@@ -39,7 +44,7 @@ Value* Object::GetProperty(Context* context, ConstIndex key) {
 	}
 		
 	// 2. class def查找
-	auto& class_def = context->runtime().class_def_table().get(class_id());
+	auto& class_def = context->runtime().class_def_table().at(class_id());
 	auto val = class_def.GetProperty(&context->runtime(), key);
 	if (val) return val;
 
@@ -53,26 +58,29 @@ Value* Object::GetProperty(Context* context, ConstIndex key) {
 void Object::DelProperty(Context* context, ConstIndex key) {
 	assert(!tag_.is_const_);
 	if (!property_map_) return;
-	property_map_->erase(key);
+	property_map_->erase(context, key);
 }
 
 void Object::SetIndexed(Context* context, const Value& key, Value&& val) {
-	if (!key.IsString() || key.const_index() == kConstInvaildIndex) {
-		throw std::runtime_error("todo");
+	auto idx = key.const_index();
+	if (idx.is_invalid()) {
+		idx = context->const_pool().insert(key);
 	}
-	return SetProperty(context, key.const_index(), std::move(val));
+	return SetProperty(context, idx, std::move(val));
 }
 
 Value* Object::GetIndexed(Context* context, const Value& key) {
-	if (!key.IsString() || key.const_index() == kConstInvaildIndex) {
-		throw std::runtime_error("todo");
+	auto idx = key.const_index();
+	if (key.const_index().is_invalid()) {
+		idx = context->const_pool().insert(key);
 	}
-	return GetProperty(context, key.const_index());
+	return GetProperty(context, idx);
 }
 
 void Object::DelIndexed(Context* context, const Value& key) {
-	if (!key.IsString() || key.const_index() == kConstInvaildIndex) {
-		throw std::runtime_error("todo");
+	auto idx = key.const_index();
+	if (key.const_index().is_invalid()) {
+		idx = context->const_pool().insert(key);
 	}
 	return DelProperty(context, key.const_index());
 }

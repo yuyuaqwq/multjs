@@ -907,7 +907,7 @@ Value CodeGener::MakeValue(Expression* exp) {
 	// 无需GC回收，此处分配的对象不会引用Context分配的对象，因此不存在循环引用
 	// 应该是只读
 	case ExpressionType::kArrayExpression: {
-		ArrayObject* arr_obj = new ArrayObject(nullptr, exp->as<ArrayExpression>().elements().size());
+		ArrayObject* arr_obj = new ArrayObject(runtime_, exp->as<ArrayExpression>().elements().size());
 		int64_t i = 0;
 		for (auto& exp : exp->as<ArrayExpression>().elements()) {
 			auto const_idx = AllocConst(Value(i++));
@@ -916,7 +916,7 @@ Value CodeGener::MakeValue(Expression* exp) {
 		return Value(arr_obj);
 	}
 	case ExpressionType::kObjectExpression: {
-		Object* obj = new Object(nullptr);
+		Object* obj = new Object(runtime_);
 		for (auto& exp : exp->as<ObjectExpression>().properties()) {
 			auto const_idx = AllocConst(Value(exp.key));
 			obj->SetProperty(nullptr, const_idx, MakeValue(exp.value.get()));

@@ -12,24 +12,37 @@ ConstIndex LocalConstPool::insert(const Value& value) {
 }
 
 ConstIndex LocalConstPool::insert(Value&& value) {
-	auto it = const_map_.find(value);
-	if (it != const_map_.end()) {
+	auto it = map_.find(value);
+	if (it != map_.end()) {
 		return it->second;
 	}
-	auto const_idx = ConstToLocalIndex(pool_.size());
-	auto res = const_map_.emplace(std::move(value), const_idx);
-	pool_.emplace_back(const_cast<Value*>(&res.first->first));
-	pool_.back()->set_const_index(const_idx);
+	auto const_idx = ConstIndex(pool_.size()).to_local_index();
+	auto res = map_.emplace(std::move(value), const_idx);
+	if (first_ == -1) {
+		pool_.emplace_back(Node{ .value_ = const_cast<Value*>(&res.first->first) });
+	}
+	else {
+		first_ = pool_[first_].next_;
+		pool_[first_] = Node{ .value_ = const_cast<Value*>(&res.first->first) };
+	}
+	pool_.back().value_->set_const_index(const_idx);
 	return const_idx;
 }
 
-const Value& LocalConstPool::get(ConstIndex index) const {
-	return const_cast<LocalConstPool*>(this)->get(index);
+void LocalConstPool::erase(ConstIndex index) {
+	auto& val = *pool_[index].value_;
+	map_.erase(val);
+	pool_[index].next_ = first_;
+	first_ = index;
 }
 
-Value& LocalConstPool::get(ConstIndex index) {
-	index = LocalToConstIndex(index);
-	return *pool_[index];
+const Value& LocalConstPool::at(ConstIndex index) const {
+	return const_cast<LocalConstPool*>(this)->at(index);
+}
+
+Value& LocalConstPool::at(ConstIndex index) {
+	index.from_local_index();
+	return *pool_.at(index).value_;
 }
 
 

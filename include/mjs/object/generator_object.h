@@ -17,11 +17,11 @@ public:
 
     ~GeneratorObject() override = default;
 
-    void ForEachChild(intrusive_list<Object>* list, void(*callback)(intrusive_list<Object>* list, const Value& child)) override {
-        Object::ForEachChild(list, callback);
-        callback(list, function_);
+    void ForEachChild(Context* context, intrusive_list<Object>* list, void(*callback)(Context* context, intrusive_list<Object>* list, const Value& child)) override {
+        Object::ForEachChild(context, list, callback);
+        callback(context, list, function_);
         for (auto& val : stack_.vector()) {
-            callback(list, val);
+            callback(context, list, val);
         }
     }
 
@@ -51,7 +51,7 @@ public:
         // 每次都得new
         auto ret_obj = Value(new Object(context));
 
-        auto& class_def = context->runtime().class_def_table().get<GeneratorClassDef>(class_id());
+        auto& class_def = context->runtime().class_def_table().at<GeneratorClassDef>(class_id());
 
         ret_obj.object().SetProperty(context, class_def.value_const_idx(), std::move(ret_value));
         ret_obj.object().SetProperty(context, class_def.done_const_idx(), Value(IsClosed()));

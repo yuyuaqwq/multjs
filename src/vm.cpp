@@ -91,7 +91,7 @@ void Vm::BindClosureVars(StackFrame* stack_frame) {
 			auto var_idx = pair.second;
 			auto iter = func_def->closure_var_defs().find(var_idx);
 			assert(iter != func_def->closure_var_defs().end());
-			module_obj->export_map().emplace(pair.first, Value(
+			module_obj->export_map().set(&context_->runtime(), pair.first, Value(
 				UpValue(&arr[iter->second.arr_idx])
 			));
 		}
@@ -139,7 +139,7 @@ const Value& Vm::GetGlobalConst(ConstIndex idx) {
 //}
 
 const Value& Vm::GetConst(StackFrame* stack_frame, ConstIndex idx) {
-	if (IsGlobalConstIndex(idx)) {
+	if (idx.is_global_index()) {
 		return GetGlobalConst(idx);
 	}
 	//else if (IsLocalConstIndex(idx)) {
@@ -324,23 +324,23 @@ void Vm::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 			case OpcodeType::kCLoad_3:
 			case OpcodeType::kCLoad_4:
 			case OpcodeType::kCLoad_5:
-				LoadConst(stack_frame, opcode - OpcodeType::kCLoad_0);
+				LoadConst(stack_frame, ConstIndex(opcode - OpcodeType::kCLoad_0));
 				break;
 			}
 			case OpcodeType::kCLoad: {
-				auto const_idx = func_def->byte_code().GetI8(stack_frame->pc());
+				auto const_idx = ConstIndex(func_def->byte_code().GetI8(stack_frame->pc()));
 				stack_frame->set_pc(stack_frame->pc() + 1);
 				LoadConst(stack_frame, const_idx);
 				break;
 			}
 			case OpcodeType::kCLoadW: {
-				auto const_idx = func_def->byte_code().GetI16(stack_frame->pc());
+				auto const_idx = ConstIndex(func_def->byte_code().GetI16(stack_frame->pc()));
 				stack_frame->set_pc(stack_frame->pc() + 2);
 				LoadConst(stack_frame, const_idx);
 				break;
 			}
 			case OpcodeType::kCLoadD: {
-				auto const_idx = func_def->byte_code().GetI32(stack_frame->pc());
+				auto const_idx = ConstIndex(func_def->byte_code().GetI32(stack_frame->pc()));
 				stack_frame->set_pc(stack_frame->pc() + 4);
 				LoadConst(stack_frame, const_idx);
 				break;
@@ -390,7 +390,7 @@ void Vm::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 				break;
 			}
 			case OpcodeType::kPropertyLoad: {
-				auto const_idx = func_def->byte_code().GetI32(stack_frame->pc());
+				auto const_idx = ConstIndex(func_def->byte_code().GetI32(stack_frame->pc()));
 				stack_frame->set_pc(stack_frame->pc() + 4);
 				auto& obj_val = stack_frame->get(-1);
 				Value* prop = nullptr;
@@ -422,7 +422,7 @@ void Vm::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 				break;
 			}
 			case OpcodeType::kPropertyStore: {
-				auto const_idx = func_def->byte_code().GetI32(stack_frame->pc());
+				auto const_idx = ConstIndex(func_def->byte_code().GetI32(stack_frame->pc()));
 				stack_frame->set_pc(stack_frame->pc() + 4);
 				auto obj_val = stack_frame->pop();
 				auto val = stack_frame->pop();

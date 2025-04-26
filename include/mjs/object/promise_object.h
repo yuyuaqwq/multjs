@@ -10,11 +10,11 @@ class PromiseObject : public Object {
 public:
     PromiseObject(Context* context, Value executor);
 
-    virtual void ForEachChild(intrusive_list<Object>* list, void(*callback)(intrusive_list<Object>* list, const Value& child)) override {
-        Object::ForEachChild(list, callback);
-        on_fulfill_callbacks_.ForEachChild(list, callback);
-        on_reject_callbacks_.ForEachChild(list, callback);
-        callback(list, result_);
+    virtual void ForEachChild(Context* context, intrusive_list<Object>* list, void(*callback)(Context* context, intrusive_list<Object>* list, const Value& child)) override {
+        Object::ForEachChild(context, list, callback);
+        on_fulfill_callbacks_.ForEachChild(context, list, callback);
+        on_reject_callbacks_.ForEachChild(context, list, callback);
+        callback(context, list, result_);
     }
 
     void Resolve(Context* context, Value value);
