@@ -15,7 +15,7 @@ int main() {
     Runtime rt;
     auto ctx = Context(&rt);
 
-    auto module = ctx.EvalByPath("object.ts");
+    ctx.EvalByPath("object.ts");
 
     ctx.ExecuteMicrotasks();
 

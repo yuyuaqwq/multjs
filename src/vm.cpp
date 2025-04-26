@@ -133,24 +133,6 @@ const Value& Vm::GetGlobalConst(ConstIndex idx) {
 	return var;
 }
 
-//const Value& Vm::GetLocalConst(ConstIndex idx) {
-//	auto& var = context_->const_pool().Get(idx);
-//	return var;
-//}
-
-const Value& Vm::GetConst(StackFrame* stack_frame, ConstIndex idx) {
-	if (idx.is_global_index()) {
-		return GetGlobalConst(idx);
-	}
-	//else if (IsLocalConstIndex(idx)) {
-	//	return GetLocalConst(idx);
-	//}
-	else {
-		throw VmException("Incorrect const index.");
-	}
-}
-
-
 void Vm::LoadConst(StackFrame* stack_frame, ConstIndex const_idx) {
 	auto& value = GetGlobalConst(const_idx);
 	if (value.IsFunctionDef()) {

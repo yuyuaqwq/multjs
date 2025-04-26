@@ -179,12 +179,10 @@ void Value::operator=(Value&& r) noexcept {
 }
 
 ptrdiff_t Value::Comparer(const Value& rhs) const {
-	if (const_index().is_invalid()  && const_index() == rhs.const_index()) {
-		return 0;
-	}
-
-	if (type() != rhs.type() && !(IsString() && rhs.IsString())) {
-		return static_cast<ptrdiff_t>(type()) - static_cast<ptrdiff_t>(rhs.type());
+	if (type() != rhs.type()) {
+		if (!(IsString() && rhs.IsString())) {
+			return static_cast<ptrdiff_t>(type()) - static_cast<ptrdiff_t>(rhs.type());
+		}
 	}
 
 	switch (type()) {
@@ -232,8 +230,8 @@ bool Value::operator>(const Value& rhs) const {
 }
 
 bool Value::operator==(const Value& rhs) const {
-	if (const_index().is_invalid() && const_index() != rhs.const_index()) {
-		return false;
+	if (!const_index().is_invalid() && const_index().is_same_pool(rhs.const_index())) {
+		return const_index() == rhs.const_index();
 	}
 	return Comparer(rhs) == 0;
 }

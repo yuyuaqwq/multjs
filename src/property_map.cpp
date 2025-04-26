@@ -64,12 +64,12 @@ auto Hasher::operator()(const ConstIndex& key) const noexcept -> uint64_t {
 }
 
 bool KeyEqual::operator()(const ConstIndex& lhs, const ConstIndex& rhs) const {
-    if (lhs.in_same_pool(rhs)) {
+    if (lhs.is_same_pool(rhs)) {
         return lhs == rhs;
     }
     auto& lval = GetPoolValue(property_map_, lhs);
     auto& rval = GetPoolValue(property_map_, rhs);
-    return lval == rval;
+    return lval.Comparer(rval) == 0;
 }
 
 

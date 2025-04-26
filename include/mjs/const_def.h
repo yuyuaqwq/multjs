@@ -47,7 +47,7 @@ public:
 
     int32_t value() const { return value_; }
 
-    bool in_same_pool(ConstIndex rhs) const { 
+    bool is_same_pool(ConstIndex rhs) const { 
         return (value_ & 0x80000000) == (rhs.value_ & 0x80000000);
     }
 
