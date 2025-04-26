@@ -11,28 +11,29 @@ class Runtime;
 class Context;
 
 class PropertyMap;
+
 // Custom hasher that can access the PropertyMap's context
 class Hasher {
 public:
     using is_avalanching = void; // Mark as high-quality hash if appropriate
 
-    explicit Hasher(PropertyMap* property_map) : property_map_(property_map) {}
+    // explicit Hasher(PropertyMap* property_map) : property_map_(property_map) {}
 
     auto operator()(const ConstIndex& key) const noexcept -> uint64_t;
 
 private:
-    PropertyMap* property_map_;
+    //PropertyMap* property_map_;
 };
 
 // Custom equality comparator
 class KeyEqual {
 public:
-    explicit KeyEqual(PropertyMap* property_map) : property_map_(property_map) {}
+    // explicit KeyEqual(PropertyMap* property_map) : property_map_(property_map) {}
 
     bool operator()(const ConstIndex& lhs, const ConstIndex& rhs) const;
 
 private:
-    PropertyMap* property_map_;
+    //PropertyMap* property_map_;
 };
 
 
@@ -108,6 +109,8 @@ private:
     void ReferenceConst(Context* context, ConstIndex index);
 
 private:
+    friend class Hasher;
+    friend class KeyEqual;
     Runtime* runtime_;
     Context* context_;
 };
