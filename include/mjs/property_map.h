@@ -93,12 +93,7 @@ public:
 
     PropertyMap* Copy(Context* context) {
         auto map = new PropertyMap(context);
-
-        map->deallocate_buckets();
-        map->m_values = m_values;
-        map->m_max_load_factor = m_max_load_factor;
-        map->copy_buckets(*this);
-
+        map->Base::operator=(*this);
         return map;
     }
 
