@@ -6,12 +6,12 @@
 namespace mjs {
 
 PropertyMap::PropertyMap(Context* context)
-    : Base(0, Hasher(), KeyEqual()),
+    : Base(0, ConstIndexHasher(), ConstIndexHashKeyEqual()),
     context_(context), 
     runtime_(&context->runtime()) {}
 
 PropertyMap::PropertyMap(Runtime* runtime)
-    : Base(0, Hasher(), KeyEqual()),
+    : Base(0, ConstIndexHasher(), ConstIndexHashKeyEqual()),
     runtime_(runtime),
     context_(nullptr) {}
 
@@ -58,17 +58,17 @@ inline const Value& GetPoolValue(PropertyMap* property_map, ConstIndex const& ke
     }
 }
 
-auto Hasher::operator()(const ConstIndex& key) const noexcept -> uint64_t {
-    PropertyMap* property_map = reinterpret_cast<PropertyMap*>(reinterpret_cast<char*>(const_cast<Hasher*>(this)) - offsetof(PropertyMap, m_hash));
+auto ConstIndexHasher::operator()(const ConstIndex& key) const noexcept -> uint64_t {
+    PropertyMap* property_map = reinterpret_cast<PropertyMap*>(reinterpret_cast<char*>(const_cast<ConstIndexHasher*>(this)) - offsetof(PropertyMap, m_hash));
     auto& val = GetPoolValue(property_map, key);
     return val.hash();
 }
 
-bool KeyEqual::operator()(const ConstIndex& lhs, const ConstIndex& rhs) const {
+bool ConstIndexHashKeyEqual::operator()(const ConstIndex& lhs, const ConstIndex& rhs) const {
     if (lhs.is_same_pool(rhs)) {
         return lhs == rhs;
     }
-    PropertyMap* property_map = reinterpret_cast<PropertyMap*>(reinterpret_cast<char*>(const_cast<KeyEqual*>(this)) - offsetof(PropertyMap, m_equal));
+    PropertyMap* property_map = reinterpret_cast<PropertyMap*>(reinterpret_cast<char*>(const_cast<ConstIndexHashKeyEqual*>(this)) - offsetof(PropertyMap, m_equal));
     auto& lval = GetPoolValue(property_map, lhs);
     auto& rval = GetPoolValue(property_map, rhs);
     return lval.Comparer(rval) == 0;

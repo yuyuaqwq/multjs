@@ -13,7 +13,7 @@ class Context;
 class PropertyMap;
 
 // Custom hasher that can access the PropertyMap's context
-class Hasher {
+class ConstIndexHasher {
 public:
     using is_avalanching = void; // Mark as high-quality hash if appropriate
 
@@ -26,7 +26,7 @@ private:
 };
 
 // Custom equality comparator
-class KeyEqual {
+class ConstIndexHashKeyEqual {
 public:
     // explicit KeyEqual(PropertyMap* property_map) : property_map_(property_map) {}
 
@@ -39,10 +39,10 @@ private:
 
 
 class PropertyMap : 
-    public ::ankerl::unordered_dense::map<ConstIndex, Value, Hasher, KeyEqual>,
+    public ::ankerl::unordered_dense::map<ConstIndex, Value, ConstIndexHasher, ConstIndexHashKeyEqual>,
     public noncopyable {
 public:
-    using Base = ankerl::unordered_dense::map<ConstIndex, Value, Hasher, KeyEqual>;
+    using Base = ankerl::unordered_dense::map<ConstIndex, Value, ConstIndexHasher, ConstIndexHashKeyEqual>;
 
     PropertyMap(Context* context);
     PropertyMap(Runtime* runtime);
@@ -109,8 +109,8 @@ private:
     void ReferenceConst(Context* context, ConstIndex index);
 
 private:
-    friend class Hasher;
-    friend class KeyEqual;
+    friend class ConstIndexHasher;
+    friend class ConstIndexHashKeyEqual;
     Runtime* runtime_;
     Context* context_;
 };
