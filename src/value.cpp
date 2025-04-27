@@ -54,6 +54,9 @@ Value::Value(Symbol&& symbol, ConstIndex name_const_index) {
 	tag_.type_ = ValueType::kSymbol;
 	value_.symbol_ = std::move(symbol);
 	set_const_index(name_const_index);
+	if (name_const_index.is_local_index()) {
+		symbol.context().const_pool().ReferenceConst(name_const_index);
+	}
 }
 
 Value::Value(ReferenceCounter* rc) {
