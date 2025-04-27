@@ -61,11 +61,13 @@ public:
     }
 
     void set(Runtime* runtime, ConstIndex index, Value&& value) {
+        assert(!index.is_invalid());
         assert(index.is_global_index());
         Base::operator[](index) = std::move(value);
     }
 
-    void set(Context* context, ConstIndex index, Value&& value) {
+    iterator set(Context* context, ConstIndex index, Value&& value) {
+        assert(!index.is_invalid());
         auto res = Base::emplace(index, value);
         if (res.second && index.is_local_index()) {
             ReferenceConst(context, index);
@@ -73,10 +75,12 @@ public:
         else {
             res.first->second = std::move(value);
         }
+        return res.first;
     }
 
 
     size_t erase(Runtime* runtime, ConstIndex index) {
+        assert(!index.is_invalid());
         assert(index.is_global_index());
         return Base::erase(index);
     }

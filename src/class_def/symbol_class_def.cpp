@@ -27,15 +27,23 @@ SymbolClassDef::SymbolClassDef(Runtime* runtime)
 }
 
 Value SymbolClassDef::For(Context* context, Value name) {
-	if (!name.const_index().is_invalid()) {
-		context->symbol_table().set(context, name.const_index(), Value(Symbol(context), name.const_index()));
-		return context->symbol_table()[name.const_index()];
+	ConstIndex name_const_index = name.const_index();
+	if (name_const_index.is_invalid()) {
+		name_const_index = context->const_pool().insert(name);
 	}
-	else {
-		auto const_index = context->const_pool().insert(name);
-		auto iter = context->symbol_table().emplace(context, std::move(name.string()), Value(Symbol(context), const_index));
-		return iter.first->second;
+
+	auto iter = context->symbol_table().find(name_const_index);
+	if (iter != context->symbol_table().end()) {
+		return iter->second;
 	}
+
+	// 新的symbol放到常量池
+	auto symbol_const_index = context->const_pool().insert(Value(new Symbol()));
+	auto symbol = context->const_pool()[symbol_const_index];
+
+	// 插入到全局symbol table
+	return context->symbol_table().set(context, name_const_index, std::move(symbol))->second;
+
 }
 
 } // namespace mjs

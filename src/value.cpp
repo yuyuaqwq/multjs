@@ -50,13 +50,10 @@ Value::Value(std::string str) {
 	value_.string_->Reference();
 }
 
-Value::Value(Symbol&& symbol, ConstIndex name_const_index) {
+Value::Value(Symbol* symbol) {
 	tag_.type_ = ValueType::kSymbol;
-	value_.symbol_ = std::move(symbol);
-	set_const_index(name_const_index);
-	if (name_const_index.is_local_index()) {
-		symbol.context().const_pool().ReferenceConst(name_const_index);
-	}
+	value_.symbol_ = symbol;
+	value_.symbol_->Reference();
 }
 
 Value::Value(ReferenceCounter* rc) {
@@ -207,8 +204,7 @@ ptrdiff_t Value::Comparer(const Value& rhs) const {
 		if (string() == rhs.string()) return 0;
 		return std::strcmp(string(), rhs.string());
 	case ValueType::kSymbol:
-		// 根据name的const_index判断是否是同一个Symbol
-		return const_index() - rhs.const_index();
+		return &symbol() == &rhs.symbol();
 	case ValueType::kObject:
 		return &object() - &rhs.object();
 	case ValueType::kInt64:
@@ -485,7 +481,7 @@ const char* Value::string() const {
 
 const Symbol& Value::symbol() const {
 	assert(IsSymbol());
-	return value_.symbol_;
+	return *value_.symbol_;
 }
 
 
@@ -600,6 +596,7 @@ bool Value::IsReferenceCounter() const {
 	switch (type()) {
 	case ValueType::kReferenceCounter:
 	case ValueType::kString:
+	case ValueType::kSymbol:
 	case ValueType::kFunctionDef:
 		return true;
 	default:
@@ -764,11 +761,6 @@ void Value::Clear() {
 	else if (IsReferenceCounter()) {
 		value_.rc_->Dereference();
 	}
-	else if (IsSymbol()) {
-		if (tag_.const_index_.is_local_index()) {
-			value_.symbol_.context().const_pool().DereferenceConst(tag_.const_index_);
-		}
-	}
 	tag_.type_ = ValueType::kUndefined;
 }
 
@@ -783,11 +775,6 @@ void Value::Copy(const Value& r) {
 	else if (r.IsReferenceCounter()) {
 		value_.full_ = r.value_.full_;
 		value_.rc_->Reference();
-	}
-	else if (IsSymbol()) {
-		if (tag_.const_index_.is_local_index()) {
-			value_.symbol_.context().const_pool().ReferenceConst(tag_.const_index_);
-		}
 	}
 	else {
 		value_.full_ = r.value_.full_;

@@ -38,6 +38,7 @@ ConstIndex PropertyMap::InsertConst(Context* context, std::string&& name) {
 }
 
 size_t PropertyMap::erase(Context* context, ConstIndex index) {
+    assert(!index.is_invalid());
     if (index.is_local_index()) {
         context->const_pool().DereferenceConst(index);
     }
@@ -50,6 +51,7 @@ void PropertyMap::ReferenceConst(Context* context, ConstIndex index) {
 
 
 inline const Value& GetPoolValue(PropertyMap* property_map, ConstIndex const& key) {
+    assert(!key.is_invalid());
     if (key.is_global_index()) {
         auto& val = property_map->runtime().const_pool().at(key);
         return val;

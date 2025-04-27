@@ -48,10 +48,6 @@ Value* Object::GetProperty(Context* context, ConstIndex key) {
 	auto val = class_def.GetProperty(&context->runtime(), key);
 	if (val) return val;
 
-	// 3. ‘≠–Õ¡¥≤È’“
-	if (prototype_.IsObject()) {
-		return prototype_.object().GetProperty(context, key);
-	}
 	return nullptr;
 }
 

@@ -79,7 +79,7 @@ public:
 	explicit Value(double number);
 	explicit Value(const char* string_u8);
 	explicit Value(std::string str);
-	explicit Value(Symbol&& symbol, ConstIndex name_const_index);
+	explicit Value(Symbol* symbol);
 
 	explicit Value(ReferenceCounter* rc);
 
@@ -179,6 +179,8 @@ public:
 			return value_.string_->hash();
 		case mjs::ValueType::kStringView:
 			return std::hash<std::string>()(string());
+		case mjs::ValueType::kSymbol:
+			return std::hash<const void*>()(&symbol());
 		case mjs::ValueType::kObject:
 			// 使用对象地址计算哈希
 			return std::hash<const void*>()(&object());
@@ -252,7 +254,7 @@ private:
 		bool boolean_;
 		double f64_;
 		String* string_;
-		Symbol symbol_;
+		Symbol* symbol_;
 
 		ReferenceCounter* rc_;
 

@@ -32,7 +32,6 @@ public:
 	void WeakDereference();
 
 	virtual void ForEachChild(Context* context, intrusive_list<Object>* list, void(*callback)(Context* context, intrusive_list<Object>* list, const Value& child)) {
-		callback(context, list, prototype_);
 		if (property_map_) {
 			for (auto& pair : *property_map_) {
 				callback(context, list, pair.second);
@@ -50,7 +49,6 @@ public:
 	}
 
 	virtual Object* Copy(Object* new_obj, Context* context) {
-		new_obj->prototype_ = prototype_;
 		if (property_map_) {
 			new_obj->property_map_ = property_map_->copy(context);
 		}
@@ -69,9 +67,6 @@ public:
 
 	auto ref_count() const { return tag_.ref_count_; }
 
-	const auto& prototype() const { return prototype_; }
-	void set_prototype(Value prototype) { prototype_ = std::move(prototype); }
-
 	bool gc_mark() { return  tag_.gc_mark_; }
 	void set_gc_mark(bool flag) { tag_.gc_mark_ = flag; }
 
@@ -84,7 +79,6 @@ protected:
 			uint32_t is_const_ : 1;
 		};
 	} tag_;
-	Value prototype_;
 	PropertyMap* property_map_ = nullptr;
 };
 
