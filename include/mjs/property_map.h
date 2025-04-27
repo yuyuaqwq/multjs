@@ -49,7 +49,6 @@ public:
 
 	~PropertyMap();
 
-
     std::pair<iterator, bool> emplace(Runtime* runtime, std::string name, Value&& value) {
         ConstIndex key = InsertConst(runtime, std::move(name));
         return Base::emplace(key, std::move(value));
@@ -76,26 +75,22 @@ public:
         }
     }
 
-    iterator erase(const_iterator pos) {
-        return Base::erase(pos);
-    }
 
     size_t erase(Runtime* runtime, ConstIndex index) {
+        assert(index.is_global_index());
         return Base::erase(index);
     }
 
-    size_t erase(Context* context, ConstIndex index) {
-        return Base::erase(index);
-    }
+    size_t erase(Context* context, ConstIndex index);
 
-    Runtime& runtime() const { return *runtime_; }
-    Context& context() const { return *context_; }
-
-    PropertyMap* Copy(Context* context) {
+    PropertyMap* copy(Context* context) {
         auto map = new PropertyMap(context);
         map->Base::operator=(*this);
         return map;
     }
+
+    Runtime& runtime() const { return *runtime_; }
+    Context& context() const { return *context_; }
 
 private:
     ConstIndex InsertConst(Runtime* runtime, std::string&& name);

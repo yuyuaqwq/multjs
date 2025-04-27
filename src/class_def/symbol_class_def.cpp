@@ -2,7 +2,6 @@
 
 #include <mjs/stack_frame.h>
 #include <mjs/context.h>
-#include <mjs/symbol.h>
 
 namespace mjs {
 
@@ -10,34 +9,33 @@ SymbolClassDef::SymbolClassDef(Runtime* runtime)
 	: ClassDef(runtime, ClassId::kSymbol, "Symbol")
 {
 	auto iter = property_map_.emplace(runtime, "iterator", Value());
-	iter.first->second = Value(new Symbol(iter.first->first));
+	iter.first->second = Value(iter.first->first);
 
-	property_map_.emplace(runtime, "for", Value([](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
+	static_property_map_.emplace(runtime, "for", Value([](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
 		if (par_count < 1) {
-			return Value();
+			return Value("Parameter count mismatch.").SetException();
+		}
+
+		auto& par = stack.get(-1);
+		if (!par.IsString()) {
+			return Value("The parameter must be a string.").SetException();
 		}
 
 		auto& symbol_class_def = context->runtime().class_def_table().at<SymbolClassDef>(ClassId::kSymbol);
-
-		auto idx = stack.get(-1).const_index();
-		if (idx.is_invalid()) {
-			idx = context->const_pool().insert(stack.get(-1));
-		}
-
-		return symbol_class_def.For(context, idx);
+		return symbol_class_def.For(context, par);
 	}));
 }
 
-Value SymbolClassDef::For(Context* context, ConstIndex idx) {
-	// ¸Äµô£¬´ÓcontextÖÐÕÒ
-	//auto iter = property_map_.find(idx);
-	//if (iter == property_map_.end()) {
-	//	auto symbol = new Symbol(idx);
-	//	property_map_.emplace(idx, Value(symbol));
-	//}
-	//return iter->second;
-
-	return Value();
+Value SymbolClassDef::For(Context* context, Value name) {
+	if (!name.const_index().is_invalid()) {
+		context->symbol_table().set(context, name.const_index(), Value(Symbol(context), name.const_index()));
+		return context->symbol_table()[name.const_index()];
+	}
+	else {
+		auto const_index = context->const_pool().insert(name);
+		auto iter = context->symbol_table().emplace(context, std::move(name.string()), Value(Symbol(context), const_index));
+		return iter.first->second;
+	}
 }
 
 } // namespace mjs

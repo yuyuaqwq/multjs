@@ -430,7 +430,7 @@ std::unique_ptr<MemberExpression> Parser::ParseMemberExpression(std::unique_ptr<
 		computed = true;
 	}
 	else {
-		throw;
+		throw ParserException("Incorrect member expression.");
 	}
 
 	bool is_method_call = false;

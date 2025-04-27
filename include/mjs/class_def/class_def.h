@@ -42,7 +42,7 @@ enum class ClassId {
 	kPromise,
 	kAsync,
 
-	// Î´À´¿ÉÒÔ¿¼ÂÇ°ÑjsÀïÍ¨¹ıclass¶¨ÒåµÄÀàÒ²·Åµ½ÕâÀï×öÓÅ»¯
+	// æœªæ¥å¯ä»¥è€ƒè™‘æŠŠjsé‡Œé€šè¿‡classå®šä¹‰çš„ç±»ä¹Ÿæ”¾åˆ°è¿™é‡Œåšä¼˜åŒ–
 	kCustom,
 };
 
@@ -57,7 +57,7 @@ public:
 		, static_property_map_(runtime) {}
 	virtual ~ClassDef() = default;
 
-	// Èç¹ûÔÊĞí±»new¹¹Ôì£¬ÖØĞ´¸Ãº¯Êı£¬newÏà¹Ø¶ÔÏó²¢·µ»Ø£¬Èçnew ArrayObject()
+	// å¦‚æœå…è®¸è¢«newæ„é€ ï¼Œé‡å†™è¯¥å‡½æ•°ï¼Œnewç›¸å…³å¯¹è±¡å¹¶è¿”å›ï¼Œå¦‚new ArrayObject()
 	virtual Value Constructor(Context* context, uint32_t par_count, const StackFrame& stack) { throw std::runtime_error("Types that are not allowed to be constructed."); }
 
 	virtual void SetProperty(Runtime* runtime, ConstIndex key, Value&& val) {
@@ -126,7 +126,7 @@ public:
 		std::string_view name = class_def->name();
 		auto idx = insert(std::move(class_def));
 		if (idx != static_cast<uint32_t>(id)) {
-			// ±ØĞë°´Ã¶¾Ù¶¨ÒåË³Ğò²åÈë£¬ÒÔÈ·±£¸ßĞ§²éÕÒ
+			// å¿…é¡»æŒ‰æšä¸¾å®šä¹‰é¡ºåºæ’å…¥ï¼Œä»¥ç¡®ä¿é«˜æ•ˆæŸ¥æ‰¾
 			throw std::runtime_error("Class id mismatch.");
 		}
 		class_def_map_.emplace(name, class_def_arr_[idx].get());

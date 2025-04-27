@@ -13,8 +13,8 @@
 
 namespace mjs {
 
-// ±£³ÖºÍjs±ê×¼Ò»ÖÂ£¬ÊôÐÔÖ»ÄÜÊÇstring»òÕßsymbol
-// µ«ÆäËûÀàÐÍ²»»á×Ô¶¯×ª»»Îªstring£¬¶øÊÇÅ×³öÒì³£
+// ä¿æŒå’Œjsæ ‡å‡†ä¸€è‡´ï¼Œå±žæ€§åªèƒ½æ˜¯stringæˆ–è€…symbol
+// ä½†å…¶ä»–ç±»åž‹ä¸ä¼šè‡ªåŠ¨è½¬æ¢ä¸ºstringï¼Œè€Œæ˜¯æŠ›å‡ºå¼‚å¸¸
 
 class Runtime;
 class Context;
@@ -52,7 +52,7 @@ public:
 	virtual Object* Copy(Object* new_obj, Context* context) {
 		new_obj->prototype_ = prototype_;
 		if (property_map_) {
-			new_obj->property_map_ = property_map_->Copy(context);
+			new_obj->property_map_ = property_map_->copy(context);
 		}
 		return new_obj;
 	}

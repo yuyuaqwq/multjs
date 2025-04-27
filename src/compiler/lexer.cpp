@@ -42,7 +42,7 @@ bool Lexer::TestChar(char c) {
 // 前瞻Token
 Token Lexer::PeekToken() {
     // 如果没有前瞻过
-    if (peek_.is(TokenType::kNil)) {
+    if (peek_.is(TokenType::kNone)) {
         peek_ = NextToken();
     }
     return peek_;
@@ -56,16 +56,16 @@ Token Lexer::PeekTokenN(uint32_t n) {
     if (n == 1) {
         return PeekToken();
     }
-    else if (n > 1 && !peek_.is(TokenType::kNil)) {
+    else if (n > 1 && !peek_.is(TokenType::kNone)) {
         n -= 1;
     }
     
     for (uint32_t i = 0; i < n; ++i) {
         if (i + 1 == n) {
-            auto token = ReadNextToken();
+            ReadNextToken();
             pos_ = idx;
             line_ = line;
-            return token;
+            return cur_token_;
         }
         ReadNextToken();
     }
@@ -81,13 +81,14 @@ inline static bool IsAlpha(char c) {
 
 // 获取下一Token
 Token Lexer::NextToken() {
-    if (!peek_.is(TokenType::kNil)) {
+    if (!peek_.is(TokenType::kNone)) {
         // 如果有前瞻保存的token，返回前瞻的结果
         Token token = std::move(peek_);
-        peek_.set_type(TokenType::kNil);
+        peek_.set_type(TokenType::kNone);
         return token;
     }
-    return ReadNextToken();
+    cur_token_ = ReadNextToken();
+    return cur_token_;
 }
 
 // 匹配下一Token
@@ -306,16 +307,23 @@ Token Lexer::ReadNextToken() {
             }
         }
 
+        if (cur_token_.is(TokenType::kSepDot)) {
+            token.set_type(TokenType::kIdentifier);
+            token.set_str(ident);
+            return token;
+        }
+
         // 是否是关键字
         auto keyword_it = g_keywords.find(ident);
         if (keyword_it != g_keywords.end()) {
             token.set_type(keyword_it->second);
             return token;
         }
-        
+
         token.set_type(TokenType::kIdentifier);
         token.set_str(ident);
         return token;
+        
     }
 
     throw LexerException("cannot parse token");

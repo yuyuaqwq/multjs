@@ -15,16 +15,16 @@ public:
         res_promise_ = Value(new PromiseObject(context, Value()));
     }
 
-    virtual void ForEachChild(Context* context, intrusive_list<Object>* list, void(*callback)(Context* context, intrusive_list<Object>* list, const Value& child)) override {
+    void ForEachChild(Context* context, intrusive_list<Object>* list, void(*callback)(Context* context, intrusive_list<Object>* list, const Value& child)) override {
         GeneratorObject::ForEachChild(context, list, callback);
         callback(context, list, res_promise_);
     }
 
-    virtual Value ToString() override {
+    Value ToString() override {
         return Value(std::format("asnyc_object:{}", function_def().name()));
     }
 
-    virtual ClassId class_id() const override { return ClassId::kAsync; }
+    ClassId class_id() const override { return ClassId::kAsync; }
 
     const auto& res_promise() const { return res_promise_; }
     auto& res_promise() { return res_promise_; }

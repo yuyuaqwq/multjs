@@ -16,7 +16,7 @@ enum class ValueCategory {
 };
 
 enum class ExpressionType {
-    // »ù´¡×ÖÃæÁ¿
+    // åŸºç¡€å­—é¢é‡
     kUndefined,
     kNull,
     kBoolean,
@@ -25,38 +25,38 @@ enum class ExpressionType {
     kString,
     kThisExpression,
 
-    // Êı¾İ½á¹¹
+    // æ•°æ®ç»“æ„
     kArrayExpression,
     kObjectExpression,
 
-    // º¯Êı/ÀàÏà¹Ø
+    // å‡½æ•°/ç±»ç›¸å…³
     kFunctionExpression,
     kArrowFunctionExpression,
     kClassExpression,
 
-    // Ä£°å×Ö·û´®
+    // æ¨¡æ¿å­—ç¬¦ä¸²
     kTemplateLiteral,
     kTaggedTemplateExpression,
 
-    // ³ÉÔ±·ÃÎÊÓëµ÷ÓÃ
+    // æˆå‘˜è®¿é—®ä¸è°ƒç”¨
     kMemberExpression,
     kCallExpression,
     kNewExpression,
 
-    // ÔËËã±í´ïÊ½
+    // è¿ç®—è¡¨è¾¾å¼
     kUnaryExpression,
     kBinaryExpression,
     kAssignmentExpression,
     kConditionalExpression,
 
-    // ¿ØÖÆÁ÷Ïà¹Ø
+    // æ§åˆ¶æµç›¸å…³
     kYieldExpression,
     kAwaitExpression,
 
-    // Ä£¿éÏà¹Ø
+    // æ¨¡å—ç›¸å…³
     kImportExpression,
 
-    // ±êÊ¶·û£¨·ÅÔÚ×îºó£¬ÒòÎªËüÊÇÒıÓÃÆäËû±í´ïÊ½µÄ»ù´¡£©
+    // æ ‡è¯†ç¬¦ï¼ˆæ”¾åœ¨æœ€åï¼Œå› ä¸ºå®ƒæ˜¯å¼•ç”¨å…¶ä»–è¡¨è¾¾å¼çš„åŸºç¡€ï¼‰
     kIdentifier,
 };
 

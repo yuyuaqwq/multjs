@@ -15,37 +15,37 @@ namespace mjs {
 namespace compiler {
 
 enum class StatementType {
-    // Ä£¿éÏà¹Ø
+    // æ¨¡å—ç›¸å…³
     kImport,
     kExport,
     
-    // ÉùÃ÷Óï¾ä
+    // å£°æ˜è¯­å¥
     kVariableDeclaration,
     
-    // ¿ØÖÆÁ÷
+    // æ§åˆ¶æµ
     kIf,
     kLabeled,
     
-    // Ñ­»·¼°¿ØÖÆ
+    // å¾ªç¯åŠæ§åˆ¶
     kFor,
     kWhile,
     kContinue,
     kBreak,
     
-    // º¯Êı¿ØÖÆ
+    // å‡½æ•°æ§åˆ¶
     kReturn,
     
-    // Òì³£´¦Àí
+    // å¼‚å¸¸å¤„ç†
     kTry,
     kCatch,
     kFinally,
     kThrow,
     
-    // »ù±¾Óï¾ä
+    // åŸºæœ¬è¯­å¥
     kExpression,
     kBlock,
 
-    // ÀàĞÍ
+    // ç±»å‹
     kTypeAnnotation,
     kPredefinedType,
     kNamedType,

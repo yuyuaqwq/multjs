@@ -43,6 +43,7 @@ private:
 private:
 	std::string src_;
 	SourcePos pos_ = 0;
+	Token cur_token_;
 	Token peek_;
 	SourceLine line_ = 1;
 };

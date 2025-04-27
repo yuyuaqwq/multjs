@@ -31,7 +31,7 @@ public:
         return *this;
     }
 
-    bool is_invalid() { return value_ == 0; }
+    bool is_invalid() const { return value_ == 0; }
 
     bool is_global_index() const { return value_ > 0; }
 

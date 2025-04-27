@@ -7,7 +7,7 @@ namespace mjs {
 namespace compiler {
 
 enum class TokenType {
-    kNil = 0,      // 空token
+    kNone = 0,      // 空token
 
     kEof,          // 文件结束符
     kUndefined,    // undefined
@@ -142,7 +142,7 @@ public:
 
 private:
 	int32_t line_ = 0;		// 行号
-	TokenType type_ = TokenType::kNil;		// token类型
+	TokenType type_ = TokenType::kNone;		// token类型
 	std::string str_;	// 保存必要的信息
 };
 

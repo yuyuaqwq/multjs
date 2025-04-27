@@ -79,7 +79,7 @@ public:
 	explicit Value(double number);
 	explicit Value(const char* string_u8);
 	explicit Value(std::string str);
-	explicit Value(Symbol* symbol);
+	explicit Value(Symbol&& symbol, ConstIndex name_const_index);
 
 	explicit Value(ReferenceCounter* rc);
 
@@ -230,7 +230,7 @@ public:
 	Value ToNumber() const;
 
 	bool IsException() const { return tag_.exception_; }
-	void SetException() { tag_.exception_ = 1; }
+	Value SetException() { tag_.exception_ = 1; return *this; }
 
 private:
 	void Clear();
@@ -252,7 +252,7 @@ private:
 		bool boolean_;
 		double f64_;
 		String* string_;
-		Symbol* symbol_;
+		Symbol symbol_;
 
 		ReferenceCounter* rc_;
 

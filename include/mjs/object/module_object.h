@@ -10,14 +10,14 @@ public:
         : FunctionObject(context, function_def)
         , export_map_(context) {}
 
-    virtual void ForEachChild(Context* context, intrusive_list<Object>* list, void(*callback)(Context* context, intrusive_list<Object>* list, const Value& child)) override {
+    void ForEachChild(Context* context, intrusive_list<Object>* list, void(*callback)(Context* context, intrusive_list<Object>* list, const Value& child)) override {
         Object::ForEachChild(context, list, callback);
         for (auto& pair : export_map_) {
             callback(context, list, pair.second);
         }
     }
 
-    virtual Value* GetProperty(Context* context, ConstIndex key) override {
+    Value* GetProperty(Context* context, ConstIndex key) override {
         auto prop = FunctionObject::GetProperty(context, key);
         if (prop) {
             return prop;
@@ -32,7 +32,7 @@ public:
     auto& export_map() { return export_map_; }
 
 private:
-    // valueÊÇupvalue£¬Ö¸Ïòclosure_value_arr_ÖÐµÄ±äÁ¿
+    // valueï¿½ï¿½upvalueï¿½ï¿½Ö¸ï¿½ï¿½closure_value_arr_ï¿½ÐµÄ±ï¿½ï¿½ï¿½
     PropertyMap export_map_;
 };
 

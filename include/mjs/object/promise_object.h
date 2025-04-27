@@ -10,7 +10,7 @@ class PromiseObject : public Object {
 public:
     PromiseObject(Context* context, Value executor);
 
-    virtual void ForEachChild(Context* context, intrusive_list<Object>* list, void(*callback)(Context* context, intrusive_list<Object>* list, const Value& child)) override {
+    void ForEachChild(Context* context, intrusive_list<Object>* list, void(*callback)(Context* context, intrusive_list<Object>* list, const Value& child)) override {
         Object::ForEachChild(context, list, callback);
         on_fulfill_callbacks_.ForEachChild(context, list, callback);
         on_reject_callbacks_.ForEachChild(context, list, callback);
@@ -36,7 +36,7 @@ public:
     const auto& result() const { return result_; }
     void set_result(Value value) { result_ = std::move(value); }
 
-    virtual ClassId class_id() const override { return ClassId::kPromise; }
+    ClassId class_id() const override { return ClassId::kPromise; }
 
 private:
     enum class State {

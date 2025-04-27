@@ -37,6 +37,13 @@ ConstIndex PropertyMap::InsertConst(Context* context, std::string&& name) {
 	return idx;
 }
 
+size_t PropertyMap::erase(Context* context, ConstIndex index) {
+    if (index.is_local_index()) {
+        context->const_pool().DereferenceConst(index);
+    }
+    return Base::erase(index);
+}
+
 void PropertyMap::ReferenceConst(Context* context, ConstIndex index) {
 	context->const_pool().ReferenceConst(index);
 }
@@ -44,8 +51,6 @@ void PropertyMap::ReferenceConst(Context* context, ConstIndex index) {
 
 inline const Value& GetPoolValue(PropertyMap* property_map, ConstIndex const& key) {
     if (key.is_global_index()) {
-        // Perform your context-dependent hashing
-        // return ...;
         auto& val = property_map->runtime().const_pool().at(key);
         return val;
     }

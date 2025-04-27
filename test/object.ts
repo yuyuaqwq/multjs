@@ -1,3 +1,19 @@
+let sb1 = Symbol.for("sb1");
+let sb2 = Symbol.for("sb2");
+let sb3 = Symbol.for("sb1");
+
+if (sb1 == sb2) {
+    println("sb1 == sb2");
+}
+
+if (sb1 == sb1) {
+    println("sb1 == sb1");
+}
+
+if (sb1 == sb3) {
+    println("sb1 == sb3");
+}
+
 let ccc = { };
 // ccc = "123";
 ccc["a" + "b"] = 123;
