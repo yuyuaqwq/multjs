@@ -3,6 +3,8 @@ let sb2 = Symbol.for("sb2");
 let sb3 = Symbol.for("sb1");
 let sb4 = Symbol.for("sb" + "1");
 
+
+
 if (sb1 == sb2) {
     println("sb1 == sb2");
 }
