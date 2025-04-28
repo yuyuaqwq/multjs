@@ -266,7 +266,7 @@ std::string ByteCode::Disassembly(Context* context, Pc& pc, OpcodeType& opcode, 
         if (val.IsString()) {
             str += "\"";
         }
-        str += val.ToString().string();
+        str += val.ToString().string_view();
         if (val.IsString()) {
             str += "\"";
         }
@@ -278,7 +278,7 @@ std::string ByteCode::Disassembly(Context* context, Pc& pc, OpcodeType& opcode, 
         if (val.IsString()) {
             str += "\"";
         }
-        str += val.ToString().string();
+        str += val.ToString().string_view();
         if (val.IsString()) {
             str += "\"";
         }

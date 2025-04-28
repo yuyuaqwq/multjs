@@ -40,7 +40,7 @@ Value CodeGener::Generate() {
 		for (size_t i = 0; i < par_count; i++) {
 			auto val = stack.get(i);
 			try {
-				std::cout << val.ToString().string();
+				std::cout << val.ToString().string_view();
 			}
 			catch (const std::exception&)
 			{

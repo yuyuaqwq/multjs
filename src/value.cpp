@@ -199,10 +199,10 @@ ptrdiff_t Value::Comparer(const Value& rhs) const {
 		if (rhs.type() == ValueType::kString && value_.string_->hash() != rhs.value_.string_->hash()) {
 			return value_.string_->hash() - rhs.value_.string_->hash();
 		}
-		return std::strcmp(string(), rhs.string());
+		return std::strcmp(string_view(), rhs.string_view());
 	case ValueType::kStringView:
-		if (string() == rhs.string()) return 0;
-		return std::strcmp(string(), rhs.string());
+		if (string_view() == rhs.string_view()) return 0;
+		return std::strcmp(string_view(), rhs.string_view());
 	case ValueType::kSymbol:
 		return &symbol() == &rhs.symbol();
 	case ValueType::kObject:
@@ -234,7 +234,7 @@ size_t Value::hash() const {
 	case mjs::ValueType::kString:
 		return value_.string_->hash();
 	case mjs::ValueType::kStringView:
-		return std::hash<std::string_view>()(string());
+		return std::hash<std::string_view>()(string_view());
 	case mjs::ValueType::kSymbol:
 		return std::hash<const void*>()(&symbol());
 	case mjs::ValueType::kObject:
@@ -283,7 +283,7 @@ Value Value::operator+(const Value& rhs) const {
 		}
 		case ValueType::kStringView:
 		case ValueType::kString: {
-			return Value(String::format("{}{}", ToString().string(), rhs.string()));
+			return Value(String::format("{}{}", ToString().string_view(), rhs.string_view()));
 		}
 		}
 		break;
@@ -298,7 +298,7 @@ Value Value::operator+(const Value& rhs) const {
 		}
 		case ValueType::kStringView:
 		case ValueType::kString: {
-			return Value(String::format("{}{}", ToString().string(), rhs.string()));
+			return Value(String::format("{}{}", ToString().string_view(), rhs.string_view()));
 		}
 		}
 		break;
@@ -308,11 +308,11 @@ Value Value::operator+(const Value& rhs) const {
 		switch (rhs.type()) {
 		case ValueType::kFloat64:
 		case ValueType::kInt64: {
-			return Value(String::format("{}{}", string(), rhs.ToString().string()));
+			return Value(String::format("{}{}", string_view(), rhs.ToString().string_view()));
 		}
 		case ValueType::kStringView:
 		case ValueType::kString: {
-			return Value(String::format("{}{}", string(), rhs.string()));
+			return Value(String::format("{}{}", string_view(), rhs.string_view()));
 		}
 		}
 	}
@@ -502,7 +502,7 @@ void Value::set_boolean(bool boolean) {
 }
 
 
-const char* Value::string() const {
+const char* Value::string_view() const {
 	assert(IsString());
 	switch (type()) {
 	case ValueType::kString:
@@ -510,7 +510,16 @@ const char* Value::string() const {
 	case ValueType::kStringView:
 		return value_.string_view_;
 	default:
-		return nullptr;
+		throw std::runtime_error("Non string type.");
+	}
+}
+
+const String& Value::string() const {
+	switch (type()) {
+	case ValueType::kString:
+		return *value_.string_;
+	default:
+		throw std::runtime_error("Non string type.");
 	}
 }
 
@@ -770,7 +779,7 @@ Value Value::ToBoolean() const {
 		return Value(value_.string_->empty());
 	}
 	case ValueType::kStringView: {
-		return Value(string() != nullptr && string()[0] != '\0');
+		return Value(string_view() != nullptr && string_view()[0] != '\0');
 	}
 	default:
 		throw std::runtime_error("Incorrect value type.");

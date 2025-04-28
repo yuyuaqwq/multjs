@@ -133,7 +133,8 @@ public:
 
 	bool boolean() const;
 	void set_boolean(bool boolean);
-	const char* string() const;
+	const char* string_view() const;
+	const String& string() const;
 	const Symbol& symbol() const;
 
 	double f64() const;
@@ -201,7 +202,7 @@ public:
 	Value ToNumber() const;
 
 	bool IsException() const { return tag_.exception_; }
-	Value SetException() { tag_.exception_ = 1; return *this; }
+	Value& SetException() { tag_.exception_ = 1; return *this; }
 
 private:
 	void Clear();
