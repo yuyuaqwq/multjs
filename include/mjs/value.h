@@ -38,7 +38,8 @@ enum class ValueType : uint32_t {
 
 	// 内部使用
 	kUInt64,
-	kStringView, // String优化
+	// String优化，考虑移除，统一使用kString，移除后string()可以直接返回String*，并且hash能缓存
+	kStringView,
 
 	kClassDef,
 
