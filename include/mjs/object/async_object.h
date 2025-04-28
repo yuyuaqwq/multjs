@@ -21,7 +21,7 @@ public:
     }
 
     Value ToString() override {
-        return Value(std::format("asnyc_object:{}", function_def().name()));
+        return Value(String::format("asnyc_object:{}", function_def().name()));
     }
 
     ClassId class_id() const override { return ClassId::kAsync; }

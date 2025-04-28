@@ -49,13 +49,13 @@ public:
 
 	~PropertyMap();
 
-    std::pair<iterator, bool> emplace(Runtime* runtime, std::string name, Value&& value) {
-        ConstIndex key = InsertConst(runtime, std::move(name));
+    std::pair<iterator, bool> emplace(Runtime* runtime, String* name, Value&& value) {
+        ConstIndex key = InsertConst(runtime, name);
         return Base::emplace(key, std::move(value));
     }
 
-    std::pair<iterator, bool> emplace(Context* context, std::string name, Value&& value) {
-        ConstIndex key = InsertConst(context, std::move(name));
+    std::pair<iterator, bool> emplace(Context* context, String* name, Value&& value) {
+        ConstIndex key = InsertConst(context, name);
         ReferenceConst(context, key);
         return Base::emplace(key, std::move(value));
     }
@@ -97,8 +97,8 @@ public:
     Context& context() const { return *context_; }
 
 private:
-    ConstIndex InsertConst(Runtime* runtime, std::string&& name);
-    ConstIndex InsertConst(Context* context, std::string&& name);
+    ConstIndex InsertConst(Runtime* runtime, String* name);
+    ConstIndex InsertConst(Context* context, String* name);
 
     void ReferenceConst(Context* context, ConstIndex index);
 

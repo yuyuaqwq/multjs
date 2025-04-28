@@ -78,7 +78,7 @@ public:
 	explicit Value(bool boolean);
 	explicit Value(double number);
 	explicit Value(const char* string_u8);
-	explicit Value(std::string str);
+	explicit Value(String* str);
 	explicit Value(Symbol* symbol);
 
 	explicit Value(ReferenceCounter* rc);

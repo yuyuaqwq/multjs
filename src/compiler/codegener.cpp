@@ -435,7 +435,7 @@ void CodeGener::GenerateStatement(Statement* stat) {
 
 
 void CodeGener::GenerateImportDeclaration(ImportDeclaration* stat) {
-	auto const_idx = AllocConst(Value(stat->source()));
+	auto const_idx = AllocConst(Value(String::make(stat->source())));
 	cur_func_def_->byte_code().EmitConstLoad(const_idx);
 
 	cur_func_def_->byte_code().EmitOpcode(OpcodeType::kGetModule);
@@ -899,10 +899,10 @@ Value CodeGener::MakeValue(Expression* exp) {
 		return Value(exp->as<IntegerLiteral>().value());
 	}
 	case ExpressionType::kString: {
-		return Value(exp->as<StringLiteral>().value());
+		return Value(String::make(exp->as<StringLiteral>().value()));
 	}
 	case ExpressionType::kIdentifier: {
-		return Value(exp->as<Identifier>().name());
+		return Value(String::make(exp->as<Identifier>().name()));
 	}
 	// 无需GC回收，此处分配的对象不会引用Context分配的对象，因此不存在循环引用
 	// 应该是只读
@@ -918,7 +918,7 @@ Value CodeGener::MakeValue(Expression* exp) {
 	case ExpressionType::kObjectExpression: {
 		Object* obj = new Object(runtime_);
 		for (auto& exp : exp->as<ObjectExpression>().properties()) {
-			auto const_idx = AllocConst(Value(exp.key));
+			auto const_idx = AllocConst(Value(String::make(exp.key)));
 			obj->SetProperty(nullptr, const_idx, MakeValue(exp.value.get()));
 		}
 		return Value(obj);

@@ -26,7 +26,7 @@ public:
     }
 
     Value ToString() override {
-        return Value(std::format("generator_object:{}", function_def().name()));
+        return Value(String::format("generator_object:{}", function_def().name()));
     }
 
     bool IsSuspended() const { return state_ == State::kSuspended; }

@@ -85,7 +85,7 @@ public:
 		);
 	}
 
-	void AddExportVar(std::string name, VarIndex var_idx);
+	void AddExportVar(std::string_view name, VarIndex var_idx);
 
 	const auto& name() const { return name_; }
 

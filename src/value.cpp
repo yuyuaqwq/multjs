@@ -44,9 +44,9 @@ Value::Value(const char* string_u8) {
 	value_.string_view_ = string_u8;
 }
 
-Value::Value(std::string str) {
+Value::Value(String* str) {
 	tag_.type_ = ValueType::kString;
-	value_.string_ = new String(std::move(str));
+	value_.string_ = str;
 	value_.string_->Reference();
 }
 
@@ -248,7 +248,7 @@ Value Value::operator+(const Value& rhs) const {
 		}
 		case ValueType::kStringView:
 		case ValueType::kString: {
-			return Value(std::format("{}{}", ToString().string(), rhs.string()));
+			return Value(String::format("{}{}", ToString().string(), rhs.string()));
 		}
 		}
 		break;
@@ -263,7 +263,7 @@ Value Value::operator+(const Value& rhs) const {
 		}
 		case ValueType::kStringView:
 		case ValueType::kString: {
-			return Value(std::format("{}{}", ToString().string(), rhs.string()));
+			return Value(String::format("{}{}", ToString().string(), rhs.string()));
 		}
 		}
 		break;
@@ -273,11 +273,11 @@ Value Value::operator+(const Value& rhs) const {
 		switch (rhs.type()) {
 		case ValueType::kFloat64:
 		case ValueType::kInt64: {
-			return Value(std::format("{}{}", string(), rhs.ToString().string()));
+			return Value(String::format("{}{}", string(), rhs.ToString().string()));
 		}
 		case ValueType::kStringView:
 		case ValueType::kString: {
-			return Value(std::format("{}{}", string(), rhs.string()));
+			return Value(String::format("{}{}", string(), rhs.string()));
 		}
 		}
 	}
@@ -471,7 +471,7 @@ const char* Value::string() const {
 	assert(IsString());
 	switch (type()) {
 	case ValueType::kString:
-		return value_.string_->c_str();
+		return value_.string_->data();
 	case ValueType::kStringView:
 		return value_.string_view_;
 	default:
@@ -693,20 +693,20 @@ Value Value::ToString() const {
 	case ValueType::kBoolean:
 		return Value(boolean() ? "true" : "false");
 	case ValueType::kFloat64:
-		return Value(std::format("{}", f64()));
+		return Value(String::format("{}", f64()));
 	case ValueType::kString: 
 	case ValueType::kStringView: 
 		return *this;
 	case ValueType::kInt64:
-		return Value(std::format("{}", i64()));
+		return Value(String::format("{}", i64()));
 	case ValueType::kUInt64:
-		return Value(std::format("{}", u64()));
+		return Value(String::format("{}", u64()));
 	case ValueType::kFunctionDef:
-		return Value(std::format("function_def:{}", function_def().name()));
+		return Value(String::format("function_def:{}", function_def().name()));
 	case ValueType::kCppFunction:
 		return Value("cpp_function");
 	case ValueType::kClassDef:
-		return Value(std::format("class_def:{}", class_def().name()));
+		return Value(String::format("class_def:{}", class_def().name()));
 	case ValueType::kUpValue:
 		return up_value().Up().ToString();
 	default:

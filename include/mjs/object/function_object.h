@@ -23,7 +23,7 @@ public:
 	}
 
 	Value ToString() override {
-		return Value(std::format("function_object:{}", function_def_->name()));
+		return Value(String::format("function_object:{}", function_def_->name()));
 	}
 
 	auto& function_def() const { return *function_def_; }

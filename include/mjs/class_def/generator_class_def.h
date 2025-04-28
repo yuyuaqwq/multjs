@@ -9,7 +9,7 @@ public:
 	GeneratorClassDef(Runtime* runtime)
 		: ClassDef(runtime, ClassId::kGenerator, "Generator")
 	{
-		property_map_.emplace(runtime, "next", Value(ValueType::kGeneratorNext));
+		property_map_.emplace(runtime, String::make("next"), Value(ValueType::kGeneratorNext));
 
 		value_const_idx_ = runtime->const_pool().insert(Value("value"));
 		done_const_idx_ = runtime->const_pool().insert(Value("done"));
