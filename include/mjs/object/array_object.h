@@ -14,21 +14,21 @@ public:
         : Object(context)
         , values_(length) {}
 
-    void SetIndexed(Context* context, const Value& key, Value&& val) override {
+    void SetComputedProperty(Context* context, const Value& key, Value&& val) override {
         if (key.i64() < 0 || key.i64() > values_.size()) {
             // throw;
         }
         values_[key.i64()] = std::move(val);
     }
 
-    Value* GetIndexed(Context* context, const Value& key) override {
+    Value* GetComputedProperty(Context* context, const Value& key) override {
         if (key.i64() < 0 || key.i64() > values_.size()) {
             // throw;
         }
         return &values_[key.i64()];
     }
 
-    Object* New(Context* context) override {
+    Object* Make(Context* context) override {
         auto obj = new ArrayObject(context, values_.size());
         return obj;
     }

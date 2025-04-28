@@ -57,7 +57,7 @@ void Object::DelProperty(Context* context, ConstIndex key) {
 	property_map_->erase(context, key);
 }
 
-void Object::SetIndexed(Context* context, const Value& key, Value&& val) {
+void Object::SetComputedProperty(Context* context, const Value& key, Value&& val) {
 	auto idx = key.const_index();
 	if (idx.is_invalid()) {
 		idx = context->const_pool().insert(key);
@@ -65,7 +65,7 @@ void Object::SetIndexed(Context* context, const Value& key, Value&& val) {
 	return SetProperty(context, idx, std::move(val));
 }
 
-Value* Object::GetIndexed(Context* context, const Value& key) {
+Value* Object::GetComputedProperty(Context* context, const Value& key) {
 	auto idx = key.const_index();
 	if (key.const_index().is_invalid()) {
 		idx = context->const_pool().insert(key);
@@ -73,7 +73,7 @@ Value* Object::GetIndexed(Context* context, const Value& key) {
 	return GetProperty(context, idx);
 }
 
-void Object::DelIndexed(Context* context, const Value& key) {
+void Object::DelComputedProperty(Context* context, const Value& key) {
 	auto idx = key.const_index();
 	if (key.const_index().is_invalid()) {
 		idx = context->const_pool().insert(key);

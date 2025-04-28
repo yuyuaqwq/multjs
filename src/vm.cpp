@@ -142,7 +142,7 @@ void Vm::LoadConst(StackFrame* stack_frame, ConstIndex const_idx) {
 		return;
 	}
 	else if (value.IsObject()) {
-		auto* new_obj = value.object().New(context_);
+		auto* new_obj = value.object().Make(context_);
 		stack_frame->push(Value(value.object().Copy(new_obj, context_)));
 		return;
 	}
@@ -426,7 +426,7 @@ void Vm::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 				auto& obj_val = stack_frame->get(-1);
 				auto& obj = obj_val.object();
 
-				auto prop = obj.GetIndexed(context_, idx_val);
+				auto prop = obj.GetComputedProperty(context_, idx_val);
 				if (!prop) {
 					obj_val = Value();
 				}
@@ -440,7 +440,7 @@ void Vm::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 				auto obj_val = stack_frame->pop();
 				auto& obj = obj_val.object();
 
-				obj.SetIndexed(context_, idx_val, stack_frame->pop());
+				obj.SetComputedProperty(context_, idx_val, stack_frame->pop());
 				break;
 			}
 			case OpcodeType::kAdd: {

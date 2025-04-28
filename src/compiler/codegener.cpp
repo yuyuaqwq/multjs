@@ -911,7 +911,7 @@ Value CodeGener::MakeValue(Expression* exp) {
 		int64_t i = 0;
 		for (auto& exp : exp->as<ArrayExpression>().elements()) {
 			auto const_idx = AllocConst(Value(i++));
-			arr_obj->SetIndexed(nullptr, GetConstValueByIndex(const_idx), MakeValue(exp.get()));
+			arr_obj->SetComputedProperty(nullptr, GetConstValueByIndex(const_idx), MakeValue(exp.get()));
 		}
 		return Value(arr_obj);
 	}
