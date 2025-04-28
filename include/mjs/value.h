@@ -165,39 +165,7 @@ public:
 	ConstIndex const_index() const { return tag_.const_index_; }
 	void set_const_index(ConstIndex const_index) { tag_.const_index_ = const_index; }
 
-	size_t hash() const {
-		switch (type()) {
-		case mjs::ValueType::kUndefined:
-			return 0;
-		case mjs::ValueType::kNull:
-			return 1;
-		case mjs::ValueType::kBoolean:
-			return std::hash<bool>()(boolean());
-		case mjs::ValueType::kFloat64:
-			return std::hash<double>()(f64());
-		case mjs::ValueType::kString:
-			return value_.string_->hash();
-		case mjs::ValueType::kStringView:
-			return std::hash<std::string>()(string());
-		case mjs::ValueType::kSymbol:
-			return std::hash<const void*>()(&symbol());
-		case mjs::ValueType::kObject:
-			// 使用对象地址计算哈希
-			return std::hash<const void*>()(&object());
-		case mjs::ValueType::kInt64:
-			return std::hash<int64_t>()(i64());
-		case mjs::ValueType::kUInt64:
-			return std::hash<uint64_t>()(u64());
-		case mjs::ValueType::kFunctionDef:
-		case mjs::ValueType::kCppFunction:
-		case mjs::ValueType::kUpValue:
-		case mjs::ValueType::kClassDef:
-			// 使用内部值计算哈希
-			return std::hash<uint64_t>()(value_.full_);
-		default:
-			throw std::runtime_error("Unhashable value type.");
-		}
-	}
+	size_t hash() const;
 
 	bool IsUndefined() const;
 	bool IsNull() const;

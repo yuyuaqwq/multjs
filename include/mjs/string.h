@@ -11,7 +11,8 @@ namespace mjs {
 class String : public ReferenceCounter
 {
 public:
-	String(size_t size) : size_(size) {}
+	String(size_t size) 
+		: size_(size) {}
 	
 	size_t hash() const {
 		return hash_;
@@ -27,12 +28,13 @@ public:
 
 
 	static String* make(std::string_view str) {
+		auto size = str.size();
 		// Allocate memory for String object plus space for the string data
-		String* s = static_cast<String*>(::operator new(sizeof(String) + str.size() + 1));
+		String* s = static_cast<String*>(::operator new(sizeof(String) + size + 1));
 		// Use placement new to construct the String object
-		new (s) String(str.size());
+		new (s) String(size);
 		// Copy the string data
-		memcpy(s->data_, str.data(), str.size() + 1);
+		memcpy(s->data_, str.data(), size + 1);
 		// Calculate the hash based on the actual string content
 		s->hash_ = std::hash<std::string_view>()(str);
 		return s;
