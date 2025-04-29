@@ -10,8 +10,8 @@
 
 namespace mjs {
 
-// Ê¹ÓÃ·Ö¶Î¾²Ì¬Êı×é£¬±ÜÃâresizeÊ±ÆäËûÔËĞĞContextµÄÏß³Ìget£¬µ¼ÖÂgetĞèÒª¼ÓËø
-// Ã¿¿é¾²Ì¬Êı×éÓĞkStaticArraySize¸öÔªËØ£¬ÂúÁË¾ÍnewĞÂµÄ¾²Ì¬Êı×é
+// ä½¿ç”¨åˆ†æ®µé™æ€æ•°ç»„ï¼Œé¿å…resizeæ—¶å…¶ä»–è¿è¡ŒContextçš„çº¿ç¨‹getï¼Œå¯¼è‡´getéœ€è¦åŠ é”
+// æ¯å—é™æ€æ•°ç»„æœ‰kStaticArraySizeä¸ªå…ƒç´ ï¼Œæ»¡äº†å°±newæ–°çš„é™æ€æ•°ç»„
 template <typename T, typename IndexT, size_t kStaticArraySize>
 class SegmentedArray : public noncopyable {
 private:
@@ -40,7 +40,7 @@ public:
 		auto& val = operator[](idx);
 		val = std::move(value);
 
-		// ×îºóÔÙ++£¬µ«ÊÇÒòÎªget²»¼ÓËø£¬ÕâÀï²»È·¶¨»á²»»á±»ÖØÅÅµ½ÉÏÃæ£¬ÓĞ¿ÉÄÜĞèÒªÊ¹ÓÃÔ­×Ó
+		// æœ€åå†++ï¼Œä½†æ˜¯å› ä¸ºgetä¸åŠ é”ï¼Œè¿™é‡Œä¸ç¡®å®šä¼šä¸ä¼šè¢«é‡æ’åˆ°ä¸Šé¢ï¼Œæœ‰å¯èƒ½éœ€è¦ä½¿ç”¨åŸå­
 		++size_;
 		return idx;
 	}

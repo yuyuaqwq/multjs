@@ -8,7 +8,7 @@ using ExceptionIdx = uint32_t;
 constexpr ExceptionIdx kExceptionInvalidIdx = 0xffffffff;
 
 struct ExceptionEntry{
-    // ×ó¿ªÓÒ±Õ
+    // å·¦å¼€å³é—­
     Pc try_start_pc = kInvalidPc;
     Pc try_end_pc = kInvalidPc;
     Pc catch_start_pc = kInvalidPc;
@@ -17,17 +17,17 @@ struct ExceptionEntry{
     Pc finally_start_pc = kInvalidPc;
     Pc finally_end_pc = kInvalidPc;
 
-    // ¸¨Öú·½·¨£º¼ì²éPCÊÇ·ñÔÚtry¿é·¶Î§ÄÚ£¬²»°üÀ¨Ä©Î²µÄtry_end
+    // è¾…åŠ©æ–¹æ³•ï¼šæ£€æŸ¥PCæ˜¯å¦åœ¨tryå—èŒƒå›´å†…ï¼Œä¸åŒ…æ‹¬æœ«å°¾çš„try_end
     bool Contains(Pc pc) const {
         return pc >= try_start_pc && pc < finally_end_pc;
     }
 
-    // ¼ì²éÊÇ·ñÓĞcatch´¦Àí³ÌĞò
+    // æ£€æŸ¥æ˜¯å¦æœ‰catchå¤„ç†ç¨‹åº
     bool HasCatch() const {
         return catch_start_pc != kInvalidPc;
     }
 
-    // ¼ì²éÊÇ·ñÓĞfinally´¦Àí³ÌĞò
+    // æ£€æŸ¥æ˜¯å¦æœ‰finallyå¤„ç†ç¨‹åº
     bool HasFinally() const {
         return finally_start_pc != kInvalidPc;
     }
@@ -61,25 +61,25 @@ public:
     }
 
     ExceptionEntry* FindEntry(Pc throw_pc) {
-        // ·´Ïò²éÕÒ£¬È·±£×î½üÇ¶Ì×µÄtry¿éÓÅÏÈÆ¥Åä
+        // åå‘æŸ¥æ‰¾ï¼Œç¡®ä¿æœ€è¿‘åµŒå¥—çš„tryå—ä¼˜å…ˆåŒ¹é…
         for (auto it = entries_.begin(); it != entries_.end(); ++it) {
             if (it->Contains(throw_pc)) {
-                return &(*it); // ·µ»ØÆ¥ÅäµÄÌõÄ¿
+                return &(*it); // è¿”å›åŒ¹é…çš„æ¡ç›®
             }
         }
-        return nullptr; // Î´ÕÒµ½Æ¥ÅäµÄtry¿é
+        return nullptr; // æœªæ‰¾åˆ°åŒ¹é…çš„tryå—
     }
 
     const ExceptionEntry* FindEntry(Pc throw_pc) const {
         return const_cast<ExceptionTable*>(this)->FindEntry(throw_pc);
     }
 
-    // »ñÈ¡ËùÓĞÌõÄ¿£¨Ö»¶Á£©
+    // è·å–æ‰€æœ‰æ¡ç›®ï¼ˆåªè¯»ï¼‰
     const std::vector<ExceptionEntry>& GetEntries() const {
         return entries_;
     }
 
-    // Çå¿ÕÒì³£±í
+    // æ¸…ç©ºå¼‚å¸¸è¡¨
     void Clear() {
         entries_.clear();
     }

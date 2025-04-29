@@ -6,12 +6,12 @@
 namespace mjs {
 
 Object::Object(Runtime* runtime) {
-	// ½öruntimeÊ¹ÓÃµÄ¶ÔÏó¾ÍÌáÇ°new
+	// ä»…runtimeä½¿ç”¨çš„å¯¹è±¡å°±æå‰new
 	property_map_ = new PropertyMap(runtime);
 }
 
 Object::Object(Context* context) {
-	// ¹ÒÈëcontext objÁ´±í
+	// æŒ‚å…¥context objé“¾è¡¨
 	if (context) {
 		context->AddObject(this);
 	}
@@ -35,7 +35,7 @@ void Object::SetProperty(Context* context, ConstIndex key, Value&& val) {
 }
 
 Value* Object::GetProperty(Context* context, ConstIndex key) {
-	// 1. ²éÕÒ×ÔÉíÊôĞÔ
+	// 1. æŸ¥æ‰¾è‡ªèº«å±æ€§
 	if (property_map_) {
 		auto iter = property_map_->find(key);
 		if (iter != property_map_->end()) {
@@ -43,7 +43,7 @@ Value* Object::GetProperty(Context* context, ConstIndex key) {
 		}
 	}
 		
-	// 2. class def²éÕÒ
+	// 2. class defæŸ¥æ‰¾
 	auto& class_def = context->runtime().class_def_table().at(class_id());
 	auto val = class_def.GetProperty(&context->runtime(), key);
 	if (val) return val;
@@ -87,7 +87,7 @@ void Object::Reference() {
 }
 
 void Object::Dereference() {
-	// ¶ÔÏóÕıÔÚgc¹ı³ÌÖĞ£¬ÆäÊôĞÔÖĞ¿ÉÄÜ°üº¬¶ÔÏó×ÔÉí£¬Í¨¹ıgc_mark±ÜÃâÖØ¸´Îö¹¹
+	// å¯¹è±¡æ­£åœ¨gcè¿‡ç¨‹ä¸­ï¼Œå…¶å±æ€§ä¸­å¯èƒ½åŒ…å«å¯¹è±¡è‡ªèº«ï¼Œé€šè¿‡gc_marké¿å…é‡å¤ææ„
 	if (!gc_mark()) {
 		WeakDereference();
 		if (tag_.ref_count_ == 0) {

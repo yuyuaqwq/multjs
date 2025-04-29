@@ -6,7 +6,7 @@
 
 namespace mjs {
 
-// Job统一在执行后释放
+// Job缁熶竴鍦ㄦ墽琛屽悗閲婃斁
 class Job : public noncopyable {
 public:
 	Job(Value func, Value this_val)

@@ -10,7 +10,7 @@
 
 namespace mjs {
 
-// 常量池、字节码、栈等共享资源位于Runtime
+// 甯搁噺姹犮�佸瓧鑺傜爜銆佹爤绛夊叡浜祫婧愪綅浜嶳untime
 class Runtime : public noncopyable {
 public:
 	// using LoadModuleFunction = Value(*)(Context* context, const char* path);

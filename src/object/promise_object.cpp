@@ -8,18 +8,18 @@ PromiseObject::PromiseObject(Context* context, Value executor)
     : Object(context) {
     if (executor.IsUndefined()) return;
 
-    // ÔÚ¹¹Ôìº¯ÊıÖĞÊ¹ÓÃµ±Ç°thisÊÇÎ£ÏÕĞĞÎª£¬ĞèÒª×¢Òâ
-    // ±ÜÃâValue(kPromiseResolve) ºÍ Value(kPromiseReject) µÄÎö¹¹µ¼ÖÂµ±Ç°¶ÔÏóÊÍ·Å£¬ÏÈÒıÓÃ
+    // åœ¨æ„é€ å‡½æ•°ä¸­ä½¿ç”¨å½“å‰thisæ˜¯å±é™©è¡Œä¸ºï¼Œéœ€è¦æ³¨æ„
+    // é¿å…Value(kPromiseResolve) å’Œ Value(kPromiseReject) çš„ææ„å¯¼è‡´å½“å‰å¯¹è±¡é‡Šæ”¾ï¼Œå…ˆå¼•ç”¨
     Reference();
     {
         auto argv = {
             Value(ValueType::kPromiseResolve, this),
             Value(ValueType::kPromiseReject, this)
         };
-        // ´«µİÁ½¸ö²ÎÊı£¬resolveºÍreject
+        // ä¼ é€’ä¸¤ä¸ªå‚æ•°ï¼Œresolveå’Œreject
         context->CallFunction(&executor, Value(), argv.begin(), argv.end());
     }
-    // ±ÜÃâ½âÒıÓÃÊÍ·Å¶ÔÏó
+    // é¿å…è§£å¼•ç”¨é‡Šæ”¾å¯¹è±¡
     WeakDereference();
 }
 
@@ -68,17 +68,17 @@ void PromiseObject::Reject(Context* context, Value value) {
 Value PromiseObject::Then(Context* context, Value on_fulfilled, Value on_rejected) {
     auto* new_promise = new PromiseObject(context, Value());
 
-    // Èç¹ûµ±Ç°thenµÄ»Øµ÷±»Ö´ĞĞ£¬»¹ĞèÒªÖ´ĞĞnew_promiseÖĞµÄResolve/Reject
+    // å¦‚æœå½“å‰thençš„å›è°ƒè¢«æ‰§è¡Œï¼Œè¿˜éœ€è¦æ‰§è¡Œnew_promiseä¸­çš„Resolve/Reject
     auto fulfilled_handler = Value([](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
         auto& new_promise = stack.this_val().promise();
-        // Ê×ÏÈÄÃµ½on_fulfilledÖ´ĞĞµÄ·µ»ØÖµ
+        // é¦–å…ˆæ‹¿åˆ°on_fulfilledæ‰§è¡Œçš„è¿”å›å€¼
         assert(par_count == 2);
         Value on_fulfilled = stack.get(0);
 
         auto argv = { stack.get(1) };
         auto on_fulfilled_result = context->CallFunction(&on_fulfilled, Value(), argv.begin(), argv.end());
 
-        // È»ºó´«µİ¸ønew_promise
+        // ç„¶åä¼ é€’ç»™new_promise
         new_promise.Resolve(context, on_fulfilled_result);
 
         return Value();
@@ -86,14 +86,14 @@ Value PromiseObject::Then(Context* context, Value on_fulfilled, Value on_rejecte
 
     auto rejected_handler = Value([](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
         auto& new_promise = stack.this_val().promise();
-        // Ê×ÏÈÄÃµ½on_rejectedÖ´ĞĞµÄ·µ»ØÖµ
+        // é¦–å…ˆæ‹¿åˆ°on_rejectedæ‰§è¡Œçš„è¿”å›å€¼
         assert(par_count == 2);
         Value on_rejected = stack.get(0);
 
         auto argv = { stack.get(1) };
         auto on_rejected_result = context->CallFunction(&on_rejected, Value(), argv.begin(), argv.end());
 
-        // È»ºó´«µİ¸ønew_promise
+        // ç„¶åä¼ é€’ç»™new_promise
         new_promise.Reject(context, on_rejected_result);
 
         return Value();

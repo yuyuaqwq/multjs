@@ -48,7 +48,7 @@ public:
         //    ret_obj_ = Value(new Object());
         //}
 
-        // Ã¿´Î¶¼µÃnew
+        // æ¯æ¬¡éƒ½å¾—new
         auto ret_obj = Value(new Object(context));
 
         auto& class_def = context->runtime().class_def_table().at<GeneratorClassDef>(class_id());
@@ -59,7 +59,7 @@ public:
     }
 
     void Next(Context* context) {
-        // Ö´ĞĞNext
+        // æ‰§è¡ŒNext
 
     }
 
@@ -80,9 +80,9 @@ public:
     void set_pc(Pc pc) { pc_ = pc; }
 
 private:
-    Value function_;        // Éú³ÉÆ÷º¯Êı¶¨Òå/º¯Êı¶ÔÏó
-    Pc pc_ = 0;         // µ±Ç°pc
-    Stack stack_;       // ±£´æµÄÕ»
+    Value function_;        // ç”Ÿæˆå™¨å‡½æ•°å®šä¹‰/å‡½æ•°å¯¹è±¡
+    Pc pc_ = 0;         // å½“å‰pc
+    Stack stack_;       // ä¿å­˜çš„æ ˆ
 
     // Value ret_obj_;
 

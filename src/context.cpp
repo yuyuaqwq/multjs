@@ -21,7 +21,7 @@ Value Context::Compile(std::string_view script) {
 	auto codegener = compiler::CodeGener(runtime_, &parser);
 	auto module = codegener.Generate();
 
-	// ת��Ϊ module_obj
+	// 转换为 module_obj
 	vm_.InitClosure(StackFrame(&runtime_->stack()), &module);
 
 	return module;

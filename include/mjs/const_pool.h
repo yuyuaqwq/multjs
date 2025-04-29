@@ -10,10 +10,10 @@
 #include <mjs/const_def.h>
 #include <mjs/value.h>
 
-// ³£Á¿³ØÉè¼Æ
-// È«¾Ö³£Á¿Î»ÓÚÈ«¾Ö³£Á¿³Ø
+// å¸¸é‡æ± è®¾è®¡
+// å…¨å±€å¸¸é‡ä½äºŽå…¨å±€å¸¸é‡æ± 
 
-// ÔËÐÐÊ±´´½¨µÄ³£Á¿Î»ÓÚÔËÐÐÊ±³£Á¿³Ø£¬Í¨¹ýÒýÓÃ¼ÆÊýÀ´»ØÊÕ
+// è¿è¡Œæ—¶åˆ›å»ºçš„å¸¸é‡ä½äºŽè¿è¡Œæ—¶å¸¸é‡æ± ï¼Œé€šè¿‡å¼•ç”¨è®¡æ•°æ¥å›žæ”¶
 
 namespace mjs {
 

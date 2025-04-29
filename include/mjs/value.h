@@ -16,7 +16,7 @@
 namespace mjs {
 
 enum class ValueType : uint32_t {
-	// ×ÖÃæÁ¿
+	// å­—é¢é‡
 	kUndefined = 0,
 	kNull,
 	kBoolean,
@@ -25,7 +25,7 @@ enum class ValueType : uint32_t {
 	kString,
 	kSymbol,
 
-	// ¶ÔÏó
+	// å¯¹è±¡
 	kObject,
 	kFloatObject,
 	kStringObject,
@@ -36,9 +36,9 @@ enum class ValueType : uint32_t {
 	kAsyncObject,
 	kModuleObject,
 
-	// ÄÚ²¿Ê¹ÓÃ
+	// å†…éƒ¨ä½¿ç”¨
 	kUInt64,
-	// StringÓÅ»¯£¬¿¼ÂÇÒÆ³ı£¬Í³Ò»Ê¹ÓÃkString£¬ÒÆ³ıºóstring()¿ÉÒÔÖ±½Ó·µ»ØString*£¬²¢ÇÒhashÄÜ»º´æ
+	// Stringä¼˜åŒ–ï¼Œè€ƒè™‘ç§»é™¤ï¼Œç»Ÿä¸€ä½¿ç”¨kStringï¼Œç§»é™¤åstring()å¯ä»¥ç›´æ¥è¿”å›String*ï¼Œå¹¶ä¸”hashèƒ½ç¼“å­˜
 	kStringView,
 
 	kClassDef,
@@ -178,7 +178,7 @@ public:
 
 	bool IsReferenceCounter() const;
 
-	// ĞÂ¶ÔÏó±ØĞëÌí¼Óµ½IsObjectÖĞ£¬·ñÔò»áÄÚ´æĞ¹Â¶
+	// æ–°å¯¹è±¡å¿…é¡»æ·»åŠ åˆ°IsObjectä¸­ï¼Œå¦åˆ™ä¼šå†…å­˜æ³„éœ²
 	bool IsObject() const;
 	bool IsFunctionObject() const;
 	bool IsGeneratorObject() const;
@@ -214,8 +214,8 @@ private:
 		uint64_t full_ = 0;
 		struct {
 			ValueType type_ : 15;
-			uint32_t exception_ : 1;	// ÊÇ·ñÊÇÒì³£·µ»Ø
-			ConstIndex const_index_;	// ·Ç0ÔòÊÇÀ´×Ô³£Á¿³ØµÄvalue
+			uint32_t exception_ : 1;	// æ˜¯å¦æ˜¯å¼‚å¸¸è¿”å›
+			ConstIndex const_index_;	// é0åˆ™æ˜¯æ¥è‡ªå¸¸é‡æ± çš„value
 		};
 	} tag_;
 	union {

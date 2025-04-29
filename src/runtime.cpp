@@ -20,10 +20,10 @@ Runtime::Runtime() {
 
 	auto load_module = [](Context* ctx, const char* path) -> Value {
 		namespace fs = std::filesystem;
-		// »º´ækeyÏà¶ÔÂ·¾¶×ª¾ø¶ÔÂ·¾¶
-		// Èç¹ûÄ£¿éÒÑ±»»º´æ£¬ÄÇÃ´¾ÍÖ±½Ó·µ»Ø»º´æµÄÄ£¿é
+		// ç¼“å­˜keyç›¸å¯¹è·¯å¾„è½¬ç»å¯¹è·¯å¾„
+		// å¦‚æžœæ¨¡å—å·²è¢«ç¼“å­˜ï¼Œé‚£ä¹ˆå°±ç›´æŽ¥è¿”å›žç¼“å­˜çš„æ¨¡å—
 
-		// Òª¸Ä³É»º´æµ½contextÀï
+		// è¦æ”¹æˆç¼“å­˜åˆ°contexté‡Œ
 		auto& module_cache = ctx->runtime().module_cache();
 
 		fs::path absolute_path = fs::absolute(path);
@@ -40,7 +40,7 @@ Runtime::Runtime() {
 
 		auto module = ctx->Compile(content);
 
-		// ÏÈ»º´æÄ£¿é£¬ÔÙµ÷ÓÃ
+		// å…ˆç¼“å­˜æ¨¡å—ï¼Œå†è°ƒç”¨
 		module_cache.emplace(absolute_path, module);
 
 		ctx->CallModule(&module);

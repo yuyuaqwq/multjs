@@ -238,7 +238,7 @@ size_t Value::hash() const {
 	case mjs::ValueType::kSymbol:
 		return std::hash<const void*>()(&symbol());
 	case mjs::ValueType::kObject:
-		// Ê¹ÓÃ¶ÔÏóµØÖ·¼ÆËã¹şÏ£
+		// ä½¿ç”¨å¯¹è±¡åœ°å€è®¡ç®—å“ˆå¸Œ
 		return std::hash<const void*>()(&object());
 	case mjs::ValueType::kInt64:
 		return std::hash<int64_t>()(i64());
@@ -248,7 +248,7 @@ size_t Value::hash() const {
 	case mjs::ValueType::kCppFunction:
 	case mjs::ValueType::kUpValue:
 	case mjs::ValueType::kClassDef:
-		// Ê¹ÓÃÄÚ²¿Öµ¼ÆËã¹şÏ£
+		// ä½¿ç”¨å†…éƒ¨å€¼è®¡ç®—å“ˆå¸Œ
 		return std::hash<uint64_t>()(value_.full_);
 	default:
 		throw std::runtime_error("Unhashable value type.");

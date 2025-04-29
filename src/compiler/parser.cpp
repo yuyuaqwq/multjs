@@ -80,7 +80,7 @@ std::unique_ptr<FunctionExpression> Parser::ParseFunctionOrGeneratorExpression()
 		if (is_async) {
 			throw ParserException("Does not support asynchronous generator function.");
 		}
-		// Éú³ÉÆ÷º¯Êı
+		// ç”Ÿæˆå™¨å‡½æ•°
 		lexer_->NextToken();
 		is_generator = true;
 	}
@@ -100,7 +100,7 @@ std::unique_ptr<FunctionExpression> Parser::ParseFunctionOrGeneratorExpression()
 
 std::unique_ptr<Expression> Parser::ParseAssignmentExpression() {
 	auto start = lexer_->pos();
-	// ¸³Öµ£¬ÓÒ½áºÏ
+	// èµ‹å€¼ï¼Œå³ç»“åˆ
 	auto exp = ParseTernaryExpression();
 	auto op = lexer_->PeekToken().type();
 	if (op != TokenType::kOpAssign) {
@@ -114,7 +114,7 @@ std::unique_ptr<Expression> Parser::ParseAssignmentExpression() {
 
 std::unique_ptr<Expression> Parser::ParseTernaryExpression() {
 	auto start = lexer_->pos();
-	// ÈıÔª£¬ÓÒ½áºÏ
+	// ä¸‰å…ƒï¼Œå³ç»“åˆ
 	auto test = ParseLogicalOrExpression();
 	auto type = lexer_->PeekToken().type();
 	if (type != TokenType::kSepQuestion) {
@@ -294,7 +294,7 @@ std::unique_ptr<Expression> Parser::ParseMultiplicativeExpression() {
 }
 
 std::unique_ptr<Expression> Parser::ParseExponentiationExpression() {
-	// .. ** ..£¬ÓÒ½áºÏ
+	// .. ** ..ï¼Œå³ç»“åˆ
 	auto start = lexer_->pos();
 	auto exp = ParseUnaryExpression();
 	auto type = lexer_->PeekToken().type();
@@ -506,7 +506,7 @@ std::unique_ptr<ObjectExpression> Parser::ParseObjectExpression() {
 		do {
 			auto ident = lexer_->MatchToken(TokenType::kIdentifier);
 			lexer_->MatchToken(TokenType::kSepColon);
-			// ±ÜÃâ½âÎökSepComma
+			// é¿å…è§£ækSepComma
 			properties.emplace_back(ObjectExpression::Property{
 				.key = ident.str(),
 				.value = ParseYieldFunctionOrAssignment()
@@ -635,7 +635,7 @@ std::unique_ptr<Statement> Parser::ParseStatement() {
 
 	case TokenType::kKwAsync:
 	case TokenType::kKwFunction: {
-		// Èç¹ûÊÇÖ±½Ó¶¨Òå£¬¾Í²»ĞèÒªÌí¼Ó·ÖºÅ
+		// å¦‚æœæ˜¯ç›´æ¥å®šä¹‰ï¼Œå°±ä¸éœ€è¦æ·»åŠ åˆ†å·
 		auto start = lexer_->pos();
 		auto exp = ParseFunctionOrGeneratorExpression();
 		auto end = lexer_->pos();
@@ -675,16 +675,16 @@ std::unique_ptr<Statement> Parser::ParseImportStatement(TokenType type) {
 
 		auto source = lexer_->MatchToken(TokenType::kString).str();
 
-		// ¾²Ì¬import»á±»ÌáÉı£¬µ¥¶À±£´æ
+		// é™æ€importä¼šè¢«æå‡ï¼Œå•ç‹¬ä¿å­˜
 		auto end = lexer_->pos();
 		auto import_stat = std::make_unique<ImportDeclaration>(start, end, std::move(source), std::move(module_name));
 		import_declarations_.emplace_back(std::move(import_stat));
 
-		// ½âÎöÏÂÒ»¸öÓï¾ä·µ»Ø
+		// è§£æä¸‹ä¸€ä¸ªè¯­å¥è¿”å›
 		return ParseStatement();
 	}
 	else if (token.is(TokenType::kSepLParen)) {
-		// ¶¯Ì¬import
+		// åŠ¨æ€import
 		return ParseExpressionStatement();
 	}
 	else {
@@ -967,7 +967,7 @@ std::vector<std::unique_ptr<Expression>> Parser::ParseExpressions(TokenType begi
 	std::vector<std::unique_ptr<Expression>> par_list;
 	if (!lexer_->PeekToken().is(end)) {
 		do {
-			// ±ÜÃâ½âÎökSepComma
+			// é¿å…è§£ækSepComma
 			par_list.emplace_back(ParseYieldFunctionOrAssignment());
 			if (!lexer_->PeekToken().is(TokenType::kSepComma)) {
 				break;

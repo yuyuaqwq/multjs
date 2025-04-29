@@ -68,7 +68,7 @@ void StackFrame::upgrade(size_t count) {
 	stack_->upgrade(count);
 }
 
-// ¸ºÊý±íÊ¾´ÓÕ»¶¥ÏòÏÂË÷Òý
+// è´Ÿæ•°è¡¨ç¤ºä»Žæ ˆé¡¶å‘ä¸‹ç´¢å¼•
 Value& StackFrame::get(ptrdiff_t index) const {
 	if (index >= 0) {
 		return stack_->get(bottom_ + index);

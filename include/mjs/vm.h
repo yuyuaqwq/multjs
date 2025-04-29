@@ -35,7 +35,7 @@ public:
 	Value CallFunction(const StackFrame& upper_stack_frame, Value func_val, Value this_val, It begin, It end) {
 		auto stack_frame = StackFrame(&upper_stack_frame);
 
-		// 参数正序入栈
+		// 鍙傛暟姝ｅ簭鍏ユ爤
 		for (It it = begin; it != end; ++it) {
 			stack_frame.push(*it);
 		}
@@ -51,7 +51,7 @@ private:
 
 	void BindClosureVars(StackFrame* stack_frame);
 
-	// 返回是否需要继续执行字节码
+	// 杩斿洖鏄惁闇�瑕佺户缁墽琛屽瓧鑺傜爜
 	bool FunctionScheduling(StackFrame* stack_frame, uint32_t par_count);
 
 	void CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, uint32_t param_count);

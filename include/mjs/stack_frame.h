@@ -10,11 +10,11 @@
 
 namespace mjs {
 
-// StackFrame£º
-// Ê¹ÓÃtls£¬ÎªÃ¿¸öÏß³ÌÖ¸¶¨Ò»¿éÄÚ´æ(Èç1M)
-// µ±Ç°StackFrameµÄÔö³¤¶¼Ö±½Ó×÷ÓÃÔÚÕâ¿éÄÚ´æÖĞ
-// µ÷ÓÃÊ±£¬ÒòÎª¾ÉµÄStackFrame²»ÔÙÔö³¤
-// ĞÂµÄStackFrameµÄÖ¸Õë£¬Ö±½ÓÖ¸Ïò¸ÃÄÚ´æµÄÎ´Ê¹ÓÃ²¿·Ö(µ×ÏÂÊÇ¾ÉµÄStackFrame)£¬È»ºóÊ¹ÓÃĞÂµÄStackFrame¼´¿É
+// StackFrameï¼š
+// ä½¿ç”¨tlsï¼Œä¸ºæ¯ä¸ªçº¿ç¨‹æŒ‡å®šä¸€å—å†…å­˜(å¦‚1M)
+// å½“å‰StackFrameçš„å¢é•¿éƒ½ç›´æ¥ä½œç”¨åœ¨è¿™å—å†…å­˜ä¸­
+// è°ƒç”¨æ—¶ï¼Œå› ä¸ºæ—§çš„StackFrameä¸å†å¢é•¿
+// æ–°çš„StackFrameçš„æŒ‡é’ˆï¼Œç›´æ¥æŒ‡å‘è¯¥å†…å­˜çš„æœªä½¿ç”¨éƒ¨åˆ†(åº•ä¸‹æ˜¯æ—§çš„StackFrame)ï¼Œç„¶åä½¿ç”¨æ–°çš„StackFrameå³å¯
 class Stack;
 class StackFrame : public noncopyable {
 public:
@@ -30,8 +30,8 @@ public:
 	void reduce(size_t count);
 	void upgrade(size_t count);
 
-	// ÕıÊı±íÊ¾´ÓÕ»Ö¡µ×ÏòÉÏË÷Òı£¬0¿ªÊ¼
-	// ¸ºÊı±íÊ¾´ÓÕ»Ö¡¶¥ÏòÏÂË÷Òı£¬-1¿ªÊ¼
+	// æ­£æ•°è¡¨ç¤ºä»æ ˆå¸§åº•å‘ä¸Šç´¢å¼•ï¼Œ0å¼€å§‹
+	// è´Ÿæ•°è¡¨ç¤ºä»æ ˆå¸§é¡¶å‘ä¸‹ç´¢å¼•ï¼Œ-1å¼€å§‹
 	Value& get(ptrdiff_t index) const;
 	void set(ptrdiff_t index, const Value& value);
 	void set(ptrdiff_t index, Value&& value);
@@ -56,7 +56,7 @@ public:
 private:
 	Stack* stack_;
 	const StackFrame* upper_stack_frame_ = nullptr;
-	size_t bottom_ = 0;	// µ±Ç°Õ»Ö¡µÄÕ»µ×(ÔÚÕ»ÖĞµÄË÷Òı)
+	size_t bottom_ = 0;	// å½“å‰æ ˆå¸§çš„æ ˆåº•(åœ¨æ ˆä¸­çš„ç´¢å¼•)
 
 	Value function_val_;
 	FunctionDef* function_def_ = nullptr;
@@ -64,7 +64,7 @@ private:
 	Pc pc_ = 0;
 };
 
-// Ã¿¸öÏß³Ì¹Ì¶¨µÄÕ»
+// æ¯ä¸ªçº¿ç¨‹å›ºå®šçš„æ ˆ
 class Stack : public noncopyable {
 public:
 	Stack(size_t count) {

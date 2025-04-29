@@ -7,7 +7,7 @@
 
 namespace mjs {
 
-// ²»»áÓĞÑ­»·ÒıÓÃÎÊÌâ£¬½öÊ¹ÓÃÒıÓÃ¼ÆÊı¹ÜÀí
+// ä¸ä¼šæœ‰å¾ªç¯å¼•ç”¨é—®é¢˜ï¼Œä»…ä½¿ç”¨å¼•ç”¨è®¡æ•°ç®¡ç†
 class String : public ReferenceCounter
 {
 public:

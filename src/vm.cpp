@@ -38,8 +38,8 @@ bool Vm::InitClosure(const StackFrame& upper_stack_frame, Value* func_def_val) {
 	auto& arr = func_obj->closure_value_arr();
 	arr.resize(func_def.closure_var_defs().size());
 
-	// arrayĞèÒª³õÊ¼»¯Îªupvalue£¬Ö¸Ïò¸¸º¯ÊıµÄArrayValue
-	// Èç¹ûÃ»ÓĞ¸¸º¯Êı¾Í²»ĞèÒª£¬¼´ÊÇ¶¥²ãÄ£¿é£¬Ä¬ÈÏ³õÊ¼»¯ÎªÎ´¶¨Òå
+	// arrayéœ€è¦åˆå§‹åŒ–ä¸ºupvalueï¼ŒæŒ‡å‘çˆ¶å‡½æ•°çš„ArrayValue
+	// å¦‚æœæ²¡æœ‰çˆ¶å‡½æ•°å°±ä¸éœ€è¦ï¼Œå³æ˜¯é¡¶å±‚æ¨¡å—ï¼Œé»˜è®¤åˆå§‹åŒ–ä¸ºæœªå®šä¹‰
 	auto& parent_func_val = upper_stack_frame.function_val();
 	if (parent_func_val.IsUndefined()) {
 		assert(func_def.IsModule());
@@ -54,15 +54,15 @@ bool Vm::InitClosure(const StackFrame& upper_stack_frame, Value* func_def_val) {
 		parent_func_obj = &parent_func_val.function();
 	}
 
-	// µİÔö¸¸º¯ÊıµÄÒıÓÃ¼ÆÊı£¬ÓÃÓÚÑÓ³¤¸¸º¯ÊıÖĞµÄclosure_value_arr_µÄÉúÃüÖÜÆÚ
+	// é€’å¢çˆ¶å‡½æ•°çš„å¼•ç”¨è®¡æ•°ï¼Œç”¨äºå»¶é•¿çˆ¶å‡½æ•°ä¸­çš„closure_value_arr_çš„ç”Ÿå‘½å‘¨æœŸ
 	func_obj->set_parent_function(parent_func_val);
 
-	// ÒıÓÃµ½¸¸º¯ÊıµÄclosure_value_arr_
+	// å¼•ç”¨åˆ°çˆ¶å‡½æ•°çš„closure_value_arr_
 	auto& parent_arr = parent_func_obj->closure_value_arr();
 
 	for (auto& def : func_obj->function_def().closure_var_defs()) {
 		if (!def.second.parent_var_idx) {
-			// µ±Ç°ÊÇ¶¥¼¶±äÁ¿
+			// å½“å‰æ˜¯é¡¶çº§å˜é‡
 			continue;
 		}
 		auto& parent_closure_var_defs = parent_func_obj->function_def().closure_var_defs();
@@ -85,7 +85,7 @@ void Vm::BindClosureVars(StackFrame* stack_frame) {
 	if (func_def->IsModule()) {
 		auto module_obj = &stack_frame->function_val().module();
 
-		// ¶îÍâ°ó¶¨¿ÉÄÜ´æÔÚµÄµ¼³ö±äÁ¿µ½export_map
+		// é¢å¤–ç»‘å®šå¯èƒ½å­˜åœ¨çš„å¯¼å‡ºå˜é‡åˆ°export_map
 		auto& arr = module_obj->closure_value_arr();
 		for (auto& pair : func_def->export_var_defs()) {
 			auto var_idx = pair.second;
@@ -102,10 +102,10 @@ void Vm::BindClosureVars(StackFrame* stack_frame) {
 		func_obj = &stack_frame->function_val().function();
 	}
 
-	// µ÷ÓÃµÄÊÇº¯Êı¶ÔÏó£¬¿ÉÄÜĞèÒª´¦Àí±Õ°üÄÚµÄupvalue
+	// è°ƒç”¨çš„æ˜¯å‡½æ•°å¯¹è±¡ï¼Œå¯èƒ½éœ€è¦å¤„ç†é—­åŒ…å†…çš„upvalue
 	auto& arr = func_obj->closure_value_arr();
 	for (auto& def : stack_frame->function_def()->closure_var_defs()) {
-		// Õ»ÉÏµÄ¶ÔÏóÍ¨¹ıupvalue¹ØÁªµ½±Õ°ü±äÁ¿
+		// æ ˆä¸Šçš„å¯¹è±¡é€šè¿‡upvalueå…³è”åˆ°é—­åŒ…å˜é‡
 		stack_frame->set(def.first, Value(
 			UpValue(&arr[def.second.arr_idx])
 		));
@@ -152,7 +152,7 @@ void Vm::LoadConst(StackFrame* stack_frame, ConstIndex const_idx) {
 bool Vm::FunctionScheduling(StackFrame* stack_frame, uint32_t par_count) {
 	switch (stack_frame->function_val().type()) {
 	case ValueType::kFunctionDef: {
-		// ÕâÀï¿ÉÄÜĞèÒª³õÊ¼»¯£¬ÒòÎª¿ÉÄÜÓÉC++´¦µ÷ÓÃÒ»¸öĞèÒªÌáÉıµÄFunctionDef
+		// è¿™é‡Œå¯èƒ½éœ€è¦åˆå§‹åŒ–ï¼Œå› ä¸ºå¯èƒ½ç”±C++å¤„è°ƒç”¨ä¸€ä¸ªéœ€è¦æå‡çš„FunctionDef
 		auto func_val = stack_frame->function_val();
 		if (InitClosure(stack_frame->upper_stack_frame(), &func_val)) {
 			stack_frame->set_function_val(std::move(func_val));
@@ -169,7 +169,7 @@ bool Vm::FunctionScheduling(StackFrame* stack_frame, uint32_t par_count) {
 			throw VmException("Wrong number of parameters passed when calling the function");
 		}
 
-		// µ¯³ö¶àÓà²ÎÊı
+		// å¼¹å‡ºå¤šä½™å‚æ•°
 		stack().reduce(par_count - function_def->par_count());
 
 		assert(function_def->var_count() >= function_def->par_count());
@@ -185,23 +185,23 @@ bool Vm::FunctionScheduling(StackFrame* stack_frame, uint32_t par_count) {
 				generator = new AsyncObject(context_, stack_frame->function_val());
 			}
 
-			// ÌáÇ°·ÖÅä²ÎÊıºÍ¾Ö²¿±äÁ¿Õ»¿Õ¼ä
+			// æå‰åˆ†é…å‚æ•°å’Œå±€éƒ¨å˜é‡æ ˆç©ºé—´
 			generator->stack().upgrade(function_def->var_count());
 
-			// ¸´ÖÆ²ÎÊıºÍ±äÁ¿(ÒòÎª±äÁ¿¿ÉÄÜÍ¨¹ıBindClosureVars°ó¶¨ÁË)
+			// å¤åˆ¶å‚æ•°å’Œå˜é‡(å› ä¸ºå˜é‡å¯èƒ½é€šè¿‡BindClosureVarsç»‘å®šäº†)
 			for (int32_t i = 0; i < function_def->var_count(); ++i) {
 				generator->stack().set(i, stack_frame->get(i));
 			}
 
 			if (function_def->IsGenerator()) {
-				// ÊÇÉú³ÉÆ÷º¯Êı
-				// ÔòÖ±½Ó·µ»ØÉú³ÉÆ÷¶ÔÏó
+				// æ˜¯ç”Ÿæˆå™¨å‡½æ•°
+				// åˆ™ç›´æ¥è¿”å›ç”Ÿæˆå™¨å¯¹è±¡
 				stack_frame->push(Value(generator));
 				return false;
 			}
 			else {
-				// ÊÇÒì²½º¯Êı
-				// ¿ªÊ¼Ö´ĞĞ
+				// æ˜¯å¼‚æ­¥å‡½æ•°
+				// å¼€å§‹æ‰§è¡Œ
 				stack_frame->set_function_val(Value(static_cast<AsyncObject*>(generator)));
 			}
 		}
@@ -213,7 +213,7 @@ bool Vm::FunctionScheduling(StackFrame* stack_frame, uint32_t par_count) {
 		return false;
 	}
 	case ValueType::kCppFunction: {
-		// ÇĞ»»Õ»Ö¡
+		// åˆ‡æ¢æ ˆå¸§
 		auto ret = stack_frame->function_val().cpp_function()(context_, par_count, *stack_frame);
 		stack_frame->push(std::move(ret));
 		return false;
@@ -228,7 +228,7 @@ bool Vm::FunctionScheduling(StackFrame* stack_frame, uint32_t par_count) {
 		}
 		if (generator.IsClosed()) {
 			stack_frame->push(generator.MakeReturnObject(context_, Value()));
-			// ÒÑÍê³É£¬²»ÔÙĞèÒªÖ´ĞĞ
+			// å·²å®Œæˆï¼Œä¸å†éœ€è¦æ‰§è¡Œ
 			return false;
 		}
 
@@ -236,7 +236,7 @@ bool Vm::FunctionScheduling(StackFrame* stack_frame, uint32_t par_count) {
 
 		GeneratorRestoreContext(stack_frame, &generator);
 
-		// next²ÎÊıÈëÕ»
+		// nextå‚æ•°å…¥æ ˆ
 		if (!is_first) {
 			stack_frame->push(next_val);
 		}
@@ -385,9 +385,9 @@ void Vm::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 					prop = class_def.GetStaticProperty(&context_->runtime(), const_idx);
 				}
 				else {
-					// ·ÇObjectÀàĞÍ£¬¸ù¾İÀàĞÍÀ´´¦Àí
-					// ÈçundefinedĞèÒª±¨´í
-					// numberµÈĞèÒª×ª³ÉÁÙÊ±Number Object
+					// éObjectç±»å‹ï¼Œæ ¹æ®ç±»å‹æ¥å¤„ç†
+					// å¦‚undefinedéœ€è¦æŠ¥é”™
+					// numberç­‰éœ€è¦è½¬æˆä¸´æ—¶Number Object
 				}
 
 				if (!prop) {
@@ -413,9 +413,9 @@ void Vm::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 					obj.SetProperty(context_, const_idx, std::move(val));
 				}
 				else {
-					// ·ÇObjectÀàĞÍ£¬¸ù¾İÀàĞÍÀ´´¦Àí
-					// ÈçundefinedĞèÒª±¨´í
-					// numberµÈĞèÒª×ª³ÉÁÙÊ±Number Object
+					// éObjectç±»å‹ï¼Œæ ¹æ®ç±»å‹æ¥å¤„ç†
+					// å¦‚undefinedéœ€è¦æŠ¥é”™
+					// numberç­‰éœ€è¦è½¬æˆä¸´æ—¶Number Object
 					// throw std::runtime_error("unrealized.");
 
 				}
@@ -473,7 +473,7 @@ void Vm::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 				break;
 			}
 			case OpcodeType::kNew: {
-				// this£¬È»ºóÈÃfunction call´¦Àí
+				// thisï¼Œç„¶åè®©function callå¤„ç†
 				stack_frame->push(Value());
 			}
 			case OpcodeType::kFunctionCall: {
@@ -483,7 +483,7 @@ void Vm::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 				
 				auto new_stack_frame = StackFrame(stack_frame);
 
-				// ²ÎÊıÒÑ¾­ÔÚÕ»ÉÏÁË£¬µ÷Õûbottom
+				// å‚æ•°å·²ç»åœ¨æ ˆä¸Šäº†ï¼Œè°ƒæ•´bottom
 				new_stack_frame.set_bottom(
 					new_stack_frame.bottom() - param_count
 				);
@@ -533,7 +533,7 @@ void Vm::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 				auto val = stack_frame->pop();
 
 				if (!val.IsPromiseObject()) {
-					// ²»ÊÇPromise£¬ÔòÓÃPromise°ü×°
+					// ä¸æ˜¯Promiseï¼Œåˆ™ç”¨PromiseåŒ…è£…
 					val = PromiseClassDef::Resolve(context_, std::move(val));
 				}
 
@@ -622,20 +622,20 @@ void Vm::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 				break;
 			}
 			case OpcodeType::kTryEnd: {
-				// ÏÈ»Øµ½try end
+				// å…ˆå›åˆ°try end
 				stack_frame->set_pc(stack_frame->pc() - 1);
 				if (pending_error_val) {
-					// Èç¹û»¹ÓĞ¼ÇÂ¼µÄÒì³££¬¾ÍÖØÅ×£¬ÕâÀïµÄÖØÅ×ÊÇÖ±½Óµ½ÉÏ²ãÅ×µÄ£¬ÒòÎªtry end²»ÊôÓÚµ±Ç°²ã
+					// å¦‚æœè¿˜æœ‰è®°å½•çš„å¼‚å¸¸ï¼Œå°±é‡æŠ›ï¼Œè¿™é‡Œçš„é‡æŠ›æ˜¯ç›´æ¥åˆ°ä¸Šå±‚æŠ›çš„ï¼Œå› ä¸ºtry endä¸å±äºå½“å‰å±‚
 					if (!ThrowExecption(stack_frame, &pending_error_val)) {
 						goto exit_;
 					}
 				}
 				else if (pending_return_val) {
-					// finallyÍê³ÉÁË£¬ÓĞ±£´æµÄ·µ»ØÖµ
+					// finallyå®Œæˆäº†ï¼Œæœ‰ä¿å­˜çš„è¿”å›å€¼
 					auto& table = func_def->exception_table();
 					auto* entry = table.FindEntry(stack_frame->pc());
 					if (entry && entry->HasFinally()) {
-						// ÉÏ²ã»¹´æÔÚfinally£¬¼ÌĞøÖ´ĞĞÉÏ²ãfinally
+						// ä¸Šå±‚è¿˜å­˜åœ¨finallyï¼Œç»§ç»­æ‰§è¡Œä¸Šå±‚finally
 						stack_frame->set_pc(entry->finally_start_pc);
 						break;
 					}
@@ -645,11 +645,11 @@ void Vm::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 					goto exit_;
 				}
 				else if (pending_goto_pc != kInvalidPc) {
-					// finallyÍê³ÉÁË£¬ÓĞÎ´Íê³ÉµÄÌø×ª
+					// finallyå®Œæˆäº†ï¼Œæœ‰æœªå®Œæˆçš„è·³è½¬
 					auto& table = func_def->exception_table();
 					auto* entry = table.FindEntry(stack_frame->pc());
 					auto* goto_entry = table.FindEntry(pending_goto_pc);
-					// GotoÊÇ·ñÌø¹ıÉÏ²ãfinally
+					// Gotoæ˜¯å¦è·³è¿‡ä¸Šå±‚finally
 					if (!goto_entry || entry == goto_entry) {
 						stack_frame->set_pc(pending_goto_pc);
 						pending_goto_pc = kInvalidPc;
@@ -666,7 +666,7 @@ void Vm::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 			}
 			case OpcodeType::kFinallyReturn: {
 				stack_frame->set_pc(stack_frame->pc() - 1);
-				// ´æÔÚfinallyµÄreturnÓï¾ä£¬ÏÈÌø×ªµ½finally
+				// å­˜åœ¨finallyçš„returnè¯­å¥ï¼Œå…ˆè·³è½¬åˆ°finally
 				auto& table = func_def->exception_table();
 				auto* entry = table.FindEntry(stack_frame->pc());
 				if (!entry || !entry->HasFinally()) {
@@ -674,7 +674,7 @@ void Vm::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 				}
 				pending_return_val = stack_frame->pop();
 				if (entry->LocatedInFinally(stack_frame->pc())) {
-					// Î»ÓÚfinallyµÄ·µ»Ø£¬¸²¸ÇµôÔ­ÏÈµÄ·µ»Ø£¬Ìø×ªµ½TryEnd
+					// ä½äºfinallyçš„è¿”å›ï¼Œè¦†ç›–æ‰åŸå…ˆçš„è¿”å›ï¼Œè·³è½¬åˆ°TryEnd
 					stack_frame->set_pc(entry->finally_end_pc);
 				}
 				else {
@@ -684,7 +684,7 @@ void Vm::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 			}
 			case OpcodeType::kFinallyGoto: {
 				stack_frame->set_pc(stack_frame->pc() - 1);
-				// goto»áÌø¹ıfinally£¬ÏÈÖ´ĞĞfinally
+				// gotoä¼šè·³è¿‡finallyï¼Œå…ˆæ‰§è¡Œfinally
 				auto& table = func_def->exception_table();
 				auto* entry = table.FindEntry(stack_frame->pc());
 				if (!entry || !entry->HasFinally()) {
@@ -692,7 +692,7 @@ void Vm::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 				}
 				pending_goto_pc = func_def->byte_code().CalcPc(stack_frame->pc());
 				if (entry->LocatedInFinally(stack_frame->pc())) {
-					// Î»ÓÚfinallyµÄgoto
+					// ä½äºfinallyçš„goto
 					stack_frame->set_pc(entry->finally_end_pc);
 				}
 				else {
@@ -737,7 +737,7 @@ exit_:
 		}
 	}
 
-	// »¹Ô­Õ»Ö¡
+	// è¿˜åŸæ ˆå¸§
 	stack().resize(stack_frame->bottom());
 	stack_frame->push(std::move(*pending_return_val));
 	return;
@@ -753,15 +753,15 @@ bool Vm::ThrowExecption(StackFrame* stack_frame, std::optional<Value>* error_val
 	}
 
 	if (entry->LocatedInTry(stack_frame->pc())) {
-		// Î»ÓÚtryÖĞÅ×³öµÄÒì³£
+		// ä½äºtryä¸­æŠ›å‡ºçš„å¼‚å¸¸
 		if (entry->HasCatch()) {
-			// ½øÁËcatch£¬catch¿ÉÄÜ»áÒì³££¬Èç¹ûÒì³£ÁËÒªÏÈÖ´ĞĞfinally£¬È»ºó¼ÌĞøÉÏÅ×
+			// è¿›äº†catchï¼Œcatchå¯èƒ½ä¼šå¼‚å¸¸ï¼Œå¦‚æœå¼‚å¸¸äº†è¦å…ˆæ‰§è¡Œfinallyï¼Œç„¶åç»§ç»­ä¸ŠæŠ›
 			SetVar(stack_frame, entry->catch_err_var_idx, std::move(**error_val));
 			error_val->reset();
 			stack_frame->set_pc(entry->catch_start_pc);
 		}
 		else {
-			// Ã»ÓĞcatch£¬±£´æerror_val£¬µÈfinallyÄ©Î²µÄrethrowÖØÅ×
+			// æ²¡æœ‰catchï¼Œä¿å­˜error_valï¼Œç­‰finallyæœ«å°¾çš„rethrowé‡æŠ›
 			stack_frame->set_pc(entry->finally_start_pc);
 		}
 	}
@@ -771,7 +771,7 @@ bool Vm::ThrowExecption(StackFrame* stack_frame, std::optional<Value>* error_val
 		}
 	}
 	else if (entry->HasFinally() && entry->LocatedInFinally(stack_frame->pc())) {
-		// finallyÅ×³öÒì³££¬¸²¸Ç´íÎó²¢ÇÒÌø×ªµ½×îºóµÄTryEnd
+		// finallyæŠ›å‡ºå¼‚å¸¸ï¼Œè¦†ç›–é”™è¯¯å¹¶ä¸”è·³è½¬åˆ°æœ€åçš„TryEnd
 		stack_frame->set_pc(entry->finally_end_pc);
 	}
 	else {
@@ -781,10 +781,10 @@ bool Vm::ThrowExecption(StackFrame* stack_frame, std::optional<Value>* error_val
 }
 
 void Vm::GeneratorSaveContext(StackFrame* stack_frame, GeneratorObject* generator) {
-	// ±£´æµ±Ç°Éú³ÉÆ÷µÄpc
+	// ä¿å­˜å½“å‰ç”Ÿæˆå™¨çš„pc
 	generator->set_pc(stack_frame->pc());
 
-	// ±£´æµ±Ç°Õ»Ö¡µ½generatorµÄÕ»Ö¡ÖĞ
+	// ä¿å­˜å½“å‰æ ˆå¸§åˆ°generatorçš„æ ˆå¸§ä¸­
 	auto& gen_vector = generator->stack().vector();
 	for (int32_t i = 0; i < gen_vector.size(); ++i) {
 		gen_vector[i] = std::move(stack_frame->get(i));
@@ -792,7 +792,7 @@ void Vm::GeneratorSaveContext(StackFrame* stack_frame, GeneratorObject* generato
 }
 
 void Vm::GeneratorRestoreContext(StackFrame* stack_frame, GeneratorObject* generator) {
-	// ¸´ÖÆÕ»Ö¡
+	// å¤åˆ¶æ ˆå¸§
 	auto& vector = stack().vector();
 	auto& gen_vector = generator->stack().vector();
 	vector.insert(vector.end(), gen_vector.begin(), gen_vector.end());

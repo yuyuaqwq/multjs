@@ -7,29 +7,29 @@ namespace mjs {
 namespace compiler {
 
 enum class TokenType {
-    kNone = 0,      // ¿Õtoken
+    kNone = 0,      // ç©ºtoken
 
-    kEof,          // ÎÄ¼ş½áÊø·û
+    kEof,          // æ–‡ä»¶ç»“æŸç¬¦
     kUndefined,    // undefined
     kNull,         // null
     kFalse,        // false
     kTrue,         // true
     //kNan,          // Nan
     //kInfinity,     // Infinity
-    //kNumber,       // Í¨ÓÃÊı×ÖÀàĞÍ
-    kFloat,  // ¸¡µãÊı
-    kInteger,  // ÕûÊı
-    kString,       // ×Ö·û´®
+    //kNumber,       // é€šç”¨æ•°å­—ç±»å‹
+    kFloat,  // æµ®ç‚¹æ•°
+    kInteger,  // æ•´æ•°
+    kString,       // å­—ç¬¦ä¸²
     kIdentifier,   // [a-zA-Z_][a-zA-Z0-9_]*
 
-    // ·Ö¸ô·û
+    // åˆ†éš”ç¬¦
     kSepSemi,         // ;
     kSepComma,        // ,
     kSepDot,          // .
-    kSepEllipsis,     // ... ¿É±ä²ÎÊı»ò½â¹¹Óï·¨
+    kSepEllipsis,     // ... å¯å˜å‚æ•°æˆ–è§£æ„è¯­æ³•
     kSepColon,        // :
-    kSepQuestion,     // ? Ìõ¼şÔËËã·û
-    kSepArrow,        // => ¼ıÍ·º¯Êı
+    kSepQuestion,     // ? æ¡ä»¶è¿ç®—ç¬¦
+    kSepArrow,        // => ç®­å¤´å‡½æ•°
 
     kSepLParen,       // (
     kSepRParen,       // )
@@ -38,47 +38,47 @@ enum class TokenType {
     kSepLCurly,       // {
     kSepRCurly,       // }
 
-    // »ù±¾ÔËËã·û
+    // åŸºæœ¬è¿ç®—ç¬¦
     kOpAssign,        // =
     kOpAdd,           // +
     kOpSub,           // -
     kOpMul,           // *
     kOpDiv,           // /
     kOpMod,           // %
-    kOpPower,         // ** ÃİÔËËã·û
-    kOpInc,           // ++ ×ÔÔö
-    kOpDec,           // -- ×Ô¼õ
+    kOpPower,         // ** å¹‚è¿ç®—ç¬¦
+    kOpInc,           // ++ è‡ªå¢
+    kOpDec,           // -- è‡ªå‡
 
-    kOpPrefixInc,     // Ç°×º×ÔÔö
-    kOpPrefixDec,     // Ç°×º×Ô¼õ
-    kOpSuffixInc,     // ºó×º×ÔÔö
-    kOpSuffixDec,     // ºó×º×Ô¼õ
+    kOpPrefixInc,     // å‰ç¼€è‡ªå¢
+    kOpPrefixDec,     // å‰ç¼€è‡ªå‡
+    kOpSuffixInc,     // åç¼€è‡ªå¢
+    kOpSuffixDec,     // åç¼€è‡ªå‡
 
-    // Î»ÔËËã·û
-    kOpBitNot,        // ~ °´Î»È¡·´
-    kOpBitAnd,        // & °´Î»Óë
-    kOpBitOr,         // | °´Î»»ò
-    kOpBitXor,        // ^ °´Î»Òì»ò
-    kOpShiftLeft,     // << ×óÒÆ
-    kOpShiftRight,    // >> ÓÒÒÆ
-    kOpUnsignedShiftRight, // >>> ÎŞ·ûºÅÓÒÒÆ
+    // ä½è¿ç®—ç¬¦
+    kOpBitNot,        // ~ æŒ‰ä½å–å
+    kOpBitAnd,        // & æŒ‰ä½ä¸
+    kOpBitOr,         // | æŒ‰ä½æˆ–
+    kOpBitXor,        // ^ æŒ‰ä½å¼‚æˆ–
+    kOpShiftLeft,     // << å·¦ç§»
+    kOpShiftRight,    // >> å³ç§»
+    kOpUnsignedShiftRight, // >>> æ— ç¬¦å·å³ç§»
 
-    // Âß¼­ÔËËã·û
-    kOpNot,           // ! Âß¼­·Ç
-    kOpAnd,           // && Âß¼­Óë
-    kOpOr,            // || Âß¼­»ò
+    // é€»è¾‘è¿ç®—ç¬¦
+    kOpNot,           // ! é€»è¾‘é
+    kOpAnd,           // && é€»è¾‘ä¸
+    kOpOr,            // || é€»è¾‘æˆ–
 
-    // ±È½ÏÔËËã·û
-    kOpNe,            // != ²»µÈÓÚ
-    kOpEq,            // == µÈÓÚ
-    kOpStrictEq,      // === ÑÏ¸ñµÈÓÚ
-    kOpStrictNe,      // !== ÑÏ¸ñ²»µÈÓÚ
-    kOpLt,            // < Ğ¡ÓÚ
-    kOpLe,            // <= Ğ¡ÓÚµÈÓÚ
-    kOpGt,            // > ´óÓÚ
-    kOpGe,            // >= ´óÓÚµÈÓÚ
+    // æ¯”è¾ƒè¿ç®—ç¬¦
+    kOpNe,            // != ä¸ç­‰äº
+    kOpEq,            // == ç­‰äº
+    kOpStrictEq,      // === ä¸¥æ ¼ç­‰äº
+    kOpStrictNe,      // !== ä¸¥æ ¼ä¸ç­‰äº
+    kOpLt,            // < å°äº
+    kOpLe,            // <= å°äºç­‰äº
+    kOpGt,            // > å¤§äº
+    kOpGe,            // >= å¤§äºç­‰äº
 
-    // ¹Ø¼ü×Ö
+    // å…³é”®å­—
     kKwFunction,      // function
     kKwIf,            // if
     kKwElse,          // else
@@ -109,17 +109,17 @@ enum class TokenType {
     kKwVoid,          // void
     kKwIn,            // in
     kKwWith,          // with
-    kKwYield,         // yield (ÔÚÉú³ÉÆ÷ÖĞÊ¹ÓÃ)
-    kKwAsync,         // async (ÓÃÓÚ¶¨ÒåÒì²½º¯Êı)
-    kKwAwait,         // await (ÓÃÓÚµÈ´ıÒì²½½á¹û)
+    kKwYield,         // yield (åœ¨ç”Ÿæˆå™¨ä¸­ä½¿ç”¨)
+    kKwAsync,         // async (ç”¨äºå®šä¹‰å¼‚æ­¥å‡½æ•°)
+    kKwAwait,         // await (ç”¨äºç­‰å¾…å¼‚æ­¥ç»“æœ)
     kKwThis,          // this
 
-    // ÆäËûÔËËã·û
-    kOpNullishCoalescing, // ?? ¿ÕÖµºÏ²¢ÔËËã·û
-    kOpOptionalChain,     // ?. ¿ÉÑ¡Á´ÔËËã·û
-    kOpTernary,           // ?: ÈıÔªÔËËã·û
+    // å…¶ä»–è¿ç®—ç¬¦
+    kOpNullishCoalescing, // ?? ç©ºå€¼åˆå¹¶è¿ç®—ç¬¦
+    kOpOptionalChain,     // ?. å¯é€‰é“¾è¿ç®—ç¬¦
+    kOpTernary,           // ?: ä¸‰å…ƒè¿ç®—ç¬¦
 
-    // ÀàĞÍ
+    // ç±»å‹
     kUnionType,       // |
 };
 
@@ -141,9 +141,9 @@ public:
 	void set_str(std::string str) { str_ = std::move(str); }
 
 private:
-	int32_t line_ = 0;		// ĞĞºÅ
-	TokenType type_ = TokenType::kNone;		// tokenÀàĞÍ
-	std::string str_;	// ±£´æ±ØÒªµÄĞÅÏ¢
+	int32_t line_ = 0;		// è¡Œå·
+	TokenType type_ = TokenType::kNone;		// tokenç±»å‹
+	std::string str_;	// ä¿å­˜å¿…è¦çš„ä¿¡æ¯
 };
 
 extern std::unordered_map<std::string, TokenType> g_operators;
