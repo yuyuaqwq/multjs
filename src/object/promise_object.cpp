@@ -5,7 +5,8 @@
 namespace mjs {
 
 PromiseObject::PromiseObject(Context* context, Value executor)
-    : Object(context) {
+    : Object(context)
+{
     if (executor.IsUndefined()) return;
 
     // 在构造函数中使用当前this是危险行为，需要注意

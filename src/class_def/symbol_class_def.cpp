@@ -21,7 +21,7 @@ SymbolClassDef::SymbolClassDef(Runtime* runtime)
 			return Value("The parameter must be a string.").SetException();
 		}
 
-		auto& symbol_class_def = context->runtime().class_def_table().at<SymbolClassDef>(ClassId::kSymbol);
+		auto& symbol_class_def = context->runtime().class_def_table()[ClassId::kSymbol].get<SymbolClassDef>();
 		return symbol_class_def.For(context, par);
 	}));
 }

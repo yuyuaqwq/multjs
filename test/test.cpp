@@ -15,7 +15,7 @@ int main() {
     Runtime rt;
     auto ctx = Context(&rt);
 
-    ctx.EvalByPath("object.ts");
+    ctx.EvalByPath("iterator.ts");
 
     ctx.ExecuteMicrotasks();
 

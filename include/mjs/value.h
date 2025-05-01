@@ -42,6 +42,8 @@ enum class ValueType : uint32_t {
 	kStringView,
 
 	kClassDef,
+	kNewConstructor,
+	kPrimitiveConstructor,
 
 	kUpValue,
 
@@ -104,6 +106,7 @@ public:
 
 	Value(ValueType type);
 	Value(ValueType type, PromiseObject* promise);
+	Value(ValueType type, ClassDef* class_def);
 
 	~Value();
 
@@ -191,11 +194,12 @@ public:
 	bool IsFloat() const;
 	bool IsInt64() const;
 	bool IsUInt64() const;
-	bool IsClassDef() const;
 	bool IsUpValue() const;
+	bool IsClassDef() const;
 	bool IsFunctionDef() const;
 	bool IsCppFunction() const;
 	bool IsGeneratorNext() const;
+	bool IsIteratorObject() const;
 
 	Value ToString() const;
 	Value ToBoolean() const;

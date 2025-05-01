@@ -31,28 +31,13 @@ public:
 	void Dereference();
 	void WeakDereference();
 
-	virtual void ForEachChild(Context* context, intrusive_list<Object>* list, void(*callback)(Context* context, intrusive_list<Object>* list, const Value& child)) {
+	// 数据成员中有Value，必须重写，否则会内存泄漏
+	virtual void GCForEachChild(Context* context, intrusive_list<Object>* list, void(*callback)(Context* context, intrusive_list<Object>* list, const Value& child)) {
 		if (property_map_) {
 			for (auto& pair : *property_map_) {
 				callback(context, list, pair.second);
 			}
 		}
-	}
-
-	virtual Value ToString() {
-		return Value("object");
-	}
-
-	virtual Object* Make(Context* context) {
-		auto obj = new Object(context);
-		return obj;
-	}
-
-	virtual Object* Copy(Object* new_obj, Context* context) {
-		if (property_map_) {
-			new_obj->property_map_ = property_map_->copy(context);
-		}
-		return new_obj;
 	}
 
 	virtual void SetProperty(Context* context, ConstIndex key, Value&& val);
@@ -63,7 +48,11 @@ public:
 	virtual Value* GetComputedProperty(Context* context, const Value& key);
 	virtual void DelComputedProperty(Context* context, const Value& key);
 
-	virtual ClassId class_id() const { return ClassId::kBase; }
+	virtual Value ToString() {
+		return Value("object");
+	}
+
+	virtual ClassId class_id() const { return ClassId::kObject; }
 
 	auto ref_count() const { return tag_.ref_count_; }
 

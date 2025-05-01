@@ -28,8 +28,7 @@ public:
 
 	template<typename It>
 	Value CallFunction(Value* func_val, Value this_val, It begin, It end) {
-        auto upper_stack_frame = StackFrame(&runtime_->stack());
-		return vm_.CallFunction(upper_stack_frame, *func_val, std::move(this_val), begin, end);
+		return vm_.CallFunction(*func_val, std::move(this_val), begin, end);
 	}
 
     void PrintObjectTree() {
@@ -42,7 +41,7 @@ public:
             std::cout << " ref_count:" << cur.ref_count();
             std::cout << std::endl;
 
-            cur.ForEachChild(this, nullptr, [](Context* context, intrusive_list<Object>* list, const Value& child) {
+            cur.GCForEachChild(this, nullptr, [](Context* context, intrusive_list<Object>* list, const Value& child) {
                 std::cout << "\t\t" << child.ToString().string_view();
                 if (child.IsObject()) {
                     std::cout << " ref_count:" << child.object().ref_count();
@@ -64,7 +63,7 @@ public:
             Object& cur = *it;
             assert(!cur.gc_mark());
 
-            cur.ForEachChild(this, &tmp_list, [](Context* context, intrusive_list<Object>* list, const Value& child) {
+            cur.GCForEachChild(this, &tmp_list, [](Context* context, intrusive_list<Object>* list, const Value& child) {
                 if (!child.IsObject()) return;
                 auto& obj = child.object();
                 assert(obj.ref_count() > 0);
@@ -98,7 +97,7 @@ public:
             // 剩下的都是不可回收的对象，先清除一下标记
             cur.set_gc_mark(false);
 
-            cur.ForEachChild(this, &object_list_, [](Context* context, intrusive_list<Object>* list, const Value& child) {
+            cur.GCForEachChild(this, &object_list_, [](Context* context, intrusive_list<Object>* list, const Value& child) {
                 if (!child.IsObject()) return;
                 auto& obj = child.object();
                 // 被不可回收的对象引用的子对象，当然也不能回收，挂回主链表
@@ -118,7 +117,7 @@ public:
         while (it != tmp_list.end()) {
             Object& cur = *it;
 
-            cur.ForEachChild(this, &object_list_, [](Context* context, intrusive_list<Object>* list, const Value& child) {
+            cur.GCForEachChild(this, &object_list_, [](Context* context, intrusive_list<Object>* list, const Value& child) {
                 if (!child.IsObject()) return;
                 auto& obj = child.object();
                 obj.Reference();

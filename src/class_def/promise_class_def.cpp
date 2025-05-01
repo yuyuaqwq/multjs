@@ -35,7 +35,7 @@ PromiseClassDef::PromiseClassDef(Runtime* runtime)
 	}));
 }
 
-Value PromiseClassDef::Constructor(Context* context, uint32_t par_count, const StackFrame& stack) {
+Value PromiseClassDef::NewConstructor(Context* context, uint32_t par_count, const StackFrame& stack) {
 	Value executor;
 	if (par_count > 0) {
 		executor = stack.get(0);

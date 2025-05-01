@@ -100,7 +100,6 @@ Value::Value(ModuleObject* module_) {
 }
 
 
-
 Value::Value(uint64_t u64) {
 	tag_.type_ = ValueType::kUInt64;
 	value_.u64_ = u64;
@@ -120,6 +119,7 @@ Value::Value(ClassDef* class_def) {
 	tag_.type_ = ValueType::kClassDef;
 	value_.class_def_ = class_def;
 }
+
 
 Value::Value(FunctionDef* function_def) {
 	tag_.type_ = ValueType::kFunctionDef;
@@ -147,6 +147,16 @@ Value::Value(ValueType type, PromiseObject* promise) {
 	if (type == ValueType::kPromiseResolve || type == ValueType::kPromiseReject) {
 		value_.object_ = reinterpret_cast<Object*>(promise);
 		value_.object_->Reference();
+	}
+	else {
+		assert(0);
+	}
+}
+
+Value::Value(ValueType type, ClassDef* class_def) {
+	tag_.type_ = type;
+	if (type == ValueType::kPrimitiveConstructor || type == ValueType::kNewConstructor) {
+		value_.class_def_ = class_def;
 	}
 	else {
 		assert(0);
@@ -214,7 +224,6 @@ ptrdiff_t Value::Comparer(const Value& rhs) const {
 	case ValueType::kFunctionDef:
 	case ValueType::kCppFunction:
 	case ValueType::kUpValue:
-	case ValueType::kClassDef:
 		return value_.full_ - rhs.value_.full_;
 	default:
 		throw std::runtime_error("Incorrect value type.");
@@ -247,7 +256,6 @@ size_t Value::hash() const {
 	case mjs::ValueType::kFunctionDef:
 	case mjs::ValueType::kCppFunction:
 	case mjs::ValueType::kUpValue:
-	case mjs::ValueType::kClassDef:
 		// 使用内部值计算哈希
 		return std::hash<uint64_t>()(value_.full_);
 	default:
@@ -581,7 +589,7 @@ ModuleObject& Value::module() const {
 
 
 ClassDef& Value::class_def() const {
-	assert(IsClassDef());
+	assert(IsClassDef() || type() == ValueType::kPrimitiveConstructor || type() == ValueType::kNewConstructor);
 	return *value_.class_def_;
 }
 
@@ -708,12 +716,12 @@ bool Value::IsUInt64() const {
 	return type() == ValueType::kUInt64;
 }
 
-bool Value::IsClassDef() const {
-	return type() == ValueType::kClassDef;
-}
-
 bool Value::IsUpValue() const {
 	return type() == ValueType::kUpValue;
+}
+
+bool Value::IsClassDef() const {
+	return type() == ValueType::kClassDef;
 }
 
 bool Value::IsFunctionDef() const {
@@ -749,8 +757,10 @@ Value Value::ToString() const {
 		return Value(String::format("function_def:{}", function_def().name()));
 	case ValueType::kCppFunction:
 		return Value("cpp_function");
-	case ValueType::kClassDef:
-		return Value(String::format("class_def:{}", class_def().name()));
+	case ValueType::kNewConstructor:
+		return Value(String::format("new_constructor:{}", class_def().name()));
+	case ValueType::kPrimitiveConstructor:
+		return Value(String::format("primitive_constructor:{}", class_def().name()));
 	case ValueType::kUpValue:
 		return up_value().Up().ToString();
 	default:

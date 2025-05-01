@@ -32,17 +32,15 @@ public:
 	bool InitClosure(const StackFrame& upper_stack_frame, Value* func_def_val);
 	
 	template<typename It>
-	Value CallFunction(const StackFrame& upper_stack_frame, Value func_val, Value this_val, It begin, It end) {
-		auto stack_frame = StackFrame(&upper_stack_frame);
-
+	Value CallFunction(Value func_val, Value this_val, It begin, It end) {
 		// 参数正序入栈
 		for (It it = begin; it != end; ++it) {
-			stack_frame.push(*it);
+			stack_frame_.push(*it);
 		}
 
-		CallInternal(&stack_frame, std::move(func_val), std::move(this_val), std::distance(begin, end));
+		CallInternal(&stack_frame_, std::move(func_val), std::move(this_val), std::distance(begin, end));
 
-		return stack_frame.pop();
+		return stack_frame_.pop();
 	}
 
 private:
@@ -70,7 +68,7 @@ private:
 
 private:
 	Context* context_;
-	// StackFrame stack_frame_;
+	StackFrame stack_frame_;
 };
 
 } // namespace mjs

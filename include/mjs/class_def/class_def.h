@@ -33,17 +33,18 @@ enum class FunctionInternalMethods {
 
 enum class ClassId {
 	kInvalid = 0,
-	kBase,
 	kNumber,
 	kString,
 	kSymbol,
 	kArray,
+	kObject,
+	//kNumberObject,
+	//kArrayObject,
 	kGenerator,
 	kPromise,
 	kAsync,
-
-	// 未来可以考虑把js里通过class定义的类也放到这里做优化
 	kCustom,
+	kModule,
 };
 
 class Runtime;
@@ -55,10 +56,26 @@ public:
 		, name_(std::move(name))
 		, property_map_(runtime) 
 		, static_property_map_(runtime) {}
+
 	virtual ~ClassDef() = default;
 
-	// 如果允许被new构造，重写该函数，new相关对象并返回，如new ArrayObject()
-	virtual Value Constructor(Context* context, uint32_t par_count, const StackFrame& stack) { throw std::runtime_error("Types that are not allowed to be constructed."); }
+	// 如果允许通过原始类型构造，重写该函数，如Symbol()
+	virtual Value PrimitiveConstructor(Context* context, uint32_t par_count, const StackFrame& stack) {
+		throw std::runtime_error(
+			"This constructor cannot be called as a function. "
+			"Either this is not a callable constructor, "
+			"or you need to override PrimitiveConstructor() in the derived class."
+		);
+	}
+
+	// 如果允许通过new构造，重写该函数，如new ArrayObject()
+	virtual Value NewConstructor(Context* context, uint32_t par_count, const StackFrame& stack) {
+		throw std::runtime_error(
+			"This constructor cannot be called with 'new'. "
+			"Either this is not a constructible function, "
+			"or you need to override NewConstructor() in the derived class."
+		);
+	}
 
 	virtual void SetProperty(Runtime* runtime, ConstIndex key, Value&& val) {
 		property_map_.set(runtime, key, std::move(val));
@@ -107,6 +124,11 @@ public:
 	ClassId id() const { return id_; }
 	const auto& name() const { return name_; }
 
+	template<typename ClassDefT>
+	ClassDefT& get() {
+		return static_cast<ClassDefT&>(*this);
+	}
+
 	//const auto& property_map() const { return property_map_; }
 	//auto& property_map() { return property_map_; }
 
@@ -144,9 +166,8 @@ public:
 		return *class_def_arr_.at(static_cast<uint32_t>(class_id));
 	}
 
-	template<typename ClassDefT>
-	ClassDefT& at(ClassId class_id) {
-		return static_cast<ClassDefT&>(at(class_id));
+	ClassDef& operator[](ClassId class_id) {
+		return *class_def_arr_[(static_cast<uint32_t>(class_id))];
 	}
 
 private:

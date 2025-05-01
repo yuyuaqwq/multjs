@@ -16,7 +16,8 @@
 namespace mjs {
 
 Vm::Vm(Context* context)
-	: context_(context) {}
+	: context_(context) 
+	, stack_frame_(&context->runtime().stack()) {}
 
 
 bool Vm::InitClosure(const StackFrame& upper_stack_frame, Value* func_def_val) {
@@ -135,15 +136,11 @@ const Value& Vm::GetGlobalConst(ConstIndex idx) {
 
 void Vm::LoadConst(StackFrame* stack_frame, ConstIndex const_idx) {
 	auto& value = GetGlobalConst(const_idx);
+	// 未来改掉，生成单独的加载函数指令
 	if (value.IsFunctionDef()) {
 		auto func_val = value;
 		InitClosure(*stack_frame, &func_val);
 		stack_frame->push(std::move(func_val));
-		return;
-	}
-	else if (value.IsObject()) {
-		auto* new_obj = value.object().Make(context_);
-		stack_frame->push(Value(value.object().Copy(new_obj, context_)));
 		return;
 	}
 	stack_frame->push(value);
@@ -207,8 +204,8 @@ bool Vm::FunctionScheduling(StackFrame* stack_frame, uint32_t par_count) {
 		}
 		return true;
 	}
-	case ValueType::kClassDef: {
-		auto obj = stack_frame->function_val().class_def().Constructor(context_, par_count, *stack_frame);
+	case ValueType::kNewConstructor: {
+		auto obj = stack_frame->function_val().class_def().NewConstructor(context_, par_count, *stack_frame);
 		stack_frame->push(std::move(obj));
 		return false;
 	}

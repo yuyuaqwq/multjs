@@ -14,8 +14,8 @@ class FunctionObject : public Object {
 public:
 	FunctionObject(Context* context, FunctionDef* function_def) noexcept;
 
-	void ForEachChild(Context* context, intrusive_list<Object>* list, void(*callback)(Context* context, intrusive_list<Object>* list, const Value& child)) override {
-		Object::ForEachChild(context, list, callback);
+	void GCForEachChild(Context* context, intrusive_list<Object>* list, void(*callback)(Context* context, intrusive_list<Object>* list, const Value& child)) override {
+		Object::GCForEachChild(context, list, callback);
 		callback(context, list, parent_function_);
 		for (auto& val : closure_value_arr_) {
 			callback(context, list, val);

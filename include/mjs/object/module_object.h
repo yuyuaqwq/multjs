@@ -10,8 +10,8 @@ public:
         : FunctionObject(context, function_def)
         , export_map_(context) {}
 
-    void ForEachChild(Context* context, intrusive_list<Object>* list, void(*callback)(Context* context, intrusive_list<Object>* list, const Value& child)) override {
-        Object::ForEachChild(context, list, callback);
+    void GCForEachChild(Context* context, intrusive_list<Object>* list, void(*callback)(Context* context, intrusive_list<Object>* list, const Value& child)) override {
+        Object::GCForEachChild(context, list, callback);
         for (auto& pair : export_map_) {
             callback(context, list, pair.second);
         }
@@ -32,7 +32,7 @@ public:
     auto& export_map() { return export_map_; }
 
 private:
-    // value��upvalue��ָ��closure_value_arr_�еı���
+    // value是upvalue，指向closure_value_arr_
     PropertyMap export_map_;
 };
 

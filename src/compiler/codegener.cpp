@@ -3,7 +3,7 @@
 #include <iostream>
 
 #include <mjs/runtime.h>
-#include <mjs/object/array_object.h>
+#include <mjs/class_def/array_class_def.h>
 
 namespace mjs {
 namespace compiler {
@@ -68,19 +68,22 @@ Value CodeGener::Generate() {
 
 void CodeGener::GenerateExpression(Expression* exp) {
 	switch (exp->type()) {
-	case ExpressionType::kFunctionExpression:
-		GenerateFunctionExpression(&exp->as<FunctionExpression>());
-		break;
 	case ExpressionType::kUndefined:
 	case ExpressionType::kNull:
 	case ExpressionType::kBoolean:
 	case ExpressionType::kInteger:
 	case ExpressionType::kFloat:
-	case ExpressionType::kString:
-	case ExpressionType::kArrayExpression:
-	case ExpressionType::kObjectExpression: {
-		auto const_idx = AllocConst(MakeValue(exp));
+	case ExpressionType::kString: {
+		auto const_idx = AllocConst(MakeConstValue(exp));
 		cur_func_def_->byte_code().EmitConstLoad(const_idx);
+		break;
+	}
+	case ExpressionType::kArrayExpression: {
+		GeneratorArrayExpression(&exp->as<ArrayExpression>());
+		break;
+	}
+	case ExpressionType::kObjectExpression: {
+		GeneratorObjectExpression(&exp->as<ObjectExpression>());
 		break;
 	}
 	case ExpressionType::kIdentifier: {
@@ -125,18 +128,21 @@ void CodeGener::GenerateExpression(Expression* exp) {
 		}
 		else {
 			// 成员访问表达式
-			auto prop_exp = mem_exp.property().get();
+			auto& prop_exp = mem_exp.property()->as<Identifier>();
 
 			//if (prop_exp->GetType() != ExpType::kIdentifier) {
 			//	throw CodeGenerException("Incorrect right value for attribute access.");
 			//}
 
 			// 访问对象成员
-			auto const_idx = AllocConst(MakeValue(prop_exp));
+			auto const_idx = AllocConst(Value(String::make(prop_exp.name())));
 			cur_func_def_->byte_code().EmitPropertyLoad(const_idx);
 		}
 		break;
 	}
+	case ExpressionType::kFunctionExpression:
+		GenerateFunctionExpression(&exp->as<FunctionExpression>());
+		break;
 	case ExpressionType::kUnaryExpression: {
 		auto& unary_exp = exp->as<UnaryExpression>();
 		// 表达式的值入栈
@@ -197,7 +203,7 @@ void CodeGener::GenerateExpression(Expression* exp) {
 			}
 			else {
 				auto& prop_exp = member_exp.property()->as<Identifier>();
-				auto const_idx = AllocConst(MakeValue(&prop_exp));
+				auto const_idx = AllocConst(Value(String::make(prop_exp.name())));
 				cur_func_def_->byte_code().EmitPropertyStore(const_idx);
 			}
 			break;
@@ -258,7 +264,7 @@ void CodeGener::GenerateExpression(Expression* exp) {
 	}
 	case ExpressionType::kNewExpression: {
 		auto& new_exp = exp->as<NewExpression>();
-		GenerateParList(new_exp.arguments());
+		GenerateParamList(new_exp.arguments());
 
 		GenerateExpression(new_exp.callee().get());
 
@@ -272,7 +278,7 @@ void CodeGener::GenerateExpression(Expression* exp) {
 		//	throw CodeGenerException("Wrong number of parameters passed during function call");
 		//}
 
-		GenerateParList(call_exp.arguments());
+		GenerateParamList(call_exp.arguments());
 		GenerateExpression(call_exp.callee().get());
 
 		// 将this置于栈顶
@@ -298,7 +304,7 @@ void CodeGener::GenerateExpression(Expression* exp) {
 	}
 	case ExpressionType::kImportExpression: {
 		auto& import_exp = exp->as<ImportExpression>();
-		auto const_idx = AllocConst(MakeValue(import_exp.source().get()));
+		auto const_idx = AllocConst(MakeConstValue(import_exp.source().get()));
 		cur_func_def_->byte_code().EmitConstLoad(const_idx);
 		cur_func_def_->byte_code().EmitOpcode(OpcodeType::kGetModuleAsync);
 		break;
@@ -307,6 +313,26 @@ void CodeGener::GenerateExpression(Expression* exp) {
 		throw CodeGenerException("Unrecognized exp");
 		break;
 	}
+}
+
+void CodeGener::GeneratorArrayExpression(ArrayExpression* arr_exp) {
+	GenerateParamList(arr_exp->elements());
+
+	auto& array_class_def = runtime_->class_def_table()[ClassId::kArray].get<ArrayClassDef>();
+	cur_func_def_->byte_code().EmitConstLoad(array_class_def.of_const_index());
+	cur_func_def_->byte_code().EmitOpcode(OpcodeType::kUndefined);
+	cur_func_def_->byte_code().EmitOpcode(OpcodeType::kFunctionCall);
+}
+
+void CodeGener::GeneratorObjectExpression(ObjectExpression* obj_exp) {
+	//case ExpressionType::kObjectExpression: {
+	//	Object* obj = new Object(runtime_);
+	//	for (auto& exp : exp->as<ObjectExpression>().properties()) {
+	//		auto const_idx = AllocConst(Value(String::make(exp.key)));
+	//		obj->SetProperty(nullptr, const_idx, MakeValue(exp.value.get()));
+	//	}
+	//	return Value(obj);
+	//}
 }
 
 void CodeGener::GenerateFunctionExpression(FunctionExpression* exp) {
@@ -781,7 +807,7 @@ void CodeGener::GenerateIfEq(Expression* exp) {
 	cur_func_def_->byte_code().EmitPcOffset(0);
 }
 
-void CodeGener::GenerateParList(const std::vector<std::unique_ptr<Expression>>& par_list) {
+void CodeGener::GenerateParamList(const std::vector<std::unique_ptr<Expression>>& par_list) {
 	// 参数正序入栈
 	for (size_t i = 0; i < par_list.size(); ++i) {
 		GenerateExpression(par_list[i].get());
@@ -881,7 +907,7 @@ const VarInfo& CodeGener::GetVarByExpression(Expression* exp) {
 	return *var_info;
 }
 
-Value CodeGener::MakeValue(Expression* exp) {
+Value CodeGener::MakeConstValue(Expression* exp) {
 	switch (exp->type()) {
 	case ExpressionType::kUndefined:{
 		return Value();
@@ -900,28 +926,6 @@ Value CodeGener::MakeValue(Expression* exp) {
 	}
 	case ExpressionType::kString: {
 		return Value(String::make(exp->as<StringLiteral>().value()));
-	}
-	case ExpressionType::kIdentifier: {
-		return Value(String::make(exp->as<Identifier>().name()));
-	}
-	// 无需GC回收，此处分配的对象不会引用Context分配的对象，因此不存在循环引用
-	// 应该是只读
-	case ExpressionType::kArrayExpression: {
-		ArrayObject* arr_obj = new ArrayObject(runtime_, exp->as<ArrayExpression>().elements().size());
-		int64_t i = 0;
-		for (auto& exp : exp->as<ArrayExpression>().elements()) {
-			auto const_idx = AllocConst(Value(i++));
-			arr_obj->SetComputedProperty(nullptr, GetConstValueByIndex(const_idx), MakeValue(exp.get()));
-		}
-		return Value(arr_obj);
-	}
-	case ExpressionType::kObjectExpression: {
-		Object* obj = new Object(runtime_);
-		for (auto& exp : exp->as<ObjectExpression>().properties()) {
-			auto const_idx = AllocConst(Value(String::make(exp.key)));
-			obj->SetProperty(nullptr, const_idx, MakeValue(exp.value.get()));
-		}
-		return Value(obj);
 	}
 	default:
 		throw CodeGenerException("Unable to generate expression for value");

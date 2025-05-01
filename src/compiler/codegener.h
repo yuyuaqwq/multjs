@@ -45,8 +45,10 @@ public:
 
 private:
 	void GenerateExpression(Expression* exp);
+	void GeneratorArrayExpression(ArrayExpression* arr_exp);
+	void GeneratorObjectExpression(ObjectExpression* obj_exp);
 	void GenerateFunctionExpression(FunctionExpression* exp);
-
+	
 	void GenerateStatement(Statement* stat);
 
 	void GenerateImportDeclaration(ImportDeclaration* stat);
@@ -71,7 +73,7 @@ private:
 	
 
 	void GenerateIfEq(Expression* exp);
-	void GenerateParList(const std::vector<std::unique_ptr<Expression>>& par_list);
+	void GenerateParamList(const std::vector<std::unique_ptr<Expression>>& par_list);
 
 
 	void EntryScope(FunctionDef* sub_func = nullptr, ScopeType type = ScopeType::kNone);
@@ -86,7 +88,7 @@ private:
 
 	const VarInfo& GetVarByExpression(Expression* exp);
 
-	Value MakeValue(Expression* exp);
+	Value MakeConstValue(Expression* exp);
 
 	void RepairEntrys(const std::vector<RepairEntry>& entrys, Pc end_pc, Pc reloop_pc);
 

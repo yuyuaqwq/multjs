@@ -28,17 +28,29 @@ public:
         return &values_[key.i64()];
     }
 
-    Object* Make(Context* context) override {
-        auto obj = new ArrayObject(context, values_.size());
-        return obj;
+    void Push(Context* context, Value val) {
+        values_.push_back(val);
     }
 
-
-    Object* Copy(Object* new_obj, Context* context) override {
-        auto* arr_obj = static_cast<ArrayObject*>(new_obj);
-        arr_obj->values_ = values_;
-        return Object::Copy(arr_obj, context);
+    Value Pop(Context* context) {
+        auto back = std::move(values_.back());
+        values_.pop_back();
+        return back;
     }
+
+    void ForEach(Context* context, Value callback) {
+        
+    }
+
+    Value& operator[](size_t index) {
+        return values_[index];
+    }
+
+    const Value& operator[](size_t index) const {
+        return values_[index];
+    }
+
+    size_t size() const { return values_.size(); }
 
 private:
     std::vector<Value> values_;
