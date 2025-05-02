@@ -55,6 +55,7 @@ enum class OpcodeType {
 
 	// Arithmetic operations
 	kAdd = 0x60,
+	kInc = 0x61,
 	kSub = 0x64,
 	kMul = 0x68,
 	kDiv = 0x6c,

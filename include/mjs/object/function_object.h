@@ -22,7 +22,7 @@ public:
 		}
 	}
 
-	Value ToString() override {
+	Value ToString(Context* context) override {
 		return Value(String::format("function_object:{}", function_def_->name()));
 	}
 

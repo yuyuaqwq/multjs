@@ -48,9 +48,7 @@ public:
 	virtual Value* GetComputedProperty(Context* context, const Value& key);
 	virtual void DelComputedProperty(Context* context, const Value& key);
 
-	virtual Value ToString() {
-		return Value("object");
-	}
+	virtual Value ToString(Context* context);
 
 	virtual ClassId class_id() const { return ClassId::kObject; }
 

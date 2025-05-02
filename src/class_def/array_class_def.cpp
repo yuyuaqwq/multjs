@@ -21,9 +21,13 @@ Value ArrayClassDef::NewConstructor(Context* context, uint32_t par_count, const 
 }
 
 Value ArrayClassDef::Of(Context* context, uint32_t par_count, const StackFrame& stack) {
+	return LiteralNew(context, par_count, stack);
+}
+
+Value ArrayClassDef::LiteralNew(Context* context, uint32_t par_count, const StackFrame& stack) {
 	auto arr = new ArrayObject(context, par_count);
 	for (size_t i = 0; i < par_count; ++i) {
-		arr->operator[](i) = std::move(stack.get(-1));
+		arr->operator[](i) = std::move(stack.get(i));
 	}
 	return Value(arr);
 }

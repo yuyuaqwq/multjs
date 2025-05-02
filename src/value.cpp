@@ -291,7 +291,7 @@ Value Value::operator+(const Value& rhs) const {
 		}
 		case ValueType::kStringView:
 		case ValueType::kString: {
-			return Value(String::format("{}{}", ToString().string_view(), rhs.string_view()));
+			return Value(String::format("{}{}", f64(), rhs.string_view()));
 		}
 		}
 		break;
@@ -306,7 +306,7 @@ Value Value::operator+(const Value& rhs) const {
 		}
 		case ValueType::kStringView:
 		case ValueType::kString: {
-			return Value(String::format("{}{}", ToString().string_view(), rhs.string_view()));
+			return Value(String::format("{}{}", i64(), rhs.string_view()));
 		}
 		}
 		break;
@@ -315,8 +315,9 @@ Value Value::operator+(const Value& rhs) const {
 	case ValueType::kString: {
 		switch (rhs.type()) {
 		case ValueType::kFloat64:
+			return Value(String::format("{}{}", string_view(), f64()));
 		case ValueType::kInt64: {
-			return Value(String::format("{}{}", string_view(), rhs.ToString().string_view()));
+			return Value(String::format("{}{}", string_view(), i64()));
 		}
 		case ValueType::kStringView:
 		case ValueType::kString: {
@@ -736,7 +737,7 @@ bool Value::IsGeneratorNext() const {
 	return type() == ValueType::kGeneratorNext;
 }
 
-Value Value::ToString() const {
+Value Value::ToString(Context* context) const {
 	switch (type()) {
 	case ValueType::kUndefined:
 		return Value("undefined");
@@ -762,10 +763,10 @@ Value Value::ToString() const {
 	case ValueType::kPrimitiveConstructor:
 		return Value(String::format("primitive_constructor:{}", class_def().name()));
 	case ValueType::kUpValue:
-		return up_value().Up().ToString();
+		return up_value().Up().ToString(context);
 	default:
 		if (IsObject()) {
-			return object().ToString();
+			return object().ToString(context);
 		}
 		return Value("unknown");
 		// throw std::runtime_error("Incorrect value type.");

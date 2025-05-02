@@ -34,8 +34,8 @@ std::unordered_map<OpcodeType, InstrInfo> g_instr_symbol{
     {OpcodeType::kVStore_2, {"vstore_2", {}}},
     {OpcodeType::kVStore_3, {"vstore_3", {}}},
 
-    {OpcodeType::kPropertyLoad, {"property_load", {}}},
-    {OpcodeType::kPropertyStore, {"property_store", {}}},
+    {OpcodeType::kPropertyLoad, {"property_load", {4}}},
+    {OpcodeType::kPropertyStore, {"property_store", {4}}},
 
     {OpcodeType::kIndexedLoad, {"indexed_load", {}}},
     {OpcodeType::kIndexedStore, {"indexed_store", {}}},
@@ -47,6 +47,7 @@ std::unordered_map<OpcodeType, InstrInfo> g_instr_symbol{
     {OpcodeType::kUndefined, {"undefined", {}}},
 
     {OpcodeType::kAdd, {"add", {}}},
+    {OpcodeType::kInc, {"inc", {}}},
     {OpcodeType::kSub, {"sub", {}}},
     {OpcodeType::kMul, {"mul", {}}},
     {OpcodeType::kDiv, {"div", {}}},
@@ -266,24 +267,25 @@ std::string ByteCode::Disassembly(Context* context, Pc& pc, OpcodeType& opcode, 
         if (val.IsString()) {
             str += "\"";
         }
-        str += val.ToString().string_view();
+        str += val.ToString(context).string_view();
         if (val.IsString()) {
             str += "\"";
         }
         str += "\t";
     }
-    else if (opcode == OpcodeType::kCLoad) {
+    else if (opcode == OpcodeType::kCLoad || opcode == OpcodeType::kPropertyLoad || opcode == OpcodeType::kPropertyStore) {
         auto idx = par;
         const auto& val = context->runtime().const_pool().at(ConstIndex(idx));
         if (val.IsString()) {
             str += "\"";
         }
-        str += val.ToString().string_view();
+        str += val.ToString(context).string_view();
         if (val.IsString()) {
             str += "\"";
         }
         str += "\t";
     }
+
 
     if (opcode >= OpcodeType::kVLoad_0 && opcode <= OpcodeType::kVLoad_3) {
         auto idx = opcode - OpcodeType::kVLoad_0;
@@ -315,7 +317,7 @@ std::string ByteCode::Disassembly(Context* context, Pc& pc, OpcodeType& opcode, 
         str += "\t";
     }
 
-    if (opcode == OpcodeType::kGoto) {
+    if (opcode == OpcodeType::kGoto || opcode == OpcodeType::kIfEq) {
         str += "To:";
         str += std::to_string(int16_t(pc - 3 + last_par));
         str += "\t";

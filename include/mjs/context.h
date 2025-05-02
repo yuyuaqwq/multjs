@@ -37,12 +37,12 @@ public:
             Object& cur = *it;
             assert(!cur.gc_mark());
 
-            std::cout << Value(&cur).ToString().string_view();
+            std::cout << Value(&cur).ToString(this).string_view();
             std::cout << " ref_count:" << cur.ref_count();
             std::cout << std::endl;
 
             cur.GCForEachChild(this, nullptr, [](Context* context, intrusive_list<Object>* list, const Value& child) {
-                std::cout << "\t\t" << child.ToString().string_view();
+                std::cout << "\t\t" << child.ToString(context).string_view();
                 if (child.IsObject()) {
                     std::cout << " ref_count:" << child.object().ref_count();
                 }

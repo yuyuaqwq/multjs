@@ -357,7 +357,8 @@ void Vm::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 			case OpcodeType::kVStore: {
 				auto var_idx = func_def->byte_code().GetU8(stack_frame->pc());
 				stack_frame->set_pc(stack_frame->pc() + 1);
-				SetVar(stack_frame, var_idx, stack_frame->pop());
+				auto val = stack_frame->get(-1);
+				SetVar(stack_frame, var_idx, std::move(val));
 				break;
 			}
 			case OpcodeType::kVStore_0:
@@ -365,21 +366,22 @@ void Vm::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 			case OpcodeType::kVStore_2:
 			case OpcodeType::kVStore_3: {
 				auto var_idx = opcode - OpcodeType::kVStore_0;
-				SetVar(stack_frame, var_idx, stack_frame->pop());
+				auto val = stack_frame->get(-1);
+				SetVar(stack_frame, var_idx, std::move(val));
 				break;
 			}
 			case OpcodeType::kPropertyLoad: {
 				auto const_idx = ConstIndex(func_def->byte_code().GetI32(stack_frame->pc()));
 				stack_frame->set_pc(stack_frame->pc() + 4);
 				auto& obj_val = stack_frame->get(-1);
-				Value* prop = nullptr;
+				Value* value = nullptr;
 				if (obj_val.IsObject()) {
 					auto& obj = obj_val.object();
-					prop = obj.GetProperty(context_, const_idx);
+					value = obj.GetProperty(context_, const_idx);
 				}
 				else if (obj_val.IsClassDef()) {
 					auto& class_def = obj_val.class_def();
-					prop = class_def.GetStaticProperty(&context_->runtime(), const_idx);
+					value = class_def.GetStaticProperty(&context_->runtime(), const_idx);
 				}
 				else {
 					// 非Object类型，根据类型来处理
@@ -387,15 +389,15 @@ void Vm::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 					// number等需要转成临时Number Object
 				}
 
-				if (!prop) {
+				if (!value) {
 					obj_val = Value();
 				}
 				else {
-					if (prop->IsUpValue()) {
-						obj_val = prop->up_value().Up();
+					if (value->IsUpValue()) {
+						obj_val = value->up_value().Up();
 					}
 					else {
-						obj_val = *prop;
+						obj_val = *value;
 					}
 				}
 				break;
@@ -404,7 +406,7 @@ void Vm::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 				auto const_idx = ConstIndex(func_def->byte_code().GetI32(stack_frame->pc()));
 				stack_frame->set_pc(stack_frame->pc() + 4);
 				auto obj_val = stack_frame->pop();
-				auto val = stack_frame->pop();
+				auto val = stack_frame->get(-1);
 				if (obj_val.IsObject()) {
 					auto& obj = obj_val.object();
 					obj.SetProperty(context_, const_idx, std::move(val));
@@ -423,12 +425,12 @@ void Vm::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 				auto& obj_val = stack_frame->get(-1);
 				auto& obj = obj_val.object();
 
-				auto prop = obj.GetComputedProperty(context_, idx_val);
-				if (!prop) {
+				auto value = obj.GetComputedProperty(context_, idx_val);
+				if (!value) {
 					obj_val = Value();
 				}
 				else {
-					obj_val = *prop;
+					obj_val = *value;
 				}
 				break;
 			}
@@ -437,13 +439,19 @@ void Vm::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 				auto obj_val = stack_frame->pop();
 				auto& obj = obj_val.object();
 
-				obj.SetComputedProperty(context_, idx_val, stack_frame->pop());
+				auto val = stack_frame->get(-1);
+				obj.SetComputedProperty(context_, idx_val, std::move(val));
 				break;
 			}
 			case OpcodeType::kAdd: {
 				auto a = stack_frame->pop();
 				auto& b = stack_frame->get(-1);
 				b = b + a;
+				break;
+			}
+			case OpcodeType::kInc: {
+				auto& arg = stack_frame->get(-1);
+				++arg;
 				break;
 			}
 			case OpcodeType::kSub: {

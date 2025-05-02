@@ -48,7 +48,8 @@ private:
 	void GeneratorArrayExpression(ArrayExpression* arr_exp);
 	void GeneratorObjectExpression(ObjectExpression* obj_exp);
 	void GenerateFunctionExpression(FunctionExpression* exp);
-	
+	void GenerateLValueStore(Expression* lvalue_exp);
+
 	void GenerateStatement(Statement* stat);
 
 	void GenerateImportDeclaration(ImportDeclaration* stat);

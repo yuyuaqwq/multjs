@@ -12,6 +12,8 @@ public:
 
 	static Value Of(Context* context, uint32_t par_count, const StackFrame& stack);
 
+	static Value LiteralNew(Context* context, uint32_t par_count, const StackFrame& stack);
+
 	ConstIndex of_const_index() const { return of_const_index_; }
 
 private:

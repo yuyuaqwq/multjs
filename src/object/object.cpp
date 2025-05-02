@@ -81,6 +81,21 @@ void Object::DelComputedProperty(Context* context, const Value& key) {
 	return DelProperty(context, key.const_index());
 }
 
+Value Object::ToString(Context* context) {
+	std::string str = "{";
+	if (property_map_) {
+		for (auto prop : *property_map_) {
+			str += context->runtime().const_pool()[prop.first].string().data();
+			str += ":";
+			str += prop.second.ToString(context).string_view();
+			str += ",";
+		}
+		str.pop_back();
+	}
+	str += "}";
+	return Value(String::make(str));
+}
+
 
 void Object::Reference() {
 	++tag_.ref_count_;

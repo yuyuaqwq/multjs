@@ -4,6 +4,7 @@
 
 #include <mjs/runtime.h>
 #include <mjs/class_def/array_class_def.h>
+#include <mjs/class_def/object_class_def.h>
 
 namespace mjs {
 namespace compiler {
@@ -40,7 +41,7 @@ Value CodeGener::Generate() {
 		for (size_t i = 0; i < par_count; i++) {
 			auto val = stack.get(i);
 			try {
-				std::cout << val.ToString().string_view();
+				std::cout << val.ToString(context).string_view();
 			}
 			catch (const std::exception&)
 			{
@@ -118,7 +119,6 @@ void CodeGener::GenerateExpression(Expression* exp) {
 			cur_func_def_->byte_code().EmitOpcode(OpcodeType::kDump);
 		}
 
-
 		if (mem_exp.computed()) {
 			// 用于访问的下标的表达式，入栈这个表达式
 			GenerateExpression(mem_exp.property().get());
@@ -145,8 +145,24 @@ void CodeGener::GenerateExpression(Expression* exp) {
 		break;
 	case ExpressionType::kUnaryExpression: {
 		auto& unary_exp = exp->as<UnaryExpression>();
+
 		// 表达式的值入栈
 		GenerateExpression(unary_exp.argument().get());
+
+		switch (unary_exp.op()) {
+		case TokenType::kOpPrefixInc:
+			cur_func_def_->byte_code().EmitOpcode(OpcodeType::kInc);
+			GenerateLValueStore(unary_exp.argument().get());
+			return;
+		case TokenType::kOpSuffixInc:
+			cur_func_def_->byte_code().EmitOpcode(OpcodeType::kDump);
+			cur_func_def_->byte_code().EmitOpcode(OpcodeType::kInc);
+			GenerateLValueStore(unary_exp.argument().get());
+			cur_func_def_->byte_code().EmitOpcode(OpcodeType::kPop);
+			return;
+		default:
+			break;
+		}
 
 		// 生成运算指令
 		switch (unary_exp.op()) {
@@ -156,64 +172,21 @@ void CodeGener::GenerateExpression(Expression* exp) {
 		case TokenType::kKwAwait:
 			cur_func_def_->byte_code().EmitOpcode(OpcodeType::kAwait);
 			break;
-		case TokenType::kOpPrefixInc:
-		case TokenType::kOpSuffixInc:
 		default:
 			throw CodeGenerException("Unrecognized unary operator");
 		}
 		break;
 	}
 	case ExpressionType::kAssignmentExpression: {
-		auto& assign_exp = exp->as<AssignmentExpression>();
-
 		// 赋值表达式
+		auto& assign_exp = exp->as<AssignmentExpression>();
 
 		// 右值表达式先入栈
 		GenerateExpression(assign_exp.right().get());
 
 		auto lvalue_exp = assign_exp.left().get();
-		if (lvalue_exp->value_category() != ValueCategory::kLValue) {
-			throw CodeGenerException("The left side of the assignment operator must be an lvalue.");
-		}
+		GenerateLValueStore(lvalue_exp);
 
-		// 再处理左值表达式
-		switch (lvalue_exp->type())
-		{
-			// 为左值赋值
-		case ExpressionType::kIdentifier: {
-			const auto& var_info = GetVarByExpression(lvalue_exp);
-			if ((var_info.flags & VarFlags::kConst) == VarFlags::kConst) {
-				throw CodeGenerException("Cannot change const var.");
-			}
-
-			cur_func_def_->byte_code().EmitVarStore(var_info.var_idx);
-			break;
-		}
-		case ExpressionType::kMemberExpression: {
-			auto& member_exp = lvalue_exp->as<MemberExpression>();
-
-			// 设置对象的属性
-			// 如：obj.a.b = 100;
-			// 先入栈obj.a这个对象
-			GenerateExpression(member_exp.object().get());
-
-			if (member_exp.computed()) {
-				GenerateExpression(member_exp.property().get());
-				cur_func_def_->byte_code().EmitIndexedStore();
-			}
-			else {
-				auto& prop_exp = member_exp.property()->as<Identifier>();
-				auto const_idx = AllocConst(Value(String::make(prop_exp.name())));
-				cur_func_def_->byte_code().EmitPropertyStore(const_idx);
-			}
-			break;
-		}
-		default:
-			throw CodeGenerException("Lvalue expression type error.");
-		}
-
-		// 完成后，需要再将左值再次入栈
-		GenerateExpression(lvalue_exp);
 		return;
 	}
 	case ExpressionType::kBinaryExpression: {
@@ -290,15 +263,10 @@ void CodeGener::GenerateExpression(Expression* exp) {
 		}
 
 		cur_func_def_->byte_code().EmitOpcode(OpcodeType::kFunctionCall);
-
-		// auto var_idx = GetVarByExp(func_call_exp->func_obj.get());
-		// cur_func_->byte_code().EmitPcOffset(var_idx);
-
 		break;
 	}
 	case ExpressionType::kYieldExpression: {
 		GenerateExpression(exp->as<YieldExpression>().argument().get());
-
 		cur_func_def_->byte_code().EmitOpcode(OpcodeType::kYield);
 		break;
 	}
@@ -318,21 +286,26 @@ void CodeGener::GenerateExpression(Expression* exp) {
 void CodeGener::GeneratorArrayExpression(ArrayExpression* arr_exp) {
 	GenerateParamList(arr_exp->elements());
 
-	auto& array_class_def = runtime_->class_def_table()[ClassId::kArray].get<ArrayClassDef>();
-	cur_func_def_->byte_code().EmitConstLoad(array_class_def.of_const_index());
+	auto literal_new = AllocConst(Value(ArrayClassDef::LiteralNew));
+	cur_func_def_->byte_code().EmitConstLoad(literal_new);
 	cur_func_def_->byte_code().EmitOpcode(OpcodeType::kUndefined);
 	cur_func_def_->byte_code().EmitOpcode(OpcodeType::kFunctionCall);
 }
 
 void CodeGener::GeneratorObjectExpression(ObjectExpression* obj_exp) {
-	//case ExpressionType::kObjectExpression: {
-	//	Object* obj = new Object(runtime_);
-	//	for (auto& exp : exp->as<ObjectExpression>().properties()) {
-	//		auto const_idx = AllocConst(Value(String::make(exp.key)));
-	//		obj->SetProperty(nullptr, const_idx, MakeValue(exp.value.get()));
-	//	}
-	//	return Value(obj);
-	//}
+	for (auto& prop : obj_exp->properties()) {
+		// 将key和value入栈
+		auto key_const_index = AllocConst(Value(String::make(prop.key)));
+		cur_func_def_->byte_code().EmitConstLoad(key_const_index);
+		GenerateExpression(prop.value.get());
+	}
+	auto const_idx = AllocConst(Value(obj_exp->properties().size() * 2));
+	cur_func_def_->byte_code().EmitConstLoad(const_idx);
+
+	auto literal_new = AllocConst(Value(ObjectClassDef::LiteralNew));
+	cur_func_def_->byte_code().EmitConstLoad(literal_new);
+	cur_func_def_->byte_code().EmitOpcode(OpcodeType::kUndefined);
+	cur_func_def_->byte_code().EmitOpcode(OpcodeType::kFunctionCall);
 }
 
 void CodeGener::GenerateFunctionExpression(FunctionExpression* exp) {
@@ -390,6 +363,45 @@ void CodeGener::GenerateFunctionExpression(FunctionExpression* exp) {
 	cur_func_def_ = savefunc;
 }
 
+void CodeGener::GenerateLValueStore(Expression* lvalue_exp) {
+	if (lvalue_exp->value_category() != ValueCategory::kLValue) {
+		throw CodeGenerException("The left side of the assignment operator must be an lvalue.");
+	}
+
+	// 再处理左值表达式
+	switch (lvalue_exp->type()) {
+		// 为左值赋值
+	case ExpressionType::kIdentifier: {
+		const auto& var_info = GetVarByExpression(lvalue_exp);
+		if ((var_info.flags & VarFlags::kConst) == VarFlags::kConst) {
+			throw CodeGenerException("Cannot change const var.");
+		}
+		cur_func_def_->byte_code().EmitVarStore(var_info.var_idx);
+		break;
+	}
+	case ExpressionType::kMemberExpression: {
+		auto& member_exp = lvalue_exp->as<MemberExpression>();
+
+		// 设置对象的属性
+		// 如：obj.a.b = 100;
+		// 先入栈obj.a这个对象
+		GenerateExpression(member_exp.object().get());
+
+		if (member_exp.computed()) {
+			GenerateExpression(member_exp.property().get());
+			cur_func_def_->byte_code().EmitIndexedStore();
+		}
+		else {
+			auto& prop_exp = member_exp.property()->as<Identifier>();
+			auto const_idx = AllocConst(Value(String::make(prop_exp.name())));
+			cur_func_def_->byte_code().EmitPropertyStore(const_idx);
+		}
+		break;
+	}
+	default:
+		throw CodeGenerException("Lvalue expression type error.");
+	}
+}
 
 void CodeGener::GenerateStatement(Statement* stat) {
 	switch (stat->type()) {
@@ -506,8 +518,6 @@ void CodeGener::GenerateIfStatement(IfStatement* stat) {
 
 	GenerateBlock(stat->consequent().get());
 
-	// 修复条件为false时，跳转到if块之后的地址
-	cur_func_def_->byte_code().RepairPc(if_pc, cur_func_def_->byte_code().Size());
 
 	if (stat->alternate()) {
 		// 跳过当前余下所有else if / else的指令
@@ -515,6 +525,9 @@ void CodeGener::GenerateIfStatement(IfStatement* stat) {
 
 		cur_func_def_->byte_code().EmitOpcode(OpcodeType::kGoto);
 		cur_func_def_->byte_code().EmitPcOffset(0);
+
+		// 修复条件为false时，跳转到if块之后的地址
+		cur_func_def_->byte_code().RepairPc(if_pc, cur_func_def_->byte_code().Size());
 
 		if (stat->alternate()->is(StatementType::kIf)) {
 			GenerateIfStatement(&stat->alternate()->as<IfStatement>());
@@ -525,6 +538,10 @@ void CodeGener::GenerateIfStatement(IfStatement* stat) {
 		}
 
 		cur_func_def_->byte_code().RepairPc(end_pc, cur_func_def_->byte_code().Size());
+	}
+	else {
+		// 修复条件为false时，跳转到if块之后的地址
+		cur_func_def_->byte_code().RepairPc(if_pc, cur_func_def_->byte_code().Size());
 	}
 }
 

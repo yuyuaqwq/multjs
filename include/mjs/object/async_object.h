@@ -20,7 +20,7 @@ public:
         callback(context, list, res_promise_);
     }
 
-    Value ToString() override {
+    Value ToString(Context* context) override {
         return Value(String::format("asnyc_object:{}", function_def().name()));
     }
 

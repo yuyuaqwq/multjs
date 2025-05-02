@@ -201,7 +201,7 @@ public:
 	bool IsGeneratorNext() const;
 	bool IsIteratorObject() const;
 
-	Value ToString() const;
+	Value ToString(Context* context) const;
 	Value ToBoolean() const;
 	Value ToNumber() const;
 

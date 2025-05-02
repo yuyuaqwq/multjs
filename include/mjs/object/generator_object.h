@@ -17,7 +17,7 @@ public:
 
     void GCForEachChild(Context* context, intrusive_list<Object>* list, void(*callback)(Context* context, intrusive_list<Object>* list, const Value& child)) override;
 
-    Value ToString() override {
+    Value ToString(Context* context) override {
         return Value(String::format("generator_object:{}", function_def().name()));
     }
 
