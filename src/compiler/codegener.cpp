@@ -313,7 +313,7 @@ void CodeGener::GenerateFunctionExpression(FunctionExpression* exp) {
 	else if (exp->is_async()) {
 		func_def.SetAsync();
 	}
-	cur_func_def_->byte_code().EmitConstLoad(const_idx);
+	cur_func_def_->byte_code().EmitClosure(const_idx);
 
 	if (!exp->id().empty()) {
 		// 非匿名函数分配变量来装，这里其实有个没考虑的地方
