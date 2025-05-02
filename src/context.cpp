@@ -22,7 +22,7 @@ Value Context::Compile(std::string_view script) {
 	auto module = codegener.Generate();
 
 	// 转换为 module_obj
-	vm_.InitClosure(StackFrame(&runtime_->stack()), &module);
+	vm_.Closure(StackFrame(&runtime_->stack()), &module);
 
 	return module;
 }

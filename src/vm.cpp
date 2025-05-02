@@ -20,7 +20,7 @@ Vm::Vm(Context* context)
 	, stack_frame_(&context->runtime().stack()) {}
 
 
-bool Vm::InitClosure(const StackFrame& upper_stack_frame, Value* func_def_val) {
+bool Vm::Closure(const StackFrame& upper_stack_frame, Value* func_def_val) {
 	auto& func_def = func_def_val->function_def();
 	if (func_def.closure_var_defs().empty()) {
 		return false;
@@ -73,7 +73,6 @@ bool Vm::InitClosure(const StackFrame& upper_stack_frame, Value* func_def_val) {
 
 	return true;
 }
-
 
 void Vm::BindClosureVars(StackFrame* stack_frame) {
 	auto& func_val = stack_frame->function_val();
@@ -135,23 +134,16 @@ const Value& Vm::GetGlobalConst(ConstIndex idx) {
 }
 
 void Vm::LoadConst(StackFrame* stack_frame, ConstIndex const_idx) {
-	auto& value = GetGlobalConst(const_idx);
-	// 未来改掉，生成单独的加载函数指令
-	if (value.IsFunctionDef()) {
-		auto func_val = value;
-		InitClosure(*stack_frame, &func_val);
-		stack_frame->push(std::move(func_val));
-		return;
-	}
-	stack_frame->push(value);
+	stack_frame->push(GetGlobalConst(const_idx));
 }
+
 
 bool Vm::FunctionScheduling(StackFrame* stack_frame, uint32_t par_count) {
 	switch (stack_frame->function_val().type()) {
 	case ValueType::kFunctionDef: {
 		// 这里可能需要初始化，因为可能由C++处调用一个需要提升的FunctionDef
 		auto func_val = stack_frame->function_val();
-		if (InitClosure(stack_frame->upper_stack_frame(), &func_val)) {
+		if (Closure(stack_frame->upper_stack_frame(), &func_val)) {
 			stack_frame->set_function_val(std::move(func_val));
 		}
 	}
@@ -368,6 +360,14 @@ void Vm::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 				auto var_idx = opcode - OpcodeType::kVStore_0;
 				auto val = stack_frame->get(-1);
 				SetVar(stack_frame, var_idx, std::move(val));
+				break;
+			}
+			case OpcodeType::kClosure: {
+				auto const_idx = ConstIndex(func_def->byte_code().GetI32(stack_frame->pc()));
+				stack_frame->set_pc(stack_frame->pc() + 4);
+				auto value = GetGlobalConst(const_idx);
+				Closure(*stack_frame, &value);
+				stack_frame->push(std::move(value));
 				break;
 			}
 			case OpcodeType::kPropertyLoad: {

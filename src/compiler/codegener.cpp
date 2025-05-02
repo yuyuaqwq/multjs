@@ -21,6 +21,7 @@ void CodeGener::RegisterCppFunction(const std::string& func_name, CppFunction fu
 	// 交给虚拟机执行时去加载，虚拟机发现加载的常量是函数体，就会将函数原型赋给局部变量
 	cur_func_def_->byte_code().EmitConstLoad(const_idx);
 	cur_func_def_->byte_code().EmitVarStore(var_info.var_idx);
+	cur_func_def_->byte_code().EmitOpcode(OpcodeType::kPop);
 }
 
 Value CodeGener::Generate() {
@@ -320,9 +321,6 @@ void CodeGener::GenerateFunctionExpression(FunctionExpression* exp) {
 		auto& var_info = AllocVar(exp->id(), VarFlags::kConst);
 		cur_func_def_->byte_code().EmitVarStore(var_info.var_idx);
 
-		// 栈顶的被赋值消耗了，再push一个
-		cur_func_def_->byte_code().EmitConstLoad(const_idx);
-
 		if (exp->is_export()) {
 			cur_func_def_->AddExportVar(exp->id(), var_info.var_idx);
 		}
@@ -476,6 +474,7 @@ void CodeGener::GenerateImportDeclaration(ImportDeclaration* stat) {
 	// 模块对象保存到变量
 	auto& var_info = AllocVar(stat->name(), VarFlags::kConst);
 	cur_func_def_->byte_code().EmitVarStore(var_info.var_idx);
+	cur_func_def_->byte_code().EmitOpcode(OpcodeType::kPop);
 }
 
 void CodeGener::GenerateExportDeclaration(ExportDeclaration* stat) {
@@ -494,8 +493,9 @@ void CodeGener::GenerateVariableDeclaration(VariableDeclaration* decl) {
 
 	auto& var_info = AllocVar(decl->name(), flags);
 	GenerateExpression(decl->init().get());
-	// 弹出到变量中
+	// 保存到变量中
 	cur_func_def_->byte_code().EmitVarStore(var_info.var_idx);
+	cur_func_def_->byte_code().EmitOpcode(OpcodeType::kPop);
 
 	if (decl->is_export()) {
 		cur_func_def_->AddExportVar(decl->name(), var_info.var_idx);

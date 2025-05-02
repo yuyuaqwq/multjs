@@ -149,7 +149,7 @@ void ByteCode::EmitConstLoad(ConstIndex idx) {
         EmitOpcode(OpcodeType::kCLoad_0 + idx);
     }
 	else if (idx <= 0xff) {
-		// ��������64bit��
+		// 64bit？
 		EmitOpcode(OpcodeType::kCLoad);
 		EmitU8(idx);
 	}
@@ -161,6 +161,11 @@ void ByteCode::EmitConstLoad(ConstIndex idx) {
         EmitOpcode(OpcodeType::kCLoadD);
         EmitU32(idx);
 	}
+}
+
+void ByteCode::EmitClosure(ConstIndex idx) {
+    EmitOpcode(OpcodeType::kClosure);
+    EmitU32(idx);
 }
 
 void ByteCode::EmitVarStore(VarIndex idx) {

@@ -29,7 +29,7 @@ public:
 public:
 	explicit Vm(Context* context);
 
-	bool InitClosure(const StackFrame& upper_stack_frame, Value* func_def_val);
+	bool Closure(const StackFrame& upper_stack_frame, Value* func_def_val);
 	
 	template<typename It>
 	Value CallFunction(Value func_val, Value this_val, It begin, It end) {
