@@ -374,14 +374,14 @@ void Vm::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 				auto const_idx = ConstIndex(func_def->byte_code().GetI32(stack_frame->pc()));
 				stack_frame->set_pc(stack_frame->pc() + 4);
 				auto& obj_val = stack_frame->get(-1);
-				Value* value = nullptr;
+				bool success = false;
 				if (obj_val.IsObject()) {
 					auto& obj = obj_val.object();
-					value = obj.GetProperty(context_, const_idx);
+					success = obj.GetProperty(context_, const_idx, &obj_val);
 				}
 				else if (obj_val.IsClassDef()) {
 					auto& class_def = obj_val.class_def();
-					value = class_def.GetStaticProperty(&context_->runtime(), const_idx);
+					success = class_def.GetStaticProperty(&context_->runtime(), const_idx, &obj_val);
 				}
 				else {
 					// 非Object类型，根据类型来处理
@@ -389,16 +389,11 @@ void Vm::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 					// number等需要转成临时Number Object
 				}
 
-				if (!value) {
+				if (!success) {
 					obj_val = Value();
 				}
-				else {
-					if (value->IsUpValue()) {
-						obj_val = value->up_value().Up();
-					}
-					else {
-						obj_val = *value;
-					}
+				else if(obj_val.IsUpValue()) {
+					obj_val = obj_val.up_value().Up();
 				}
 				break;
 			}
@@ -425,12 +420,9 @@ void Vm::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 				auto& obj_val = stack_frame->get(-1);
 				auto& obj = obj_val.object();
 
-				auto value = obj.GetComputedProperty(context_, idx_val);
-				if (!value) {
+				auto success = obj.GetComputedProperty(context_, idx_val, &obj_val);
+				if (!success) {
 					obj_val = Value();
-				}
-				else {
-					obj_val = *value;
 				}
 				break;
 			}

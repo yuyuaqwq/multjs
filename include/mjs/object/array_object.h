@@ -14,18 +14,19 @@ public:
         : Object(context)
         , values_(length) {}
 
-    void SetComputedProperty(Context* context, const Value& key, Value&& val) override {
+    void SetComputedProperty(Context* context, const Value& key, Value&& value) override {
         if (key.i64() < 0 || key.i64() > values_.size()) {
             // throw;
         }
-        values_[key.i64()] = std::move(val);
+        values_[key.i64()] = std::move(value);
     }
 
-    Value* GetComputedProperty(Context* context, const Value& key) override {
+    bool GetComputedProperty(Context* context, const Value& key, Value* value) override {
         if (key.i64() < 0 || key.i64() > values_.size()) {
             // throw;
         }
-        return &values_[key.i64()];
+        *value = values_[key.i64()];
+        return true;
     }
 
     void Push(Context* context, Value val) {
@@ -51,6 +52,9 @@ public:
     }
 
     size_t size() const { return values_.size(); }
+
+
+    virtual ClassId class_id() const { return ClassId::kArray; }
 
 private:
     std::vector<Value> values_;

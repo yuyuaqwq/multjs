@@ -28,27 +28,28 @@ Object::~Object() {
 	unlink();
 }
 
-void Object::SetProperty(Context* context, ConstIndex key, Value&& val) {
+void Object::SetProperty(Context* context, ConstIndex key, Value&& value) {
 	assert(!context || !tag_.is_const_);
 	if (!property_map_) property_map_ = new PropertyMap(context);
-	property_map_->set(context, key, std::move(val));
+	property_map_->set(context, key, std::move(value));
 }
 
-Value* Object::GetProperty(Context* context, ConstIndex key) {
+bool Object::GetProperty(Context* context, ConstIndex key, Value* value) {
 	// 1. 查找自身属性
 	if (property_map_) {
 		auto iter = property_map_->find(key);
 		if (iter != property_map_->end()) {
-			return &iter->second;
+			*value = iter->second;
+			return true;
 		}
 	}
 		
 	// 2. class def查找
 	auto& class_def = context->runtime().class_def_table().at(class_id());
-	auto val = class_def.GetProperty(&context->runtime(), key);
-	if (val) return val;
-
-	return nullptr;
+	auto success = class_def.GetProperty(context, this, key, value);
+	if (success) return true;
+	
+	return false;
 }
 
 void Object::DelProperty(Context* context, ConstIndex key) {
@@ -65,12 +66,12 @@ void Object::SetComputedProperty(Context* context, const Value& key, Value&& val
 	return SetProperty(context, idx, std::move(val));
 }
 
-Value* Object::GetComputedProperty(Context* context, const Value& key) {
+bool Object::GetComputedProperty(Context* context, const Value& key, Value* value) {
 	auto idx = key.const_index();
 	if (key.const_index().is_invalid()) {
 		idx = context->const_pool().insert(key);
 	}
-	return GetProperty(context, idx);
+	return GetProperty(context, idx, value);
 }
 
 void Object::DelComputedProperty(Context* context, const Value& key) {

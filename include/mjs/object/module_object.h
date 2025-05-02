@@ -17,16 +17,15 @@ public:
         }
     }
 
-    Value* GetProperty(Context* context, ConstIndex key) override {
-        auto prop = FunctionObject::GetProperty(context, key);
-        if (prop) {
-            return prop;
-        }
+    bool GetProperty(Context* context, ConstIndex key, Value* value) override {
+        auto success = FunctionObject::GetProperty(context, key, value);
+        if (success) { return true; }
         auto iter = export_map_.find(key);
         if (iter == export_map_.end()) {
-            return nullptr;
+            return false;
         }
-        return &iter->second;
+        *value = iter->second;
+        return true;
     }
     
     auto& export_map() { return export_map_; }

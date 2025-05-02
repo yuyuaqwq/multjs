@@ -9,6 +9,7 @@ namespace mjs {
 ArrayClassDef::ArrayClassDef(Runtime* runtime)
 	: ClassDef(runtime, ClassId::kArray, "Array")
 {
+	length_const_index_ = runtime->const_pool().insert(Value(String::make("length")));
 	of_const_index_ = runtime->const_pool().insert(Value(String::make("of")));
 
 	static_property_map_.set(runtime, of_const_index_, Value([](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
@@ -18,6 +19,14 @@ ArrayClassDef::ArrayClassDef(Runtime* runtime)
 
 Value ArrayClassDef::NewConstructor(Context* context, uint32_t par_count, const StackFrame& stack) {
 	return Of(context, par_count, stack);
+}
+
+bool ArrayClassDef::GetProperty(Context* context, Object* obj, ConstIndex key, Value* value) {
+	if (key == length_const_index_) {
+		*value = Value(obj->get<ArrayObject>().size());
+		return true;
+	}
+	return ClassDef::GetProperty(context, obj, key, value);
 }
 
 Value ArrayClassDef::Of(Context* context, uint32_t par_count, const StackFrame& stack) {

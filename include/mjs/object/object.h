@@ -40,17 +40,27 @@ public:
 		}
 	}
 
-	virtual void SetProperty(Context* context, ConstIndex key, Value&& val);
-	virtual Value* GetProperty(Context* context, ConstIndex key);
+	virtual void SetProperty(Context* context, ConstIndex key, Value&& value);
+	virtual bool GetProperty(Context* context, ConstIndex key, Value* value);
 	virtual void DelProperty(Context* context, ConstIndex key);
 
 	virtual void SetComputedProperty(Context* context, const Value& key, Value&& val);
-	virtual Value* GetComputedProperty(Context* context, const Value& key);
+	virtual bool GetComputedProperty(Context* context, const Value& key, Value* value);
 	virtual void DelComputedProperty(Context* context, const Value& key);
 
 	virtual Value ToString(Context* context);
 
 	virtual ClassId class_id() const { return ClassId::kObject; }
+
+	template <typename ObjectT>
+	const ObjectT& get() const {
+		return static_cast<ObjectT&>(*this);
+	}
+
+	template <typename ObjectT>
+	ObjectT& get() {
+		return static_cast<ObjectT&>(*this);
+	}
 
 	auto ref_count() const { return tag_.ref_count_; }
 

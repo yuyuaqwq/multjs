@@ -3,6 +3,8 @@
 #include <fstream>
 
 #include <mjs/context.h>
+#include <mjs/class_def/array_class_def.h>
+#include <mjs/class_def/object_class_def.h>
 #include <mjs/class_def/symbol_class_def.h>
 #include <mjs/class_def/generator_class_def.h>
 #include <mjs/class_def/promise_class_def.h>
@@ -13,8 +15,8 @@ Runtime::Runtime() {
 	class_def_table_.Register(std::make_unique<ClassDef>(this, ClassId::kNumber, "Number"));
 	class_def_table_.Register(std::make_unique<ClassDef>(this, ClassId::kString, "String"));
 	class_def_table_.Register(std::make_unique<SymbolClassDef>(this));
-	class_def_table_.Register(std::make_unique<ClassDef>(this, ClassId::kArray, "Array"));
-	class_def_table_.Register(std::make_unique<ClassDef>(this, ClassId::kObject, "Object"));
+	class_def_table_.Register(std::make_unique<ArrayClassDef>(this));
+	class_def_table_.Register(std::make_unique<ObjectClassDef>(this));
 	class_def_table_.Register(std::make_unique<GeneratorClassDef>(this));
 	class_def_table_.Register(std::make_unique<PromiseClassDef>(this));
 
