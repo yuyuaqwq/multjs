@@ -149,21 +149,6 @@ void CodeGener::GenerateExpression(Expression* exp) {
 		// 表达式的值入栈
 		GenerateExpression(unary_exp.argument().get());
 
-		switch (unary_exp.op()) {
-		case TokenType::kOpPrefixInc:
-			cur_func_def_->byte_code().EmitOpcode(OpcodeType::kInc);
-			GenerateLValueStore(unary_exp.argument().get());
-			return;
-		case TokenType::kOpSuffixInc:
-			cur_func_def_->byte_code().EmitOpcode(OpcodeType::kDump);
-			cur_func_def_->byte_code().EmitOpcode(OpcodeType::kInc);
-			GenerateLValueStore(unary_exp.argument().get());
-			cur_func_def_->byte_code().EmitOpcode(OpcodeType::kPop);
-			return;
-		default:
-			break;
-		}
-
 		// 生成运算指令
 		switch (unary_exp.op()) {
 		case TokenType::kOpSub:
@@ -171,6 +156,16 @@ void CodeGener::GenerateExpression(Expression* exp) {
 			break;
 		case TokenType::kKwAwait:
 			cur_func_def_->byte_code().EmitOpcode(OpcodeType::kAwait);
+			break;
+		case TokenType::kOpPrefixInc:
+			cur_func_def_->byte_code().EmitOpcode(OpcodeType::kInc);
+			GenerateLValueStore(unary_exp.argument().get());
+			break;
+		case TokenType::kOpSuffixInc:
+			cur_func_def_->byte_code().EmitOpcode(OpcodeType::kDump);
+			cur_func_def_->byte_code().EmitOpcode(OpcodeType::kInc);
+			GenerateLValueStore(unary_exp.argument().get());
+			cur_func_def_->byte_code().EmitOpcode(OpcodeType::kPop);
 			break;
 		default:
 			throw CodeGenerException("Unrecognized unary operator");
