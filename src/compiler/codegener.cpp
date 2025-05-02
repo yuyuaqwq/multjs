@@ -3,7 +3,7 @@
 #include <iostream>
 
 #include <mjs/runtime.h>
-#include <mjs/class_def/array_class_def.h>
+#include <mjs/class_def/array_object_class_def.h>
 #include <mjs/class_def/object_class_def.h>
 
 namespace mjs {
@@ -281,7 +281,7 @@ void CodeGener::GenerateExpression(Expression* exp) {
 void CodeGener::GeneratorArrayExpression(ArrayExpression* arr_exp) {
 	GenerateParamList(arr_exp->elements());
 
-	auto literal_new = AllocConst(Value(ArrayClassDef::LiteralNew));
+	auto literal_new = AllocConst(Value(ArrayObjectClassDef::LiteralNew));
 	cur_func_def_->byte_code().EmitConstLoad(literal_new);
 	cur_func_def_->byte_code().EmitOpcode(OpcodeType::kUndefined);
 	cur_func_def_->byte_code().EmitOpcode(OpcodeType::kFunctionCall);

@@ -24,7 +24,7 @@ public:
         return Value(String::format("asnyc_object:{}", function_def().name()));
     }
 
-    ClassId class_id() const override { return ClassId::kAsync; }
+    ClassId class_id() const override { return ClassId::kAsyncObject; }
 
     const auto& res_promise() const { return res_promise_; }
     auto& res_promise() { return res_promise_; }

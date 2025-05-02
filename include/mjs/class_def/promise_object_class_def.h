@@ -4,9 +4,9 @@
 
 namespace mjs {
 
-class PromiseClassDef : public ClassDef {
+class PromiseObjectClassDef : public ClassDef {
 public:
-	PromiseClassDef(Runtime* runtime);
+	PromiseObjectClassDef(Runtime* runtime);
 
 	Value NewConstructor(Context* context, uint32_t par_count, const StackFrame& stack) override;
 

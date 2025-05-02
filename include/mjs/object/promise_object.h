@@ -36,7 +36,7 @@ public:
     const auto& result() const { return result_; }
     void set_result(Value value) { result_ = std::move(value); }
 
-    ClassId class_id() const override { return ClassId::kPromise; }
+    ClassId class_id() const override { return ClassId::kPromiseObject; }
 
 private:
     enum class State {

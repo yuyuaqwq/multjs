@@ -36,15 +36,16 @@ enum class ClassId {
 	kNumber,
 	kString,
 	kSymbol,
-	kArray,
 	kObject,
+	kArrayObject,
 	//kNumberObject,
 	//kArrayObject,
-	kGenerator,
-	kPromise,
-	kAsync,
+	kGeneratorObject,
+	kPromiseObject,
+	kAsyncObject,
+	kModuleObject,
+
 	kCustom,
-	kModule,
 };
 
 class Runtime;

@@ -3,11 +3,11 @@
 #include <fstream>
 
 #include <mjs/context.h>
-#include <mjs/class_def/array_class_def.h>
-#include <mjs/class_def/object_class_def.h>
 #include <mjs/class_def/symbol_class_def.h>
-#include <mjs/class_def/generator_class_def.h>
-#include <mjs/class_def/promise_class_def.h>
+#include <mjs/class_def/array_object_class_def.h>
+#include <mjs/class_def/object_class_def.h>
+#include <mjs/class_def/generator_object_class_def.h>
+#include <mjs/class_def/promise_object_class_def.h>
 
 namespace mjs {
 
@@ -15,10 +15,10 @@ Runtime::Runtime() {
 	class_def_table_.Register(std::make_unique<ClassDef>(this, ClassId::kNumber, "Number"));
 	class_def_table_.Register(std::make_unique<ClassDef>(this, ClassId::kString, "String"));
 	class_def_table_.Register(std::make_unique<SymbolClassDef>(this));
-	class_def_table_.Register(std::make_unique<ArrayClassDef>(this));
 	class_def_table_.Register(std::make_unique<ObjectClassDef>(this));
-	class_def_table_.Register(std::make_unique<GeneratorClassDef>(this));
-	class_def_table_.Register(std::make_unique<PromiseClassDef>(this));
+	class_def_table_.Register(std::make_unique<ArrayObjectClassDef>(this));
+	class_def_table_.Register(std::make_unique<GeneratorObjectClassDef>(this));
+	class_def_table_.Register(std::make_unique<PromiseObjectClassDef>(this));
 
 	auto load_module = [](Context* ctx, const char* path) -> Value {
 		namespace fs = std::filesystem;

@@ -4,9 +4,9 @@
 
 namespace mjs {
 
-class GeneratorClassDef : public ClassDef {
+class GeneratorObjectClassDef : public ClassDef {
 public:
-	GeneratorClassDef(Runtime* runtime);
+	GeneratorObjectClassDef(Runtime* runtime);
 
 	auto value_const_idx() const { return value_const_idx_; }
 	auto done_const_idx() const { return done_const_idx_; }

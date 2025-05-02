@@ -43,6 +43,8 @@ public:
         
     }
 
+    size_t length() const { return values_.size(); }
+
     Value& operator[](size_t index) {
         return values_[index];
     }
@@ -51,10 +53,7 @@ public:
         return values_[index];
     }
 
-    size_t size() const { return values_.size(); }
-
-
-    virtual ClassId class_id() const { return ClassId::kArray; }
+    virtual ClassId class_id() const { return ClassId::kArrayObject; }
 
 private:
     std::vector<Value> values_;

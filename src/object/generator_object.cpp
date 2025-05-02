@@ -26,7 +26,7 @@ Value GeneratorObject::MakeReturnObject(Context* context, Value&& ret_value) {
     // 每次都得new
     auto ret_obj = Value(new Object(context));
 
-    auto& class_def = context->runtime().class_def_table().at(class_id()).get<GeneratorClassDef>();
+    auto& class_def = context->runtime().class_def_table().at(class_id()).get<GeneratorObjectClassDef>();
 
     ret_obj.object().SetProperty(context, class_def.value_const_idx(), std::move(ret_value));
     ret_obj.object().SetProperty(context, class_def.done_const_idx(), Value(IsClosed()));

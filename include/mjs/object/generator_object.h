@@ -4,7 +4,7 @@
 #include <mjs/stack_frame.h>
 #include <mjs/object/object.h>
 #include <mjs/object/function_object.h>
-#include <mjs/class_def/generator_class_def.h>
+#include <mjs/class_def/generator_object_class_def.h>
 
 namespace mjs {
 
@@ -53,7 +53,7 @@ public:
     auto pc() const { return pc_; }
     void set_pc(Pc pc) { pc_ = pc; }
 
-    ClassId class_id() const override { return ClassId::kGenerator; }
+    ClassId class_id() const override { return ClassId::kGeneratorObject; }
 
 private:
     Value function_;        // 生成器函数定义/函数对象

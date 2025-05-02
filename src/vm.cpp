@@ -11,7 +11,7 @@
 #include <mjs/object/async_object.h>
 #include <mjs/object/promise_object.h>
 #include <mjs/object/module_object.h>
-#include <mjs/class_def/promise_class_def.h>
+#include <mjs/class_def/promise_object_class_def.h>
 
 namespace mjs {
 
@@ -531,7 +531,7 @@ void Vm::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 
 				if (!val.IsPromiseObject()) {
 					// 不是Promise，则用Promise包装
-					val = PromiseClassDef::Resolve(context_, std::move(val));
+					val = PromiseObjectClassDef::Resolve(context_, std::move(val));
 				}
 
 				auto& promise = val.promise();

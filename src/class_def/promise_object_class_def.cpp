@@ -1,4 +1,4 @@
-#include <mjs/class_def/promise_class_def.h>
+#include <mjs/class_def/promise_object_class_def.h>
 
 #include <mjs/stack_frame.h>
 #include <mjs/context.h>
@@ -6,8 +6,8 @@
 
 namespace mjs {
 
-PromiseClassDef::PromiseClassDef(Runtime* runtime)
-	: ClassDef(runtime, ClassId::kPromise, "Promise")
+PromiseObjectClassDef::PromiseObjectClassDef(Runtime* runtime)
+	: ClassDef(runtime, ClassId::kPromiseObject, "Promise")
 {
 	property_map_.emplace(runtime, String::make("then"), Value([](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
 		auto& promise = stack.this_val().promise();
@@ -35,7 +35,7 @@ PromiseClassDef::PromiseClassDef(Runtime* runtime)
 	}));
 }
 
-Value PromiseClassDef::NewConstructor(Context* context, uint32_t par_count, const StackFrame& stack) {
+Value PromiseObjectClassDef::NewConstructor(Context* context, uint32_t par_count, const StackFrame& stack) {
 	Value executor;
 	if (par_count > 0) {
 		executor = stack.get(0);
@@ -43,7 +43,7 @@ Value PromiseClassDef::NewConstructor(Context* context, uint32_t par_count, cons
 	return Value(new PromiseObject(context, std::move(executor)));
 }
 
-Value PromiseClassDef::Resolve(Context* context, Value value) {
+Value PromiseObjectClassDef::Resolve(Context* context, Value value) {
 	auto promise = new PromiseObject(context, Value());
 	promise->Resolve(context, value);
 	return Value(promise);

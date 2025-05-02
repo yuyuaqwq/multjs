@@ -1,4 +1,4 @@
-#include <mjs/class_def/array_class_def.h>
+#include <mjs/class_def/array_object_class_def.h>
 
 #include <mjs/stack_frame.h>
 #include <mjs/context.h>
@@ -6,34 +6,34 @@
 
 namespace mjs {
 
-ArrayClassDef::ArrayClassDef(Runtime* runtime)
-	: ClassDef(runtime, ClassId::kArray, "Array")
+ArrayObjectClassDef::ArrayObjectClassDef(Runtime* runtime)
+	: ClassDef(runtime, ClassId::kArrayObject, "Array")
 {
 	length_const_index_ = runtime->const_pool().insert(Value(String::make("length")));
 	of_const_index_ = runtime->const_pool().insert(Value(String::make("of")));
 
 	static_property_map_.set(runtime, of_const_index_, Value([](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
-		return ArrayClassDef::Of(context, par_count, stack);
+		return ArrayObjectClassDef::Of(context, par_count, stack);
 	}));
 }
 
-Value ArrayClassDef::NewConstructor(Context* context, uint32_t par_count, const StackFrame& stack) {
+Value ArrayObjectClassDef::NewConstructor(Context* context, uint32_t par_count, const StackFrame& stack) {
 	return Of(context, par_count, stack);
 }
 
-bool ArrayClassDef::GetProperty(Context* context, Object* obj, ConstIndex key, Value* value) {
+bool ArrayObjectClassDef::GetProperty(Context* context, Object* obj, ConstIndex key, Value* value) {
 	if (key == length_const_index_) {
-		*value = Value(obj->get<ArrayObject>().size());
+		*value = Value(obj->get<ArrayObject>().length());
 		return true;
 	}
 	return ClassDef::GetProperty(context, obj, key, value);
 }
 
-Value ArrayClassDef::Of(Context* context, uint32_t par_count, const StackFrame& stack) {
+Value ArrayObjectClassDef::Of(Context* context, uint32_t par_count, const StackFrame& stack) {
 	return LiteralNew(context, par_count, stack);
 }
 
-Value ArrayClassDef::LiteralNew(Context* context, uint32_t par_count, const StackFrame& stack) {
+Value ArrayObjectClassDef::LiteralNew(Context* context, uint32_t par_count, const StackFrame& stack) {
 	auto arr = new ArrayObject(context, par_count);
 	for (size_t i = 0; i < par_count; ++i) {
 		arr->operator[](i) = std::move(stack.get(i));
