@@ -14,7 +14,12 @@ namespace mjs {
 class ClosureVar : public ReferenceCounter {
 public:
 	ClosureVar(Value&& value) 
-		: value_(std::move(value)) {}
+		: value_(std::move(value))
+	{
+		assert(!value_.IsClosureVar());
+	}
+
+	~ClosureVar() = default;
 
 	Value& value() { return value_; }
 	const Value& value() const { return value_; }
@@ -27,12 +32,14 @@ public:
 // 闭包环境记录，Value: 指向当前环境捕获的闭包变量
 // 也可以改成ClosureVar*，手动调用Reference和Dereference，可以节省一些空间
 class ClosureEnvironment : public std::vector<Value> {
-	// 当前函数捕获的变量
+public:
+	~ClosureEnvironment() = default;
 };
 
 class FunctionObject : public Object {
 public:
 	FunctionObject(Context* context, FunctionDef* function_def) noexcept;
+	~FunctionObject() = default;
 
 	void GCForEachChild(Context* context, intrusive_list<Object>* list, void(*callback)(Context* context, intrusive_list<Object>* list, const Value& child)) override {
 		Object::GCForEachChild(context, list, callback);

@@ -658,6 +658,8 @@ bool Value::IsReferenceCounter() const {
 	case ValueType::kString:
 	case ValueType::kSymbol:
 	case ValueType::kFunctionDef:
+	case ValueType::kClosureVar:
+
 		return true;
 	default:
 		return false;
