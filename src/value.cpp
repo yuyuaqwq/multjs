@@ -3,8 +3,8 @@
 #include <format>
 
 #include <mjs/context.h>
-#include <mjs/function_def.h>
 #include <mjs/object/object.h>
+#include <mjs/object/module_object.h>
 #include <mjs/object/function_object.h>
 
 namespace mjs {
@@ -110,16 +110,16 @@ Value::Value(uint32_t u32) {
 	value_.u64_ = u32;
 }
 
-//Value::Value(const UpValue& up_value) {
-//	tag_.type_ = ValueType::kUpValue;
-//	value_.up_value_ = up_value;
-//}
-
 Value::Value(ClassDef* class_def) {
 	tag_.type_ = ValueType::kClassDef;
 	value_.class_def_ = class_def;
 }
 
+Value::Value(ModuleDef* module_def) {
+	tag_.type_ = ValueType::kModuleDef;
+	value_.module_def_ = module_def;
+	value_.module_def_->Reference();
+}
 
 Value::Value(FunctionDef* function_def) {
 	tag_.type_ = ValueType::kFunctionDef;
@@ -130,6 +130,11 @@ Value::Value(FunctionDef* function_def) {
 Value::Value(CppFunction cpp_func) {
 	tag_.type_ = ValueType::kCppFunction;
 	value_.cpp_func_ = cpp_func;
+}
+
+Value::Value(ExportVar* export_var) {
+	tag_.type_ = ValueType::kExportVar;
+	value_.export_var_ = export_var;
 }
 
 Value::Value(ClosureVar* closure_var) {
@@ -601,9 +606,19 @@ ClassDef& Value::class_def() const {
 	return *value_.class_def_;
 }
 
+ExportVar& Value::export_var() const {
+	assert(IsExportVar());
+	return *value_.export_var_;
+}
+
 ClosureVar& Value::closure_var() const { 
 	assert(IsClosureVar()); 
 	return *value_.closure_var_;
+}
+
+ModuleDef& Value::module_def() const {
+	assert(IsModuleDef());
+	return *value_.module_def_;
 }
 
 FunctionDef& Value::function_def() const {
@@ -657,9 +672,9 @@ bool Value::IsReferenceCounter() const {
 	case ValueType::kReferenceCounter:
 	case ValueType::kString:
 	case ValueType::kSymbol:
+	case ValueType::kModuleDef:
 	case ValueType::kFunctionDef:
 	case ValueType::kClosureVar:
-
 		return true;
 	default:
 		return false;
@@ -726,12 +741,20 @@ bool Value::IsUInt64() const {
 	return type() == ValueType::kUInt64;
 }
 
+bool Value::IsExportVar() const {
+	return type() == ValueType::kExportVar;
+}
+
 bool Value::IsClosureVar() const {
 	return type() == ValueType::kClosureVar;
 }
 
 bool Value::IsClassDef() const {
 	return type() == ValueType::kClassDef;
+}
+
+bool Value::IsModuleDef() const {
+	return type() == ValueType::kModuleDef;
 }
 
 bool Value::IsFunctionDef() const {

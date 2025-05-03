@@ -47,6 +47,16 @@ void Stack::resize(size_t size) {
 }
 
 
+StackFrame::StackFrame(Stack* stack)
+	: stack_(stack)
+	, bottom_(stack->size()) {}
+
+StackFrame::StackFrame(const StackFrame* upper_stack_frame)
+	: upper_stack_frame_(upper_stack_frame)
+{
+	stack_ = upper_stack_frame->stack_;
+	bottom_ = upper_stack_frame->stack_->size();
+}
 
 void StackFrame::push(const Value& value) {
 	stack_->push(value);

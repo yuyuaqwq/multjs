@@ -45,11 +45,10 @@ enum class ValueType : uint32_t {
 	kNewConstructor,
 	kPrimitiveConstructor,
 
-	// kUpValue,
-
+	kModuleDef,
 	kFunctionDef,
 	kCppFunction,
-
+	kExportVar,
 	kClosureVar,
 
 	kGeneratorNext,
@@ -71,7 +70,9 @@ class AsyncObject;
 class ModuleObject;
 
 class ClassDef;
+class ModuleDef;
 class FunctionDef;
+class ExportVar;
 class ClosureVar;
 
 class Value {
@@ -104,8 +105,10 @@ public:
 	// explicit Value(const UpValue& up_value);
 
 	explicit Value(ClassDef* class_def);
+	explicit Value(ModuleDef* module_def);
 	explicit Value(FunctionDef* function_def);
 	explicit Value(CppFunction bridge);
+	explicit Value(ExportVar* export_var);
 	explicit Value(ClosureVar* closure_var);
 
 	Value(ValueType type);
@@ -161,8 +164,10 @@ public:
 	ModuleObject& module() const;
 
 	ClassDef& class_def() const;
+	ModuleDef& module_def() const;
 	FunctionDef& function_def() const;
 	CppFunction cpp_function() const;
+	ExportVar& export_var() const;
 	ClosureVar& closure_var() const;
 	
 	ReferenceCounter& reference_counter() const;
@@ -200,8 +205,10 @@ public:
 	bool IsUInt64() const;
 	
 	bool IsClassDef() const;
+	bool IsModuleDef() const;
 	bool IsFunctionDef() const;
 	bool IsCppFunction() const;
+	bool IsExportVar() const;
 	bool IsClosureVar() const;
 
 	bool IsGeneratorNext() const;
@@ -246,11 +253,10 @@ private:
 
 		ClassDef* class_def_;
 
-		// UpValue up_value_;
-
+		ModuleDef* module_def_;
 		FunctionDef* function_def_;
 		CppFunction cpp_func_;
-
+		ExportVar* export_var_;
 		ClosureVar* closure_var_;
 
 		ExceptionIdx exception_idx_;

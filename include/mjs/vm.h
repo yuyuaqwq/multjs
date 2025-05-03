@@ -22,23 +22,27 @@ public:
 };
 
 class Context;
-class Vm : public noncopyable {
+class VM : public noncopyable {
 public:
 	friend class CodeGener;
 
 public:
-	explicit Vm(Context* context);
+	explicit VM(Context* context);
+
+	void ModuleInit(Value* value);
+
+	void BindModuleExportVars(StackFrame* stack_frame);
 
 	template<typename It>
-	Value CallFunction(Value func_val, Value this_val, It begin, It end) {
+	Value CallFunction(StackFrame* stack_frame, Value func_val, Value this_val, It begin, It end) {
 		// 参数正序入栈
 		for (It it = begin; it != end; ++it) {
-			stack_frame_.push(*it);
+			stack_frame->push(*it);
 		}
 
-		CallInternal(&stack_frame_, std::move(func_val), std::move(this_val), std::distance(begin, end));
+		CallInternal(stack_frame, std::move(func_val), std::move(this_val), std::distance(begin, end));
 
-		return stack_frame_.pop();
+		return stack_frame->pop();
 	}
 
 private:
@@ -68,7 +72,7 @@ private:
 
 private:
 	Context* context_;
-	StackFrame stack_frame_;
+	// StackFrame stack_frame_;
 };
 
 } // namespace mjs

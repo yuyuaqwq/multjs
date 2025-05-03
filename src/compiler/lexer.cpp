@@ -62,10 +62,10 @@ Token Lexer::PeekTokenN(uint32_t n) {
     
     for (uint32_t i = 0; i < n; ++i) {
         if (i + 1 == n) {
-            ReadNextToken();
+            auto token = ReadNextToken();
             pos_ = idx;
             line_ = line;
-            return cur_token_;
+            return token;
         }
         ReadNextToken();
     }

@@ -40,7 +40,7 @@ Runtime::Runtime() {
 		auto content = std::string((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());;
 		file.close();
 
-		auto module = ctx->Compile(content);
+		auto module = ctx->Compile(absolute_path.string(), content);
 
 		// 先缓存模块，再调用
 		module_cache.emplace(absolute_path, module);

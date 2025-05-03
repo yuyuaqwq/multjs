@@ -59,6 +59,7 @@ public:
 	void EmitReturn(FunctionType func_type);
 
 
+	void RepairOpcode(Pc opcode_pc, OpcodeType op);
 	void RepairPc(Pc pc_from, Pc pc_to);
 	Pc CalcPc(Pc cur_pc) const;
 
@@ -74,16 +75,16 @@ public:
 	int32_t GetI32(Pc pc) const;
 	uint32_t GetU32(Pc pc) const;
 
-private:
-	uint8_t* GetPtr(Pc pc);
-	const uint8_t* GetPtr(Pc pc) const;
-
 	void EmitI8(int8_t val);
 	void EmitU8(uint8_t val);
 	void EmitI16(int16_t val);
 	void EmitU16(uint16_t val);
 	void EmitI32(uint32_t val);
 	void EmitU32(uint32_t val);
+
+private:
+	uint8_t* GetPtr(Pc pc);
+	const uint8_t* GetPtr(Pc pc) const;
 
 private:
 	std::vector<uint8_t> bytes_;

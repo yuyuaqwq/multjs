@@ -9,7 +9,7 @@
 
 namespace mjs {
 
-enum class OpcodeType {
+enum class OpcodeType : uint8_t {
 	// kStop = 0x00,
 
 	kCLoad_0 = 0x03,

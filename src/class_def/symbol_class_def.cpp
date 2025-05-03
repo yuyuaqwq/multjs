@@ -8,10 +8,10 @@ namespace mjs {
 SymbolClassDef::SymbolClassDef(Runtime* runtime)
 	: ClassDef(runtime, ClassId::kSymbol, "Symbol")
 {
-	auto iter = property_map_.emplace(runtime, String::make("iterator"), Value());
+	auto iter = property_map_.insert(runtime, String::make("iterator"), Value());
 	iter.first->second = Value(iter.first->first);
 
-	static_property_map_.emplace(runtime, String::make("for"), Value([](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
+	static_property_map_.insert(runtime, String::make("for"), Value([](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
 		if (par_count < 1) {
 			return Value("Parameter count mismatch.").SetException();
 		}

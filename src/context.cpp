@@ -12,14 +12,16 @@
 
 namespace mjs {
 
-Value Context::Compile(std::string_view script) {
+Value Context::Compile(std::string module_name, std::string_view script) {
 	auto lexer = compiler::Lexer(script.data());
 
 	auto parser = compiler::Parser(&lexer);
 	parser.ParseProgram();
 
 	auto codegener = compiler::CodeGener(runtime_, &parser);
-	auto module = codegener.Generate();
+	auto module = codegener.Generate(std::move(module_name));
+
+	vm_.ModuleInit(&module);
 
 	return module;
 }
@@ -30,8 +32,8 @@ Value Context::CallModule(Value* value) {
 }
 
 
-Value Context::Eval(std::string_view script) {
-	auto module = Compile(script);
+Value Context::Eval(std::string module_name, std::string_view script) {
+	auto module = Compile(std::move(module_name), script);
 	CallModule(&module);
 	return module;
 }

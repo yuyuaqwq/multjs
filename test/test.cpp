@@ -15,11 +15,13 @@ int main() {
     Runtime rt;
     auto ctx = Context(&rt);
 
-    ctx.EvalByPath("closure.js");
+    ctx.EvalByPath("module1.js");
 
     ctx.ExecuteMicrotasks();
 
     // rt.const_pool().clear();
+
+    rt.module_cache().clear();
 
     ctx.PrintObjectTree();
 

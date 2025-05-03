@@ -235,7 +235,8 @@ public:
                 bool is_generator, bool is_async, bool is_module)
         : Expression(start, end), id_(std::move(id)),
         params_(std::move(params)), body_(std::move(body)),
-        is_generator_(is_generator), is_async_(is_async), is_module_(is_module) {}
+        is_export_(0), is_generator_(is_generator),
+        is_async_(is_async), is_module_(is_module) {}
 
     ExpressionType type() const noexcept override {
         return ExpressionType::kFunctionExpression;

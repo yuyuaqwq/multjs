@@ -15,48 +15,67 @@
 
 namespace mjs {
 
-Vm::Vm(Context* context)
-	: context_(context) 
-	, stack_frame_(&context->runtime().stack()) {}
+VM::VM(Context* context)
+	: context_(context) {}
+
+void VM::ModuleInit(Value* module_def_value) {
+	auto& module_def = module_def_value->module_def();
+	if (module_def.export_var_defs().empty()) {
+		return;
+	}
+
+	auto module_obj = new ModuleObject(context_, &module_def);
+	*module_def_value = Value(module_obj);
+
+	for (auto& def : module_obj->module_def().export_var_defs()) {
+		module_obj->SetProperty(context_, def.first, 
+			Value(&module_obj->module_env().export_vars()[def.second.export_var_index])
+		);
+	}
+}
+
+void VM::BindModuleExportVars(StackFrame* stack_frame) {
+	auto& func_val = stack_frame->function_val();
+
+	auto& module_obj = func_val.module();
+	for (auto& def : module_obj.module_def().export_var_defs()) {
+		// 栈上的Value关联到导出变量
+		stack_frame->set(def.second.var_index, 
+			Value(&module_obj.module_env().export_vars()[def.second.export_var_index])
+		);
+	}
+}
 
 
-Value& Vm::GetVar(StackFrame* stack_frame, VarIndex idx) {
+Value& VM::GetVar(StackFrame* stack_frame, VarIndex idx) {
 	auto* var = &stack_frame->get(idx);
 	if (var->IsClosureVar()) {
 		var = &var->closure_var().value();
 	}
+	else if (var->IsExportVar()) {
+		var = &var->export_var().value();
+	}
 	return *var;
 }
 
-void Vm::SetVar(StackFrame* stack_frame, VarIndex idx, Value&& var) {
+void VM::SetVar(StackFrame* stack_frame, VarIndex idx, Value&& var) {
 	auto* var_ = &stack_frame->get(idx);
 	if (var_->IsClosureVar()) {
 		var_ = &var_->closure_var().value();
+	}
+	else if (var_->IsExportVar()) {
+		var_ = &var_->export_var().value();
 	}
 	*var_ = std::move(var);
 }
 
 
-// 未来参考quickjs，被捕获的变量另外new保存，保存到JS环境对象或直接是一个JSValueRef(优化情况)
-// 因此可以实现成惰性加载，仅在a函数的定义被加载的时候，才提升a函数捕获的变量
-
-void Vm::Closure(const StackFrame& stack_frame, Value* func_def_val) {
+void VM::Closure(const StackFrame& stack_frame, Value* func_def_val) {
 	auto& func_def = func_def_val->function_def();
 	assert(!func_def.closure_var_defs().empty());
-	//if (func_def.closure_var_defs().empty()) {
-	//	return false;
-	//}
-
-	FunctionObject* func_obj;
-	// 模块不可能捕获外部变量
-	//if (func_def.IsModule()) {
-	//	*func_def_val = Value(new ModuleObject(context_, &func_def));
-	//	func_obj = &func_def_val->module();
-	//}
-	//else {
+	
 	*func_def_val = Value(new FunctionObject(context_, &func_def));
-	func_obj = &func_def_val->function();
-	// }
+	auto* func_obj = &func_def_val->function();
 
 	auto& env = func_obj->closure_env();
 
@@ -67,100 +86,38 @@ void Vm::Closure(const StackFrame& stack_frame, Value* func_def_val) {
 		if (!var.IsClosureVar()) {
 			var = Value(new ClosureVar(std::move(var)));
 		}
-
-		env[def.second.env_var_idx] = Value(&var.closure_var());
+		env.closure_var_refs()[def.second.env_var_idx] = Value(&var.closure_var());
 	}
-
-
-	// arr.resize(func_def.closure_var_defs().size());
-
-	//auto& parent_func_val = upper_stack_frame.function_val();
-	//if (parent_func_val.IsUndefined()) {
-	//	assert(func_def.IsModule());
-	//	return true;
-	//}
-
-	//FunctionObject* parent_func_obj;
-	//if (upper_stack_frame.function_def()->IsModule()) {
-	//	parent_func_obj = &parent_func_val.module();
-	//}
-	//else {
-	//	parent_func_obj = &parent_func_val.function();
-	//}
-
-	// 递增父函数的引用计数，用于延长父函数中的closure_value_arr_的生命周期
-	// func_obj->set_parent_function(parent_func_val);
-
-	// 引用到父函数的closure_value_arr_
-	// auto& parent_arr = parent_func_obj->closure_env();
-
-	//for (auto& def : func_def.closure_var_defs()) {
-	//	if (!def.second.parent_var_idx) {
-	//		// 当前是顶级变量
-	//		continue;
-	//	}
-	//	auto& parent_closure_var_defs = parent_func_obj->function_def().closure_var_defs();
-	//	auto parent_arr_idx = parent_closure_var_defs[*def.second.parent_var_idx].arr_idx;
-	//	arr[def.second.arr_idx] = Value(UpValue(&parent_arr[parent_arr_idx]));
-	//}
-
-	// return true;
 }
 
-void Vm::BindClosureVars(StackFrame* stack_frame) {
+void VM::BindClosureVars(StackFrame* stack_frame) {
 	auto& func_val = stack_frame->function_val();
 	auto* func_def = stack_frame->function_def();
-	FunctionObject* func_obj;
-	// 模块不可能捕获外部变量
-	//if (func_def->IsModule()) {
-	//	auto module_obj = &stack_frame->function_val().module();
+	FunctionObject* func_obj = &stack_frame->function_val().function();
 
-	//	// 额外绑定可能存在的导出变量到export_map
-	//	auto& arr = module_obj->closure_env();
-	//	for (auto& pair : func_def->export_var_defs()) {
-	//		auto var_idx = pair.second;
-	//		auto iter = func_def->closure_var_defs().find(var_idx);
-	//		assert(iter != func_def->closure_var_defs().end());
-	//		module_obj->export_map().set(&context_->runtime(), pair.first, Value(
-	//			UpValue(&arr[iter->second.arr_idx])
-	//		));
-	//	}
-
-	//	func_obj = module_obj;
-	//}
-	//else {
-	func_obj = &stack_frame->function_val().function();
-	//}
-
-	// 调用的是函数对象，需要将栈上对应的局部变量绑定到堆上的ClosureVar
+	// 需要将栈上对应的局部变量绑定到堆上的ClosureVar
 	auto& env = func_obj->closure_env();
 	for (auto& def : func_def->closure_var_defs()) {
-		// 栈上的对象通过upvalue关联到闭包变量
-		stack_frame->set(def.first, Value(&env[def.second.env_var_idx].closure_var()));
+		// 栈上的Value关联到闭包变量
+		stack_frame->set(def.first, Value(&env.closure_var_refs()[def.second.env_var_idx].closure_var()));
 	}
 }
 
-const Value& Vm::GetGlobalConst(ConstIndex idx) {
+const Value& VM::GetGlobalConst(ConstIndex idx) {
 	auto& var = context_->runtime().const_pool().at(idx);
 	return var;
 }
 
-void Vm::LoadConst(StackFrame* stack_frame, ConstIndex const_idx) {
+void VM::LoadConst(StackFrame* stack_frame, ConstIndex const_idx) {
 	stack_frame->push(GetGlobalConst(const_idx));
 }
 
 
-bool Vm::FunctionScheduling(StackFrame* stack_frame, uint32_t par_count) {
+bool VM::FunctionScheduling(StackFrame* stack_frame, uint32_t par_count) {
 	switch (stack_frame->function_val().type()) {
-	case ValueType::kFunctionDef: {
-		// 这里可能需要初始化，因为可能由C++处调用一个需要提升的FunctionDef
-		auto func_val = stack_frame->function_val();
-		if (!func_val.function_def().closure_var_defs().empty()) {
-			Closure(stack_frame->upper_stack_frame(), &func_val);
-			stack_frame->set_function_val(std::move(func_val));
-		}
-	}
+	case ValueType::kModuleDef:
 	case ValueType::kModuleObject:
+	case ValueType::kFunctionDef:
 	case ValueType::kFunctionObject: {
 		stack_frame->set_function_def(function_def(stack_frame->function_val()));
 		auto* function_def = stack_frame->function_def();
@@ -179,6 +136,9 @@ bool Vm::FunctionScheduling(StackFrame* stack_frame, uint32_t par_count) {
 		if (stack_frame->function_val().type() == ValueType::kFunctionObject) {
 			BindClosureVars(stack_frame);
 		}
+		else if (stack_frame->function_val().type() == ValueType::kModuleObject) {
+			BindModuleExportVars(stack_frame);
+		}
 
 		if (function_def->IsGenerator() || function_def->IsAsync()) {
 			GeneratorObject* generator;
@@ -192,10 +152,13 @@ bool Vm::FunctionScheduling(StackFrame* stack_frame, uint32_t par_count) {
 			// 提前分配参数和局部变量栈空间
 			generator->stack().upgrade(function_def->var_count());
 
-			// 复制参数和变量(因为变量可能通过BindClosureVars绑定了)
-			for (int32_t i = 0; i < function_def->var_count(); ++i) {
-				generator->stack().set(i, stack_frame->get(i));
+			if (stack_frame->function_val().type() == ValueType::kFunctionObject) {
+				// 复制参数和变量(因为变量可能通过BindClosureVars绑定了)
+				for (int32_t i = 0; i < function_def->var_count(); ++i) {
+					generator->stack().set(i, stack_frame->get(i));
+				}
 			}
+			assert(stack_frame->function_val().type() != ValueType::kModuleObject);
 
 			if (function_def->IsGenerator()) {
 				// 是生成器函数
@@ -279,7 +242,7 @@ bool Vm::FunctionScheduling(StackFrame* stack_frame, uint32_t par_count) {
 	}
 }
 
-void Vm::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, uint32_t param_count) {
+void VM::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, uint32_t param_count) {
 	stack_frame->set_function_val(std::move(func_val));
 	stack_frame->set_this_val(std::move(this_val));
 	
@@ -406,9 +369,6 @@ void Vm::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 
 				if (!success) {
 					obj_val = Value();
-				}
-				else if(obj_val.IsClosureVar()) {
-					obj_val = obj_val.closure_var().value();
 				}
 				break;
 			}
@@ -717,7 +677,6 @@ void Vm::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 				if (!path.IsString()) {
 					throw VmException("Can only provide string paths for module loading.");
 				}
-
 				stack_frame->push(context_->runtime().load_module()(context_, path.string_view()));
 				break;
 			}
@@ -756,7 +715,7 @@ exit_:
 }
 
 
-bool Vm::ThrowExecption(StackFrame* stack_frame, std::optional<Value>* error_val) {
+bool VM::ThrowExecption(StackFrame* stack_frame, std::optional<Value>* error_val) {
 	auto& table = stack_frame->function_def()->exception_table();
 
 	auto* entry = table.FindEntry(stack_frame->pc());
@@ -792,7 +751,7 @@ bool Vm::ThrowExecption(StackFrame* stack_frame, std::optional<Value>* error_val
 	return true;
 }
 
-void Vm::GeneratorSaveContext(StackFrame* stack_frame, GeneratorObject* generator) {
+void VM::GeneratorSaveContext(StackFrame* stack_frame, GeneratorObject* generator) {
 	// 保存当前生成器的pc
 	generator->set_pc(stack_frame->pc());
 
@@ -803,7 +762,7 @@ void Vm::GeneratorSaveContext(StackFrame* stack_frame, GeneratorObject* generato
 	}
 }
 
-void Vm::GeneratorRestoreContext(StackFrame* stack_frame, GeneratorObject* generator) {
+void VM::GeneratorRestoreContext(StackFrame* stack_frame, GeneratorObject* generator) {
 	// 复制栈帧
 	auto& vector = stack().vector();
 	auto& gen_vector = generator->stack().vector();
@@ -815,19 +774,22 @@ void Vm::GeneratorRestoreContext(StackFrame* stack_frame, GeneratorObject* gener
 	stack_frame->set_pc(generator->pc());
 }
 
-Stack& Vm::stack() {
+Stack& VM::stack() {
 	return context_->runtime().stack();
 }
 
-FunctionDef* Vm::function_def(const Value& func_val) const {
-	if (func_val.IsFunctionObject()) {
+FunctionDef* VM::function_def(const Value& func_val) const {
+	if (func_val.IsFunctionDef()) {
+		return &func_val.function_def();
+	}
+	else if (func_val.IsFunctionObject()) {
 		return &func_val.function().function_def();
 	}
-	else if (func_val.IsModuleObject()) {
-		return &func_val.module().function_def();
+	if (func_val.IsModuleDef()) {
+		return &func_val.module_def();
 	}
-	else if (func_val.IsFunctionDef()) {
-		return &func_val.function_def();
+	else if (func_val.IsModuleObject()) {
+		return &func_val.module().module_def();
 	}
 	return nullptr;
 	throw std::runtime_error("Unavailable function definition.");

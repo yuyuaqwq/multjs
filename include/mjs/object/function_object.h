@@ -31,9 +31,14 @@ public:
 
 // 闭包环境记录，Value: 指向当前环境捕获的闭包变量
 // 也可以改成ClosureVar*，手动调用Reference和Dereference，可以节省一些空间
-class ClosureEnvironment : public std::vector<Value> {
+class ClosureEnvironment {
 public:
-	~ClosureEnvironment() = default;
+	const auto& closure_var_refs() const { return closure_var_refs_; }
+	auto& closure_var_refs() { return closure_var_refs_; }
+
+private:
+	// ClosureVar*
+	std::vector<Value> closure_var_refs_;
 };
 
 class FunctionObject : public Object {
@@ -44,7 +49,7 @@ public:
 	void GCForEachChild(Context* context, intrusive_list<Object>* list, void(*callback)(Context* context, intrusive_list<Object>* list, const Value& child)) override {
 		Object::GCForEachChild(context, list, callback);
 		// callback(context, list, parent_function_);
-		for (auto& var : closure_env_) {
+		for (auto& var : closure_env_.closure_var_refs()) {
 			callback(context, list, var);
 		}
 	}
@@ -53,12 +58,12 @@ public:
 		return Value(String::format("function_object:{}", function_def_->name()));
 	}
 
-	auto& function_def() const { return *function_def_; }
+	FunctionDef& function_def() const { return *function_def_; }
 
 	const auto& closure_env() const { return closure_env_; }
 	auto& closure_env() { return closure_env_; }
 	
-private:
+protected:
 	FunctionDef* function_def_;
 
 	// 闭包

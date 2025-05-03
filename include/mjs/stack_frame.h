@@ -18,8 +18,7 @@ namespace mjs {
 class Stack;
 class StackFrame : public noncopyable {
 public:
-	StackFrame(Stack* stack)
-		: stack_(stack) {}
+	StackFrame(Stack* stack);
 
 	StackFrame(const StackFrame* upper_stack_frame);
 
@@ -56,7 +55,7 @@ public:
 private:
 	Stack* stack_;
 	const StackFrame* upper_stack_frame_ = nullptr;
-	size_t bottom_ = 0;	// 当前栈帧的栈底(在栈中的索引)
+	size_t bottom_;	// 当前栈帧的栈底(在栈中的索引)
 
 	Value function_val_;
 	FunctionDef* function_def_ = nullptr;
@@ -90,12 +89,5 @@ public:
 private:
 	std::vector<Value> vector_;
 };
-
-inline StackFrame::StackFrame(const StackFrame* upper_stack_frame)
-	: upper_stack_frame_(upper_stack_frame)
-{
-	stack_ = upper_stack_frame->stack_;
-	bottom_ = upper_stack_frame->stack_->size();
-}
 
 } // namespace mjs

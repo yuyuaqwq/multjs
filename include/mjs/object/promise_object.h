@@ -3,6 +3,8 @@
 #include <mjs/job_queue.h>
 #include <mjs/object/object.h>
 
+#include <mjs/function_def.h>
+
 namespace mjs {
 
 class Context;

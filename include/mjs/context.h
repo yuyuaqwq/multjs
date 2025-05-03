@@ -19,16 +19,18 @@ public:
 		, vm_(this)
         , symbol_table_(this) {}
 
-    Value Compile(std::string_view script);
+    Value Compile(std::string module_name, std::string_view script);
 
     Value CallModule(Value* value);
 
-    Value Eval(std::string_view script);
+    Value Eval(std::string module_name, std::string_view script);
     Value EvalByPath(const char* path);
 
 	template<typename It>
 	Value CallFunction(Value* func_val, Value this_val, It begin, It end) {
-		return vm_.CallFunction(*func_val, std::move(this_val), begin, end);
+        auto stack_frame = StackFrame(&runtime().stack());
+
+		return vm_.CallFunction(&stack_frame, *func_val, std::move(this_val), begin, end);
 	}
 
     void PrintObjectTree() {
@@ -161,7 +163,7 @@ private:
     Runtime* runtime_;
 	intrusive_list<Object> object_list_;
 	LocalConstPool local_const_pool_;
-	Vm vm_;
+	VM vm_;
 	JobQueue microtask_queue_;
     PropertyMap symbol_table_;
 };

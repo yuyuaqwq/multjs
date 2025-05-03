@@ -39,22 +39,24 @@ private:
 
 
 class PropertyMap : 
-    public ::ankerl::unordered_dense::map<ConstIndex, Value, ConstIndexHasher, ConstIndexHashKeyEqual>,
+    private ::ankerl::unordered_dense::map<ConstIndex, Value, ConstIndexHasher, ConstIndexHashKeyEqual>,
     public noncopyable {
 public:
     using Base = ankerl::unordered_dense::map<ConstIndex, Value, ConstIndexHasher, ConstIndexHashKeyEqual>;
+    using iterator = Base::iterator;
+    using const_iterator = Base::const_iterator;
 
     PropertyMap(Context* context);
     PropertyMap(Runtime* runtime);
 
 	~PropertyMap();
 
-    std::pair<iterator, bool> emplace(Runtime* runtime, String* name, Value&& value) {
+    std::pair<iterator, bool> insert(Runtime* runtime, String* name, Value&& value) {
         ConstIndex index = InsertConst(runtime, name);
         return Base::emplace(index, std::move(value));
     }
 
-    std::pair<iterator, bool> emplace(Context* context, String* name, Value&& value) {
+    std::pair<iterator, bool> insert(Context* context, String* name, Value&& value) {
         ConstIndex index = InsertConst(context, name);
         ReferenceConst(context, index);
         return Base::emplace(index, std::move(value));
@@ -69,11 +71,11 @@ public:
     iterator set(Context* context, ConstIndex index, Value&& value) {
         assert(!index.is_invalid());
         auto res = Base::emplace(index, value);
-        if (res.second && index.is_local_index()) {
-            ReferenceConst(context, index);
-        }
-        else {
+        if (!res.second) {
             res.first->second = std::move(value);
+        }
+        else if (index.is_local_index()) {
+            ReferenceConst(context, index);
         }
         return res.first;
     }
@@ -85,6 +87,26 @@ public:
     }
 
     size_t erase(Context* context, ConstIndex index);
+
+
+    iterator find(ConstIndex index) {
+        assert(!index.is_invalid());
+        return Base::find(index);
+    }
+
+    const_iterator find(ConstIndex index) const {
+        assert(!index.is_invalid());
+        return Base::find(index);
+    }
+
+    // Iteration support
+    iterator begin() noexcept { return Base::begin(); }
+    const_iterator begin() const noexcept { return Base::begin(); }
+    const_iterator cbegin() const noexcept { return Base::cbegin(); }
+
+    iterator end() noexcept { return Base::end(); }
+    const_iterator end() const noexcept { return Base::end(); }
+    const_iterator cend() const noexcept { return Base::cend(); }
 
 
     Runtime& runtime() const { return *runtime_; }

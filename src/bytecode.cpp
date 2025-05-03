@@ -89,7 +89,8 @@ std::unordered_map<OpcodeType, InstrInfo> g_instr_symbol{
 
     {OpcodeType::kGetModule, {"get_module", {}}},
     {OpcodeType::kGetModuleAsync, {"get_module_async", {}}},
-
+    {OpcodeType::kClosure, {"closure", {4}}},
+    
 };
 
 
@@ -224,6 +225,12 @@ void ByteCode::EmitReturn(FunctionType func_type) {
         EmitOpcode(OpcodeType::kReturn);
     }
 }
+
+void ByteCode::RepairOpcode(Pc opcode_pc, OpcodeType op) {
+    // skip opcode
+    *reinterpret_cast<OpcodeType*>(GetPtr(opcode_pc)) = op;
+}
+
 
 void ByteCode::RepairPc(Pc pc_from, Pc pc_to) {
 	// skip opcode

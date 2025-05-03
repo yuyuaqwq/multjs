@@ -85,8 +85,6 @@ public:
 		);
 	}
 
-	void AddExportVar(std::string_view name, VarIndex var_idx);
-
 	const auto& name() const { return name_; }
 
 	auto par_count() const { return par_count_; }
@@ -95,16 +93,13 @@ public:
 	const auto& byte_code() const { return byte_code_; }
 	auto& byte_code() { return byte_code_; }
 
-	const auto& export_var_defs() const { return export_var_defs_; }
-	auto& export_var_defs() { return export_var_defs_; }
-
 	const auto& closure_var_defs() const { return closure_var_defs_; }
 	auto& closure_var_defs() { return closure_var_defs_; }
 
 	const auto& exception_table() const { return exception_table_; }
 	auto& exception_table() { return exception_table_; }
 
-private:
+protected:
 	Runtime* runtime_;
 
 	std::string name_;
@@ -121,9 +116,6 @@ private:
 
 	// 异常
 	ExceptionTable exception_table_;
-
-	// 模块
-	std::unordered_map<ConstIndex, VarIndex> export_var_defs_;
 };
 
 } // namespace mjs

@@ -3,8 +3,8 @@
 #include <iostream>
 
 #include <mjs/runtime.h>
-#include <mjs/class_def/array_object_class_def.h>
 #include <mjs/class_def/object_class_def.h>
+#include <mjs/class_def/array_object_class_def.h>
 
 namespace mjs {
 namespace compiler {
@@ -24,11 +24,11 @@ void CodeGener::RegisterCppFunction(const std::string& func_name, CppFunction fu
 	cur_func_def_->byte_code().EmitOpcode(OpcodeType::kPop);
 }
 
-Value CodeGener::Generate() {
+Value CodeGener::Generate(std::string&& module_name) {
 	scopes_.clear();
 
 	// 创建模块的函数定义
-	cur_func_def_ = new FunctionDef(runtime_, "module", 0);
+	cur_func_def_ = new ModuleDef(runtime_, std::move(module_name), 0);
 	cur_func_def_->SetModule();
 	AllocConst(Value(cur_func_def_));
 
@@ -62,7 +62,7 @@ Value CodeGener::Generate() {
 
 	ExitScope();
 
-	return Value(cur_func_def_);
+	return Value(static_cast<ModuleDef*>(cur_func_def_));
 
 }
 
@@ -313,7 +313,12 @@ void CodeGener::GenerateFunctionExpression(FunctionExpression* exp) {
 	else if (exp->is_async()) {
 		func_def.SetAsync();
 	}
-	cur_func_def_->byte_code().EmitClosure(const_idx);
+
+	auto load_pc = cur_func_def_->byte_code().Size();
+	// 可能需要修复，统一用U32了
+	cur_func_def_->byte_code().EmitOpcode(OpcodeType::kCLoadD);
+	cur_func_def_->byte_code().EmitU32(const_idx);
+
 
 	if (!exp->id().empty()) {
 		// 非匿名函数分配变量来装，这里其实有个没考虑的地方
@@ -322,7 +327,7 @@ void CodeGener::GenerateFunctionExpression(FunctionExpression* exp) {
 		cur_func_def_->byte_code().EmitVarStore(var_info.var_idx);
 
 		if (exp->is_export()) {
-			cur_func_def_->AddExportVar(exp->id(), var_info.var_idx);
+			static_cast<ModuleDef*>(cur_func_def_)->AddExportVar(exp->id(), var_info.var_idx);
 		}
 	}
 
@@ -350,10 +355,17 @@ void CodeGener::GenerateFunctionExpression(FunctionExpression* exp) {
 			}
 		}
 	}
+	
+	bool need_repair = !cur_func_def_->closure_var_defs().empty();
 
 	// 恢复环境
 	ExitScope();
 	cur_func_def_ = savefunc;
+
+	if (need_repair) {
+		cur_func_def_->byte_code().RepairOpcode(load_pc, OpcodeType::kClosure);
+	}
+
 }
 
 void CodeGener::GenerateLValueStore(Expression* lvalue_exp) {
@@ -498,7 +510,7 @@ void CodeGener::GenerateVariableDeclaration(VariableDeclaration* decl) {
 	cur_func_def_->byte_code().EmitOpcode(OpcodeType::kPop);
 
 	if (decl->is_export()) {
-		cur_func_def_->AddExportVar(decl->name(), var_info.var_idx);
+		static_cast<ModuleDef*>(cur_func_def_)->AddExportVar(decl->name(), var_info.var_idx);
 	}
 }
 
