@@ -29,8 +29,6 @@ public:
 public:
 	explicit Vm(Context* context);
 
-	bool Closure(const StackFrame& upper_stack_frame, Value* func_def_val);
-	
 	template<typename It>
 	Value CallFunction(Value func_val, Value this_val, It begin, It end) {
 		// 参数正序入栈
@@ -46,6 +44,8 @@ public:
 private:
 	Value& GetVar(StackFrame* stack_frame, VarIndex idx);
 	void SetVar(StackFrame* stack_frame, VarIndex idx, Value&& var);
+
+	void Closure(const StackFrame& stack_frame, Value* func_def_val);
 
 	void BindClosureVars(StackFrame* stack_frame);
 

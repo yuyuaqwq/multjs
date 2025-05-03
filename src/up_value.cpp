@@ -4,12 +4,12 @@
 
 namespace mjs {
 
-Value& UpValue::Up() const {
-	Value* val = up_;
-	while (val->IsUpValue()) {
-		val = val->up_value().up_;
-	}
-	return *val;
-}
+//Value& UpValue::Up() const {
+//	Value* val = up_;
+//	while (val->IsUpValue()) {
+//		val = val->up_value().up_;
+//	}
+//	return *val;
+//}
 
 } // namespace mjs

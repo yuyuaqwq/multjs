@@ -20,112 +20,124 @@ Vm::Vm(Context* context)
 	, stack_frame_(&context->runtime().stack()) {}
 
 
-bool Vm::Closure(const StackFrame& upper_stack_frame, Value* func_def_val) {
-	auto& func_def = func_def_val->function_def();
-	if (func_def.closure_var_defs().empty()) {
-		return false;
-	}
-
-	FunctionObject* func_obj;
-	if (func_def.IsModule()) {
-		*func_def_val = Value(new ModuleObject(context_, &func_def));
-		func_obj = &func_def_val->module();
-	}
-	else {
-		*func_def_val = Value(new FunctionObject(context_, &func_def));
-		func_obj = &func_def_val->function();
-	}
-	
-	auto& arr = func_obj->closure_value_arr();
-	arr.resize(func_def.closure_var_defs().size());
-
-	// array需要初始化为upvalue，指向父函数的ArrayValue
-	// 如果没有父函数就不需要，即是顶层模块，默认初始化为未定义
-	auto& parent_func_val = upper_stack_frame.function_val();
-	if (parent_func_val.IsUndefined()) {
-		assert(func_def.IsModule());
-		return true;
-	}
-
-	FunctionObject* parent_func_obj;
-	if (upper_stack_frame.function_def()->IsModule()) {
-		parent_func_obj = &parent_func_val.module();
-	}
-	else {
-		parent_func_obj = &parent_func_val.function();
-	}
-
-	// 递增父函数的引用计数，用于延长父函数中的closure_value_arr_的生命周期
-	func_obj->set_parent_function(parent_func_val);
-
-	// 引用到父函数的closure_value_arr_
-	auto& parent_arr = parent_func_obj->closure_value_arr();
-
-	for (auto& def : func_obj->function_def().closure_var_defs()) {
-		if (!def.second.parent_var_idx) {
-			// 当前是顶级变量
-			continue;
-		}
-		auto& parent_closure_var_defs = parent_func_obj->function_def().closure_var_defs();
-		auto parent_arr_idx = parent_closure_var_defs[*def.second.parent_var_idx].arr_idx;
-		arr[def.second.arr_idx] = Value(UpValue(&parent_arr[parent_arr_idx]));
-	}
-
-	return true;
-}
-
-void Vm::BindClosureVars(StackFrame* stack_frame) {
-	auto& func_val = stack_frame->function_val();
-	if (func_val.IsUndefined() || func_val.IsFunctionDef()) {
-		return;
-	}
-
-	auto* func_def = stack_frame->function_def();
-	FunctionObject* func_obj;
-	if (func_def->IsModule()) {
-		auto module_obj = &stack_frame->function_val().module();
-
-		// 额外绑定可能存在的导出变量到export_map
-		auto& arr = module_obj->closure_value_arr();
-		for (auto& pair : func_def->export_var_defs()) {
-			auto var_idx = pair.second;
-			auto iter = func_def->closure_var_defs().find(var_idx);
-			assert(iter != func_def->closure_var_defs().end());
-			module_obj->export_map().set(&context_->runtime(), pair.first, Value(
-				UpValue(&arr[iter->second.arr_idx])
-			));
-		}
-
-		func_obj = module_obj;
-	}
-	else {
-		func_obj = &stack_frame->function_val().function();
-	}
-
-	// 调用的是函数对象，可能需要处理闭包内的upvalue
-	auto& arr = func_obj->closure_value_arr();
-	for (auto& def : stack_frame->function_def()->closure_var_defs()) {
-		// 栈上的对象通过upvalue关联到闭包变量
-		stack_frame->set(def.first, Value(
-			UpValue(&arr[def.second.arr_idx])
-		));
-	}
-}
-
 Value& Vm::GetVar(StackFrame* stack_frame, VarIndex idx) {
 	auto* var = &stack_frame->get(idx);
-	if (var->IsUpValue()) {
-		var = &var->up_value().Up();
+	if (var->IsClosureVar()) {
+		var = &var->closure_var().value();
 	}
 	return *var;
 }
 
 void Vm::SetVar(StackFrame* stack_frame, VarIndex idx, Value&& var) {
 	auto* var_ = &stack_frame->get(idx);
-	if (var_->IsUpValue()) {
-		var_ = &var_->up_value().Up();
+	if (var_->IsClosureVar()) {
+		var_ = &var_->closure_var().value();
 	}
 	*var_ = std::move(var);
+}
+
+
+// 未来参考quickjs，被捕获的变量另外new保存，保存到JS环境对象或直接是一个JSValueRef(优化情况)
+// 因此可以实现成惰性加载，仅在a函数的定义被加载的时候，才提升a函数捕获的变量
+
+void Vm::Closure(const StackFrame& stack_frame, Value* func_def_val) {
+	auto& func_def = func_def_val->function_def();
+	assert(!func_def.closure_var_defs().empty());
+	//if (func_def.closure_var_defs().empty()) {
+	//	return false;
+	//}
+
+	FunctionObject* func_obj;
+	// 模块不可能捕获外部变量
+	//if (func_def.IsModule()) {
+	//	*func_def_val = Value(new ModuleObject(context_, &func_def));
+	//	func_obj = &func_def_val->module();
+	//}
+	//else {
+	*func_def_val = Value(new FunctionObject(context_, &func_def));
+	func_obj = &func_def_val->function();
+	// }
+
+	auto& env = func_obj->closure_env();
+
+	// 捕获变量
+	auto& closure_var_defs = func_def.closure_var_defs();
+	for (auto& def : closure_var_defs) {
+		auto& var = stack_frame.get(def.second.parent_var_idx);
+		if (!var.IsClosureVar()) {
+			var = Value(new ClosureVar(std::move(var)));
+		}
+
+		env[def.second.env_var_idx] = Value(&var.closure_var());
+	}
+
+
+	// arr.resize(func_def.closure_var_defs().size());
+
+	//auto& parent_func_val = upper_stack_frame.function_val();
+	//if (parent_func_val.IsUndefined()) {
+	//	assert(func_def.IsModule());
+	//	return true;
+	//}
+
+	//FunctionObject* parent_func_obj;
+	//if (upper_stack_frame.function_def()->IsModule()) {
+	//	parent_func_obj = &parent_func_val.module();
+	//}
+	//else {
+	//	parent_func_obj = &parent_func_val.function();
+	//}
+
+	// 递增父函数的引用计数，用于延长父函数中的closure_value_arr_的生命周期
+	// func_obj->set_parent_function(parent_func_val);
+
+	// 引用到父函数的closure_value_arr_
+	// auto& parent_arr = parent_func_obj->closure_env();
+
+	//for (auto& def : func_def.closure_var_defs()) {
+	//	if (!def.second.parent_var_idx) {
+	//		// 当前是顶级变量
+	//		continue;
+	//	}
+	//	auto& parent_closure_var_defs = parent_func_obj->function_def().closure_var_defs();
+	//	auto parent_arr_idx = parent_closure_var_defs[*def.second.parent_var_idx].arr_idx;
+	//	arr[def.second.arr_idx] = Value(UpValue(&parent_arr[parent_arr_idx]));
+	//}
+
+	// return true;
+}
+
+void Vm::BindClosureVars(StackFrame* stack_frame) {
+	auto& func_val = stack_frame->function_val();
+	auto* func_def = stack_frame->function_def();
+	FunctionObject* func_obj;
+	// 模块不可能捕获外部变量
+	//if (func_def->IsModule()) {
+	//	auto module_obj = &stack_frame->function_val().module();
+
+	//	// 额外绑定可能存在的导出变量到export_map
+	//	auto& arr = module_obj->closure_env();
+	//	for (auto& pair : func_def->export_var_defs()) {
+	//		auto var_idx = pair.second;
+	//		auto iter = func_def->closure_var_defs().find(var_idx);
+	//		assert(iter != func_def->closure_var_defs().end());
+	//		module_obj->export_map().set(&context_->runtime(), pair.first, Value(
+	//			UpValue(&arr[iter->second.arr_idx])
+	//		));
+	//	}
+
+	//	func_obj = module_obj;
+	//}
+	//else {
+	func_obj = &stack_frame->function_val().function();
+	//}
+
+	// 调用的是函数对象，需要将栈上对应的局部变量绑定到堆上的ClosureVar
+	auto& env = func_obj->closure_env();
+	for (auto& def : func_def->closure_var_defs()) {
+		// 栈上的对象通过upvalue关联到闭包变量
+		stack_frame->set(def.first, Value(&env[def.second.env_var_idx].closure_var()));
+	}
 }
 
 const Value& Vm::GetGlobalConst(ConstIndex idx) {
@@ -143,7 +155,8 @@ bool Vm::FunctionScheduling(StackFrame* stack_frame, uint32_t par_count) {
 	case ValueType::kFunctionDef: {
 		// 这里可能需要初始化，因为可能由C++处调用一个需要提升的FunctionDef
 		auto func_val = stack_frame->function_val();
-		if (Closure(stack_frame->upper_stack_frame(), &func_val)) {
+		if (!func_val.function_def().closure_var_defs().empty()) {
+			Closure(stack_frame->upper_stack_frame(), &func_val);
 			stack_frame->set_function_val(std::move(func_val));
 		}
 	}
@@ -163,7 +176,9 @@ bool Vm::FunctionScheduling(StackFrame* stack_frame, uint32_t par_count) {
 
 		assert(function_def->var_count() >= function_def->par_count());
 		stack_frame->upgrade(function_def->var_count() - function_def->par_count());
-		BindClosureVars(stack_frame);
+		if (stack_frame->function_val().type() == ValueType::kFunctionObject) {
+			BindClosureVars(stack_frame);
+		}
 
 		if (function_def->IsGenerator() || function_def->IsAsync()) {
 			GeneratorObject* generator;
@@ -392,8 +407,8 @@ void Vm::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 				if (!success) {
 					obj_val = Value();
 				}
-				else if(obj_val.IsUpValue()) {
-					obj_val = obj_val.up_value().Up();
+				else if(obj_val.IsClosureVar()) {
+					obj_val = obj_val.closure_var().value();
 				}
 				break;
 			}

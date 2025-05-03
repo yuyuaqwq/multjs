@@ -12,18 +12,18 @@
 namespace mjs {
 
 struct ClosureVarDef {
-	// upvalue在closure_value_arr_的索引
-	uint32_t arr_idx;
+	// 该变量在ClosureEnvironment::vars_的索引
+	uint32_t env_var_idx;
 
-	// upvalue指向的变量在父作用域中的变量索引
-	std::optional<VarIndex> parent_var_idx;
+	// 在父作用域中的变量索引
+	VarIndex parent_var_idx;
 };
 
 class Runtime;
 // 不会有循环引用问题，仅使用引用计数管理
 class FunctionDef : public ReferenceCounter {
 public:
-	struct VarInfo {
+	struct VarDef {
 		std::string name;
 		struct {
 			uint32_t is_export : 1;
@@ -69,17 +69,17 @@ public:
 
 	void AddVar(std::string name) {
 		++var_count_;
-		var_info_.emplace_back(std::move(name));
+		var_defs_.emplace_back(std::move(name));
 	}
 
 	const auto& GetVarInfo(VarIndex idx) const {
-		return var_info_.at(idx);
+		return var_defs_.at(idx);
 	}
 
-	void AddClosureVar(VarIndex var_idx, std::optional<VarIndex> parent_var_idx) {
+	void AddClosureVar(VarIndex var_idx, VarIndex parent_var_idx) {
 		closure_var_defs_.emplace(var_idx, 
 			ClosureVarDef{
-				.arr_idx = uint32_t(closure_var_defs_.size()),
+				.env_var_idx = uint32_t(closure_var_defs_.size()),
 				.parent_var_idx = parent_var_idx,
 			}
 		);
@@ -108,31 +108,22 @@ private:
 	Runtime* runtime_;
 
 	std::string name_;
-
-	uint32_t par_count_;
-	uint32_t var_count_ = 0;		// 包括par_count
-
 	FunctionType type_ = FunctionType::kNormal;
 
-	std::vector<VarInfo> var_info_;
-
-	std::unordered_map<ConstIndex, VarIndex> export_var_defs_;
-
+	// 字节码
 	ByteCode byte_code_;
 
-	// 优化方向：
-	// 如果所有记录都没有捕获外部变量，都是顶级upvalue变量
-	// 则closure_value_arr_可以指向栈帧，无需内存分配
-
-	// upvalue变量记录，upvalue变量在当前作用域的索引
-	// 如果存在的话，则加载时需要创建FunctionObject
-
-	// 当前函数捕获的外部变量/被内部函数捕获的变量/模块导出的变量
-	// key: upvalue变量索引
-	std::unordered_map<VarIndex, ClosureVarDef> closure_var_defs_;
+	// 变量
+	uint32_t par_count_;
+	uint32_t var_count_ = 0;
+	std::vector<VarDef> var_defs_;
+	std::unordered_map<VarIndex, ClosureVarDef> closure_var_defs_;		// 捕获的外部变量
 
 	// 异常
 	ExceptionTable exception_table_;
+
+	// 模块
+	std::unordered_map<ConstIndex, VarIndex> export_var_defs_;
 };
 
 } // namespace mjs

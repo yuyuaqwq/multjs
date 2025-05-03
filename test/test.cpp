@@ -15,7 +15,7 @@ int main() {
     Runtime rt;
     auto ctx = Context(&rt);
 
-    ctx.EvalByPath("iterator.ts");
+    ctx.EvalByPath("closure.js");
 
     ctx.ExecuteMicrotasks();
 

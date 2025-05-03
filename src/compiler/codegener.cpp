@@ -869,17 +869,17 @@ const VarInfo* CodeGener::FindVarIndexByName(const std::string& var_name) {
 			find_var_info = var_info;
 		}
 		else {
-			// 在上层函数作用域找到了，构建upvalue捕获链
+			// 在上层函数作用域找到了，构建捕获链
 			auto scope_func = scopes_[i].function_def();
-			scope_func->AddClosureVar(var_idx, std::nullopt);
 
+			// 途径的每一级作用域，都需要构建
 			for (size_t j = i + 1; j < scopes_.size(); ++j) {
 				if (scope_func == scopes_[j].function_def()) {
 					continue;
 				}
 				scope_func = scopes_[j].function_def();
 
-				// 为upvalue分配变量
+				// 为Value(&closure_var)分配变量
 				find_var_info = &scopes_[j].AllocVar(var_name, var_info->flags);
 				scope_func->AddClosureVar(find_var_info->var_idx, var_idx);
 				var_idx = find_var_info->var_idx;

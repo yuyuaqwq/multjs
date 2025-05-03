@@ -110,10 +110,10 @@ Value::Value(uint32_t u32) {
 	value_.u64_ = u32;
 }
 
-Value::Value(const UpValue& up_value) {
-	tag_.type_ = ValueType::kUpValue;
-	value_.up_value_ = up_value;
-}
+//Value::Value(const UpValue& up_value) {
+//	tag_.type_ = ValueType::kUpValue;
+//	value_.up_value_ = up_value;
+//}
 
 Value::Value(ClassDef* class_def) {
 	tag_.type_ = ValueType::kClassDef;
@@ -131,6 +131,13 @@ Value::Value(CppFunction cpp_func) {
 	tag_.type_ = ValueType::kCppFunction;
 	value_.cpp_func_ = cpp_func;
 }
+
+Value::Value(ClosureVar* closure_var) {
+	tag_.type_ = ValueType::kClosureVar;
+	value_.closure_var_ = closure_var;
+	value_.closure_var_->Reference();
+}
+
 
 Value::Value(ValueType type) {
 	tag_.type_ = type;
@@ -223,7 +230,7 @@ ptrdiff_t Value::Comparer(const Value& rhs) const {
 		return u64() - rhs.u64();
 	case ValueType::kFunctionDef:
 	case ValueType::kCppFunction:
-	case ValueType::kUpValue:
+	case ValueType::kClosureVar:
 		return value_.full_ - rhs.value_.full_;
 	default:
 		throw std::runtime_error("Incorrect value type.");
@@ -255,7 +262,7 @@ size_t Value::hash() const {
 		return std::hash<uint64_t>()(u64());
 	case mjs::ValueType::kFunctionDef:
 	case mjs::ValueType::kCppFunction:
-	case mjs::ValueType::kUpValue:
+	case mjs::ValueType::kClosureVar:
 		// 使用内部值计算哈希
 		return std::hash<uint64_t>()(value_.full_);
 	default:
@@ -302,7 +309,7 @@ Value Value::operator+(const Value& rhs) const {
 			return Value(double(i64()) + rhs.f64());
 		}
 		case ValueType::kInt64: {
-			return Value(i64() + i64());
+			return Value(i64() + rhs.i64());
 		}
 		case ValueType::kStringView:
 		case ValueType::kString: {
@@ -315,9 +322,9 @@ Value Value::operator+(const Value& rhs) const {
 	case ValueType::kString: {
 		switch (rhs.type()) {
 		case ValueType::kFloat64:
-			return Value(String::format("{}{}", string_view(), f64()));
+			return Value(String::format("{}{}", string_view(), rhs.f64()));
 		case ValueType::kInt64: {
-			return Value(String::format("{}{}", string_view(), i64()));
+			return Value(String::format("{}{}", string_view(), rhs.i64()));
 		}
 		case ValueType::kStringView:
 		case ValueType::kString: {
@@ -348,7 +355,7 @@ Value Value::operator-(const Value& rhs) const {
 			return Value(double(i64()) - rhs.f64());
 		}
 		case ValueType::kInt64: {
-			return Value(i64() - i64());
+			return Value(i64() - rhs.i64());
 		}
 		}
 		break;
@@ -378,7 +385,7 @@ Value Value::operator*(const Value& rhs) const {
 			return Value(double(i64()) * rhs.f64());
 		}
 		case ValueType::kInt64: {
-			return Value(i64() * i64());
+			return Value(i64() * rhs.i64());
 		}
 		}
 		break;
@@ -407,7 +414,7 @@ Value Value::operator/(const Value& rhs) const {
 			return Value(double(i64()) / rhs.f64());
 		}
 		case ValueType::kInt64: {
-			return Value(double(i64()) / double(i64()));
+			return Value(double(i64()) / double(rhs.i64()));
 		}
 		}
 		break;
@@ -594,9 +601,9 @@ ClassDef& Value::class_def() const {
 	return *value_.class_def_;
 }
 
-const UpValue& Value::up_value() const { 
-	assert(IsUpValue()); 
-	return value_.up_value_;
+ClosureVar& Value::closure_var() const { 
+	assert(IsClosureVar()); 
+	return *value_.closure_var_;
 }
 
 FunctionDef& Value::function_def() const {
@@ -717,8 +724,8 @@ bool Value::IsUInt64() const {
 	return type() == ValueType::kUInt64;
 }
 
-bool Value::IsUpValue() const {
-	return type() == ValueType::kUpValue;
+bool Value::IsClosureVar() const {
+	return type() == ValueType::kClosureVar;
 }
 
 bool Value::IsClassDef() const {
@@ -762,8 +769,8 @@ Value Value::ToString(Context* context) const {
 		return Value(String::format("new_constructor:{}", class_def().name()));
 	case ValueType::kPrimitiveConstructor:
 		return Value(String::format("primitive_constructor:{}", class_def().name()));
-	case ValueType::kUpValue:
-		return up_value().Up().ToString(context);
+	case ValueType::kClosureVar:
+		return closure_var().value().ToString(context);
 	default:
 		if (IsObject()) {
 			return object().ToString(context);

@@ -10,7 +10,7 @@
 #include <mjs/const_def.h>
 #include <mjs/string.h>
 #include <mjs/symbol.h>
-#include <mjs/up_value.h>
+// #include <mjs/up_value.h>
 #include <mjs/exception.h>
 
 namespace mjs {
@@ -45,10 +45,12 @@ enum class ValueType : uint32_t {
 	kNewConstructor,
 	kPrimitiveConstructor,
 
-	kUpValue,
+	// kUpValue,
 
 	kFunctionDef,
 	kCppFunction,
+
+	kClosureVar,
 
 	kGeneratorNext,
 
@@ -70,6 +72,7 @@ class ModuleObject;
 
 class ClassDef;
 class FunctionDef;
+class ClosureVar;
 
 class Value {
 public:
@@ -98,11 +101,12 @@ public:
 	explicit Value(uint64_t u64);
 	explicit Value(uint32_t u32);
 
-	explicit Value(const UpValue& up_value);
+	// explicit Value(const UpValue& up_value);
 
 	explicit Value(ClassDef* class_def);
 	explicit Value(FunctionDef* function_def);
 	explicit Value(CppFunction bridge);
+	explicit Value(ClosureVar* closure_var);
 
 	Value(ValueType type);
 	Value(ValueType type, PromiseObject* promise);
@@ -157,10 +161,10 @@ public:
 	ModuleObject& module() const;
 
 	ClassDef& class_def() const;
-	const UpValue& up_value() const;
 	FunctionDef& function_def() const;
 	CppFunction cpp_function() const;
-
+	ClosureVar& closure_var() const;
+	
 	ReferenceCounter& reference_counter() const;
 	template<typename ReferenceCounterT>
 	ReferenceCounterT& reference_counter() const {
@@ -194,10 +198,12 @@ public:
 	bool IsFloat() const;
 	bool IsInt64() const;
 	bool IsUInt64() const;
-	bool IsUpValue() const;
+	
 	bool IsClassDef() const;
 	bool IsFunctionDef() const;
 	bool IsCppFunction() const;
+	bool IsClosureVar() const;
+
 	bool IsGeneratorNext() const;
 	bool IsIteratorObject() const;
 
@@ -240,10 +246,12 @@ private:
 
 		ClassDef* class_def_;
 
-		UpValue up_value_;
+		// UpValue up_value_;
 
 		FunctionDef* function_def_;
 		CppFunction cpp_func_;
+
+		ClosureVar* closure_var_;
 
 		ExceptionIdx exception_idx_;
 	} value_;

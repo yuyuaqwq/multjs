@@ -24,7 +24,7 @@ std::string FunctionDef::Disassembly(Context* context) const {
 
 void FunctionDef::AddExportVar(std::string_view name, VarIndex var_idx) {
 	export_var_defs_.emplace(runtime_->const_pool().insert(Value(String::make(name))), var_idx);
-	AddClosureVar(var_idx, std::nullopt);
+	// AddClosureVar(var_idx, std::nullopt);
 }
 
 } // namespace mjs
