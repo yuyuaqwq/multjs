@@ -89,10 +89,12 @@ void VM::Closure(const StackFrame& stack_frame, Value* func_def_val) {
 		env.closure_var_refs()[def.second.env_var_idx] = Value(&var.closure_var());
 	}
 
-	// 捕获下this
-	Value this_val = stack_frame.this_val();
-	// this_val = Value(new ClosureVar(std::move(this_val)));
-	env.set_lexical_this(std::move(this_val));
+	if (func_def.has_this() && func_def.is_arrow()) {
+		// 捕获下this
+		Value this_val = stack_frame.this_val();
+		// this_val = Value(new ClosureVar(std::move(this_val)));
+		env.set_lexical_this(std::move(this_val));
+	}
 }
 
 void VM::BindClosureVars(StackFrame* stack_frame) {
