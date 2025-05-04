@@ -21,6 +21,14 @@ public:
 
 class Lexer : public noncopyable {
 public:
+	struct Checkpoint {
+		SourcePos pos;
+		SourceLine line;
+		Token cur_token;
+		Token peek_;
+	};
+
+public:
 	Lexer(const char* src);
 	~Lexer() noexcept;
 
@@ -28,6 +36,22 @@ public:
 	Token PeekTokenN(uint32_t n);
 	Token NextToken();
 	Token MatchToken(TokenType type);
+
+	Checkpoint CreateCheckpoint() {
+		return Checkpoint{
+			.pos = pos_,
+			.line = line_,
+			.cur_token = cur_token_,
+			.peek_ = peek_,
+		};
+	}
+
+	void RewindToCheckpoint(const Checkpoint& checkpoint) {
+		pos_ = checkpoint.pos;
+		line_ = checkpoint.line;
+		cur_token_ = checkpoint.cur_token;
+		peek_ = checkpoint.peek_;
+	}
 
 	SourcePos pos() const { return pos_; }
 
@@ -43,9 +67,9 @@ private:
 private:
 	std::string src_;
 	SourcePos pos_ = 0;
+	SourceLine line_ = 1;
 	Token cur_token_;
 	Token peek_;
-	SourceLine line_ = 1;
 };
 
 } // namespace compiler

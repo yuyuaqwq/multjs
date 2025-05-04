@@ -33,12 +33,25 @@ public:
 // 也可以改成ClosureVar*，手动调用Reference和Dereference，可以节省一些空间
 class ClosureEnvironment {
 public:
+	void GCForEachChild(Context* context, intrusive_list<Object>* list, void(*callback)(Context* context, intrusive_list<Object>* list, const Value& child)) {
+		for (auto& var : closure_var_refs_) {
+			callback(context, list, var);
+		}
+		callback(context, list, lexical_this_);
+	}
+
 	const auto& closure_var_refs() const { return closure_var_refs_; }
 	auto& closure_var_refs() { return closure_var_refs_; }
+
+	const auto& lexical_this() const { return lexical_this_; }
+	void set_lexical_this(Value&& lexical_this) { lexical_this_ = lexical_this; }
 
 private:
 	// ClosureVar*
 	std::vector<Value> closure_var_refs_;
+
+	// 词法作用域捕获的this
+	Value lexical_this_;
 };
 
 class FunctionObject : public Object {
@@ -48,10 +61,7 @@ public:
 
 	void GCForEachChild(Context* context, intrusive_list<Object>* list, void(*callback)(Context* context, intrusive_list<Object>* list, const Value& child)) override {
 		Object::GCForEachChild(context, list, callback);
-		// callback(context, list, parent_function_);
-		for (auto& var : closure_env_.closure_var_refs()) {
-			callback(context, list, var);
-		}
+		closure_env_.GCForEachChild(context, list, callback);
 	}
 
 	Value ToString(Context* context) override {

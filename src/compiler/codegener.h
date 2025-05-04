@@ -52,10 +52,14 @@ private:
 	void GenerateExpression(Expression* exp);
 	void GeneratorArrayExpression(ArrayExpression* arr_exp);
 	void GeneratorObjectExpression(ObjectExpression* obj_exp);
+	void GenerateFunctionBody(Statement* statement);
 	void GenerateFunctionExpression(FunctionExpression* exp);
+	void GenerateArrowFunctionExpression(ArrowFunctionExpression* exp);
 	void GenerateLValueStore(Expression* lvalue_exp);
 
 	void GenerateStatement(Statement* stat);
+
+	void GenerateExpressionStatement(ExpressionStatement* stat);
 
 	void GenerateImportDeclaration(ImportDeclaration* stat);
 	void GenerateExportDeclaration(ExportDeclaration* stat);

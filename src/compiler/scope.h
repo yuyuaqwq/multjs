@@ -23,6 +23,7 @@ enum class ScopeType {
 	kWhile,
 	kFor,
 	kFunction,
+	kArrowFunction,
 
 	kTry,
 	kTryFinally,

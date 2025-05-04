@@ -32,7 +32,7 @@ void Stack::upgrade(size_t size) {
 	vector_.resize(vector_.size() + size);
 }
 
-void Stack::reduce(size_t size) {
+void Stack::reduce(size_t size) { 
 	assert(vector_.size() >= size);
 	vector_.resize(vector_.size() - size);
 }

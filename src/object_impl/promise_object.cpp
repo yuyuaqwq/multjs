@@ -66,6 +66,8 @@ void PromiseObject::Reject(Context* context, Value value) {
     }
 }
 
+
+// todo: Then可能也需要处理自动解包？
 Value PromiseObject::Then(Context* context, Value on_fulfilled, Value on_rejected) {
     auto* new_promise = new PromiseObject(context, Value());
 
@@ -80,7 +82,7 @@ Value PromiseObject::Then(Context* context, Value on_fulfilled, Value on_rejecte
         auto on_fulfilled_result = context->CallFunction(&on_fulfilled, Value(), argv.begin(), argv.end());
 
         // 然后传递给new_promise
-        new_promise.Resolve(context, on_fulfilled_result);
+        new_promise.ResolvePromise(context, on_fulfilled_result);
 
         return Value();
     });
@@ -95,7 +97,7 @@ Value PromiseObject::Then(Context* context, Value on_fulfilled, Value on_rejecte
         auto on_rejected_result = context->CallFunction(&on_rejected, Value(), argv.begin(), argv.end());
 
         // 然后传递给new_promise
-        new_promise.Reject(context, on_rejected_result);
+        new_promise.ResolvePromise(context, on_rejected_result);
 
         return Value();
     });

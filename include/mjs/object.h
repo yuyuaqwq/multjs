@@ -42,6 +42,7 @@ public:
 
 	virtual void SetProperty(Context* context, ConstIndex key, Value&& value);
 	virtual bool GetProperty(Context* context, ConstIndex key, Value* value);
+	virtual bool HasProperty(Context* context, ConstIndex key);
 	virtual void DelProperty(Context* context, ConstIndex key);
 
 	virtual void SetComputedProperty(Context* context, const Value& key, Value&& val);

@@ -72,7 +72,7 @@ std::unordered_map<OpcodeType, InstrInfo> g_instr_symbol{
 
     {OpcodeType::kFunctionCall, {"function_call", {}}},
     {OpcodeType::kGetThis, {"get_this", {}}},
-    {OpcodeType::kSetThis, {"set_this", {}}},
+    {OpcodeType::kGetOuterThis, {"get_outer_this", {}}},
 
     {OpcodeType::kYield, {"yield", {}}},
     {OpcodeType::kGeneratorReturn, {"generator_return", {}}},
@@ -214,11 +214,11 @@ void ByteCode::EmitIndexedStore() {
     EmitOpcode(OpcodeType::kIndexedStore);
 }
 
-void ByteCode::EmitReturn(FunctionType func_type) {
-    if (func_type == FunctionType::kGenerator) {
+void ByteCode::EmitReturn(FunctionDef* function_def) {
+    if (function_def->is_generator()) {
         EmitOpcode(OpcodeType::kGeneratorReturn);
     }
-    else if (func_type == FunctionType::kAsync) {
+    else if (function_def->is_async()) {
         EmitOpcode(OpcodeType::kAsyncReturn);
     }
     else {

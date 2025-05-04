@@ -52,6 +52,11 @@ bool Object::GetProperty(Context* context, ConstIndex key, Value* value) {
 	return false;
 }
 
+bool Object::HasProperty(Context* context, ConstIndex key) {
+	Value value;
+	return GetProperty(context, key, &value);
+}
+
 void Object::DelProperty(Context* context, ConstIndex key) {
 	assert(!tag_.is_const_);
 	if (!property_map_) return;

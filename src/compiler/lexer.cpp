@@ -50,21 +50,17 @@ Token Lexer::PeekToken() {
 
 // 前瞻自此往后第N个Token
 Token Lexer::PeekTokenN(uint32_t n) {
-    auto idx = pos_;
-    auto line = line_;
-
     if (n == 1) {
         return PeekToken();
     }
     else if (n > 1 && !peek_.is(TokenType::kNone)) {
         n -= 1;
     }
-    
+    auto checkpoint = CreateCheckpoint();
     for (uint32_t i = 0; i < n; ++i) {
         if (i + 1 == n) {
             auto token = ReadNextToken();
-            pos_ = idx;
-            line_ = line;
+            RewindToCheckpoint(checkpoint);
             return token;
         }
         ReadNextToken();

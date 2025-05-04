@@ -87,7 +87,7 @@ enum class OpcodeType : uint8_t {
 	// Method invocation
 	kFunctionCall = 0xb8,
 	kGetThis = 0xb9,
-	kSetThis = 0xba,
+	kGetOuterThis = 0xba,
 
 	// async
 	kYield = 0xc0,

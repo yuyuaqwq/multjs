@@ -27,9 +27,11 @@ public:
 
 	std::unique_ptr<Expression> ParseExpression();
 	std::unique_ptr<Expression> ParseCommaExpression();
-	std::unique_ptr<Expression> ParseYieldFunctionOrAssignment();
+	std::unique_ptr<Expression> ParseAssignmentOrFunction();
 	std::unique_ptr<YieldExpression> ParseYieldExpression();
-	std::unique_ptr<FunctionExpression> ParseFunctionOrGeneratorExpression();
+	std::unique_ptr<Expression> ParseFunctionExpression();
+	std::unique_ptr<Expression> TryParseArrowFunction(SourcePos start, bool is_async);
+	std::unique_ptr<Expression> ParseTraditionalFunction(SourcePos start, bool is_async, bool is_generator);
 	std::unique_ptr<Expression> ParseAssignmentExpression();
 	std::unique_ptr<Expression> ParseTernaryExpression();
 	std::unique_ptr<Expression> ParseLogicalOrExpression();

@@ -35,37 +35,6 @@ public:
 
 	std::string Disassembly(Context* context) const;
 
-	void SetGenerator() {
-		type_ = FunctionType::kGenerator;
-	}
-
-	void SetAsync() {
-		type_ = FunctionType::kAsync;
-	}
-
-	void SetModule() {
-		type_ = FunctionType::kModule;
-	}
-
-	bool IsNormal() const {
-		return type_ == FunctionType::kNormal;
-	}
-
-	bool IsGenerator() const {
-		return type_ == FunctionType::kGenerator;
-	}
-
-	bool IsAsync() const {
-		return type_ == FunctionType::kAsync;
-	}
-
-	bool IsModule() const {
-		return type_ == FunctionType::kModule;
-	}
-
-	FunctionType type() {
-		return type_;
-	}
 
 	void AddVar(std::string name) {
 		++var_count_;
@@ -87,6 +56,54 @@ public:
 
 	const auto& name() const { return name_; }
 
+	void set_is_normal() {
+		flags_.is_normal_ = true;
+		flags_.is_module_ = false;
+		flags_.is_arrow_ = false;
+	}
+
+	void set_is_module() {
+		flags_.is_normal_ = false;
+		flags_.is_module_ = true;
+		flags_.is_arrow_ = false;
+	}
+
+	void set_is_arrow() {
+		flags_.is_normal_ = false;
+		flags_.is_module_ = false;
+		flags_.is_arrow_ = true;
+	}
+
+	void set_is_generator() {
+		flags_.is_generator_ = true;
+	}
+
+	void set_is_async() {
+		flags_.is_asnyc_ = true;
+	}
+
+	bool is_normal() const {
+		return flags_.is_normal_;
+	}
+
+	bool is_module() const {
+		return flags_.is_module_;
+	}
+
+	bool is_arrow() const {
+		return flags_.is_arrow_;
+	}
+
+	bool is_generator() const {
+		return flags_.is_generator_;
+	}
+
+	bool is_async() const {
+		return flags_.is_asnyc_;
+	}
+
+
+
 	auto par_count() const { return par_count_; }
 	auto var_count() const { return var_count_; }
 
@@ -96,6 +113,10 @@ public:
 	const auto& closure_var_defs() const { return closure_var_defs_; }
 	auto& closure_var_defs() { return closure_var_defs_; }
 
+	const auto& has_this() const { return has_this_; }
+	void set_has_this(bool has_this) { has_this_ = has_this; }
+	
+
 	const auto& exception_table() const { return exception_table_; }
 	auto& exception_table() { return exception_table_; }
 
@@ -103,7 +124,15 @@ protected:
 	Runtime* runtime_;
 
 	std::string name_;
-	FunctionType type_ = FunctionType::kNormal;
+	// FunctionType type_ = FunctionType::kNormal;
+
+	struct {
+		uint32_t is_normal_ : 1 = 0;
+		uint32_t is_module_ : 1 = 0;
+		uint32_t is_arrow_ : 1 = 0;
+		uint32_t is_generator_ : 1 = 0;
+		uint32_t is_asnyc_ : 1 = 0;
+	} flags_;
 
 	// 字节码
 	ByteCode byte_code_;
@@ -113,6 +142,7 @@ protected:
 	uint32_t var_count_ = 0;
 	std::vector<VarDef> var_defs_;
 	std::unordered_map<VarIndex, ClosureVarDef> closure_var_defs_;		// 捕获的外部变量
+	bool has_this_ = false;
 
 	// 异常
 	ExceptionTable exception_table_;

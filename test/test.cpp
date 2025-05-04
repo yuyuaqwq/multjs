@@ -15,7 +15,7 @@ int main() {
     Runtime rt;
     auto ctx = Context(&rt);
 
-    ctx.EvalByPath("this.js");
+    ctx.EvalByPath("arrow_function_test.js");
 
     ctx.ExecuteMicrotasks();
 

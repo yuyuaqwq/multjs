@@ -34,7 +34,7 @@ Value CodeGener::Generate(std::string&& module_name) {
 
 	// 创建模块的函数定义
 	cur_func_def_ = new ModuleDef(runtime_, std::move(module_name), 0);
-	cur_func_def_->SetModule();
+	cur_func_def_->set_is_module();
 	AllocConst(Value(cur_func_def_));
 
 	EntryScope();
@@ -44,20 +44,20 @@ Value CodeGener::Generate(std::string&& module_name) {
 	}
 
 
-	//AddCppFunction("println", [](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
-	//	for (size_t i = 0; i < par_count; i++) {
-	//		auto val = stack.get(i);
-	//		try {
-	//			std::cout << val.ToString(context).string_view();
-	//		}
-	//		catch (const std::exception&)
-	//		{
-	//			std::cout << "unknown";
-	//		}
-	//	}
-	//	printf("\n");
-	//	return Value();
-	//	});
+	AddCppFunction("println", [](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
+		for (size_t i = 0; i < par_count; i++) {
+			auto val = stack.get(i);
+			try {
+				std::cout << val.ToString(context).string_view();
+			}
+			catch (const std::exception&)
+			{
+				std::cout << "unknown";
+			}
+		}
+		printf("\n");
+		return Value();
+		});
 
 	for (auto& stat : parser_->src_statements()) {
 		GenerateStatement(stat.get());
@@ -113,7 +113,13 @@ void CodeGener::GenerateExpression(Expression* exp) {
 		break;
 	}
 	case ExpressionType::kThisExpression: {
-		cur_func_def_->byte_code().EmitOpcode(OpcodeType::kGetThis);
+		cur_func_def_->set_has_this(true);
+		if (IsInTypeScope({ ScopeType::kFunction }, { ScopeType::kArrowFunction })) {
+			cur_func_def_->byte_code().EmitOpcode(OpcodeType::kGetThis);
+		}
+		else {
+			cur_func_def_->byte_code().EmitOpcode(OpcodeType::kGetOuterThis);
+		}
 		break;
 	}
 	case ExpressionType::kMemberExpression: {
@@ -150,6 +156,10 @@ void CodeGener::GenerateExpression(Expression* exp) {
 	case ExpressionType::kFunctionExpression:
 		GenerateFunctionExpression(&exp->as<FunctionExpression>());
 		break;
+	case ExpressionType::kArrowFunctionExpression: {
+		GenerateArrowFunctionExpression(&exp->as<ArrowFunctionExpression>());
+		break;
+	}
 	case ExpressionType::kUnaryExpression: {
 		auto& unary_exp = exp->as<UnaryExpression>();
 
@@ -232,6 +242,8 @@ void CodeGener::GenerateExpression(Expression* exp) {
 		case TokenType::kOpGe:
 			cur_func_def_->byte_code().EmitOpcode(OpcodeType::kGe);
 			break;
+		case TokenType::kSepComma:
+			break;
 		default:
 			throw CodeGenerException("Unrecognized binary operator");
 		}
@@ -241,7 +253,17 @@ void CodeGener::GenerateExpression(Expression* exp) {
 		auto& new_exp = exp->as<NewExpression>();
 		GenerateParamList(new_exp.arguments());
 
-		GenerateExpression(new_exp.callee().get());
+		if (new_exp.callee()->is(ExpressionType::kIdentifier)) {
+			auto class_def = runtime_->class_def_table().find(new_exp.callee()->as<Identifier>().name());
+			// todo:先不考虑js里定义的类
+			if (class_def) {
+				auto const_idx = AllocConst(Value(ValueType::kNewConstructor, class_def));
+				cur_func_def_->byte_code().EmitConstLoad(const_idx);
+			}
+		}
+		else {
+			GenerateExpression(new_exp.callee().get());
+		}
 
 		cur_func_def_->byte_code().EmitOpcode(OpcodeType::kNew);
 		break;
@@ -310,21 +332,45 @@ void CodeGener::GeneratorObjectExpression(ObjectExpression* obj_exp) {
 	cur_func_def_->byte_code().EmitOpcode(OpcodeType::kFunctionCall);
 }
 
+void CodeGener::GenerateFunctionBody(Statement* statement) {
+	if (statement->is(StatementType::kBlock)) {
+		auto& block = statement->as<BlockStatement>();
+		for (size_t i = 0; i < block.statements().size(); i++) {
+			auto& stat = block.statements()[i];
+			GenerateStatement(stat.get());
+			if (i != block.statements().size() - 1) {
+				continue;
+			}
+			if (!stat->is(StatementType::kReturn)) {
+				// 补全末尾的return
+				cur_func_def_->byte_code().EmitOpcode(OpcodeType::kUndefined);
+				cur_func_def_->byte_code().EmitReturn(cur_func_def_);
+			}
+		}
+	}
+	else {
+		// 表达式体
+		GenerateExpression(statement->as<ExpressionStatement>().expression().get());
+		cur_func_def_->byte_code().EmitReturn(cur_func_def_);
+	}
+	
+}
+
 void CodeGener::GenerateFunctionExpression(FunctionExpression* exp) {
 	auto const_idx = AllocConst(Value(new FunctionDef(runtime_, exp->id(), exp->params().size())));
 	auto& func_def = GetConstValueByIndex(const_idx).function_def();
+	func_def.set_is_normal();
 	if (exp->is_generator()) {
-		func_def.SetGenerator();
+		func_def.set_is_generator();
 	}
 	else if (exp->is_async()) {
-		func_def.SetAsync();
+		func_def.set_is_async();
 	}
 
 	auto load_pc = cur_func_def_->byte_code().Size();
 	// 可能需要修复，统一用U32了
 	cur_func_def_->byte_code().EmitOpcode(OpcodeType::kCLoadD);
 	cur_func_def_->byte_code().EmitU32(const_idx);
-
 
 	if (!exp->id().empty()) {
 		// 非匿名函数分配变量来装，这里其实有个没考虑的地方
@@ -349,18 +395,7 @@ void CodeGener::GenerateFunctionExpression(FunctionExpression* exp) {
 		AllocVar(exp->params()[i]);
 	}
 
-	auto block = exp->body().get();
-	for (size_t i = 0; i < block->statements().size(); i++) {
-		auto& stat = block->statements()[i];
-		GenerateStatement(stat.get());
-		if (i == block->statements().size() - 1) {
-			if (!stat->is(StatementType::kReturn)) {
-				// 补全末尾的return
-				cur_func_def_->byte_code().EmitOpcode(OpcodeType::kUndefined);
-				cur_func_def_->byte_code().EmitReturn(cur_func_def_->type());
-			}
-		}
-	}
+	GenerateFunctionBody(exp->body().get());
 	
 	bool need_repair = !cur_func_def_->closure_var_defs().empty();
 
@@ -372,6 +407,44 @@ void CodeGener::GenerateFunctionExpression(FunctionExpression* exp) {
 		cur_func_def_->byte_code().RepairOpcode(load_pc, OpcodeType::kClosure);
 	}
 
+}
+
+void CodeGener::GenerateArrowFunctionExpression(ArrowFunctionExpression* exp) {
+	auto& arrow_exp = exp->as<ArrowFunctionExpression>();
+	auto const_idx = AllocConst(Value(new FunctionDef(runtime_, "", arrow_exp.params().size())));
+	auto& func_def = GetConstValueByIndex(const_idx).function_def();
+	func_def.set_is_arrow();
+	if (arrow_exp.is_async()) {
+		func_def.set_is_async();
+	}
+
+	auto load_pc = cur_func_def_->byte_code().Size();
+	cur_func_def_->byte_code().EmitOpcode(OpcodeType::kCLoadD);
+	cur_func_def_->byte_code().EmitU32(const_idx);
+
+	// 保存环境，以生成新指令流
+	auto savefunc = cur_func_def_;
+
+	// 切换环境
+	EntryScope(&func_def, ScopeType::kArrowFunction);
+	cur_func_def_ = &func_def;
+
+	// 参数正序分配
+	for (auto& param : arrow_exp.params()) {
+		AllocVar(param);
+	}
+
+	GenerateFunctionBody(exp->body().get());
+
+	bool need_repair = cur_func_def_->has_this() || !cur_func_def_->closure_var_defs().empty();
+
+	// 恢复环境
+	cur_func_def_ = savefunc;
+	ExitScope();
+
+	if (need_repair) {
+		cur_func_def_->byte_code().RepairOpcode(load_pc, OpcodeType::kClosure);
+	}
 }
 
 void CodeGener::GenerateLValueStore(Expression* lvalue_exp) {
@@ -421,12 +494,7 @@ void CodeGener::GenerateStatement(Statement* stat) {
 		break;
 	}
 	case StatementType::kExpression: {
-		auto exp = stat->as<ExpressionStatement>().expression().get();
-		// 抛弃纯表达式语句的最终结果
-		if (exp) {
-			GenerateExpression(exp);
-			cur_func_def_->byte_code().EmitOpcode(OpcodeType::kPop);
-		}
+		GenerateExpressionStatement(&stat->as<ExpressionStatement>());
 		break;
 	}
 	case StatementType::kReturn: {
@@ -482,6 +550,14 @@ void CodeGener::GenerateStatement(Statement* stat) {
 	}
 }
 
+void CodeGener::GenerateExpressionStatement(ExpressionStatement* stat) {
+	auto exp = stat->expression().get();
+	// 抛弃纯表达式语句的最终结果
+	if (exp) {
+		GenerateExpression(exp);
+		cur_func_def_->byte_code().EmitOpcode(OpcodeType::kPop);
+	}
+}
 
 void CodeGener::GenerateImportDeclaration(ImportDeclaration* stat) {
 	auto const_idx = AllocConst(Value(String::make(stat->source())));
@@ -496,7 +572,7 @@ void CodeGener::GenerateImportDeclaration(ImportDeclaration* stat) {
 }
 
 void CodeGener::GenerateExportDeclaration(ExportDeclaration* stat) {
-	if (!cur_func_def_->IsModule()) {
+	if (!cur_func_def_->is_module()) {
 		throw CodeGenerException("Only modules can export.");
 	}
 	GenerateStatement(stat->declaration().get());
@@ -688,7 +764,7 @@ void CodeGener::GenerateContinueStatement(ContinueStatement* stat) {
 	}
 
 	// 跳到当前循环的末尾pc，等待修复
-	if (IsInTypeScope({ ScopeType::kTryFinally,ScopeType::kCatchFinally, ScopeType::kFinally }, { ScopeType::kWhile, ScopeType::kFunction })) {
+	if (IsInTypeScope({ ScopeType::kTryFinally,ScopeType::kCatchFinally, ScopeType::kFinally }, { ScopeType::kWhile, ScopeType::kFunction, ScopeType::kArrowFunction })) {
 		cur_func_def_->byte_code().EmitOpcode(OpcodeType::kFinallyGoto);
 	}
 	else {
@@ -720,7 +796,7 @@ void CodeGener::GenerateBreakStatement(BreakStatement* stat) {
 	}
 	
 	// 无法提前得知结束pc，保存待修复pc，等待修复
-	if (IsInTypeScope({ ScopeType::kTryFinally,ScopeType::kCatchFinally, ScopeType::kFinally }, { ScopeType::kWhile, ScopeType::kFunction })) {
+	if (IsInTypeScope({ ScopeType::kTryFinally,ScopeType::kCatchFinally, ScopeType::kFinally }, { ScopeType::kWhile, ScopeType::kFunction, ScopeType::kArrowFunction })) {
 		cur_func_def_->byte_code().EmitOpcode(OpcodeType::kFinallyGoto);
 	}
 	else {
@@ -741,7 +817,7 @@ void CodeGener::GenerateReturnStatement(ReturnStatement* stat) {
 		cur_func_def_->byte_code().EmitOpcode(OpcodeType::kFinallyReturn);
 	}
 	else {
-		cur_func_def_->byte_code().EmitReturn(cur_func_def_->type());
+		cur_func_def_->byte_code().EmitReturn(cur_func_def_);
 	}
 }
 

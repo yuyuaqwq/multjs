@@ -11,13 +11,6 @@
 
 namespace mjs {
 
-enum class FunctionType {
-	kNormal,
-	kGenerator,
-	kAsync,
-	kModule,
-};
-
 inline static OpcodeType operator+(OpcodeType a, size_t b) {
 	return static_cast<OpcodeType>(static_cast<size_t>(a) + b);
 }
@@ -56,7 +49,7 @@ public:
 	void EmitIndexedLoad();
 	void EmitIndexedStore();
 
-	void EmitReturn(FunctionType func_type);
+	void EmitReturn(FunctionDef* function_def);
 
 
 	void RepairOpcode(Pc opcode_pc, OpcodeType op);

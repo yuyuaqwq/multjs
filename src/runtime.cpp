@@ -26,12 +26,12 @@ Runtime::Runtime() {
 		// 如果模块已被缓存，那么就直接返回缓存的模块
 
 		// 要改成缓存到context里
-		auto& module_cache = ctx->runtime().module_cache();
+		auto& cache = ctx->runtime().module_cache();
 
 		fs::path absolute_path = fs::absolute(path);
 
-		auto iter = module_cache.find(absolute_path);
-		if (iter != module_cache.end()) {
+		auto iter = cache.find(absolute_path);
+		if (iter != cache.end()) {
 			return iter->second;
 		}
 
@@ -43,7 +43,7 @@ Runtime::Runtime() {
 		auto module = ctx->Compile(absolute_path.string(), content);
 
 		// 先缓存模块，再调用
-		module_cache.emplace(absolute_path, module);
+		cache.emplace(absolute_path, module);
 
 		ctx->CallModule(&module);
 		return module;

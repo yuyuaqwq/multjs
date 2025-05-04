@@ -33,7 +33,7 @@ std::unique_ptr<Expression> Parser::ParseExpression() {
 
 std::unique_ptr<Expression> Parser::ParseCommaExpression() {
 	auto start = lexer_->pos();
-	auto exp = ParseYieldFunctionOrAssignment();
+	auto exp = ParseAssignmentOrFunction();
 	do {
 		auto op = lexer_->PeekToken().type();
 		if (op != TokenType::kSepComma) {
@@ -41,20 +41,27 @@ std::unique_ptr<Expression> Parser::ParseCommaExpression() {
 		}
 		lexer_->NextToken();
 		auto end = lexer_->pos();
-		exp = std::make_unique<BinaryExpression>(start, end, op, std::move(exp), ParseYieldFunctionOrAssignment());
+		exp = std::make_unique<BinaryExpression>(start, end, op, std::move(exp), ParseAssignmentOrFunction());
 
 	} while (true);
 	return exp;
 }
 
-std::unique_ptr<Expression> Parser::ParseYieldFunctionOrAssignment() {
+std::unique_ptr<Expression> Parser::ParseAssignmentOrFunction() {
 	auto start = lexer_->pos();
 	auto type = lexer_->PeekToken().type();
 	if (type == TokenType::kKwYield) {
 		return ParseYieldExpression();
 	}
-	else if (type == TokenType::kKwFunction || type == TokenType::kKwAsync) {
-		return ParseFunctionOrGeneratorExpression();
+
+	switch (type) {
+	case TokenType::kIdentifier:
+	case TokenType::kSepLParen:
+	case TokenType::kKwAsync:
+	case TokenType::kKwFunction:
+		return ParseFunctionExpression();
+	default:
+		break;
 	}
 	return ParseAssignmentExpression();
 }
@@ -67,35 +74,121 @@ std::unique_ptr<YieldExpression> Parser::ParseYieldExpression() {
 	return std::make_unique<YieldExpression>(start, end, std::move(yielded_value));
 }
 
-std::unique_ptr<FunctionExpression> Parser::ParseFunctionOrGeneratorExpression() {
+std::unique_ptr<Expression> Parser::ParseFunctionExpression() {
 	auto start = lexer_->pos();
+
+	// 处理 async 关键字
 	bool is_async = false;
-	bool is_generator = false;
 	if (lexer_->PeekToken().is(TokenType::kKwAsync)) {
 		lexer_->NextToken();
+
+		// 检查 async 后面是否是 function 关键字（普通异步函数）
+		if (lexer_->PeekToken().is(TokenType::kKwFunction)) {
+			is_async = true;
+			return ParseTraditionalFunction(start, is_async, false);
+		}
+
+		// 否则可能是异步箭头函数，继续向下处理
 		is_async = true;
 	}
+
+	// 处理 function 关键字（传统函数）
+	if (lexer_->PeekToken().is(TokenType::kKwFunction)) {
+		return ParseTraditionalFunction(start, is_async, false);
+	}
+
+	// 检查是否是箭头函数 (参数列表或单个参数)
+	if (lexer_->PeekToken().is(TokenType::kSepLParen)) {
+		// 可能是箭头函数或分组表达式
+		return TryParseArrowFunction(start, is_async);
+	}
+
+	if (lexer_->PeekToken().is(TokenType::kIdentifier)) {
+		// 可能是箭头函数或普通标识符
+		return TryParseArrowFunction(start, is_async);
+	}
+
+	// 不是函数表达式，回退到普通表达式解析
+	return ParseAssignmentExpression();
+}
+
+std::unique_ptr<Expression> Parser::TryParseArrowFunction(SourcePos start, bool is_async) {
+	// 保存当前状态以便回退
+	auto checkpoint = lexer_->CreateCheckpoint();
+
+	std::vector<std::string> params;
+
+	// 解析参数
+	if (lexer_->PeekToken().is(TokenType::kSepLParen)) {
+		params = ParseParams();
+	}
+	else {
+		// 单个参数
+		params.push_back(lexer_->NextToken().str());
+	}
+
+	// 检查是否有箭头 =>
+	if (!lexer_->PeekToken().is(TokenType::kOpAssign) ||
+		!lexer_->PeekTokenN(2).is(TokenType::kOpGt)) {
+		// 不是箭头函数，回退
+		lexer_->RewindToCheckpoint(checkpoint);
+		return ParseAssignmentExpression();
+	}
+
+	// 确认是箭头函数
+	lexer_->NextToken(); // 跳过 =
+	lexer_->NextToken(); // 跳过 >
+
+	// 解析函数体
+	std::unique_ptr<Statement> body;
+	if (lexer_->PeekToken().is(TokenType::kSepLCurly)) {
+		body = ParseBlockStatement();
+	}
+	else {
+		auto exp_start = lexer_->pos();
+		// 避免解析kSepComma
+		auto exp = ParseAssignmentOrFunction();
+		auto exp_end = lexer_->pos();
+		body = std::make_unique<ExpressionStatement>(exp_start, exp_end, std::move(exp));
+	}
+
+	auto end = lexer_->pos();
+	return std::make_unique<ArrowFunctionExpression>(start, end, std::move(params),
+		std::move(body), is_async);
+
+}
+
+std::unique_ptr<Expression> Parser::ParseTraditionalFunction(SourcePos start, bool is_async, bool is_generator) {
+	// 处理传统函数声明 function [name](params) { ... }
 	lexer_->MatchToken(TokenType::kKwFunction);
+
+	// 处理生成器函数
 	if (lexer_->PeekToken().is(TokenType::kOpMul)) {
 		if (is_async) {
 			throw ParserException("Does not support asynchronous generator function.");
 		}
-		// 生成器函数
 		lexer_->NextToken();
 		is_generator = true;
 	}
+
+	// 函数名
 	std::string id;
 	if (lexer_->PeekToken().is(TokenType::kIdentifier)) {
 		id = lexer_->NextToken().str();
 	}
+
+	// 参数
 	auto params = ParseParams();
 
+	// 类型注解 (如果有)
 	ParseTypeAnnotation();
 
+	// 函数体
 	auto block = ParseBlockStatement();
 
 	auto end = lexer_->pos();
-	return std::make_unique<FunctionExpression>(start, end, id, std::move(params), std::move(block), is_generator, is_async, false);
+	return std::make_unique<FunctionExpression>(start, end, id, std::move(params),
+		std::move(block), is_generator, is_async, false);
 }
 
 std::unique_ptr<Expression> Parser::ParseAssignmentExpression() {
@@ -509,7 +602,7 @@ std::unique_ptr<ObjectExpression> Parser::ParseObjectExpression() {
 			// 避免解析kSepComma
 			properties.emplace_back(ObjectExpression::Property{
 				.key = ident.str(),
-				.value = ParseYieldFunctionOrAssignment()
+				.value = ParseAssignmentOrFunction()
 			});
 			if (!lexer_->PeekToken().is(TokenType::kSepComma)) {
 				break;
@@ -637,7 +730,7 @@ std::unique_ptr<Statement> Parser::ParseStatement() {
 	case TokenType::kKwFunction: {
 		// 如果是直接定义，就不需要添加分号
 		auto start = lexer_->pos();
-		auto exp = ParseFunctionOrGeneratorExpression();
+		auto exp = ParseFunctionExpression();
 		auto end = lexer_->pos();
 		return std::make_unique<ExpressionStatement>(start, end, std::move(exp));
 	}
@@ -968,7 +1061,7 @@ std::vector<std::unique_ptr<Expression>> Parser::ParseExpressions(TokenType begi
 	if (!lexer_->PeekToken().is(end)) {
 		do {
 			// 避免解析kSepComma
-			par_list.emplace_back(ParseYieldFunctionOrAssignment());
+			par_list.emplace_back(ParseAssignmentOrFunction());
 			if (!lexer_->PeekToken().is(TokenType::kSepComma)) {
 				break;
 			}

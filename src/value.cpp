@@ -233,6 +233,11 @@ ptrdiff_t Value::Comparer(const Value& rhs) const {
 		return i64() - rhs.i64();
 	case ValueType::kUInt64:
 		return u64() - rhs.u64();
+	case mjs::ValueType::kPrimitiveConstructor:
+	case mjs::ValueType::kNewConstructor:
+		// 上面判断了type，这里可以直接比较full
+		return value_.full_ - rhs.value_.full_;
+	case ValueType::kClassDef:
 	case ValueType::kFunctionDef:
 	case ValueType::kCppFunction:
 	case ValueType::kClosureVar:
@@ -265,7 +270,12 @@ size_t Value::hash() const {
 		return std::hash<int64_t>()(i64());
 	case mjs::ValueType::kUInt64:
 		return std::hash<uint64_t>()(u64());
+	case mjs::ValueType::kPrimitiveConstructor:
+	case mjs::ValueType::kNewConstructor:
+		// 这里hash暂时不考虑class_def一致但是type不一致的情况
+		return std::hash<uint64_t>()(value_.full_);
 	case mjs::ValueType::kFunctionDef:
+	case mjs::ValueType::kClassDef:
 	case mjs::ValueType::kCppFunction:
 	case mjs::ValueType::kClosureVar:
 		// 使用内部值计算哈希

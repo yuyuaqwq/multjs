@@ -72,7 +72,7 @@ void VM::SetVar(StackFrame* stack_frame, VarIndex idx, Value&& var) {
 
 void VM::Closure(const StackFrame& stack_frame, Value* func_def_val) {
 	auto& func_def = func_def_val->function_def();
-	assert(!func_def.closure_var_defs().empty());
+	assert(!func_def.closure_var_defs().empty() || func_def.has_this() && func_def.is_normal());
 	
 	*func_def_val = Value(new FunctionObject(context_, &func_def));
 	auto* func_obj = &func_def_val->function();
@@ -88,6 +88,11 @@ void VM::Closure(const StackFrame& stack_frame, Value* func_def_val) {
 		}
 		env.closure_var_refs()[def.second.env_var_idx] = Value(&var.closure_var());
 	}
+
+	// 捕获下this
+	Value this_val = stack_frame.this_val();
+	// this_val = Value(new ClosureVar(std::move(this_val)));
+	env.set_lexical_this(std::move(this_val));
 }
 
 void VM::BindClosureVars(StackFrame* stack_frame) {
@@ -140,9 +145,9 @@ bool VM::FunctionScheduling(StackFrame* stack_frame, uint32_t par_count) {
 			BindModuleExportVars(stack_frame);
 		}
 
-		if (function_def->IsGenerator() || function_def->IsAsync()) {
+		if (function_def->is_generator() || function_def->is_async()) {
 			GeneratorObject* generator;
-			if (function_def->IsGenerator()) {
+			if (function_def->is_generator()) {
 				generator = new GeneratorObject(context_, stack_frame->function_val());
 			}
 			else {
@@ -160,7 +165,7 @@ bool VM::FunctionScheduling(StackFrame* stack_frame, uint32_t par_count) {
 			}
 			assert(stack_frame->function_val().type() != ValueType::kModuleObject);
 
-			if (function_def->IsGenerator()) {
+			if (function_def->is_generator()) {
 				// 是生成器函数
 				// 则直接返回生成器对象
 				stack_frame->push(Value(generator));
@@ -475,8 +480,9 @@ void VM::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 				stack_frame->push(stack_frame->this_val());
 				break;
 			}
-			case OpcodeType::kSetThis: {
-				stack_frame->set_this_val(stack_frame->pop());
+			case OpcodeType::kGetOuterThis: {
+				auto& lexical_this = stack_frame->function_val().function().closure_env().lexical_this();
+				stack_frame->push(lexical_this);
 				break;
 			}
 			case OpcodeType::kReturn: {
@@ -496,7 +502,8 @@ void VM::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 			}
 			case OpcodeType::kAsyncReturn: {
 				auto& async = stack_frame->function_val().async();
-				async.res_promise().promise().Resolve(context_, stack_frame->pop());
+				auto return_value = stack_frame->pop();
+				async.res_promise().promise().ResolvePromise(context_, return_value);
 				stack_frame->push(async.res_promise());
 				goto exit_;
 				break;

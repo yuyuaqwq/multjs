@@ -266,6 +266,30 @@ private:
 
 };
 
+class Statement;
+class ArrowFunctionExpression : public Expression {
+public:
+    ArrowFunctionExpression(SourcePos start, SourcePos end,
+                std::vector<std::string>&& params,
+                std::unique_ptr<Statement> body,
+                bool is_async)
+        : Expression(start, end), params_(std::move(params)),
+          body_(std::move(body)), is_async_(is_async) {}
+
+    ExpressionType type() const noexcept override {
+        return ExpressionType::kArrowFunctionExpression;
+    }
+
+    const std::vector<std::string>& params() const { return params_; }
+    const std::unique_ptr<Statement>& body() const { return body_; }
+    bool is_async() const { return is_async_; }
+
+private:
+    std::vector<std::string> params_;
+    std::unique_ptr<Statement> body_;
+    bool is_async_;
+};
+
 
 class MemberExpression : public Expression {
 public:

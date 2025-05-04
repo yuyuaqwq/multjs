@@ -40,6 +40,20 @@ public:
 
     ClassId class_id() const override { return ClassId::kPromiseObject; }
 
+    void ResolvePromise(Context* context, Value result) {
+        if (result.IsPromiseObject()) {
+            // 如果是 Promise (内层)，则让外层的 async.res_promise() 绑定它的状态
+            auto& inner_promise = result.promise();
+            inner_promise.Then(context,
+                Value(ValueType::kPromiseResolve, this),
+                Value(ValueType::kPromiseReject, this)
+            );
+        }
+        else {
+            Resolve(context, result);
+        }
+    }
+
 private:
     enum class State {
         kPending = 0,
