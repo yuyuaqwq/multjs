@@ -1,4 +1,4 @@
-#include <mjs/object/module_object.h>
+#include <mjs/object_impl/module_object.h>
 
 namespace mjs {
 
@@ -13,7 +13,7 @@ ModuleObject::ModuleObject(Context* context, ModuleDef* module_def)
 void ModuleObject::SetProperty(Context* context, ConstIndex key, Value&& value) {
     auto iter = property_map_->find(key);
     if (iter == property_map_->end()) {
-        // todo: ²»´æÔÚµÄÊôÐÔ
+        // todo: å¯èƒ½éœ€è¦å¼‚å¸¸
         // throw;
 
         property_map_->set(context, key, std::move(value));

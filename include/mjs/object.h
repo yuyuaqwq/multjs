@@ -9,7 +9,7 @@
 #include <mjs/intrusive_list.hpp>
 #include <mjs/const_def.h>
 #include <mjs/value.h>
-#include <mjs/class_def/class_def.h>
+#include <mjs/class_def.h>
 
 namespace mjs {
 

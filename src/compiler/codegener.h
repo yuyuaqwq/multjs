@@ -7,8 +7,8 @@
 
 #include <mjs/noncopyable.h>
 #include <mjs/value.h>
-#include <mjs/object/module_object.h>
-#include <mjs/object/function_object.h>
+#include <mjs/object_impl/module_object.h>
+#include <mjs/object_impl/function_object.h>
 
 #include "parser.h"
 #include "scope.h"
@@ -41,8 +41,12 @@ public:
 public:
 	CodeGener(Runtime* runtime, Parser* parser);
 
-	void RegisterCppFunction(const std::string& func_name, CppFunction func);
+	void AddCppFunction(const std::string& func_name, CppFunction func);
+
+	// void AddImportModule();
+
 	Value Generate(std::string&& module_name);
+
 
 private:
 	void GenerateExpression(Expression* exp);

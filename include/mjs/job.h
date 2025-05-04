@@ -2,7 +2,7 @@
 
 #include <mjs/noncopyable.h>
 #include <mjs/value.h>
-#include <mjs/object/object.h>
+#include <mjs/object.h>
 
 namespace mjs {
 

@@ -1,4 +1,4 @@
-#include <mjs/object/generator_object.h>
+#include <mjs/object_impl/generator_object.h>
 
 #include <mjs/context.h>
 
@@ -30,8 +30,9 @@ Value GeneratorObject::MakeReturnObject(Context* context, Value&& ret_value) {
     // 返回Value类型是迭代器
     // 访问迭代器Value时，直接去查class的getprop
     // 这里的ret value，可能需要保存到GeneratorObject里
+    // set的时候再提升为object
 
-    auto ret_obj = Value(new Object(context));
+    auto ret_obj = Value(new Object(context)); 
 
     auto& class_def = context->runtime().class_def_table().at(class_id()).get<GeneratorObjectClassDef>();
 

@@ -10,7 +10,6 @@
 #include <mjs/const_def.h>
 #include <mjs/string.h>
 #include <mjs/symbol.h>
-// #include <mjs/up_value.h>
 #include <mjs/exception.h>
 
 namespace mjs {

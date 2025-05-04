@@ -1,4 +1,4 @@
-#include <mjs/class_def/symbol_class_def.h>
+#include <mjs/class_def_impl/symbol_class_def.h>
 
 #include <mjs/stack_frame.h>
 #include <mjs/context.h>
@@ -37,11 +37,11 @@ Value SymbolClassDef::For(Context* context, Value name) {
 		return iter->second;
 	}
 
-	// ÐÂµÄsymbol·Åµ½³£Á¿³Ø
+	// ï¿½Âµï¿½symbolï¿½Åµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 	auto symbol_const_index = context->const_pool().insert(Value(new Symbol()));
 	auto symbol = context->const_pool()[symbol_const_index];
 
-	// ²åÈëµ½È«¾Ösymbol table
+	// ï¿½ï¿½ï¿½ëµ½È«ï¿½ï¿½symbol table
 	return context->symbol_table().set(context, name_const_index, std::move(symbol))->second;
 
 }

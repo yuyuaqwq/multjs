@@ -2,9 +2,9 @@
 
 #include <mjs/opcode.h>
 #include <mjs/stack_frame.h>
-#include <mjs/object/object.h>
-#include <mjs/object/function_object.h>
-#include <mjs/class_def/generator_object_class_def.h>
+#include <mjs/object.h>
+#include <mjs/object_impl/function_object.h>
+#include <mjs/class_def_impl/generator_object_class_def.h>
 
 namespace mjs {
 

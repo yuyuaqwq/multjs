@@ -4,7 +4,7 @@
 #include <string_view>
 
 #include <mjs/runtime.h>
-#include <mjs/object/module_object.h>
+#include <mjs/object_impl/module_object.h>
 
 #include "compiler/lexer.h"
 #include "compiler/parser.h"

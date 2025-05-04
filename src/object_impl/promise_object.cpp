@@ -1,4 +1,4 @@
-#include <mjs/object/promise_object.h>
+#include <mjs/object_impl/promise_object.h>
 
 #include <mjs/context.h>
 

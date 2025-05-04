@@ -3,9 +3,9 @@
 #include <format>
 
 #include <mjs/context.h>
-#include <mjs/object/object.h>
-#include <mjs/object/module_object.h>
-#include <mjs/object/function_object.h>
+#include <mjs/object.h>
+#include <mjs/object_impl/module_object.h>
+#include <mjs/object_impl/function_object.h>
 
 namespace mjs {
 

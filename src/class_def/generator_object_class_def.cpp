@@ -1,4 +1,4 @@
-#include <mjs/class_def/generator_object_class_def.h>
+#include <mjs/class_def_impl/generator_object_class_def.h>
 
 #include <mjs/stack_frame.h>
 #include <mjs/context.h>

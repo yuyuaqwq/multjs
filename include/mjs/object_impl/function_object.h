@@ -6,7 +6,7 @@
 #include <format>
 
 #include <mjs/function_def.h>
-#include <mjs/object/object.h>
+#include <mjs/object.h>
 
 namespace mjs {
 

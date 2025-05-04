@@ -1,4 +1,4 @@
-#include <mjs/object/function_object.h>
+#include <mjs/object_impl/function_object.h>
 
 namespace mjs {
 

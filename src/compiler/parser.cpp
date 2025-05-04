@@ -514,10 +514,10 @@ std::unique_ptr<ObjectExpression> Parser::ParseObjectExpression() {
 			if (!lexer_->PeekToken().is(TokenType::kSepComma)) {
 				break;
 			}
+			lexer_->NextToken();
 			if (lexer_->PeekToken().is(TokenType::kSepRCurly)) {
 				break;
 			}
-			lexer_->NextToken();
 		} while (true);
 	}
 	lexer_->MatchToken(TokenType::kSepRCurly);

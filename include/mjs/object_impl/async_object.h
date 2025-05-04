@@ -1,8 +1,8 @@
 #pragma once
 
 #include <mjs/opcode.h>
-#include <mjs/object/generator_object.h>
-#include <mjs/object/promise_object.h>
+#include <mjs/object_impl/generator_object.h>
+#include <mjs/object_impl/promise_object.h>
 
 namespace mjs {
 

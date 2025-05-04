@@ -3,8 +3,8 @@
 #include <iostream>
 
 #include <mjs/runtime.h>
-#include <mjs/class_def/object_class_def.h>
-#include <mjs/class_def/array_object_class_def.h>
+#include <mjs/class_def_impl/object_class_def.h>
+#include <mjs/class_def_impl/array_object_class_def.h>
 
 namespace mjs {
 namespace compiler {
@@ -13,7 +13,7 @@ CodeGener::CodeGener(Runtime* runtime, Parser* parser)
 	: runtime_(runtime)
 	, parser_(parser){}
 
-void CodeGener::RegisterCppFunction(const std::string& func_name, CppFunction func) {
+void CodeGener::AddCppFunction(const std::string& func_name, CppFunction func) {
 	auto& var_info = AllocVar(func_name, VarFlags::kConst);
 	auto const_idx = AllocConst(Value(func));
 
@@ -23,6 +23,11 @@ void CodeGener::RegisterCppFunction(const std::string& func_name, CppFunction fu
 	cur_func_def_->byte_code().EmitVarStore(var_info.var_idx);
 	cur_func_def_->byte_code().EmitOpcode(OpcodeType::kPop);
 }
+
+//void CodeGener::AddCppModule() {
+//	auto decl = ImportDeclaration(0, 0, std::move(source), std::move(name));
+//	GenerateImportDeclaration(&decl);
+//}
 
 Value CodeGener::Generate(std::string&& module_name) {
 	scopes_.clear();
@@ -38,20 +43,21 @@ Value CodeGener::Generate(std::string&& module_name) {
 		GenerateStatement(decl.get());
 	}
 
-	RegisterCppFunction("println", [](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
-		for (size_t i = 0; i < par_count; i++) {
-			auto val = stack.get(i);
-			try {
-				std::cout << val.ToString(context).string_view();
-			}
-			catch (const std::exception&)
-			{
-				std::cout << "unknown";
-			}
-		}
-		printf("\n");
-		return Value();
-		});
+
+	//AddCppFunction("println", [](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
+	//	for (size_t i = 0; i < par_count; i++) {
+	//		auto val = stack.get(i);
+	//		try {
+	//			std::cout << val.ToString(context).string_view();
+	//		}
+	//		catch (const std::exception&)
+	//		{
+	//			std::cout << "unknown";
+	//		}
+	//	}
+	//	printf("\n");
+	//	return Value();
+	//	});
 
 	for (auto& stat : parser_->src_statements()) {
 		GenerateStatement(stat.get());

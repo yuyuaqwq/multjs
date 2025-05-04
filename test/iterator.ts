@@ -1,15 +1,24 @@
-const simpleIterator = {
+const iterableObject = {
     data: [1, 2, 3],
-    index: 0,
-    next: function() {
-        if (this.index < this.data.length) {
-            return { value: this.data[this.index++], done: false };
-        }
-        else {
-            return { value: undefined, done: true };
-        }
+    [Symbol.iterator]: function() {
+        let index = 0;
+        return {
+            next: () => {
+                if (index < this.data.length) {
+                    return { value: this.data[index++], done: false };
+                } else {
+                    return { value: undefined, done: true };
+                }
+            }
+        };
     }
 };
 
-println(simpleIterator.next()); // { value: 1, done: false }
-println(simpleIterator.next()); // { value: 2, done: false }
+// Using for...of
+for (const value of iterableObject) {
+    println(value);
+}
+// Output:
+// 1
+// 2
+// 3

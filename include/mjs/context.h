@@ -8,7 +8,7 @@
 #include <mjs/runtime.h>
 #include <mjs/vm.h>
 #include <mjs/job_queue.h>
-#include <mjs/object/object.h>
+#include <mjs/object.h>
 
 namespace mjs {
 

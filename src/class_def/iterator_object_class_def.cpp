@@ -1,4 +1,4 @@
-#include <mjs/class_def/iterator_object_class_def.h>
+#include <mjs/class_def_impl/iterator_object_class_def.h>
 
 #include <mjs/stack_frame.h>
 #include <mjs/context.h>
