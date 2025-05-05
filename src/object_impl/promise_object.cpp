@@ -32,7 +32,10 @@ void PromiseObject::Resolve(Context* context, Value result) {
         return;
     }
 
-    UnwrapPromise(context, &result);
+    if (!UnwrapPromise(context, &result)) {
+        // 解决一个未完成的PromiseObject，等待其完成
+        return;
+    }
 
     state_ = State::kFulfilled;
     result_or_reason_ = result;
@@ -55,7 +58,10 @@ void PromiseObject::Reject(Context* context, Value reason) {
         return;
     }
 
-    UnwrapPromise(context, &reason);
+    if (!UnwrapPromise(context, &reason)) {
+        // 拒绝一个未完成的PromiseObject，等待其完成
+        return;
+    }
 
     state_ = State::kRejected;
     result_or_reason_ = reason;
@@ -150,14 +156,14 @@ Value PromiseObject::Then(Context* context, Value on_fulfilled, Value on_rejecte
 }
 
 
-void PromiseObject::UnwrapPromise(Context* context, Value* result) {
+bool PromiseObject::UnwrapPromise(Context* context, Value* result) {
     if (!result->IsPromiseObject()) {
-        return;
+        return true;
     }
     auto& inner_promise = result->promise();
     if (&inner_promise == this) {
         Reject(context, Value("Cycle detected").SetException());
-        return;
+        return false;
     }
     if (inner_promise.IsPending()) {
         // 不需要while循环，因为当inner_promise解决时，
@@ -165,13 +171,15 @@ void PromiseObject::UnwrapPromise(Context* context, Value* result) {
         inner_promise.Then(context,
             Value(ValueType::kPromiseResolve, this),
             Value(ValueType::kPromiseReject, this));
-        return;
+        return false;
     }
     // 同步展开已完成的 Promise
     *result = inner_promise.IsFulfilled() ? inner_promise.result() : inner_promise.reason();
 
     // 已完成的Promise，其结果必定不是Promise，因为已经经过解包了
     assert(!result->IsPromiseObject());
+
+    return true;
 }
 
 

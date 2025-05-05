@@ -25,12 +25,12 @@ int main() {
 
     ctx.PrintObjectTree();
 
+    std::cout << "GC..." << std::endl;
     ctx.GC();
 
     ctx.PrintObjectTree();
 
     auto start = std::chrono::high_resolution_clock::now();
-
 
     auto end = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double, std::milli> elapsed = end - start;

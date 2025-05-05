@@ -487,7 +487,6 @@ std::unique_ptr<Expression> Parser::ParseNewExpression() {
 		arguments = ParseExpressions(TokenType::kSepLParen, TokenType::kSepRParen, false);
 	}
 
-	
 	auto end = lexer_->pos();
 	auto exp = std::make_unique<NewExpression>(start, end, std::move(callee), std::move(arguments));
 

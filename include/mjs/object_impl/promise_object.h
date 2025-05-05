@@ -44,7 +44,7 @@ public:
     ClassId class_id() const override { return ClassId::kPromiseObject; }
 
 private:
-    void UnwrapPromise(Context* context, Value* result);
+    bool UnwrapPromise(Context* context, Value* result);
 
 private:
     enum class State {
