@@ -4,7 +4,11 @@
 
 namespace mjs {
 
-class CppModule : public Object {
+class CppModuleObject : public Object {
+public:
+
+
+private:
 
 };
 

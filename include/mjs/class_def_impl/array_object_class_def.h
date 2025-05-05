@@ -12,9 +12,6 @@ public:
 
 	bool GetProperty(Context* context, Object* obj, ConstIndex key, Value* value) override;
 
-	// iterator
-	void Next(Context* context, Object* obj);
-
 
 	static Value Of(Context* context, uint32_t par_count, const StackFrame& stack);
 
