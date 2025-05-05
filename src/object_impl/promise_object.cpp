@@ -169,6 +169,8 @@ void PromiseObject::UnwrapPromise(Context* context, Value* result) {
     }
     // 同步展开已完成的 Promise
     *result = inner_promise.IsFulfilled() ? inner_promise.result() : inner_promise.reason();
+
+    // 已完成的Promise，其结果必定不是Promise，因为已经经过解包了
     assert(!result->IsPromiseObject());
 }
 
