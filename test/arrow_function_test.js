@@ -67,3 +67,14 @@ Promise.resolve(42)
   p.then((val) => {
     console.log(val); // 输出 "Final Value"（递归解包到最内层）
   });
+
+
+
+let r1 = undefined;
+let r2 = undefined;
+
+let p1 = new Promise((resolve)=>{
+    r1 = resolve;
+}).then(value=>{
+    console.log(value);
+});

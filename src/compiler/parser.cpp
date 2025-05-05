@@ -120,7 +120,7 @@ std::unique_ptr<Expression> Parser::TryParseArrowFunction(SourcePos start, bool 
 
 	// 解析参数
 	if (lexer_->PeekToken().is(TokenType::kSepLParen)) {
-		params = ParseParams();
+		params = ParseParameters();
 	}
 	else {
 		// 单个参数
@@ -178,7 +178,7 @@ std::unique_ptr<Expression> Parser::ParseTraditionalFunction(SourcePos start, bo
 	}
 
 	// 参数
-	auto params = ParseParams();
+	auto params = ParseParameters();
 
 	// 类型注解 (如果有)
 	ParseTypeAnnotation();
@@ -465,10 +465,11 @@ std::unique_ptr<Expression> Parser::ParseNewImportOrMemberExpression() {
 	else if (type == TokenType::kKwImport) {
 		return ParseImportExpression();
 	}
-	return ParseMemberOrCallExpression(true);
+	return ParseMemberOrCallExpression(nullptr, true);
 }
 
-std::unique_ptr<NewExpression> Parser::ParseNewExpression() {
+std::unique_ptr<Expression> Parser::ParseNewExpression() {
+	// new new ... 右结合
 	auto start = lexer_->pos();
 	lexer_->NextToken();
 	std::unique_ptr<Expression> callee;
@@ -478,33 +479,39 @@ std::unique_ptr<NewExpression> Parser::ParseNewExpression() {
 		callee = ParseNewExpression();
 	}
 	else {
-		callee = ParseMemberOrCallExpression(false);
+		callee = ParseMemberOrCallExpression(nullptr, false);
 	}
 
 	std::vector<std::unique_ptr<Expression>> arguments;
 	if (lexer_->PeekToken().is(TokenType::kSepLParen)) {
 		arguments = ParseExpressions(TokenType::kSepLParen, TokenType::kSepRParen, false);
 	}
+
+	
 	auto end = lexer_->pos();
 	auto exp = std::make_unique<NewExpression>(start, end, std::move(callee), std::move(arguments));
-	return exp;
+
+	// 后面可能还会跟函数调用之类的
+	return ParseMemberOrCallExpression(std::move(exp), true);
 }
 
-std::unique_ptr<Expression> Parser::ParseMemberOrCallExpression(bool match_lparen) {
-	auto exp = ParsePrimaryExpression();
+std::unique_ptr<Expression> Parser::ParseMemberOrCallExpression(std::unique_ptr<Expression> right, bool match_lparen) {
+	if (!right) {
+		right = ParsePrimaryExpression();
+	}
 	do {
 		auto token = lexer_->PeekToken();
 		if (token.is(TokenType::kSepDot) || token.is(TokenType::kSepLBrack)) {
-			exp = ParseMemberExpression(std::move(exp));
+			right = ParseMemberExpression(std::move(right));
 		}
 		else if (match_lparen && token.is(TokenType::kSepLParen)) {
-			exp = ParseCallExpression(std::move(exp));
+			right = ParseCallExpression(std::move(right));
 		}
 		else {
 			break;
 		}
 	} while (true);
-	return exp;
+	return right;
 }
 
 std::unique_ptr<MemberExpression> Parser::ParseMemberExpression(std::unique_ptr<Expression> object) {
@@ -1036,7 +1043,7 @@ std::unique_ptr<ExpressionStatement> Parser::ParseExpressionStatement() {
 }
 
 
-std::vector<std::string> Parser::ParseParams() {
+std::vector<std::string> Parser::ParseParameters() {
 	lexer_->MatchToken(TokenType::kSepLParen);
 	std::vector<std::string> parList;
 	if (!lexer_->PeekToken().is(TokenType::kSepRParen)) {

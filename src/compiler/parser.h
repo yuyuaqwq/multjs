@@ -48,10 +48,11 @@ public:
 	std::unique_ptr<Expression> ParseUnaryExpression();
 	std::unique_ptr<Expression> ParsePostfixExpression();
 	std::unique_ptr<Expression> ParseNewImportOrMemberExpression();
-	std::unique_ptr<NewExpression> ParseNewExpression();
-	std::unique_ptr<Expression> ParseMemberOrCallExpression(bool match_lparen);
+	std::unique_ptr<Expression> ParseNewExpression();
+	std::unique_ptr<Expression> ParseMemberOrCallExpression(std::unique_ptr<Expression> right, bool match_lparen);
 	std::unique_ptr<MemberExpression> ParseMemberExpression(std::unique_ptr<Expression> object);
 	std::unique_ptr<CallExpression> ParseCallExpression(std::unique_ptr<Expression> callee);
+
 	std::unique_ptr<ImportExpression> ParseImportExpression();
 	std::unique_ptr<Expression> ParsePrimaryExpression();
 	std::unique_ptr<ArrayExpression> ParseArrayExpression();
@@ -86,7 +87,7 @@ public:
 	std::unique_ptr<BlockStatement> ParseBlockStatement();
 	std::unique_ptr<ExpressionStatement> ParseExpressionStatement();
 
-	std::vector<std::string> ParseParams();
+	std::vector<std::string> ParseParameters();
 	std::vector<std::unique_ptr<Expression>> ParseExpressions(TokenType begin, TokenType end, bool allow_comma_end);
 
 	std::unique_ptr<TypeAnnotation> ParseTypeAnnotation();
