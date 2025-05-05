@@ -42,3 +42,28 @@ const obj = {
     }
 };
 obj.getName(); 
+
+Promise.resolve(Promise.resolve(Promise.resolve(42))).then(value => println(value)); // 应该输出42
+
+let console = {
+    log: function(info) {
+        println(info);
+    }
+};
+
+Promise.resolve(42)
+  .then(v => {
+    println(v); // 应输出42
+    return v + 1;
+  })
+  .then(v => println(v)); // 应输出43
+
+  const p = Promise.resolve(
+    Promise.resolve(
+      Promise.resolve("Final Value")
+    )
+  );
+  
+  p.then((val) => {
+    console.log(val); // 输出 "Final Value"（递归解包到最内层）
+  });

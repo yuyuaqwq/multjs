@@ -35,9 +35,9 @@ bool ClassDef::GetStaticProperty(Runtime* runtime, ConstIndex key, Value* value)
 	auto iter = static_property_map_.find(key);
 	if (iter != static_property_map_.end()) {
 		*value = iter->second;
-		return false;
+		return true;
 	}
-	return true;
+	return false;
 }
 
 bool ClassDef::HasStaticProperty(Runtime* runtime, ConstIndex key) {

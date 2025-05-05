@@ -505,7 +505,7 @@ void VM::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 			case OpcodeType::kAsyncReturn: {
 				auto& async = stack_frame->function_val().async();
 				auto return_value = stack_frame->pop();
-				async.res_promise().promise().ResolvePromise(context_, return_value);
+				async.res_promise().promise().Resolve(context_, return_value);
 				stack_frame->push(async.res_promise());
 				goto exit_;
 				break;

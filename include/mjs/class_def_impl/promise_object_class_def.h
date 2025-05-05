@@ -10,7 +10,9 @@ public:
 
 	Value NewConstructor(Context* context, uint32_t par_count, const StackFrame& stack) override;
 
-	static Value Resolve(Context* context, Value value);
+	static Value Resolve(Context* context, Value result);
+
+	static Value Reject(Context* context, Value reason);
 };
 
 } // namespace mjs

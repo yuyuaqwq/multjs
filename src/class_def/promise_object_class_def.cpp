@@ -23,15 +23,19 @@ PromiseObjectClassDef::PromiseObjectClassDef(Runtime* runtime)
 	}));
 
 	static_property_map_.insert(runtime, String::make("resolve"), Value([](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
-		Value value;
+		Value result;
 		if (par_count > 0) {
-			value = stack.get(0);
+			result = stack.get(0);
 		}
-		return Resolve(context, std::move(value));
+		return Resolve(context, std::move(result));
 	}));
 
 	static_property_map_.insert(runtime, String::make("reject"), Value([](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
-		return Value();
+		Value reason;
+		if (par_count > 0) {
+			reason = stack.get(0);
+		}
+		return Reject(context, std::move(reason));
 	}));
 }
 
@@ -43,9 +47,15 @@ Value PromiseObjectClassDef::NewConstructor(Context* context, uint32_t par_count
 	return Value(new PromiseObject(context, std::move(executor)));
 }
 
-Value PromiseObjectClassDef::Resolve(Context* context, Value value) {
+Value PromiseObjectClassDef::Resolve(Context* context, Value result) {
 	auto promise = new PromiseObject(context, Value());
-	promise->Resolve(context, value);
+	promise->Resolve(context, result);
+	return Value(promise);
+}
+
+Value PromiseObjectClassDef::Reject(Context* context, Value reason) {
+	auto promise = new PromiseObject(context, Value());
+	promise->Reject(context, reason);
 	return Value(promise);
 }
 

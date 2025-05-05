@@ -18,24 +18,29 @@ PromiseObject::PromiseObject(Context* context, Value executor)
             Value(ValueType::kPromiseReject, this)
         };
         // 传递两个参数，resolve和reject
-        context->CallFunction(&executor, Value(), argv.begin(), argv.end());
+        auto result = context->CallFunction(&executor, Value(), argv.begin(), argv.end());
+        if (result.IsException()) {
+            Reject(context, result);
+        }
     }
     // 避免解引用释放对象
     WeakDereference();
 }
 
-void PromiseObject::Resolve(Context* context, Value value) {
+void PromiseObject::Resolve(Context* context, Value result) {
     if (!IsPending()) {
         return;
     }
 
+    UnwrapPromise(context, &result);
+
     state_ = State::kFulfilled;
-    result_ = value;
+    result_or_reason_ = result;
 
     auto& microtask_queue = context->microtask_queue();
     while (!on_fulfill_callbacks_.empty()) {
         auto& job = on_fulfill_callbacks_.front();
-        job.AddArg(value);
+        job.AddArg(result);
         microtask_queue.emplace_back(std::move(job));
         on_fulfill_callbacks_.pop_front();
     }
@@ -45,18 +50,20 @@ void PromiseObject::Resolve(Context* context, Value value) {
     }
 }
 
-void PromiseObject::Reject(Context* context, Value value) {
+void PromiseObject::Reject(Context* context, Value reason) {
     if (!IsPending()) {
         return;
     }
 
+    UnwrapPromise(context, &reason);
+
     state_ = State::kRejected;
-    result_ = value;
+    result_or_reason_ = reason;
 
     auto& microtask_queue = context->microtask_queue();
     while (!on_reject_callbacks_.empty()) {
         auto& job = on_reject_callbacks_.front();
-        job.AddArg(value);
+        job.AddArg(reason);
         microtask_queue.emplace_back(std::move(job));
         on_reject_callbacks_.pop_front();
     }
@@ -67,7 +74,6 @@ void PromiseObject::Reject(Context* context, Value value) {
 }
 
 
-// todo: Then可能也需要处理自动解包？
 Value PromiseObject::Then(Context* context, Value on_fulfilled, Value on_rejected) {
     auto* new_promise = new PromiseObject(context, Value());
 
@@ -82,7 +88,7 @@ Value PromiseObject::Then(Context* context, Value on_fulfilled, Value on_rejecte
         auto on_fulfilled_result = context->CallFunction(&on_fulfilled, Value(), argv.begin(), argv.end());
 
         // 然后传递给new_promise
-        new_promise.ResolvePromise(context, on_fulfilled_result);
+        new_promise.Resolve(context, on_fulfilled_result);
 
         return Value();
     });
@@ -94,42 +100,77 @@ Value PromiseObject::Then(Context* context, Value on_fulfilled, Value on_rejecte
         Value on_rejected = stack.get(0);
 
         auto argv = { stack.get(1) };
-        auto on_rejected_result = context->CallFunction(&on_rejected, Value(), argv.begin(), argv.end());
+        auto on_rejected_reason = context->CallFunction(&on_rejected, Value(), argv.begin(), argv.end());
 
         // 然后传递给new_promise
-        new_promise.ResolvePromise(context, on_rejected_result);
+        new_promise.Reject(context, on_rejected_reason);
 
         return Value();
     });
 
     auto& microtask_queue = context->microtask_queue();
 
-    if (!on_fulfilled.IsUndefined()) {
+    if (on_fulfilled.IsUndefined()) {
+        on_fulfilled = Value([](Context* ctx, uint32_t, const StackFrame& stack) {
+            return stack.get(1);
+        });
+    }
+    if (on_rejected.IsUndefined()) {
+        on_rejected = Value([](Context* ctx, uint32_t, const StackFrame& stack) {
+            return stack.get(1).SetException();
+        });
+    }
+
+    if (IsPending()) {
+        // 挂起状态：注册回调
         auto fulfill_job = Job(std::move(fulfilled_handler), Value(new_promise));
         fulfill_job.AddArg(on_fulfilled);
-
-        if (IsPending()) {
-            on_fulfill_callbacks_.emplace_back(std::move(fulfill_job));
-        }
-        else if (IsFulfilled()) {
-            fulfill_job.AddArg(result_);
-            microtask_queue.emplace_back(std::move(fulfill_job));
-        }
-    }
-    if (!on_rejected.IsUndefined()) {
+        on_fulfill_callbacks_.emplace_back(std::move(fulfill_job));
+        
         auto reject_job = Job(std::move(rejected_handler), Value(new_promise));
         reject_job.AddArg(on_rejected);
-
-        if (IsPending()) {
-            on_reject_callbacks_.emplace_back(std::move(reject_job));
-        }
-        else if (IsRejected()) {
-            reject_job.AddArg(result_);
-            microtask_queue.emplace_back(std::move(reject_job));
-        }
+        on_reject_callbacks_.emplace_back(std::move(reject_job));
+    }
+    else if (IsFulfilled()) {
+        // 已完成状态：只添加fulfill任务
+        auto fulfill_job = Job(std::move(fulfilled_handler), Value(new_promise));
+        fulfill_job.AddArg(on_fulfilled);
+        fulfill_job.AddArg(result_or_reason_);
+        microtask_queue.emplace_back(std::move(fulfill_job));
+    }
+    else if (IsRejected()) {
+        // 已拒绝状态：只添加reject任务
+        auto reject_job = Job(std::move(rejected_handler), Value(new_promise));
+        reject_job.AddArg(on_rejected);
+        reject_job.AddArg(result_or_reason_);
+        microtask_queue.emplace_back(std::move(reject_job));
     }
 
     return Value(new_promise);
 }
+
+
+void PromiseObject::UnwrapPromise(Context* context, Value* result) {
+    if (!result->IsPromiseObject()) {
+        return;
+    }
+    auto& inner_promise = result->promise();
+    if (&inner_promise == this) {
+        Reject(context, Value("Cycle detected").SetException());
+        return;
+    }
+    if (inner_promise.IsPending()) {
+        // 不需要while循环，因为当inner_promise解决时，
+        // 会通过then回调再次进入这个函数
+        inner_promise.Then(context,
+            Value(ValueType::kPromiseResolve, this),
+            Value(ValueType::kPromiseReject, this));
+        return;
+    }
+    // 同步展开已完成的 Promise
+    *result = inner_promise.IsFulfilled() ? inner_promise.result() : inner_promise.reason();
+    assert(!result->IsPromiseObject());
+}
+
 
 } // namespace mjs
