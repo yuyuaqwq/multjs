@@ -166,8 +166,7 @@ bool PromiseObject::UnwrapPromise(Context* context, Value* result) {
         return false;
     }
     if (inner_promise.IsPending()) {
-        // 不需要while循环，因为当inner_promise解决时，
-        // 会通过then回调再次进入这个函数
+        // 当前promise的状态由inner_promise决定，保持等待
         inner_promise.Then(context,
             Value(ValueType::kPromiseResolve, this),
             Value(ValueType::kPromiseReject, this));
