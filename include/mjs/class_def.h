@@ -8,7 +8,6 @@
 #include <mjs/noncopyable.h>
 #include <mjs/value.h>
 #include <mjs/property_map.h>
-#include <mjs/segmented_array.h>
 
 namespace mjs {
 
@@ -108,46 +107,5 @@ protected:
 };
 
 using ClassDefUnique = std::unique_ptr<ClassDef>;
-
-class ClassDefTable : public noncopyable {
-public:
-	void Register(ClassDefUnique class_def) {
-		auto id = class_def->id();
-		std::string_view name = class_def->name();
-		auto idx = insert(std::move(class_def));
-		if (idx != static_cast<uint32_t>(id)) {
-			// 必须按枚举定义顺序插入，以确保高效查找
-			throw std::runtime_error("Class id mismatch.");
-		}
-		class_def_map_.emplace(name, class_def_arr_[idx].get());
-	}
-
-	ClassDef* find(std::string_view class_name) {
-		auto iter = class_def_map_.find(class_name);
-		if (iter == class_def_map_.end()) {
-			return nullptr;
-		}
-		return iter->second;
-	}
-
-	ClassDef& at(ClassId class_id) {
-		return *class_def_arr_.at(static_cast<uint32_t>(class_id));
-	}
-
-	ClassDef& operator[](ClassId class_id) {
-		return *class_def_arr_[(static_cast<uint32_t>(class_id))];
-	}
-
-private:
-	uint32_t insert(ClassDefUnique class_def) {
-		auto lock = std::lock_guard(mutex_);
-		return class_def_arr_.insert(std::move(class_def));
-	}
-
-private:
-	std::mutex mutex_;
-	SegmentedArray<ClassDefUnique, uint32_t, 1024> class_def_arr_;
-	std::unordered_map<std::string_view, ClassDef*> class_def_map_;
-};
 
 } // namespace mjs

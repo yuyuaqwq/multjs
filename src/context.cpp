@@ -38,8 +38,8 @@ Value Context::Eval(std::string module_name, std::string_view script) {
 	return module;
 }
 
-Value Context::EvalByPath(const char* path) {
-	auto module = runtime_->load_module()(this, path);
+Value Context::EvalByPath(std::string_view path) {
+	auto module = runtime_->module_mgr().GetModule(this, path);
 	return module;
 }
 

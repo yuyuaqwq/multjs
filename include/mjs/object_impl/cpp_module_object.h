@@ -6,10 +6,7 @@ namespace mjs {
 
 class CppModuleObject : public Object {
 public:
-
-
-private:
-
+	using Object::Object;
 };
 
 } // namespace mjs

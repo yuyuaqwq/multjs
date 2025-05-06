@@ -6,18 +6,18 @@ let anonymousfunc = function() {
                 i = i + 1;
                 try {
                     try {
-                        println("inner try while try2");
+                        console.log("inner try while try2");
                         continue;
                         break;
                     }
                     finally {
-                        println("inner try while finally2");
+                        console.log("inner try while finally2");
                         throw "sbsb666";
                         break;
                     }
                 }
                 finally {
-                    println("inner try while finally");
+                    console.log("inner try while finally");
                     break;
                 }
             }
@@ -26,17 +26,17 @@ let anonymousfunc = function() {
             }
         }
         finally {
-            println("inner finally2");
+            console.log("inner finally2");
             return 8888;
         }
-        println("inner try");
+        console.log("inner try");
         throw "inner error";
     }
     // catch (e) {
-    //     println("inner catch:", e);
+    //     console.log("inner catch:", e);
     // }
     finally {
-        // println("inner finally");
+        // console.log("inner finally");
         return 6666;
     }
 };
@@ -46,42 +46,42 @@ try {
     res = anonymousfunc();
 }
 catch (e) {
-    println("call catch:", e);
+    console.log("call catch:", e);
 }
 finally {
-    println("call finally");
+    console.log("call finally");
 }
-println("res:", res);
+console.log("res:", res);
 
 
 try {
-    println("outer try");
+    console.log("outer try");
     try {
-        println("inner try");
+        console.log("inner try");
         throw "inner error";
     }
     catch (e) {
         try {
-            println("inner catch:", e);
+            console.log("inner catch:", e);
             throw "new error from catch"; // 重新抛出
         }
         catch (e) {
-            println("inner2 catch:", e);
+            console.log("inner2 catch:", e);
             throw "new error from inner catch"; // 重新抛出
         }
         finally {
-            println("inner2 finally");
+            console.log("inner2 finally");
             throw "sbsb";
         }
     }
     finally {
-        println("inner finally");
+        console.log("inner finally");
     }
 }
 catch (e) {
-    println("outer catch:", e);
+    console.log("outer catch:", e);
 }
 finally {
-    println("dawdawd outer finally");
+    console.log("dawdawd outer finally");
     // throw "2b";
 }

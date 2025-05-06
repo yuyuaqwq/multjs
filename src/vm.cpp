@@ -686,7 +686,7 @@ void VM::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 				if (!path.IsString()) {
 					throw VmException("Can only provide string paths for module loading.");
 				}
-				stack_frame->push(context_->runtime().load_module()(context_, path.string_view()));
+				stack_frame->push(context_->runtime().module_mgr().GetModule(context_, path.string_view()));
 				break;
 			}
 			case OpcodeType::kGetModuleAsync: {
@@ -694,7 +694,7 @@ void VM::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 				if (!path.IsString()) {
 					throw VmException("Can only provide string paths for module loading.");
 				}
-				auto module = context_->runtime().load_module_async()(context_, path.string_view());
+				auto module = context_->runtime().module_mgr().GetModuleAsync(context_, path.string_view());
 				stack_frame->push(std::move(module));
 				break;
 			}

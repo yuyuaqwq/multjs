@@ -16,7 +16,7 @@ const iterableObject = {
 
 // Using for...of
 for (const value of iterableObject) {
-    println(value);
+    console.log(value);
 }
 // Output:
 // 1

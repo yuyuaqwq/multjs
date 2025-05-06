@@ -93,6 +93,12 @@ Value::Value(AsyncObject* async) {
 	value_.object_->Reference();
 }
 
+Value::Value(CppModuleObject* module_) {
+	tag_.type_ = ValueType::kCppModuleObject;
+	value_.object_ = reinterpret_cast<Object*>(module_);
+	value_.object_->Reference();
+}
+
 Value::Value(ModuleObject* module_) {
 	tag_.type_ = ValueType::kModuleObject;
 	value_.object_ = reinterpret_cast<Object*>(module_);
@@ -605,6 +611,11 @@ AsyncObject& Value::async() const {
 	return *reinterpret_cast<AsyncObject*>(value_.object_);
 }
 
+CppModuleObject& Value::cpp_module() const {
+	assert(IsCppModuleObject());
+	return *reinterpret_cast<CppModuleObject*>(value_.object_);
+}
+
 ModuleObject& Value::module() const {
 	assert(IsModuleObject());
 	return *reinterpret_cast<ModuleObject*>(value_.object_);
@@ -703,6 +714,7 @@ bool Value::IsObject() const {
 	case ValueType::kPromiseResolve:
 	case ValueType::kPromiseReject:
 	case ValueType::kAsyncObject:
+	case ValueType::kCppModuleObject:
 	case ValueType::kModuleObject:
 		return true;
 	default:
@@ -724,6 +736,10 @@ bool Value::IsPromiseObject() const {
 
 bool Value::IsAsyncObject() const {
 	return type() == ValueType::kAsyncObject;
+}
+
+bool Value::IsCppModuleObject() const {
+	return type() == ValueType::kCppModuleObject;
 }
 
 bool Value::IsModuleObject() const {

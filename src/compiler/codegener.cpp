@@ -43,22 +43,6 @@ Value CodeGener::Generate(std::string&& module_name) {
 		GenerateStatement(decl.get());
 	}
 
-
-	AddCppFunction("println", [](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
-		for (size_t i = 0; i < par_count; i++) {
-			auto val = stack.get(i);
-			try {
-				std::cout << val.ToString(context).string_view();
-			}
-			catch (const std::exception&)
-			{
-				std::cout << "unknown";
-			}
-		}
-		printf("\n");
-		return Value();
-		});
-
 	for (auto& stat : parser_->src_statements()) {
 		GenerateStatement(stat.get());
 	}
