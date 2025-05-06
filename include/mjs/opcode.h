@@ -30,6 +30,8 @@ enum class OpcodeType : uint8_t {
 	kVLoad_2 = 0x1c,
 	kVLoad_3 = 0x1d,
 
+	kGetGlobal = 0x1e,
+
 	// Module
 	kGetModule = 0x20,
 	kGetModuleAsync = 0x21,

@@ -681,6 +681,17 @@ void VM::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 				}
 				break;
 			}
+			case OpcodeType::kGetGlobal: {
+				auto const_idx = ConstIndex(func_def->byte_code().GetU32(stack_frame->pc()));
+				stack_frame->set_pc(stack_frame->pc() + 4);
+				Value value;
+				auto success = context_->runtime().global_this().object().GetProperty(context_, const_idx, &value);
+				if (!success) {
+					throw VmException("ReferenceError.");
+				}
+				stack_frame->push(std::move(value));
+				break;
+			}
 			case OpcodeType::kGetModule: {
 				auto path = stack_frame->pop();
 				if (!path.IsString()) {

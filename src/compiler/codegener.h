@@ -96,7 +96,7 @@ private:
 	const VarInfo* FindVarIndexByName(const std::string& name);
 	bool IsInTypeScope(std::initializer_list<ScopeType> types, std::initializer_list<ScopeType> end_types);
 
-	const VarInfo& GetVarByExpression(Expression* exp);
+	const VarInfo* GetVarByExpression(Expression* exp);
 
 	Value MakeConstValue(Expression* exp);
 

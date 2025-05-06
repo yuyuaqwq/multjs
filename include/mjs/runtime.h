@@ -5,7 +5,7 @@
 #include <mjs/stack_frame.h>
 #include <mjs/class_def_table.h>
 #include <mjs/module_mgr.h>
-#include <mjs/property_map.h>
+#include <mjs/value.h>
 
 namespace mjs {
 
@@ -34,7 +34,7 @@ private:
 	ClassDefTable class_def_table_;
 	ModuleMgr module_mgr_;
 
-	PropertyMap global_this_;
+	Value global_this_;
 };
 
 } // namespace mjs

@@ -37,7 +37,8 @@ int main() {
     using namespace mjs;
 
     Runtime rt;
-    rt.global_this().insert(&rt, String::make("console"), Value(new ConsoleObject(&rt)));
+    auto const_idx = rt.const_pool().insert(Value(String::make("console")));
+    rt.global_this().object().SetProperty(nullptr, const_idx, Value(new ConsoleObject(&rt)));
 
     auto ctx = Context(&rt);
 

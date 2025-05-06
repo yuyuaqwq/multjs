@@ -13,6 +13,6 @@ namespace mjs {
 
 Runtime::Runtime() 
 	: class_def_table_(this)
-	, global_this_(this) {}
+	, global_this_(new Object(this)) {}
 
 } // namespace mjs

@@ -90,9 +90,18 @@ void CodeGener::GenerateExpression(Expression* exp) {
 		}
 		else {
 			// throw CodeGenerException("Undefined class.");
-			// 是取变量值的话，查找到对应的变量编号，将其入栈
-			const auto& var_info = GetVarByExpression(exp);
-			cur_func_def_->byte_code().EmitVarLoad(var_info.var_idx);	// 从变量中获取
+			// 尝试查找到对应的变量索引
+			const auto* var_info = GetVarByExpression(exp);
+			if (var_info) {
+				// 从变量中获取
+				cur_func_def_->byte_code().EmitVarLoad(var_info->var_idx);
+			}
+			else {
+				// 尝试从全局对象获取
+				auto const_idx = AllocConst(Value(String::make(ident_exp.name())));
+				cur_func_def_->byte_code().EmitOpcode(OpcodeType::kGetGlobal);
+				cur_func_def_->byte_code().EmitI32(const_idx);
+			}
 		}
 		break;
 	}
@@ -440,11 +449,12 @@ void CodeGener::GenerateLValueStore(Expression* lvalue_exp) {
 	switch (lvalue_exp->type()) {
 		// 为左值赋值
 	case ExpressionType::kIdentifier: {
-		const auto& var_info = GetVarByExpression(lvalue_exp);
-		if ((var_info.flags & VarFlags::kConst) == VarFlags::kConst) {
+		const auto* var_info = GetVarByExpression(lvalue_exp);
+		assert(var_info);
+		if ((var_info->flags & VarFlags::kConst) == VarFlags::kConst) {
 			throw CodeGenerException("Cannot change const var.");
 		}
-		cur_func_def_->byte_code().EmitVarStore(var_info.var_idx);
+		cur_func_def_->byte_code().EmitVarStore(var_info->var_idx);
 		break;
 	}
 	case ExpressionType::kMemberExpression: {
@@ -986,15 +996,14 @@ bool CodeGener::IsInTypeScope(std::initializer_list<ScopeType> types, std::initi
 }
 
 
-const VarInfo& CodeGener::GetVarByExpression(Expression* exp) {
+const VarInfo* CodeGener::GetVarByExpression(Expression* exp) {
 	assert(exp->is(ExpressionType::kIdentifier));
-
 	auto& var_exp = exp->as<Identifier>();
 	auto var_info = FindVarIndexByName(var_exp.name());
 	if (!var_info) {
-		throw CodeGenerException("var not defined");
+		return nullptr;
 	}
-	return *var_info;
+	return var_info;
 }
 
 Value CodeGener::MakeConstValue(Expression* exp) {

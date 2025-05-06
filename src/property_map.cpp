@@ -50,7 +50,7 @@ void PropertyMap::ReferenceConst(Context* context, ConstIndex index) {
 }
 
 
-inline const Value& GetPoolValue(PropertyMap* property_map, ConstIndex const& key) {
+inline const Value& GetPoolValue(PropertyMap* property_map, const ConstIndex& key) {
     assert(!key.is_invalid());
     if (key.is_global_index()) {
         auto& val = property_map->runtime().const_pool().at(key);
