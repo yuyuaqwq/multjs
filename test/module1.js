@@ -6,6 +6,8 @@ async function a() {
     console.log("module1 func a await ok.", mod.PI, mod.square(mod.PI));
 }
 
+globalThis.console.log("???");
+
 a();
 
 console.log("module1 loaded.", module2.PI, module2.square(module2.PI));

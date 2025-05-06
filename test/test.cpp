@@ -37,7 +37,10 @@ int main() {
     using namespace mjs;
 
     Runtime rt;
-    auto const_idx = rt.const_pool().insert(Value(String::make("console")));
+    auto const_idx = rt.const_pool().insert(Value(String::make("globalThis")));
+    auto globalThis = rt.global_this();
+    rt.global_this().object().SetProperty(nullptr, const_idx, std::move(globalThis));
+    const_idx = rt.const_pool().insert(Value(String::make("console")));
     rt.global_this().object().SetProperty(nullptr, const_idx, Value(new ConsoleObject(&rt)));
 
     auto ctx = Context(&rt);
