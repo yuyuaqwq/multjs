@@ -8,7 +8,7 @@ class SymbolClassDef : public ClassDef {
 public:
 	SymbolClassDef(Runtime* runtime);
 
-	Value For(Context* context, Value name);
+	static Value For(Context* context, Value name);
 };
 
 } // namespace mjs

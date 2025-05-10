@@ -11,6 +11,7 @@
 #include <mjs/object_impl/async_object.h>
 #include <mjs/object_impl/promise_object.h>
 #include <mjs/object_impl/module_object.h>
+#include <mjs/object_impl/constructor_object.h>
 #include <mjs/class_def_impl/promise_object_class_def.h>
 
 namespace mjs {
@@ -181,8 +182,11 @@ bool VM::FunctionScheduling(StackFrame* stack_frame, uint32_t par_count) {
 		}
 		return true;
 	}
-	case ValueType::kNewConstructor: {
-		auto obj = stack_frame->function_val().class_def().NewConstructor(context_, par_count, *stack_frame);
+	case ValueType::kObject: {
+		// todo: 判断是否可构造
+		auto class_id = stack_frame->function_val().object().class_id();
+		auto& class_def = context_->runtime().class_def_table()[class_id];
+		auto obj = class_def.NewConstructor(context_, par_count, *stack_frame);
 		stack_frame->push(std::move(obj));
 		return false;
 	}
@@ -364,10 +368,10 @@ void VM::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 					auto& obj = obj_val.object();
 					success = obj.GetProperty(context_, const_idx, &obj_val);
 				}
-				else if (obj_val.IsClassDef()) {
-					auto& class_def = obj_val.class_def();
-					success = class_def.GetStaticProperty(&context_->runtime(), const_idx, &obj_val);
-				}
+				//else if (obj_val.IsClassDef()) {
+				//	auto& class_def = obj_val.class_def();
+				//	success = class_def.GetStaticProperty(&context_->runtime(), const_idx, &obj_val);
+				//}
 				else {
 					// 非Object类型，根据类型来处理
 					// 如undefined需要报错

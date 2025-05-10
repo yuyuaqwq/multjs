@@ -8,8 +8,7 @@
 namespace mjs {
 
 // 不会有循环引用问题，仅使用引用计数管理
-class String : public ReferenceCounter
-{
+class String : public ReferenceCounter {
 public:
 	String(size_t size) 
 		: size_(size) {}

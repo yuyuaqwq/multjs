@@ -8,10 +8,10 @@ namespace mjs {
 SymbolClassDef::SymbolClassDef(Runtime* runtime)
 	: ClassDef(runtime, ClassId::kSymbol, "Symbol")
 {
-	auto iter = property_map_.insert(runtime, "iterator", Value());
-	iter.first->second = Value(iter.first->first);
+	//auto iter = property_map_.insert(runtime, "iterator", Value());
+	//iter.first->second = Value(iter.first->first);
 
-	static_property_map_.insert(runtime, "for", Value([](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
+	constructor_object_.object().SetProperty(runtime, "for", Value([](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
 		if (par_count < 1) {
 			return Value("Parameter count mismatch.").SetException();
 		}
@@ -21,8 +21,8 @@ SymbolClassDef::SymbolClassDef(Runtime* runtime)
 			return Value("The parameter must be a string.").SetException();
 		}
 
-		auto& symbol_class_def = context->runtime().class_def_table()[ClassId::kSymbol].get<SymbolClassDef>();
-		return symbol_class_def.For(context, par);
+		// auto& symbol_class_def = context->runtime().class_def_table()[ClassId::kSymbol].get<SymbolClassDef>();
+		return SymbolClassDef::For(context, par);
 	}));
 }
 

@@ -35,15 +35,16 @@ enum class ValueType : uint32_t {
 	kAsyncObject,
 	kCppModuleObject,
 	kModuleObject,
+	kConstructorObject,
 
 	// 内部使用
 	kUInt64,
 	// String优化，考虑移除，统一使用kString，移除后string()可以直接返回String*，并且hash能缓存
 	kStringView,
 
-	kClassDef,
-	kNewConstructor,
-	kPrimitiveConstructor,
+	// kClassDef,
+	// kNewConstructor,
+	// kPrimitiveConstructor,
 
 	kModuleDef,
 	kFunctionDef,
@@ -70,6 +71,7 @@ class PromiseObject;
 class AsyncObject;
 class CppModuleObject;
 class ModuleObject;
+class ConstructorObject;
 
 class ClassDef;
 class ModuleDef;
@@ -100,6 +102,7 @@ public:
 	explicit Value(AsyncObject* async);
 	explicit Value(CppModuleObject* module_);
 	explicit Value(ModuleObject* module_);
+	explicit Value(ConstructorObject* module_);
 
 	explicit Value(int64_t i64);
 	explicit Value(int32_t i32);
@@ -108,7 +111,7 @@ public:
 
 	// explicit Value(const UpValue& up_value);
 
-	explicit Value(ClassDef* class_def);
+	// explicit Value(ClassDef* class_def);
 	explicit Value(ModuleDef* module_def);
 	explicit Value(FunctionDef* function_def);
 	explicit Value(CppFunction bridge);
@@ -117,7 +120,7 @@ public:
 
 	Value(ValueType type);
 	Value(ValueType type, PromiseObject* promise);
-	Value(ValueType type, ClassDef* class_def);
+	// Value(ValueType type, ClassDef* class_def);
 
 	~Value();
 
@@ -168,8 +171,9 @@ public:
 	AsyncObject& async() const;
 	CppModuleObject& cpp_module() const;
 	ModuleObject& module() const;
+	ConstructorObject& constructor() const;
 
-	ClassDef& class_def() const;
+	// ClassDef& class_def() const;
 	ModuleDef& module_def() const;
 	FunctionDef& function_def() const;
 	CppFunction cpp_function() const;
@@ -206,14 +210,15 @@ public:
 	bool IsAsyncObject() const;
 	bool IsCppModuleObject() const;
 	bool IsModuleObject() const;
+	bool IsConstructorObject() const;
 	bool IsPromiseResolve() const;
 	bool IsPromiseReject() const;
-
+	
 	bool IsFloat() const;
 	bool IsInt64() const;
 	bool IsUInt64() const;
 	
-	bool IsClassDef() const;
+	// bool IsClassDef() const;
 	bool IsModuleDef() const;
 	bool IsFunctionDef() const;
 	bool IsCppFunction() const;

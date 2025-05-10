@@ -22,19 +22,18 @@ public:
 		return stack;
 	}
 
+	auto& global_this() { return global_this_; }
+
 	const auto& class_def_table() const { return class_def_table_; }
 	auto& class_def_table() { return class_def_table_; }
 
 	auto& module_mgr() { return module_mgr_; }
 
-	auto& global_this() { return global_this_; }
-
 private:
 	GlobalConstPool const_pool_;
+	Value global_this_;
 	ClassDefTable class_def_table_;
 	ModuleMgr module_mgr_;
-
-	Value global_this_;
 };
 
 } // namespace mjs

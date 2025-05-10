@@ -7,11 +7,11 @@ namespace mjs {
 class ArrayObject : public Object {
 public:
     ArrayObject(Runtime* runtime, size_t length)
-        : Object(runtime)
+        : Object(runtime, ClassId::kArrayObject)
         , values_(length) {}
 
     ArrayObject(Context* context, size_t length)
-        : Object(context)
+        : Object(context, ClassId::kArrayObject)
         , values_(length) {}
 
     void SetComputedProperty(Context* context, const Value& key, Value&& value) override {

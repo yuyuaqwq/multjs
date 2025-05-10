@@ -22,8 +22,8 @@ class Object
 	: public noncopyable
 	, public intrusive_list<Object>::node {
 public:
-	Object(Runtime* runtime);
-	Object(Context* context);
+	Object(Runtime* runtime, ClassId class_id);
+	Object(Context* context, ClassId class_id);
 	
 	virtual ~Object();
 
@@ -40,7 +40,8 @@ public:
 		}
 	}
 
-	void SetProperty(Context* context, std::string_view key, Value&& value);
+	void SetProperty(Runtime* runtime, std::string_view key, Value&& value);
+	bool GetProperty(Runtime* runtime, std::string_view key, Value* value);
 	virtual void SetProperty(Context* context, ConstIndex key, Value&& value);
 	virtual bool GetProperty(Context* context, ConstIndex key, Value* value);
 	virtual bool HasProperty(Context* context, ConstIndex key);
@@ -52,7 +53,7 @@ public:
 
 	virtual Value ToString(Context* context);
 
-	virtual ClassId class_id() const { return ClassId::kObject; }
+	ClassId class_id() const { return static_cast<ClassId>(tag_.class_id_); }
 
 	template <typename ObjectT>
 	const ObjectT& get() const {
@@ -70,7 +71,7 @@ public:
 	void set_gc_mark(bool flag) { tag_.gc_mark_ = flag; }
 
 	static Object* New(Context* context) {
-		return new Object(context);
+		return new Object(context, ClassId::kObject);
 	}
 
 protected:
@@ -80,6 +81,7 @@ protected:
 			uint32_t ref_count_;
 			uint32_t gc_mark_ : 1;
 			uint32_t is_const_ : 1;
+			uint32_t class_id_ : 16;
 		};
 	} tag_;
 	PropertyMap* property_map_ = nullptr;

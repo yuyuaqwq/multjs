@@ -5,7 +5,7 @@
 namespace mjs {
 
 PromiseObject::PromiseObject(Context* context, Value executor)
-    : Object(context)
+    : Object(context, ClassId::kPromiseObject)
 {
     if (executor.IsUndefined()) return;
 

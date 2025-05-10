@@ -11,7 +11,7 @@ GeneratorObjectClassDef::GeneratorObjectClassDef(Runtime* runtime)
 	value_const_idx_ = runtime->const_pool().insert(Value("value"));
 	done_const_idx_ = runtime->const_pool().insert(Value("done"));
 
-	property_map_.insert(runtime, "next", Value(ValueType::kGeneratorNext));
+	prototype_.object().SetProperty(runtime, "next", Value(ValueType::kGeneratorNext));
 }
 
 } // namespace mjs

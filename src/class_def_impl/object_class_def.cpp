@@ -7,14 +7,17 @@
 namespace mjs {
 
 ObjectClassDef::ObjectClassDef(Runtime* runtime)
-	: ClassDef(runtime, ClassId::kObject, "Object") {}
+	: ClassDef(runtime, ClassId::kObject, "Object")
+{
+	prototype_ = Value();
+}
 
 Value ObjectClassDef::NewConstructor(Context* context, uint32_t par_count, const StackFrame& stack) {
-	return Value(new Object(context));
+	return Value(new Object(context, ClassId::kObject));
 }
 
 Value ObjectClassDef::LiteralNew(Context* context, uint32_t par_count, const StackFrame& stack) {
-	auto obj = new Object(context);
+	auto obj = new Object(context, ClassId::kObject);
 	for (size_t i = 0; i < par_count - 1; i += 2) {
 		auto key_const_index = stack.get(i).const_index();
 		assert(!key_const_index.is_invalid());

@@ -19,14 +19,6 @@ public:
 
 	void Register(ClassDefUnique class_def);
 
-	ClassDef* find(std::string_view class_name) {
-		auto iter = class_def_map_.find(class_name);
-		if (iter == class_def_map_.end()) {
-			return nullptr;
-		}
-		return iter->second;
-	}
-
 	ClassDef& at(ClassId class_id) {
 		return *class_def_arr_.at(static_cast<uint32_t>(class_id));
 	}
@@ -44,7 +36,6 @@ private:
 private:
 	std::mutex mutex_;
 	SegmentedArray<ClassDefUnique, uint32_t, 1024> class_def_arr_;
-	std::unordered_map<std::string_view, ClassDef*> class_def_map_;
 };
 
 } // namespace mjs

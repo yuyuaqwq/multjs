@@ -5,12 +5,13 @@
 
 namespace mjs {
 
-Object::Object(Runtime* runtime) {
+Object::Object(Runtime* runtime, ClassId class_id) {
 	// 仅runtime使用的对象就提前new
 	property_map_ = new PropertyMap(runtime);
+	tag_.class_id_ = static_cast<uint16_t>(class_id);
 }
 
-Object::Object(Context* context) {
+Object::Object(Context* context, ClassId class_id) {
 	// 挂入context obj链表
 	if (context) {
 		context->AddObject(this);
@@ -18,6 +19,7 @@ Object::Object(Context* context) {
 	else {
 		tag_.is_const_ = true;
 	}
+	tag_.class_id_ = static_cast<uint16_t>(class_id);
 }
 
 Object::~Object() {
@@ -28,10 +30,17 @@ Object::~Object() {
 	unlink();
 }
 
-void Object::SetProperty(Context* context, std::string_view key, Value&& value) {
-	auto const_index = context->runtime().const_pool().insert(mjs::Value(key));
-	SetProperty(context, const_index, std::move(value));
+
+void Object::SetProperty(Runtime* runtime, std::string_view key, Value&& value) {
+	auto const_index = runtime->const_pool().insert(mjs::Value(key));
+	SetProperty(nullptr, const_index, std::move(value));
 }
+
+bool Object::GetProperty(Runtime* runtime, std::string_view key, Value* value) {
+	auto const_index = runtime->const_pool().insert(mjs::Value(key));
+	return GetProperty(nullptr, const_index, value);
+}
+
 
 void Object::SetProperty(Context* context, ConstIndex key, Value&& value) {
 	assert(!context || !tag_.is_const_);
@@ -40,6 +49,8 @@ void Object::SetProperty(Context* context, ConstIndex key, Value&& value) {
 }
 
 bool Object::GetProperty(Context* context, ConstIndex key, Value* value) {
+	// 如果配置了exotic，需要先查找(也就是class_def中的GetProperty等方法)
+
 	// 1. 查找自身属性
 	if (property_map_) {
 		auto iter = property_map_->find(key);
@@ -48,11 +59,13 @@ bool Object::GetProperty(Context* context, ConstIndex key, Value* value) {
 			return true;
 		}
 	}
-		
-	// 2. class def查找
+
+	// 2. 原型链查找
 	auto& class_def = context->runtime().class_def_table().at(class_id());
-	auto success = class_def.GetProperty(context, this, key, value);
-	if (success) return true;
+	if (!class_def.prototype().IsUndefined()) {
+		auto success = class_def.prototype().object().GetProperty(context, key, value);
+		if (success) return true;
+	}
 	
 	return false;
 }

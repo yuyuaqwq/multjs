@@ -53,8 +53,6 @@ public:
     auto pc() const { return pc_; }
     void set_pc(Pc pc) { pc_ = pc; }
 
-    ClassId class_id() const override { return ClassId::kGeneratorObject; }
-
 private:
     Value function_;        // 生成器函数定义/函数对象
     Pc pc_ = 0;         // 当前pc

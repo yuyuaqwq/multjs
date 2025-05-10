@@ -110,6 +110,12 @@ Value::Value(ModuleObject* module_) {
 	value_.object_->Reference();
 }
 
+Value::Value(ConstructorObject* constructor) {
+	tag_.type_ = ValueType::kConstructorObject;
+	value_.object_ = reinterpret_cast<Object*>(constructor);
+	value_.object_->Reference();
+}
+
 
 Value::Value(uint64_t u64) {
 	tag_.type_ = ValueType::kUInt64;
@@ -121,10 +127,10 @@ Value::Value(uint32_t u32) {
 	value_.u64_ = u32;
 }
 
-Value::Value(ClassDef* class_def) {
-	tag_.type_ = ValueType::kClassDef;
-	value_.class_def_ = class_def;
-}
+//Value::Value(ClassDef* class_def) {
+//	tag_.type_ = ValueType::kClassDef;
+//	value_.class_def_ = class_def;
+//}
 
 Value::Value(ModuleDef* module_def) {
 	tag_.type_ = ValueType::kModuleDef;
@@ -176,15 +182,15 @@ Value::Value(ValueType type, PromiseObject* promise) {
 	}
 }
 
-Value::Value(ValueType type, ClassDef* class_def) {
-	tag_.type_ = type;
-	if (type == ValueType::kPrimitiveConstructor || type == ValueType::kNewConstructor) {
-		value_.class_def_ = class_def;
-	}
-	else {
-		assert(0);
-	}
-}
+//Value::Value(ValueType type, ClassDef* class_def) {
+//	tag_.type_ = type;
+//	if (type == ValueType::kPrimitiveConstructor || type == ValueType::kNewConstructor) {
+//		value_.class_def_ = class_def;
+//	}
+//	else {
+//		assert(0);
+//	}
+//}
 
 
 Value::~Value() {
@@ -244,11 +250,11 @@ ptrdiff_t Value::Comparer(const Value& rhs) const {
 		return i64() - rhs.i64();
 	case ValueType::kUInt64:
 		return u64() - rhs.u64();
-	case mjs::ValueType::kPrimitiveConstructor:
-	case mjs::ValueType::kNewConstructor:
+	//case mjs::ValueType::kPrimitiveConstructor:
+	//case mjs::ValueType::kNewConstructor:
 		// 上面判断了type，这里可以直接比较full
 		return value_.full_ - rhs.value_.full_;
-	case ValueType::kClassDef:
+	//case ValueType::kClassDef:
 	case ValueType::kFunctionDef:
 	case ValueType::kCppFunction:
 	case ValueType::kClosureVar:
@@ -281,12 +287,12 @@ size_t Value::hash() const {
 		return std::hash<int64_t>()(i64());
 	case mjs::ValueType::kUInt64:
 		return std::hash<uint64_t>()(u64());
-	case mjs::ValueType::kPrimitiveConstructor:
-	case mjs::ValueType::kNewConstructor:
+	//case mjs::ValueType::kPrimitiveConstructor:
+	//case mjs::ValueType::kNewConstructor:
 		// 这里hash暂时不考虑class_def一致但是type不一致的情况
 		return std::hash<uint64_t>()(value_.full_);
 	case mjs::ValueType::kFunctionDef:
-	case mjs::ValueType::kClassDef:
+	//case mjs::ValueType::kClassDef:
 	case mjs::ValueType::kCppFunction:
 	case mjs::ValueType::kClosureVar:
 		// 使用内部值计算哈希
@@ -631,11 +637,15 @@ ModuleObject& Value::module() const {
 	return *reinterpret_cast<ModuleObject*>(value_.object_);
 }
 
-
-ClassDef& Value::class_def() const {
-	assert(IsClassDef() || type() == ValueType::kPrimitiveConstructor || type() == ValueType::kNewConstructor);
-	return *value_.class_def_;
+ConstructorObject& Value::constructor() const {
+	assert(IsConstructorObject());
+	return *reinterpret_cast<ConstructorObject*>(value_.object_);
 }
+
+//ClassDef& Value::class_def() const {
+//	assert(IsClassDef() || type() == ValueType::kPrimitiveConstructor || type() == ValueType::kNewConstructor);
+//	return *value_.class_def_;
+//}
 
 ExportVar& Value::export_var() const {
 	assert(IsExportVar());
@@ -730,6 +740,7 @@ bool Value::IsObject() const {
 	case ValueType::kAsyncObject:
 	case ValueType::kCppModuleObject:
 	case ValueType::kModuleObject:
+	case ValueType::kConstructorObject:
 		return true;
 	default:
 		return false;
@@ -764,6 +775,10 @@ bool Value::IsModuleObject() const {
 	return type() == ValueType::kModuleObject;
 }
 
+bool Value::IsConstructorObject() const {
+	return type() == ValueType::kConstructorObject;
+}
+
 bool Value::IsPromiseResolve() const {
 	return type() == ValueType::kPromiseResolve;
 }
@@ -793,9 +808,9 @@ bool Value::IsClosureVar() const {
 	return type() == ValueType::kClosureVar;
 }
 
-bool Value::IsClassDef() const {
-	return type() == ValueType::kClassDef;
-}
+//bool Value::IsClassDef() const {
+//	return type() == ValueType::kClassDef;
+//}
 
 bool Value::IsModuleDef() const {
 	return type() == ValueType::kModuleDef;
@@ -834,10 +849,10 @@ Value Value::ToString(Context* context) const {
 		return Value(String::Format("function_def:{}", function_def().name()));
 	case ValueType::kCppFunction:
 		return Value("cpp_function");
-	case ValueType::kNewConstructor:
-		return Value(String::Format("new_constructor:{}", class_def().name()));
-	case ValueType::kPrimitiveConstructor:
-		return Value(String::Format("primitive_constructor:{}", class_def().name()));
+	//case ValueType::kNewConstructor:
+	//	return Value(String::Format("new_constructor:{}", class_def().name_string()));
+	//case ValueType::kPrimitiveConstructor:
+	//	return Value(String::Format("primitive_constructor:{}", class_def().name_string()));
 	case ValueType::kClosureVar:
 		return closure_var().value().ToString(context);
 	default:

@@ -82,13 +82,13 @@ void CodeGener::GenerateExpression(Expression* exp) {
 		// 如果是标识符的话，找下ClassDefTable
 		auto& ident_exp = exp->as<Identifier>();
 
-		auto class_def = runtime_->class_def_table().find(ident_exp.name());
-		// 先不考虑js里定义的类
-		if (class_def) {
-			auto const_idx = AllocConst(Value(class_def));
-			cur_func_def_->byte_code().EmitConstLoad(const_idx);
-		}
-		else {
+		//auto class_def = runtime_->class_def_table().find(ident_exp.name());
+		//// 先不考虑js里定义的类
+		//if (class_def) {
+		//	auto const_idx = AllocConst(Value(class_def));
+		//	cur_func_def_->byte_code().EmitConstLoad(const_idx);
+		//}
+		//else {
 			// throw CodeGenerException("Undefined class.");
 			// 尝试查找到对应的变量索引
 			const auto* var_info = GetVarByExpression(exp);
@@ -102,7 +102,7 @@ void CodeGener::GenerateExpression(Expression* exp) {
 				cur_func_def_->byte_code().EmitOpcode(OpcodeType::kGetGlobal);
 				cur_func_def_->byte_code().EmitI32(const_idx);
 			}
-		}
+		// }
 		break;
 	}
 	case ExpressionType::kThisExpression: {
@@ -246,17 +246,17 @@ void CodeGener::GenerateExpression(Expression* exp) {
 		auto& new_exp = exp->as<NewExpression>();
 		GenerateParamList(new_exp.arguments());
 
-		if (new_exp.callee()->is(ExpressionType::kIdentifier)) {
-			auto class_def = runtime_->class_def_table().find(new_exp.callee()->as<Identifier>().name());
-			// todo:先不考虑js里定义的类
-			if (class_def) {
-				auto const_idx = AllocConst(Value(ValueType::kNewConstructor, class_def));
-				cur_func_def_->byte_code().EmitConstLoad(const_idx);
-			}
-		}
-		else {
+		//if (new_exp.callee()->is(ExpressionType::kIdentifier)) {
+		//	auto class_def = runtime_->class_def_table().find(new_exp.callee()->as<Identifier>().name());
+		//	// todo:先不考虑js里定义的类
+		//	if (class_def) {
+		//		auto const_idx = AllocConst(Value(ValueType::kNewConstructor, class_def));
+		//		cur_func_def_->byte_code().EmitConstLoad(const_idx);
+		//	}
+		//}
+		//else {
 			GenerateExpression(new_exp.callee().get());
-		}
+		//}
 
 		cur_func_def_->byte_code().EmitOpcode(OpcodeType::kNew);
 		break;

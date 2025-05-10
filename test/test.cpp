@@ -13,7 +13,7 @@
 class ConsoleObject : public mjs::Object {
 public:
     ConsoleObject(mjs::Runtime* rt) 
-        : Object(rt)
+        : Object(rt, mjs::ClassId::kObject)
     {
         auto log_const_index = rt->const_pool().insert(mjs::Value("log"));
         SetProperty(nullptr, log_const_index, mjs::Value([](mjs::Context* context, uint32_t par_count, const mjs::StackFrame& stack) -> mjs::Value {
@@ -45,7 +45,7 @@ int main() {
 
     auto ctx = Context(&rt);
 
-    ctx.EvalByPath("module1.js");
+    ctx.EvalByPath("async.js");
 
     ctx.ExecuteMicrotasks();
 

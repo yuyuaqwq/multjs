@@ -30,7 +30,7 @@ enum class FunctionInternalMethods {
 };
 
 
-enum class ClassId {
+enum class ClassId : uint16_t {
 	kInvalid = 0,
 	kNumber,
 	kString,
@@ -39,10 +39,12 @@ enum class ClassId {
 	kArrayObject,
 	//kNumberObject,
 	//kArrayObject,
+	kFunctionObject,
 	kGeneratorObject,
 	kPromiseObject,
 	kAsyncObject,
 	kModuleObject,
+	kConstructorObject,
 
 	kCustom,
 };
@@ -51,13 +53,11 @@ class Runtime;
 class Object;
 class ClassDef : public noncopyable {
 public:
-	ClassDef(Runtime* runtime, ClassId id, std::string name)
-		: id_(id)
-		, name_(std::move(name))
-		, property_map_(runtime) 
-		, static_property_map_(runtime) {}
+	ClassDef(Runtime* runtime, ClassId id, std::string name);
 
 	virtual ~ClassDef() = default;
+
+	void InitConstructor(Runtime* runtime);
 
 	// 如果允许通过原始类型构造，重写该函数，如Symbol()
 	virtual Value PrimitiveConstructor(Context* context, uint32_t par_count, const StackFrame& stack) {
@@ -82,28 +82,23 @@ public:
 	virtual bool HasProperty(Context* context, Object* obj, ConstIndex key);
 	virtual bool DelProperty(Context* context, Object* obj, ConstIndex key);
 
-	virtual void SetStaticProperty(Runtime* runtime, ConstIndex key, Value&& val);
-	virtual bool GetStaticProperty(Runtime* runtime, ConstIndex key, Value* value);
-	virtual bool HasStaticProperty(Runtime* runtime, ConstIndex key);
-	virtual void DelStaticProperty(Runtime* runtime, ConstIndex key);
-
-
 	ClassId id() const { return id_; }
 	const auto& name() const { return name_; }
+	const auto& name_string() const { return name_string_; }
+	const Value& prototype() const { return prototype_; }
 
 	template<typename ClassDefT>
 	ClassDefT& get() {
 		return static_cast<ClassDefT&>(*this);
 	}
 
-	//const auto& property_map() const { return property_map_; }
-	//auto& property_map() { return property_map_; }
-
 protected:
 	ClassId id_;
-	std::string name_;
-	PropertyMap property_map_;
-	PropertyMap static_property_map_;
+	ConstIndex name_;
+	std::string name_string_;
+
+	Value constructor_object_;
+	Value prototype_;
 };
 
 using ClassDefUnique = std::unique_ptr<ClassDef>;

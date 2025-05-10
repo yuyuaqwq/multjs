@@ -12,6 +12,7 @@ public:
     AsyncObject(Context* context, const Value& function)
         : GeneratorObject(context, function)
     {
+        tag_.class_id_ = static_cast<uint16_t>(ClassId::kAsyncObject);
         res_promise_ = Value(new PromiseObject(context, Value()));
     }
 
@@ -23,8 +24,6 @@ public:
     Value ToString(Context* context) override {
         return Value(String::Format("asnyc_object:{}", function_def().name()));
     }
-
-    ClassId class_id() const override { return ClassId::kAsyncObject; }
 
     const auto& res_promise() const { return res_promise_; }
     auto& res_promise() { return res_promise_; }

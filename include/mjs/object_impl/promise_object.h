@@ -41,8 +41,6 @@ public:
     const auto& reason() const { assert(IsFulfilled());  return result_or_reason_; }
     void set_reason(Value reason) { assert(IsRejected()); result_or_reason_ = std::move(reason); }
 
-    ClassId class_id() const override { return ClassId::kPromiseObject; }
-
 private:
     bool UnwrapPromise(Context* context, Value* result);
 

@@ -9,7 +9,7 @@ namespace mjs {
 PromiseObjectClassDef::PromiseObjectClassDef(Runtime* runtime)
 	: ClassDef(runtime, ClassId::kPromiseObject, "Promise")
 {
-	property_map_.insert(runtime, "then", Value([](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
+	prototype_.object().SetProperty(runtime, "then", Value([](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
 		auto& promise = stack.this_val().promise();
 		Value on_fulfilled;
 		Value on_rejected;
@@ -22,7 +22,7 @@ PromiseObjectClassDef::PromiseObjectClassDef(Runtime* runtime)
 		return promise.Then(context, on_fulfilled, on_rejected);
 	}));
 
-	static_property_map_.insert(runtime, "resolve", Value([](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
+	constructor_object_.object().SetProperty(runtime, "resolve", Value([](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
 		Value result;
 		if (par_count > 0) {
 			result = stack.get(0);
@@ -30,7 +30,7 @@ PromiseObjectClassDef::PromiseObjectClassDef(Runtime* runtime)
 		return Resolve(context, std::move(result));
 	}));
 
-	static_property_map_.insert(runtime, "reject", Value([](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
+	constructor_object_.object().SetProperty(runtime, "reject", Value([](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
 		Value reason;
 		if (par_count > 0) {
 			reason = stack.get(0);
