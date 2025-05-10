@@ -15,7 +15,7 @@ public:
     ConsoleObject(mjs::Runtime* rt) 
         : Object(rt)
     {
-        auto log_const_index = rt->const_pool().insert(mjs::Value(mjs::String::make("log")));
+        auto log_const_index = rt->const_pool().insert(mjs::Value("log"));
         SetProperty(nullptr, log_const_index, mjs::Value([](mjs::Context* context, uint32_t par_count, const mjs::StackFrame& stack) -> mjs::Value {
             for (size_t i = 0; i < par_count; i++) {
                 auto val = stack.get(i);
@@ -37,10 +37,10 @@ int main() {
     using namespace mjs;
 
     Runtime rt;
-    auto const_idx = rt.const_pool().insert(Value(String::make("globalThis")));
+    auto const_idx = rt.const_pool().insert(Value("globalThis"));
     auto globalThis = rt.global_this();
     rt.global_this().object().SetProperty(nullptr, const_idx, std::move(globalThis));
-    const_idx = rt.const_pool().insert(Value(String::make("console")));
+    const_idx = rt.const_pool().insert(Value("console"));
     rt.global_this().object().SetProperty(nullptr, const_idx, Value(new ConsoleObject(&rt)));
 
     auto ctx = Context(&rt);

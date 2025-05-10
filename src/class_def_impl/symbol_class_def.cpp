@@ -8,10 +8,10 @@ namespace mjs {
 SymbolClassDef::SymbolClassDef(Runtime* runtime)
 	: ClassDef(runtime, ClassId::kSymbol, "Symbol")
 {
-	auto iter = property_map_.insert(runtime, String::make("iterator"), Value());
+	auto iter = property_map_.insert(runtime, "iterator", Value());
 	iter.first->second = Value(iter.first->first);
 
-	static_property_map_.insert(runtime, String::make("for"), Value([](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
+	static_property_map_.insert(runtime, "for", Value([](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
 		if (par_count < 1) {
 			return Value("Parameter count mismatch.").SetException();
 		}
@@ -37,11 +37,9 @@ Value SymbolClassDef::For(Context* context, Value name) {
 		return iter->second;
 	}
 
-	// �µ�symbol�ŵ�������
 	auto symbol_const_index = context->const_pool().insert(Value(new Symbol()));
 	auto symbol = context->const_pool()[symbol_const_index];
 
-	// ���뵽ȫ��symbol table
 	return context->symbol_table().set(context, name_const_index, std::move(symbol))->second;
 
 }

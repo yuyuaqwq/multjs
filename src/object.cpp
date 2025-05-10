@@ -28,6 +28,11 @@ Object::~Object() {
 	unlink();
 }
 
+void Object::SetProperty(Context* context, std::string_view key, Value&& value) {
+	auto const_index = context->runtime().const_pool().insert(mjs::Value(key));
+	SetProperty(context, const_index, std::move(value));
+}
+
 void Object::SetProperty(Context* context, ConstIndex key, Value&& value) {
 	assert(!context || !tag_.is_const_);
 	if (!property_map_) property_map_ = new PropertyMap(context);
@@ -99,7 +104,7 @@ Value Object::ToString(Context* context) {
 		str.pop_back();
 	}
 	str += "}";
-	return Value(String::make(str));
+	return Value(String::New(str));
 }
 
 

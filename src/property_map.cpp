@@ -27,12 +27,12 @@ PropertyMap::~PropertyMap() {
 }
 
 
-ConstIndex PropertyMap::InsertConst(Runtime* runtime, String* name) {
+ConstIndex PropertyMap::InsertConst(Runtime* runtime, std::string_view name) {
 	auto idx = runtime->const_pool().insert(Value(name));
 	return idx;
 }
 
-ConstIndex PropertyMap::InsertConst(Context* context, String* name) {
+ConstIndex PropertyMap::InsertConst(Context* context, std::string_view name) {
 	auto idx = context->const_pool().insert(Value(name));
 	return idx;
 }

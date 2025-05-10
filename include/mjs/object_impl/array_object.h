@@ -55,6 +55,15 @@ public:
 
     virtual ClassId class_id() const { return ClassId::kArrayObject; }
 
+
+    static ArrayObject* New(Context* context, std::initializer_list<Value> values) {
+        auto arr_obj = new ArrayObject(context, values.size());
+        size_t i = 0;
+        for (auto& value : values) {
+            arr_obj->operator[](i++) = value;
+        }
+    }
+
 private:
     std::vector<Value> values_;
 };

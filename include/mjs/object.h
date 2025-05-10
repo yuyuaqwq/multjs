@@ -40,6 +40,7 @@ public:
 		}
 	}
 
+	void SetProperty(Context* context, std::string_view key, Value&& value);
 	virtual void SetProperty(Context* context, ConstIndex key, Value&& value);
 	virtual bool GetProperty(Context* context, ConstIndex key, Value* value);
 	virtual bool HasProperty(Context* context, ConstIndex key);
@@ -67,6 +68,10 @@ public:
 
 	bool gc_mark() { return  tag_.gc_mark_; }
 	void set_gc_mark(bool flag) { tag_.gc_mark_ = flag; }
+
+	static Object* New(Context* context) {
+		return new Object(context);
+	}
 
 protected:
 	union {

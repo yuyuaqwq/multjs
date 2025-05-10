@@ -9,8 +9,8 @@ namespace mjs {
 ArrayObjectClassDef::ArrayObjectClassDef(Runtime* runtime)
 	: ClassDef(runtime, ClassId::kArrayObject, "Array")
 {
-	length_const_index_ = runtime->const_pool().insert(Value(String::make("length")));
-	of_const_index_ = runtime->const_pool().insert(Value(String::make("of")));
+	length_const_index_ = runtime->const_pool().insert(Value("length"));
+	of_const_index_ = runtime->const_pool().insert(Value("of"));
 
 	static_property_map_.set(runtime, of_const_index_, Value([](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
 		return ArrayObjectClassDef::Of(context, par_count, stack);

@@ -44,6 +44,11 @@ Value::Value(const char* string_u8) {
 	value_.string_view_ = string_u8;
 }
 
+Value::Value(std::string_view string_u8) {
+	tag_.type_ = ValueType::kStringView;
+	value_.string_view_ = string_u8.data();
+}
+
 Value::Value(String* str) {
 	tag_.type_ = ValueType::kString;
 	value_.string_ = str;
@@ -319,7 +324,7 @@ Value Value::operator+(const Value& rhs) const {
 		}
 		case ValueType::kStringView:
 		case ValueType::kString: {
-			return Value(String::format("{}{}", f64(), rhs.string_view()));
+			return Value(String::Format("{}{}", f64(), rhs.string_view()));
 		}
 		}
 		break;
@@ -334,7 +339,7 @@ Value Value::operator+(const Value& rhs) const {
 		}
 		case ValueType::kStringView:
 		case ValueType::kString: {
-			return Value(String::format("{}{}", i64(), rhs.string_view()));
+			return Value(String::Format("{}{}", i64(), rhs.string_view()));
 		}
 		}
 		break;
@@ -343,13 +348,13 @@ Value Value::operator+(const Value& rhs) const {
 	case ValueType::kString: {
 		switch (rhs.type()) {
 		case ValueType::kFloat64:
-			return Value(String::format("{}{}", string_view(), rhs.f64()));
+			return Value(String::Format("{}{}", string_view(), rhs.f64()));
 		case ValueType::kInt64: {
-			return Value(String::format("{}{}", string_view(), rhs.i64()));
+			return Value(String::Format("{}{}", string_view(), rhs.i64()));
 		}
 		case ValueType::kStringView:
 		case ValueType::kString: {
-			return Value(String::format("{}{}", string_view(), rhs.string_view()));
+			return Value(String::Format("{}{}", string_view(), rhs.string_view()));
 		}
 		}
 	}
@@ -591,6 +596,11 @@ Object& Value::object() const {
 	return *value_.object_;
 }
 
+ArrayObject& Value::array() const {
+	assert(IsArrayObject());
+	return *reinterpret_cast<ArrayObject*>(value_.object_);
+}
+
 FunctionObject& Value::function() const {
 	assert(IsFunctionObject());
 	return *reinterpret_cast<FunctionObject*>(value_.object_);
@@ -684,6 +694,10 @@ bool Value::IsString() const {
 	}
 }
 
+bool Value::IsStringView() const {
+	return type() == ValueType::kStringView;
+}
+
 bool Value::IsSymbol() const {
 	return tag_.type_ == ValueType::kSymbol;
 }
@@ -720,6 +734,10 @@ bool Value::IsObject() const {
 	default:
 		return false;
 	}
+}
+
+bool Value::IsArrayObject() const {
+	return type() == ValueType::kArrayObject;
 }
 
 bool Value::IsFunctionObject() const {
@@ -804,22 +822,22 @@ Value Value::ToString(Context* context) const {
 	case ValueType::kBoolean:
 		return Value(boolean() ? "true" : "false");
 	case ValueType::kFloat64:
-		return Value(String::format("{}", f64()));
+		return Value(String::Format("{}", f64()));
 	case ValueType::kString: 
 	case ValueType::kStringView: 
 		return *this;
 	case ValueType::kInt64:
-		return Value(String::format("{}", i64()));
+		return Value(String::Format("{}", i64()));
 	case ValueType::kUInt64:
-		return Value(String::format("{}", u64()));
+		return Value(String::Format("{}", u64()));
 	case ValueType::kFunctionDef:
-		return Value(String::format("function_def:{}", function_def().name()));
+		return Value(String::Format("function_def:{}", function_def().name()));
 	case ValueType::kCppFunction:
 		return Value("cpp_function");
 	case ValueType::kNewConstructor:
-		return Value(String::format("new_constructor:{}", class_def().name()));
+		return Value(String::Format("new_constructor:{}", class_def().name()));
 	case ValueType::kPrimitiveConstructor:
-		return Value(String::format("primitive_constructor:{}", class_def().name()));
+		return Value(String::Format("primitive_constructor:{}", class_def().name()));
 	case ValueType::kClosureVar:
 		return closure_var().value().ToString(context);
 	default:

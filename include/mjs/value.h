@@ -63,6 +63,7 @@ class Context;
 class StackFrame;
 
 class Object;
+class ArrayObject;
 class FunctionObject;
 class GeneratorObject;
 class PromiseObject;
@@ -86,6 +87,7 @@ public:
 	explicit Value(bool boolean);
 	explicit Value(double number);
 	explicit Value(const char* string_u8);
+	explicit Value(std::string_view string_u8);
 	explicit Value(String* str);
 	explicit Value(Symbol* symbol);
 
@@ -159,6 +161,7 @@ public:
 	ObjectT& object() const {
 		return static_cast<ObjectT&>(object());
 	}
+	ArrayObject& array() const;
 	FunctionObject& function() const;
 	GeneratorObject& generator() const;
 	PromiseObject& promise() const;
@@ -189,12 +192,14 @@ public:
 	bool IsBoolean() const;
 	bool IsNumber() const;
 	bool IsString() const;
+	bool IsStringView() const;
 	bool IsSymbol() const;
 
 	bool IsReferenceCounter() const;
 
 	// 新对象必须添加到IsObject中，否则会内存泄露
 	bool IsObject() const;
+	bool IsArrayObject() const;
 	bool IsFunctionObject() const;
 	bool IsGeneratorObject() const;
 	bool IsPromiseObject() const;

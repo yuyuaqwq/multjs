@@ -35,6 +35,11 @@ public:
 			return it->second;
 		}
 
+		// 自动将StringView提升为String
+		if (value.IsStringView()) {
+			value = Value(String::New(value.string_view()));
+		}
+
 		auto idx = Base::insert(std::move(value));
 		auto& val = operator[](idx);
 

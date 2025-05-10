@@ -8,7 +8,7 @@ namespace mjs {
 IteratorClassDef::IteratorClassDef(Runtime* runtime)
 	: ClassDef(runtime, ClassId::kArrayObject, "Iterator")
 {
-	next_const_index_ = runtime->const_pool().insert(Value(String::make("next")));
+	next_const_index_ = runtime->const_pool().insert(Value("next"));
 }
 
 

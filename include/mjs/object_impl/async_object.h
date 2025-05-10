@@ -21,7 +21,7 @@ public:
     }
 
     Value ToString(Context* context) override {
-        return Value(String::format("asnyc_object:{}", function_def().name()));
+        return Value(String::Format("asnyc_object:{}", function_def().name()));
     }
 
     ClassId class_id() const override { return ClassId::kAsyncObject; }

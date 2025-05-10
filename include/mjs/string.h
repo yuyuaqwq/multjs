@@ -27,21 +27,8 @@ public:
 	}
 
 
-	static String* make(std::string_view str) {
-		auto size = str.size();
-		// Allocate memory for String object plus space for the string data
-		String* s = static_cast<String*>(::operator new(sizeof(String) + size + 1));
-		// Use placement new to construct the String object
-		new (s) String(size);
-		// Copy the string data
-		memcpy(s->data_, str.data(), size + 1);
-		// Calculate the hash based on the actual string content
-		s->hash_ = std::hash<std::string_view>()(str);
-		return s;
-	}
-
 	template<typename... Args>
-	static String* format(std::format_string<Args...> fmt, Args&&... args) {
+	static String* Format(std::format_string<Args...> fmt, Args&&... args) {
 		// First, format into a temporary buffer to determine the size
 		const auto size = std::formatted_size(fmt, std::forward<Args>(args)...);
 
@@ -62,6 +49,19 @@ public:
 		return s;
 	}
 
+
+	static String* New(std::string_view str) {
+		auto size = str.size();
+		// Allocate memory for String object plus space for the string data
+		String* s = static_cast<String*>(::operator new(sizeof(String) + size + 1));
+		// Use placement new to construct the String object
+		new (s) String(size);
+		// Copy the string data
+		memcpy(s->data_, str.data(), size + 1);
+		// Calculate the hash based on the actual string content
+		s->hash_ = std::hash<std::string_view>()(str);
+		return s;
+	}
 
 private:
 	size_t hash_ = 0;

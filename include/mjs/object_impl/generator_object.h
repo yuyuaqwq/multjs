@@ -18,7 +18,7 @@ public:
     void GCForEachChild(Context* context, intrusive_list<Object>* list, void(*callback)(Context* context, intrusive_list<Object>* list, const Value& child)) override;
 
     Value ToString(Context* context) override {
-        return Value(String::format("generator_object:{}", function_def().name()));
+        return Value(String::Format("generator_object:{}", function_def().name()));
     }
 
     bool IsSuspended() const { return state_ == State::kSuspended; }

@@ -65,7 +65,7 @@ public:
 	}
 
 	Value ToString(Context* context) override {
-		return Value(String::format("function_object:{}", function_def_->name()));
+		return Value(String::Format("function_object:{}", function_def_->name()));
 	}
 
 	FunctionDef& function_def() const { return *function_def_; }

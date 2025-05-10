@@ -98,7 +98,7 @@ void CodeGener::GenerateExpression(Expression* exp) {
 			}
 			else {
 				// 尝试从全局对象获取
-				auto const_idx = AllocConst(Value(String::make(ident_exp.name())));
+				auto const_idx = AllocConst(Value(String::New(ident_exp.name())));
 				cur_func_def_->byte_code().EmitOpcode(OpcodeType::kGetGlobal);
 				cur_func_def_->byte_code().EmitI32(const_idx);
 			}
@@ -141,7 +141,7 @@ void CodeGener::GenerateExpression(Expression* exp) {
 			//}
 
 			// 访问对象成员
-			auto const_idx = AllocConst(Value(String::make(prop_exp.name())));
+			auto const_idx = AllocConst(Value(String::New(prop_exp.name())));
 			cur_func_def_->byte_code().EmitPropertyLoad(const_idx);
 		}
 		break;
@@ -312,7 +312,7 @@ void CodeGener::GeneratorArrayExpression(ArrayExpression* arr_exp) {
 void CodeGener::GeneratorObjectExpression(ObjectExpression* obj_exp) {
 	for (auto& prop : obj_exp->properties()) {
 		// 将key和value入栈
-		auto key_const_index = AllocConst(Value(String::make(prop.key)));
+		auto key_const_index = AllocConst(Value(String::New(prop.key)));
 		cur_func_def_->byte_code().EmitConstLoad(key_const_index);
 		GenerateExpression(prop.value.get());
 	}
@@ -471,7 +471,7 @@ void CodeGener::GenerateLValueStore(Expression* lvalue_exp) {
 		}
 		else {
 			auto& prop_exp = member_exp.property()->as<Identifier>();
-			auto const_idx = AllocConst(Value(String::make(prop_exp.name())));
+			auto const_idx = AllocConst(Value(String::New(prop_exp.name())));
 			cur_func_def_->byte_code().EmitPropertyStore(const_idx);
 		}
 		break;
@@ -554,7 +554,7 @@ void CodeGener::GenerateExpressionStatement(ExpressionStatement* stat) {
 }
 
 void CodeGener::GenerateImportDeclaration(ImportDeclaration* stat) {
-	auto const_idx = AllocConst(Value(String::make(stat->source())));
+	auto const_idx = AllocConst(Value(String::New(stat->source())));
 	cur_func_def_->byte_code().EmitConstLoad(const_idx);
 
 	cur_func_def_->byte_code().EmitOpcode(OpcodeType::kGetModule);
@@ -1024,7 +1024,7 @@ Value CodeGener::MakeConstValue(Expression* exp) {
 		return Value(exp->as<IntegerLiteral>().value());
 	}
 	case ExpressionType::kString: {
-		return Value(String::make(exp->as<StringLiteral>().value()));
+		return Value(String::New(exp->as<StringLiteral>().value()));
 	}
 	default:
 		throw CodeGenerException("Unable to generate expression for value");
