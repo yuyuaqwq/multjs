@@ -7,7 +7,7 @@ namespace mjs {
 
 Object::Object(Runtime* runtime, ClassId class_id) {
 	// 仅runtime使用的对象就提前new
-	property_map_ = new PropertyMap(runtime);
+	//property_map_ = new PropertyMap(runtime);
 	tag_.class_id_ = static_cast<uint16_t>(class_id);
 }
 
@@ -24,9 +24,9 @@ Object::Object(Context* context, ClassId class_id) {
 
 Object::~Object() {
 	assert(gc_mark() || tag_.ref_count_ == 0);
-	if (property_map_) {
-		delete property_map_;
-	}
+	//if (property_map_) {
+	//	delete property_map_;
+	//}
 	unlink();
 }
 
@@ -44,21 +44,21 @@ bool Object::GetProperty(Runtime* runtime, std::string_view key, Value* value) {
 
 void Object::SetProperty(Context* context, ConstIndex key, Value&& value) {
 	assert(!context || !tag_.is_const_);
-	if (!property_map_) property_map_ = new PropertyMap(context);
-	property_map_->set(context, key, std::move(value));
+	// if (!property_map_) property_map_ = new PropertyMap(context);
+	// property_map_->set(context, key, std::move(value));
 }
 
 bool Object::GetProperty(Context* context, ConstIndex key, Value* value) {
 	// 如果配置了exotic，需要先查找(也就是class_def中的GetProperty等方法)
 
 	// 1. 查找自身属性
-	if (property_map_) {
-		auto iter = property_map_->find(key);
-		if (iter != property_map_->end()) {
-			*value = iter->second;
-			return true;
-		}
-	}
+	//if (property_map_) {
+	//	auto iter = property_map_->find(key);
+	//	if (iter != property_map_->end()) {
+	//		*value = iter->second;
+	//		return true;
+	//	}
+	//}
 
 	// 2. 原型链查找
 	auto prototype = GetPrototype(&context->runtime());
@@ -77,8 +77,8 @@ bool Object::HasProperty(Context* context, ConstIndex key) {
 
 void Object::DelProperty(Context* context, ConstIndex key) {
 	assert(!tag_.is_const_);
-	if (!property_map_) return;
-	property_map_->erase(context, key);
+	// if (!property_map_) return;
+	// property_map_->erase(context, key);
 }
 
 void Object::SetComputedProperty(Context* context, const Value& key, Value&& val) {
@@ -107,15 +107,15 @@ void Object::DelComputedProperty(Context* context, const Value& key) {
 
 Value Object::ToString(Context* context) {
 	std::string str = "{";
-	if (property_map_) {
-		for (auto prop : *property_map_) {
-			str += context->runtime().const_pool()[prop.first].string().data();
-			str += ":";
-			str += prop.second.ToString(context).string_view();
-			str += ",";
-		}
-		str.pop_back();
-	}
+	//if (property_map_) {
+	//	for (auto prop : *property_map_) {
+	//		str += context->runtime().const_pool()[prop.first].string().data();
+	//		str += ":";
+	//		str += prop.second.ToString(context).string_view();
+	//		str += ",";
+	//	}
+	//	str.pop_back();
+	//}
 	str += "}";
 	return Value(String::New(str));
 }

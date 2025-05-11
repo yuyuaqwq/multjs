@@ -17,7 +17,7 @@ public:
 	Context(Runtime* runtime)
 		: runtime_(runtime)
 		, vm_(this)
-        , symbol_table_(this) {}
+       /* , symbol_table_(this)*/ {}
 
     Value Compile(std::string module_name, std::string_view script);
 
@@ -157,7 +157,7 @@ public:
 	LocalConstPool& const_pool() { return local_const_pool_; }
 	const auto& microtask_queue() const { return microtask_queue_; }
 	auto& microtask_queue() { return microtask_queue_; }
-    auto& symbol_table() { return symbol_table_; }
+    // auto& symbol_table() { return symbol_table_; }
 
 private:
     Runtime* runtime_;
@@ -165,7 +165,7 @@ private:
 	LocalConstPool local_const_pool_;
 	VM vm_;
 	JobQueue microtask_queue_;
-    PropertyMap symbol_table_;
+    // PropertyMap symbol_table_;
 };
 
 } // namespace mjs

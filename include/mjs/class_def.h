@@ -7,7 +7,6 @@
 
 #include <mjs/noncopyable.h>
 #include <mjs/value.h>
-#include <mjs/property_map.h>
 
 namespace mjs {
 

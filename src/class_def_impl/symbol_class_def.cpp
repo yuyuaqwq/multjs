@@ -31,16 +31,17 @@ Value SymbolClassDef::For(Context* context, Value name) {
 	if (name_const_index.is_invalid()) {
 		name_const_index = context->const_pool().insert(name);
 	}
+	
+	return Value();
+	//auto iter = context->symbol_table().find(name_const_index);
+	//if (iter != context->symbol_table().end()) {
+	//	return iter->second;
+	//}
 
-	auto iter = context->symbol_table().find(name_const_index);
-	if (iter != context->symbol_table().end()) {
-		return iter->second;
-	}
+	//auto symbol_const_index = context->const_pool().insert(Value(new Symbol()));
+	//auto symbol = context->const_pool()[symbol_const_index];
 
-	auto symbol_const_index = context->const_pool().insert(Value(new Symbol()));
-	auto symbol = context->const_pool()[symbol_const_index];
-
-	return context->symbol_table().set(context, name_const_index, std::move(symbol))->second;
+	//return context->symbol_table().set(context, name_const_index, std::move(symbol))->second;
 
 }
 
