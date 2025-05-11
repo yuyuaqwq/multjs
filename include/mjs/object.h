@@ -88,6 +88,7 @@ protected:
 		};
 	} tag_;
 	Shape* shape_;
+	std::vector<Value> values_;
 };
 
 } // namespace mjs
