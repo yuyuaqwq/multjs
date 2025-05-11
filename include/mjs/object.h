@@ -53,6 +53,8 @@ public:
 
 	virtual Value ToString(Context* context);
 
+	const Value& GetPrototype(Runtime* runtime) const;
+
 	ClassId class_id() const { return static_cast<ClassId>(tag_.class_id_); }
 
 	template <typename ObjectT>

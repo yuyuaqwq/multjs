@@ -182,11 +182,10 @@ bool VM::FunctionScheduling(StackFrame* stack_frame, uint32_t par_count) {
 		}
 		return true;
 	}
-	case ValueType::kObject: {
-		// todo: 判断是否可构造
-		auto class_id = stack_frame->function_val().object().class_id();
-		auto& class_def = context_->runtime().class_def_table()[class_id];
-		auto obj = class_def.NewConstructor(context_, par_count, *stack_frame);
+	case ValueType::kConstructorObject: {
+		auto target_class_id = stack_frame->function_val().constructor().target_class_id();
+		auto& target_class_def = context_->runtime().class_def_table()[target_class_id];
+		auto obj = target_class_def.NewConstructor(context_, par_count, *stack_frame);
 		stack_frame->push(std::move(obj));
 		return false;
 	}

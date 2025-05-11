@@ -10,12 +10,8 @@ ClassDef::ClassDef(Runtime* runtime, ClassId id, std::string name)
 {
 	name_string_ = std::move(name);
 	name_ = runtime->const_pool().insert(Value(name_string_));
-	InitConstructor(runtime);
-}
-
-void ClassDef::InitConstructor(Runtime* runtime) {
-	constructor_object_ = Value(new Object(runtime, id_));
-	prototype_ = Value(new Object(runtime, id_));
+	constructor_object_ = Value(new ConstructorObject(runtime, id_));
+	prototype_ = Value(new Object(runtime, ClassId::kObject));
 
 	auto prototype = prototype_;
 	constructor_object_.object().SetProperty(runtime, "prototype", std::move(prototype_));
@@ -24,6 +20,8 @@ void ClassDef::InitConstructor(Runtime* runtime) {
 	auto constructor_object = constructor_object_;
 	runtime->global_this().object().SetProperty(nullptr, name_, std::move(constructor_object));
 }
+
+
 
 void ClassDef::SetProperty(Context* context, Object* obj, ConstIndex key, Value&& val) {
 	//property_map_.set(&context->runtime(), key, std::move(val));

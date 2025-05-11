@@ -61,9 +61,9 @@ bool Object::GetProperty(Context* context, ConstIndex key, Value* value) {
 	}
 
 	// 2. 原型链查找
-	auto& class_def = context->runtime().class_def_table().at(class_id());
-	if (!class_def.prototype().IsUndefined()) {
-		auto success = class_def.prototype().object().GetProperty(context, key, value);
+	auto prototype = GetPrototype(&context->runtime());
+	if (prototype.IsObject()) {
+		auto success = prototype.object().GetProperty(context, key, value);
 		if (success) return true;
 	}
 	
@@ -118,6 +118,11 @@ Value Object::ToString(Context* context) {
 	}
 	str += "}";
 	return Value(String::New(str));
+}
+
+const Value& Object::GetPrototype(Runtime* runtime) const {
+	auto& class_def = runtime->class_def_table().at(class_id());
+	return class_def.prototype();
 }
 
 

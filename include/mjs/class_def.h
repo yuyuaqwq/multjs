@@ -57,8 +57,6 @@ public:
 
 	virtual ~ClassDef() = default;
 
-	void InitConstructor(Runtime* runtime);
-
 	// 如果允许通过原始类型构造，重写该函数，如Symbol()
 	virtual Value PrimitiveConstructor(Context* context, uint32_t par_count, const StackFrame& stack) {
 		throw std::runtime_error(
