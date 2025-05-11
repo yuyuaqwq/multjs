@@ -34,9 +34,9 @@ const Value& ShapeProperty::GetPoolValue(Context* context, const ConstIndex& key
 
 
 
-Shape::Shape(Context* context, uint32_t property_count)
+Shape::Shape(ShapeManager* shape_manager, uint32_t property_count)
     : ReferenceCounter()
-    , context_(context)
+    , shape_manager_(shape_manager)
     , hash_(0)
     , property_size_(0)
     , hash_capacity_(0)
@@ -62,7 +62,7 @@ const ShapeProperty* Shape::find(ConstIndex const_index) const {
     if (property_size_ <= kPropertiesMaxSize) {
         // 当属性数量较少时，线性查找更优
         for (uint32_t i = 0; i < property_size_; i++) {
-            if (properties_[i].const_index_equal(context_, const_index)) {
+            if (properties_[i].const_index_equal(&shape_manager_->context(), const_index)) {
                 return &properties_[i];
             }
         }
@@ -70,7 +70,7 @@ const ShapeProperty* Shape::find(ConstIndex const_index) const {
     }
     else {
         // 使用哈希表查找，带线性探测
-        uint32_t index = ShapeProperty::const_index_hash(context_, const_index) & hash_mask_;
+        uint32_t index = ShapeProperty::const_index_hash(&shape_manager_->context(), const_index) & hash_mask_;
         uint32_t original_index = index;
         
         do {
@@ -125,7 +125,7 @@ void Shape::add( ShapeProperty&& prop) {
         }
 
         // 使用线性探测法插入
-        uint32_t hash_index = ShapeProperty::const_index_hash(context_, prop.const_index()) & hash_mask_;
+        uint32_t hash_index = ShapeProperty::const_index_hash(&shape_manager_->context(), prop.const_index()) & hash_mask_;
         
         while (slot_indices_[hash_index] != -1) {
             // 如果已经存在相同的key，直接更新
@@ -159,7 +159,7 @@ void Shape::rehash(uint32_t new_capacity) {
     // 重新插入所有元素
     for (uint32_t i = 0; i < property_size_; i++) {
         const auto& prop = properties_[i];
-        uint32_t hash_index = ShapeProperty::const_index_hash(context_, prop.const_index()) & hash_mask_;
+        uint32_t hash_index = ShapeProperty::const_index_hash(&shape_manager_->context(), prop.const_index()) & hash_mask_;
         
         // 使用线性探测找到新的位置
         while (slot_indices_[hash_index] != -1) {

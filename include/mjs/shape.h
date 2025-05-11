@@ -38,7 +38,7 @@ private:
 class Context;
 class Shape : public ReferenceCounter {
 public:
-	Shape(Context* context, uint32_t property_count);
+	Shape(ShapeManager* shape_manager, uint32_t property_count);
 	~Shape();
 
 	bool operator==(const Shape& other) const {
@@ -135,7 +135,7 @@ private:
 	static constexpr uint32_t kPropertiesMaxSize = 4;
 	static constexpr double kLoadingFactor = 0.75f;
 
-	Context* context_;
+	ShapeManager* shape_manager_;
 
 	uint32_t hash_;
 
@@ -158,6 +158,8 @@ public:
 	~ShapeManager();
 
 	Shape* add_property(Shape* base_shape, const ShapeProperty& property);
+
+	Context& context() { return *context_; }
 
 private:
 	Context* context_;
