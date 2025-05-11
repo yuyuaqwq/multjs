@@ -86,6 +86,7 @@ protected:
 			uint32_t class_id_ : 16;
 		};
 	} tag_;
+	// Shape* shape_;
 	PropertyMap* property_map_ = nullptr;
 };
 

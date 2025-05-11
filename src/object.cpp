@@ -121,6 +121,7 @@ Value Object::ToString(Context* context) {
 }
 
 const Value& Object::GetPrototype(Runtime* runtime) const {
+	// 未来不存class_id，通过shape获取prototype
 	auto& class_def = runtime->class_def_table().at(class_id());
 	return class_def.prototype();
 }

@@ -31,6 +31,7 @@ private:
 	uint32_t slot_index_;
 };
 
+// 未来将prototype指针和class_id保存在这里
 class Context;
 class Shape : public ReferenceCounter {
 public:
