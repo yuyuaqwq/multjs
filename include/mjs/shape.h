@@ -30,7 +30,11 @@ private:
 class ShapeManager;
 class Shape : public ReferenceCounter {
 public:
+	using TransitionTable = ankerl::unordered_dense::map<ConstIndex, Shape*>;
+
+public:
 	Shape(ShapeManager* shape_manager, uint32_t property_count);
+	Shape(Shape* parent_shape, uint32_t property_count);
 	~Shape();
 
 	bool operator==(const Shape& other) const {
@@ -72,9 +76,15 @@ public:
 
 	const ShapeProperty* properties() const { return properties_; }
 
+	Shape* parent_shape() const { return parent_shape_; }
+	void set_parent_shape(Shape* parent_shape) { parent_shape_ = nullptr; }
+
 	auto& shape_manager() { return shape_manager_; }
 
 	auto& transition_table() { return transition_table_; }
+
+	//auto& parent_transition_table_iter() const { return parent_transition_table_iterator_ ; }
+	//void set_parent_transition_table_iter(TransitionTable::iterator iterator) { parent_transition_table_iterator_ = iterator; }
 
 private:
 	uint32_t get_power2(uint32_t n) {
@@ -100,6 +110,12 @@ private:
 
 	ShapeManager* shape_manager_;
 
+	// 过渡表
+	TransitionTable transition_table_;
+
+	Shape* parent_shape_;
+	//TransitionTable::iterator parent_transition_table_iterator_;
+
 	uint32_t hash_;
 
 	ClassId class_id_;
@@ -112,13 +128,10 @@ private:
 	uint32_t hash_mask_ = 0;
 	uint32_t hash_capacity_;
 	int32_t* slot_indices_;
-
-	// 过渡表
-	ankerl::unordered_dense::map<ConstIndex, Shape*> transition_table_;
 };
 
 // 目前仍存在的问题：
-// 过渡表创建的shape，如果其内部再次变动，那么需要找到父节点，从其过渡表中移除
+// 过渡表创建的shape，如果其内部再次变动/析构，那么需要找到父节点，从其过渡表中移除
 
 class ShapeManager : public noncopyable {
 public:

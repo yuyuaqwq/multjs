@@ -7,6 +7,7 @@ namespace mjs {
 Shape::Shape(ShapeManager* shape_manager, uint32_t property_count)
     : ReferenceCounter()
     , shape_manager_(shape_manager)
+    , parent_shape_(nullptr)
     , hash_(0)
     , property_size_(0)
     , property_capacity_(property_count)
@@ -18,6 +19,13 @@ Shape::Shape(ShapeManager* shape_manager, uint32_t property_count)
         properties_ = new ShapeProperty[property_capacity_];
     }
 }
+
+Shape::Shape(Shape* parent_shape, uint32_t property_count)
+    : Shape(parent_shape->shape_manager_, property_count)
+{
+    parent_shape_ = parent_shape;
+}
+
 
 Shape::~Shape() {
     if (properties_) {
@@ -172,7 +180,7 @@ int ShapeManager::add_property(Shape** base_shape_ptr, const ShapeProperty& prop
     }
 
     // 查找过渡表
-    auto table = base_shape->transition_table();
+    auto& table = base_shape->transition_table();
     auto iter = table.find(property.const_index());
     if (iter != table.end()) {
         base_shape->Dereference();
@@ -186,13 +194,22 @@ int ShapeManager::add_property(Shape** base_shape_ptr, const ShapeProperty& prop
     if (base_shape != empty_shape_
         && base_shape->ref_count() == 1)
     {
+        if (base_shape->parent_shape()) {
+            // base_shape->parent_shape()->transition_table().erase(base_shape->parent_transition_table_iter());
+            // 因为只有add才会导致创建新的shape，上次add的一定在末尾
+            auto res = base_shape->parent_shape()->transition_table().erase(base_shape->properties()[base_shape->property_size() - 1].const_index());
+            assert(res > 0);
+            base_shape->set_parent_shape(nullptr);
+        }
+
         auto tmp = property;
         base_shape->add(std::move(tmp));
+
         return base_shape->property_size() - 1;
     }
 
     // 创建新的shape
-    Shape* new_shape = new Shape(this, base_shape->property_size() + 1);
+    Shape* new_shape = new Shape(base_shape, base_shape->property_size() + 1);
 
     for (int32_t i = 0; i < base_shape->property_size(); ++i) {
         ShapeProperty property = base_shape->properties()[i];
@@ -200,7 +217,8 @@ int ShapeManager::add_property(Shape** base_shape_ptr, const ShapeProperty& prop
     }
 
     // 放到过渡表
-    table.emplace(property.const_index(), new_shape);
+    auto res = table.emplace(property.const_index(), new_shape);
+    // new_shape->set_parent_transition_table_iter(res.first);
 
     base_shape->Dereference();
     *base_shape_ptr = new_shape;

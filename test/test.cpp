@@ -45,7 +45,7 @@ int main() {
 
     auto ctx = Context(&rt);
 
-    ctx.EvalByPath("async.js");
+    ctx.EvalByPath("object.js");
 
     ctx.ExecuteMicrotasks();
 

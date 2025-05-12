@@ -4,6 +4,8 @@ let number = 123;
 let constvar = { a:{a:"123"} };
 constvar = "456";
 
+
+
 function tt(a, b) {
     console.log("tt:", 100, a, b);
     return 100;
@@ -14,6 +16,11 @@ let obj = { sb: tt };
 obj.sb = tt;
 obj.sb = obj.sb2 = obj.sb("dd", "qq");
 console.log(obj.sb, " ", obj.sb2);
+
+console.log(obj["sb"]);
+console.log(obj["s" + "b"]);
+console.log("???", obj["s" + "b" + "2"]);
+console.log("???", obj["s" + "b" + "3"]);
 
 obj.sb = {};
 obj.sb.sb2 = tt;
