@@ -11,6 +11,7 @@ namespace mjs {
 
 class ShapeProperty {
 public:
+	ShapeProperty() = default;
 	ShapeProperty(uint32_t flags, ConstIndex const_index)
 		: flags_(flags)
 		, const_index_(const_index) {}
@@ -30,7 +31,7 @@ private:
 	static const Value& GetPoolValue(Context* context, const ConstIndex& key);
 
 private:
-	uint32_t flags_;
+	uint32_t flags_ = 0;
 	ConstIndex const_index_;
 };
 
