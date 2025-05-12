@@ -20,7 +20,7 @@ Value ObjectClassDef::LiteralNew(Context* context, uint32_t par_count, const Sta
 	auto obj = new Object(context, ClassId::kObject);
 	for (size_t i = 0; i < par_count - 1; i += 2) {
 		auto key_const_index = stack.get(i).const_index();
-		assert(!key_const_index.is_invalid());
+		assert(key_const_index != kConstIndexInvalid);
 		obj->SetProperty(context, key_const_index, std::move(stack.get(i + 1)));
 	}
 	return Value(obj);

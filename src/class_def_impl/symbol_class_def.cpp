@@ -27,11 +27,8 @@ SymbolClassDef::SymbolClassDef(Runtime* runtime)
 }
 
 Value SymbolClassDef::For(Context* context, Value name) {
-	ConstIndex name_const_index = name.const_index();
-	if (name_const_index.is_invalid()) {
-		name_const_index = context->const_pool().insert(name);
-	}
-	
+	ConstIndex name_const_index = context->InsertConst(name);
+
 	return Value();
 	//auto iter = context->symbol_table().find(name_const_index);
 	//if (iter != context->symbol_table().end()) {

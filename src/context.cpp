@@ -43,4 +43,27 @@ Value Context::EvalByPath(std::string_view path) {
 	return module;
 }
 
+ConstIndex Context::InsertConst(const Value& value) {
+	if (value.const_index() != kConstIndexInvalid) {
+		return value.const_index();
+	}
+
+	//这里需要保证的是，当前Context运行下，不会出现相等的Value，出现不同的const_index
+
+	// 先查Local，再查Global，最后插入Local，可以保证要么从当前时间开始，使用的都是Global的，要么使用的都是Local的
+	// 即使未来Global被插入了相同的Value，也不会使用Global的Value
+
+	auto local_res = local_const_pool_.find(value);
+	if (local_res) {
+		return *local_res;
+	}
+
+	auto global_res = runtime_->const_pool().find(value);
+	if (global_res) {
+		return *global_res;
+	}
+
+	return local_const_pool_.insert(value);
+}
+
 } // namespace mjs

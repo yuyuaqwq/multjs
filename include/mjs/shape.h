@@ -22,14 +22,6 @@ public:
 	ConstIndex const_index() const { return const_index_; }
 	void set_const_index(ConstIndex const_index) { const_index_ = const_index; }
 
-
-	bool const_index_equal(Context* context, const ConstIndex& rhs) const;
-
-	static uint64_t const_index_hash(Context* context, const ConstIndex& const_index);
-
-private:
-	static const Value& GetPoolValue(Context* context, const ConstIndex& key);
-
 private:
 	uint32_t flags_ = 0;
 	ConstIndex const_index_;
@@ -42,70 +34,37 @@ public:
 	~Shape();
 
 	bool operator==(const Shape& other) const {
+		if (this == &other) return true;
+		if (property_size_ != other.property_size_) return false;
+		if (class_id_ != other.class_id_) return false;
+		if (prototype_ == other.prototype_) return false;
 
+		for (uint32_t i = 0; i < property_size_; ++i) {
+			const auto& lhs_prop = properties_[i];
+			const auto& rhs_prop = other.properties_[i];
+
+			if (lhs_prop.flags() != rhs_prop.flags() ||
+				lhs_prop.const_index() == rhs_prop.const_index()) {
+				return false;
+			}
+		}
 	}
 
-	const ShapeProperty* find(ConstIndex const_index) const;
+	const int find(ConstIndex const_index) const;
 
 	void add(ShapeProperty&& prop);
 
 	void update_hash() {
 		hash_ = 0;
-		hash_ ^= std::hash<uint32_t>()(property_size_);
 		hash_ ^= std::hash<uint32_t>()(static_cast<uint32_t>(class_id_));
 		hash_ ^= prototype_.hash();
 
 		for (uint32_t i = 0; i < property_size_; ++i) {
 			const auto& prop = properties_[i];
-			hash_ = (hash_ ^ prop.const_index().value()) * 16777619;
+			hash_ = (hash_ ^ prop.const_index()) * 16777619;
 			hash_ = (hash_ ^ prop.flags()) * 16777619;
 		}
 	}
-
-
-
-
-	bool equal_new_shape(Shape* base_shape, ShapeProperty* property) {
-		auto new_shape_prop_size = base_shape->property_size_ + 1;
-
-		if (this == base_shape && property == nullptr) return false;
-		if (property_size_ != new_shape_prop_size) return false;
-		if (class_id_ != base_shape->class_id_) return false;
-		if (prototype_ == base_shape->prototype_) return false;
-
-		for (uint32_t i = 0; i < property_size_; ++i) {
-			const auto& lhs_prop = properties_[i];
-			const auto& rhs_prop = base_shape->properties_[i];
-
-			if (lhs_prop.const_index().is_invalid() && rhs_prop.const_index().is_invalid()) {
-				continue;
-			}
-
-			if (lhs_prop.flags() != rhs_prop.flags() ||
-				lhs_prop.const_index() != rhs_prop.const_index()) {
-				return false;
-			}
-		}
-
-		const auto& lhs_prop = properties_[property_size_ - 1];
-		const auto& rhs_prop = *property;
-
-		if (lhs_prop.flags() != rhs_prop.flags() ||
-			lhs_prop.const_index() != rhs_prop.const_index()) {
-			return false;
-		}
-
-		return true;
-	}
-
-	static size_t calc_new_shape_hash(Shape* base_shape, const ShapeProperty& property) {
-		size_t hash = base_shape->hash();
-		hash = (hash ^ property.const_index().value()) * 16777619;
-		hash = (hash ^ property.flags()) * 16777619;
-		return hash;
-	}
-
-
 
 	size_t hash() const { return hash_; }
 
@@ -114,6 +73,8 @@ public:
 	const ShapeProperty* properties() const { return properties_; }
 
 	auto& shape_manager() { return shape_manager_; }
+
+	auto& transition_table() { return transition_table_; }
 
 private:
 	uint32_t get_power2(uint32_t n) {
@@ -151,23 +112,23 @@ private:
 	uint32_t hash_mask_ = 0;
 	uint32_t hash_capacity_;
 	int32_t* slot_indices_;
+
+	// ¹ý¶É±í
+	ankerl::unordered_dense::map<ConstIndex, Shape*> transition_table_;
 };
 
 
 class ShapeManager : public noncopyable {
 public:
-	ShapeManager(Context* context);
+	ShapeManager();
 	~ShapeManager();
 
 	int add_property(Shape** base_shape, const ShapeProperty& property);
 
-	Context& context() { return *context_; }
-	Shape& empty_shape() { return empty_shape_; }
+	Shape& empty_shape() { return *empty_shape_; }
 
 private:
-	Context* context_;
-	Shape empty_shape_;
-	// ankerl::unordered_dense::set<Shape> shape_cache_;
+	Shape* empty_shape_;
 };
 
 } // namespace mjs

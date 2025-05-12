@@ -56,15 +56,6 @@ public:
 
 	virtual ~ClassDef() = default;
 
-	// 如果允许通过原始类型构造，重写该函数，如Symbol()
-	virtual Value PrimitiveConstructor(Context* context, uint32_t par_count, const StackFrame& stack) {
-		throw std::runtime_error(
-			"This constructor cannot be called as a function. "
-			"Either this is not a callable constructor, "
-			"or you need to override PrimitiveConstructor() in the derived class."
-		);
-	}
-
 	// 如果允许通过new构造，重写该函数，如new ArrayObject()
 	virtual Value NewConstructor(Context* context, uint32_t par_count, const StackFrame& stack) {
 		throw std::runtime_error(

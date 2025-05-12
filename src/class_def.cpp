@@ -14,7 +14,7 @@ ClassDef::ClassDef(Runtime* runtime, ClassId id, std::string name)
 	prototype_ = Value(new Object(runtime, ClassId::kObject));
 
 	auto prototype = prototype_;
-	constructor_object_.object().SetProperty(runtime, "prototype", std::move(prototype_));
+	constructor_object_.object().SetProperty(runtime, "prototype", std::move(prototype));
 
 	// 挂载构造函数对象到全局对象
 	auto constructor_object = constructor_object_;

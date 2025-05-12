@@ -9,17 +9,18 @@ Object::Object(Runtime* runtime, ClassId class_id) {
 	// 仅runtime使用的对象就提前new
 	//property_map_ = new PropertyMap(runtime);
 	tag_.class_id_ = static_cast<uint16_t>(class_id);
+	shape_ = &runtime->shape_manager().empty_shape();
+
+	// runtime的对象，只允许在初始化阶段变更，因此引用和解引用不考虑线程安全问题
+	shape_->Reference();
 }
 
 Object::Object(Context* context, ClassId class_id) {
 	// 挂入context obj链表
-	if (context) {
-		context->AddObject(this);
-		shape_ = &context->shape_manager().empty_shape();
-	}
-	else {
-		tag_.is_const_ = true;
-	}
+	context->AddObject(this);
+	shape_ = &context->shape_manager().empty_shape();
+	shape_->Reference();
+
 	tag_.class_id_ = static_cast<uint16_t>(class_id);
 }
 
@@ -53,24 +54,20 @@ void Object::SetProperty(Context* context, ConstIndex key, Value&& value) {
 		assert(index == values_.size());
 		values_.emplace_back(std::move(value));
 	}
-	// if (!property_map_) property_map_ = new PropertyMap(context);
-	// property_map_->set(context, key, std::move(value));
 }
 
 bool Object::GetProperty(Context* context, ConstIndex key, Value* value) {
 	// 如果配置了exotic，需要先查找(也就是class_def中的GetProperty等方法)
 
 	// 1. 查找自身属性
-	//if (property_map_) {
-	//	auto iter = property_map_->find(key);
-	//	if (iter != property_map_->end()) {
-	//		*value = iter->second;
-	//		return true;
-	//	}
-	//}
+	auto index = shape_->find(key);
+	if (index != -1) {
+		*value = values_[index];
+		return true;
+	}
 
 	// 2. 原型链查找
-	auto prototype = GetPrototype(&context->runtime());
+	auto& prototype = GetPrototype(&context->runtime());
 	if (prototype.IsObject()) {
 		auto success = prototype.object().GetProperty(context, key, value);
 		if (success) return true;
@@ -86,45 +83,34 @@ bool Object::HasProperty(Context* context, ConstIndex key) {
 
 void Object::DelProperty(Context* context, ConstIndex key) {
 	assert(!tag_.is_const_);
-	// if (!property_map_) return;
-	// property_map_->erase(context, key);
 }
 
 void Object::SetComputedProperty(Context* context, const Value& key, Value&& val) {
-	auto idx = key.const_index();
-	if (idx.is_invalid()) {
-		idx = context->const_pool().insert(key);
-	}
+	auto idx = context->InsertConst(key);
 	return SetProperty(context, idx, std::move(val));
 }
 
 bool Object::GetComputedProperty(Context* context, const Value& key, Value* value) {
-	auto idx = key.const_index();
-	if (key.const_index().is_invalid()) {
-		idx = context->const_pool().insert(key);
-	}
+	auto idx = context->InsertConst(key);
 	return GetProperty(context, idx, value);
 }
 
 void Object::DelComputedProperty(Context* context, const Value& key) {
-	auto idx = key.const_index();
-	if (key.const_index().is_invalid()) {
-		idx = context->const_pool().insert(key);
-	}
+	auto idx = context->InsertConst(key);
 	return DelProperty(context, key.const_index());
 }
 
 Value Object::ToString(Context* context) {
 	std::string str = "{";
-	//if (property_map_) {
-	//	for (auto prop : *property_map_) {
-	//		str += context->runtime().const_pool()[prop.first].string().data();
-	//		str += ":";
-	//		str += prop.second.ToString(context).string_view();
-	//		str += ",";
-	//	}
-	//	str.pop_back();
-	//}
+
+	for (auto value : values_) {
+		// str += context->runtime().const_pool()[prop.first].string().data();
+		// str += ":";
+		str += value.ToString(context).string_view();
+		str += ",";
+	}
+	str.pop_back();
+
 	str += "}";
 	return Value(String::New(str));
 }

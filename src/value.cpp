@@ -312,7 +312,7 @@ bool Value::operator>(const Value& rhs) const {
 }
 
 bool Value::operator==(const Value& rhs) const {
-	if (!const_index().is_invalid() && const_index().is_same_pool(rhs.const_index())) {
+	if (const_index() != kConstIndexInvalid && rhs.const_index() != kConstIndexInvalid) {
 		return const_index() == rhs.const_index();
 	}
 	return Comparer(rhs) == 0;

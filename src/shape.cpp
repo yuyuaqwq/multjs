@@ -3,45 +3,21 @@
 
 namespace mjs {
 
-bool ShapeProperty::const_index_equal(Context* context, const ConstIndex& rhs) const {
-    if (const_index_.is_same_pool(rhs)) {
-        return const_index_ == rhs;
-    }
-    auto& lval = GetPoolValue(context, const_index_);
-    auto& rval = GetPoolValue(context, rhs);
-    return lval.Comparer(rval) == 0;
-}
-
-uint64_t ShapeProperty::const_index_hash(Context* context, const ConstIndex& const_index) {
-    auto& val = GetPoolValue(context, const_index);
-    return val.hash();
-}
-
-const Value& ShapeProperty::GetPoolValue(Context* context, const ConstIndex& key) {
-    assert(!key.is_invalid());
-    if (key.is_global_index()) {
-        auto& val = context->runtime().const_pool().at(key);
-        return val;
-    }
-    else {
-        assert(key.is_local_index());
-        auto key_ = key;
-        key_.from_local_index();
-        auto& val = context->const_pool().at(key);
-        return val;
-    }
-}
-
-
 
 Shape::Shape(ShapeManager* shape_manager, uint32_t property_count)
     : ReferenceCounter()
     , shape_manager_(shape_manager)
     , hash_(0)
     , property_size_(0)
+    , property_capacity_(property_count)
     , hash_capacity_(0)
     , slot_indices_(nullptr)
-    , properties_(nullptr) {}
+    , properties_(nullptr)
+{
+    if (property_capacity_ > 0) {
+        properties_ = new ShapeProperty[property_capacity_];
+    }
+}
 
 Shape::~Shape() {
     if (properties_) {
@@ -53,43 +29,43 @@ Shape::~Shape() {
 }
 
 
-const ShapeProperty* Shape::find(ConstIndex const_index) const {
+const int Shape::find(ConstIndex const_index) const {
     if (property_size_ <= kPropertiesMaxSize) {
         // 当属性数量较少时，线性查找更优
         for (uint32_t i = 0; i < property_size_; i++) {
-            if (properties_[i].const_index_equal(&shape_manager_->context(), const_index)) {
-                return &properties_[i];
+            if (properties_[i].const_index() == const_index) {
+                return i;
             }
         }
-        return nullptr;
+        return -1;
     }
     else {
         // 使用哈希表查找，带线性探测
-        uint32_t index = ShapeProperty::const_index_hash(&shape_manager_->context(), const_index) & hash_mask_;
+        uint32_t index = std::hash<int32_t>()(const_index) & hash_mask_;
         uint32_t original_index = index;
         
         do {
             int32_t slot_index = slot_indices_[index];
             if (slot_index == -1) {
                 // 找到空槽位，说明元素不存在
-                return nullptr;
+                return -1;
             }
             
             const auto& prop = properties_[slot_index];
-            if (prop.const_index_equal(&shape_manager_->context(), const_index)) {
-                return &prop;
+            if (prop.const_index() ==  const_index) {
+                return slot_index;
             }
             
             // 线性探测下一个位置
             index = (index + 1) & hash_mask_;
         } while (index != original_index); // 避免无限循环
         
-        return nullptr;
+        return -1;
     }
 }
 
 // 如果Shape只被一个位置引用了，那么可以原地增加属性
-void Shape::add( ShapeProperty&& prop) {
+void Shape::add(ShapeProperty&& prop) {
     auto index = property_size_++;
     if (index >= property_capacity_) {
         if (property_capacity_ < 4) {
@@ -101,7 +77,7 @@ void Shape::add( ShapeProperty&& prop) {
         assert(property_capacity_ > property_size_);
         auto* old_properties = properties_;
         properties_ = new ShapeProperty[property_capacity_];
-        std::memcpy(old_properties, properties_, sizeof(*properties_) * (property_size_ - 1));
+        std::memcpy(properties_, old_properties, sizeof(*properties_) * (property_size_ - 1));
     }
     properties_[index] = std::move(prop);
 
@@ -125,7 +101,7 @@ void Shape::add( ShapeProperty&& prop) {
         }
 
         // 使用线性探测法插入
-        uint32_t hash_index = ShapeProperty::const_index_hash(&shape_manager_->context(), prop.const_index()) & hash_mask_;
+        uint32_t hash_index = std::hash<int32_t>()(prop.const_index()) & hash_mask_;
         
         while (slot_indices_[hash_index] != -1) {
             // 如果已经存在相同的key，直接更新
@@ -159,7 +135,7 @@ void Shape::rehash(uint32_t new_capacity) {
     // 重新插入所有元素
     for (uint32_t i = 0; i < property_size_; i++) {
         const auto& prop = properties_[i];
-        uint32_t hash_index = ShapeProperty::const_index_hash(&shape_manager_->context(), prop.const_index()) & hash_mask_;
+        uint32_t hash_index = std::hash<int32_t>()(prop.const_index()) & hash_mask_;
         
         // 使用线性探测找到新的位置
         while (slot_indices_[hash_index] != -1) {
@@ -176,9 +152,10 @@ void Shape::rehash(uint32_t new_capacity) {
 }
 
 
-ShapeManager::ShapeManager(Context* context) 
-    : context_(context)
-    , empty_shape_(this, 0) {}
+ShapeManager::ShapeManager()  {
+    empty_shape_ = new Shape(this, 0);
+    empty_shape_->Reference();
+}
 
 ShapeManager::~ShapeManager() {
     //for (auto& shape : shape_cache_) {
@@ -188,56 +165,50 @@ ShapeManager::~ShapeManager() {
 
 int ShapeManager::add_property(Shape** base_shape_ptr, const ShapeProperty& property) {
     auto base_shape = *base_shape_ptr;
-    base_shape->find(property.const_index());
-
-    auto new_hash = Shape::calc_new_shape_hash(base_shape, property);
-
-
-    // 通过新的哈希查找表中是否存在相同哈希的shape
-
-    // 存在，返回
-
-    // 不存在，如果Shape只被一个位置引用，则直接add，返回原base_shape
-    if (base_shape == &empty_shape_) {
-        // 如果是empty_shape_，也不能直接add
+    auto index = base_shape->find(property.const_index());
+    if (index != -1) {
+        // 已经存在的属性，返回
+        return index;
     }
 
+    // 查找过渡表
+    auto table = base_shape->transition_table();
+    auto iter = table.find(property.const_index());
+    if (iter != table.end()) {
+        base_shape->Dereference();
+        *base_shape_ptr = iter->second;
+        (*base_shape_ptr)->Reference();
+        return add_property(base_shape_ptr, property);
+    }
 
-    // 否则创建
+    // 不存在，如果Shape只被一个位置引用，则直接add，返回原base_shape
+    // 如果是empty_shape_，也不能直接add
+    if (base_shape != empty_shape_
+        && base_shape->ref_count() == 1)
+    {
+        auto tmp = property;
+        base_shape->add(std::move(tmp));
+        return base_shape->property_size() - 1;
+    }
 
+    // 创建新的shape
+    Shape* new_shape = new Shape(this, base_shape->property_size() + 1);
 
-    return 0;
+    for (int32_t i = 0; i < base_shape->property_size(); ++i) {
+        ShapeProperty property = base_shape->properties()[i];
+        new_shape->add(std::move(property));
+    }
 
-    // 创建临时shape用于查找
-    // auto temp_shape = new Shape(context_);
-    // temp_shape->Reference();
-        
-    // 复制基础属性
-    //if (base_shape->prop_size() > 0) {
-    //    for (uint32_t i = 0; i < base_shape->prop_size(); ++i) {
-    //        const auto* prop = base_shape->find(base_shape->prop_array()[i].const_index());
-    //        if (prop) {
-    //            temp_shape->add(ShapeProperty(prop->flags(), prop->const_index(), prop->slot_index()));
-    //        }
-    //    }
-    //}
-    //    
-    //// 添加新属性
-    //temp_shape->add(ShapeProperty(flags, const_index, temp_shape->prop_size()));
-    //    
-    //// 创建查找键
-    //ShapeKey key{temp_shape->hash(), temp_shape};
-    //    
-    //// 查找缓存
-    //auto it = shape_cache_.find(key);
-    //if (it != shape_cache_.end()) {
-    //    temp_shape->Dereference();
-    //    return it->second;
-    //}
-    //    
-    //// 缓存新shape
-    //shape_cache_[key] = temp_shape;
-    //return temp_shape;
+    // 放到过渡表
+    table.emplace(property.const_index(), new_shape);
+
+    base_shape->Dereference();
+    *base_shape_ptr = new_shape;
+    (*base_shape_ptr)->Reference();
+
+    ShapeProperty tmp = property;
+    new_shape->add(std::move(tmp));
+    return new_shape->property_size() - 1;
 }
 
 

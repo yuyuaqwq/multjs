@@ -22,6 +22,8 @@ public:
 		}
 	}
 	
+	uint32_t ref_count() { return ref_count_; }
+
 private:
 	uint32_t ref_count_ = 0;
 };

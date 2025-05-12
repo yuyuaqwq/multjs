@@ -12,7 +12,6 @@
 
 // 常量池设计
 // 全局常量位于全局常量池
-
 // 运行时创建的常量位于运行时常量池，通过引用计数来回收
 
 namespace mjs {
@@ -46,7 +45,6 @@ public:
 		val.set_const_index(idx);
 		auto res = map_.emplace(val, idx);
 
-		idx = idx.to_global_index();
 		return idx;
 	}
 
@@ -64,13 +62,11 @@ public:
 	}
 
 	Value& operator[](ConstIndex index) {
-		index.from_global_index();
 		auto& val = Base::operator[](index);
 		return val;
 	}
 
 	const Value& at(ConstIndex index) const {
-		index.from_global_index();
 		if (index < 0 || index >= size()) {
 			throw std::out_of_range("Index out of range");
 		}
@@ -78,7 +74,6 @@ public:
 	}
 
 	Value& at(ConstIndex index) {
-		index.from_global_index();
 		if (index < 0 || index >= size()) {
 			throw std::out_of_range("Index out of range");
 		}
@@ -102,6 +97,14 @@ public:
 	ConstIndex insert(const Value& value);
 	ConstIndex insert(Value&& value);
 
+	std::optional<ConstIndex> find(const Value& value) {
+		auto it = map_.find(value);
+		if (it != map_.end()) {
+			return it->second;
+		}
+		return std::nullopt;
+	}
+
 	const Value& at(ConstIndex index) const;
 	Value& at(ConstIndex index);
 
@@ -110,19 +113,16 @@ public:
 	}
 
 	Value& operator[](ConstIndex index) {
-		index.from_local_index();
 		auto& val = *pool_[index].value_;
 		return val;
 	}
 
 	void ReferenceConst(ConstIndex index) {
-		index.from_local_index();
 		auto& node = pool_[index];
 		++node.reference_count_;
 	}
 
 	void DereferenceConst(ConstIndex index) {
-		index.from_local_index();
 		auto& node = pool_[index];
 		assert(node.reference_count_ > 0);
 		--node.reference_count_;
