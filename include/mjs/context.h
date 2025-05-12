@@ -9,6 +9,7 @@
 #include <mjs/vm.h>
 #include <mjs/job_queue.h>
 #include <mjs/object.h>
+#include <mjs/shape.h>
 
 namespace mjs {
 
@@ -17,6 +18,7 @@ public:
 	Context(Runtime* runtime)
 		: runtime_(runtime)
 		, vm_(this)
+        , shape_manager_(this)
        /* , symbol_table_(this)*/ {}
 
     Value Compile(std::string module_name, std::string_view script);
@@ -158,6 +160,7 @@ public:
 	const auto& microtask_queue() const { return microtask_queue_; }
 	auto& microtask_queue() { return microtask_queue_; }
     // auto& symbol_table() { return symbol_table_; }
+    auto& shape_manager() { return shape_manager_; }
 
 private:
     Runtime* runtime_;
@@ -166,6 +169,8 @@ private:
 	VM vm_;
 	JobQueue microtask_queue_;
     // PropertyMap symbol_table_;
+
+    ShapeManager shape_manager_;
 };
 
 } // namespace mjs

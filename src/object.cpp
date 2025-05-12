@@ -15,6 +15,7 @@ Object::Object(Context* context, ClassId class_id) {
 	// 挂入context obj链表
 	if (context) {
 		context->AddObject(this);
+		shape_ = &context->shape_manager().empty_shape();
 	}
 	else {
 		tag_.is_const_ = true;
@@ -44,6 +45,14 @@ bool Object::GetProperty(Runtime* runtime, std::string_view key, Value* value) {
 
 void Object::SetProperty(Context* context, ConstIndex key, Value&& value) {
 	assert(!context || !tag_.is_const_);
+	auto index = shape_->shape_manager()->add_property(&shape_, ShapeProperty(0, key));
+	if (index < values_.size()) {
+		values_[index] = std::move(value);
+	}
+	else {
+		assert(index == values_.size());
+		values_.emplace_back(std::move(value));
+	}
 	// if (!property_map_) property_map_ = new PropertyMap(context);
 	// property_map_->set(context, key, std::move(value));
 }

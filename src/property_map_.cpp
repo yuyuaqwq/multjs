@@ -1,4 +1,4 @@
-#include <mjs/property_map.h>
+#include <mjs/property_map_.h>
 
 #include <mjs/runtime.h>
 #include <mjs/context.h>

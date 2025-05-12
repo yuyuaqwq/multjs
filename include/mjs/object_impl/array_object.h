@@ -6,10 +6,6 @@ namespace mjs {
 
 class ArrayObject : public Object {
 public:
-    ArrayObject(Runtime* runtime, size_t length)
-        : Object(runtime, ClassId::kArrayObject)
-        , values_(length) {}
-
     ArrayObject(Context* context, size_t length)
         : Object(context, ClassId::kArrayObject)
         , values_(length) {}

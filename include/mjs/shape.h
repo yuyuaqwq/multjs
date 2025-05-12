@@ -11,8 +11,7 @@ namespace mjs {
 
 class ShapeProperty {
 public:
-	ShapeProperty() = default;
-	ShapeProperty(uint32_t flags, ConstIndex const_index, uint32_t slot_index)
+	ShapeProperty(uint32_t flags, ConstIndex const_index)
 		: flags_(flags)
 		, const_index_(const_index) {}
 
@@ -35,14 +34,14 @@ private:
 	ConstIndex const_index_;
 };
 
-class Context;
+class ShapeManager;
 class Shape : public ReferenceCounter {
 public:
 	Shape(ShapeManager* shape_manager, uint32_t property_count);
 	~Shape();
 
 	bool operator==(const Shape& other) const {
-		
+
 	}
 
 	const ShapeProperty* find(ConstIndex const_index) const;
@@ -113,6 +112,8 @@ public:
 
 	const ShapeProperty* properties() const { return properties_; }
 
+	auto& shape_manager() { return shape_manager_; }
+
 private:
 	uint32_t get_power2(uint32_t n) {
 		if (n <= 1) {
@@ -157,12 +158,14 @@ public:
 	ShapeManager(Context* context);
 	~ShapeManager();
 
-	Shape* add_property(Shape* base_shape, const ShapeProperty& property);
+	int add_property(Shape** base_shape, const ShapeProperty& property);
 
 	Context& context() { return *context_; }
+	Shape& empty_shape() { return empty_shape_; }
 
 private:
 	Context* context_;
+	Shape empty_shape_;
 	// ankerl::unordered_dense::set<Shape> shape_cache_;
 };
 

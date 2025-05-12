@@ -40,13 +40,8 @@ Shape::Shape(ShapeManager* shape_manager, uint32_t property_count)
     , hash_(0)
     , property_size_(0)
     , hash_capacity_(0)
-{
-    property_capacity_ = property_count;
-    if (property_capacity_ < 4) {
-        property_capacity_ = 4;
-    }
-    properties_ = new ShapeProperty[property_capacity_];
-}
+    , slot_indices_(nullptr)
+    , properties_(nullptr) {}
 
 Shape::~Shape() {
     if (properties_) {
@@ -81,7 +76,7 @@ const ShapeProperty* Shape::find(ConstIndex const_index) const {
             }
             
             const auto& prop = properties_[slot_index];
-            if (prop.const_index() == const_index) {
+            if (prop.const_index_equal(&shape_manager_->context(), const_index)) {
                 return &prop;
             }
             
@@ -97,9 +92,14 @@ const ShapeProperty* Shape::find(ConstIndex const_index) const {
 void Shape::add( ShapeProperty&& prop) {
     auto index = property_size_++;
     if (index >= property_capacity_) {
-        auto* old_properties = properties_;
-        property_capacity_ = property_size_ * 1.5;
+        if (property_capacity_ < 4) {
+            property_capacity_ = 4;
+        }
+        else {
+            property_capacity_ = property_size_ * 1.5;
+        }
         assert(property_capacity_ > property_size_);
+        auto* old_properties = properties_;
         properties_ = new ShapeProperty[property_capacity_];
         std::memcpy(old_properties, properties_, sizeof(*properties_) * (property_size_ - 1));
     }
@@ -177,7 +177,8 @@ void Shape::rehash(uint32_t new_capacity) {
 
 
 ShapeManager::ShapeManager(Context* context) 
-    : context_(context) {}
+    : context_(context)
+    , empty_shape_(this, 0) {}
 
 ShapeManager::~ShapeManager() {
     //for (auto& shape : shape_cache_) {
@@ -185,7 +186,10 @@ ShapeManager::~ShapeManager() {
     //}
 }
 
-Shape* ShapeManager::add_property(Shape* base_shape, const ShapeProperty& property) {
+int ShapeManager::add_property(Shape** base_shape_ptr, const ShapeProperty& property) {
+    auto base_shape = *base_shape_ptr;
+    base_shape->find(property.const_index());
+
     auto new_hash = Shape::calc_new_shape_hash(base_shape, property);
 
 
@@ -194,10 +198,15 @@ Shape* ShapeManager::add_property(Shape* base_shape, const ShapeProperty& proper
     // 存在，返回
 
     // 不存在，如果Shape只被一个位置引用，则直接add，返回原base_shape
+    if (base_shape == &empty_shape_) {
+        // 如果是empty_shape_，也不能直接add
+    }
+
+
     // 否则创建
 
 
-    return nullptr;
+    return 0;
 
     // 创建临时shape用于查找
     // auto temp_shape = new Shape(context_);

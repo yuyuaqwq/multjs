@@ -190,7 +190,7 @@ public:
         return n->is_linked();
     }
 
-    // ¿ÉÑ¡£º¼ÆËã size£¨O(n)£¬²»ÍÆ¼öÆµ·±Ê¹ÓÃ£©
+    // å¯é€‰ï¼šè®¡ç®— sizeï¼ˆO(n)ï¼Œä¸æ¨èé¢‘ç¹ä½¿ç”¨ï¼‰
     size_t size() const {
         size_t count = 0;
         for (auto it = begin(); it != end(); ++it)

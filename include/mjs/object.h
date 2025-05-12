@@ -10,7 +10,6 @@
 #include <mjs/const_def.h>
 #include <mjs/value.h>
 #include <mjs/class_def.h>
-#include <mjs/shape.h>
 
 namespace mjs {
 
@@ -19,6 +18,7 @@ namespace mjs {
 
 class Runtime;
 class Context;
+class Shape;
 class Object
 	: public noncopyable
 	, public intrusive_list<Object>::node {
@@ -34,11 +34,9 @@ public:
 
 	// 数据成员中有Value，必须重写，否则会内存泄漏
 	virtual void GCForEachChild(Context* context, intrusive_list<Object>* list, void(*callback)(Context* context, intrusive_list<Object>* list, const Value& child)) {
-		//if (property_map_) {
-		//	for (auto& pair : *property_map_) {
-		//		callback(context, list, pair.second);
-		//	}
-		//}
+		for (auto& val : values_) {
+			callback(context, list, val);
+		}
 	}
 
 	void SetProperty(Runtime* runtime, std::string_view key, Value&& value);
