@@ -117,6 +117,8 @@ private:
 	ankerl::unordered_dense::map<ConstIndex, Shape*> transition_table_;
 };
 
+// 目前仍存在的问题：
+// 过渡表创建的shape，如果其内部再次变动，那么需要找到父节点，从其过渡表中移除
 
 class ShapeManager : public noncopyable {
 public:
