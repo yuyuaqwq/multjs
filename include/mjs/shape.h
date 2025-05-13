@@ -12,9 +12,8 @@ namespace mjs {
 class ShapeProperty {
 public:
 	ShapeProperty() = default;
-	ShapeProperty(uint32_t flags, ConstIndex const_index)
-		: flags_(flags)
-		, const_index_(const_index) {}
+	ShapeProperty(uint32_t flags, ConstIndex const_index);
+	~ShapeProperty() = default;
 
 	uint32_t flags() const { return flags_; }
 	void set_flags(uint32_t flags) { flags_ = flags; }
@@ -110,7 +109,7 @@ private:
 
 	ShapeManager* shape_manager_;
 
-	// ¹ı¶É±í
+	// è¿‡æ¸¡è¡¨
 	TransitionTable transition_table_;
 
 	Shape* parent_shape_;
@@ -130,19 +129,21 @@ private:
 	int32_t* slot_indices_;
 };
 
-// Ä¿Ç°ÈÔ´æÔÚµÄÎÊÌâ£º
-// ¹ı¶É±í´´½¨µÄshape£¬Èç¹ûÆäÄÚ²¿ÔÙ´Î±ä¶¯/Îö¹¹£¬ÄÇÃ´ĞèÒªÕÒµ½¸¸½Úµã£¬´ÓÆä¹ı¶É±íÖĞÒÆ³ı
+// ç›®å‰ä»å­˜åœ¨çš„é—®é¢˜ï¼š
+// è¿‡æ¸¡è¡¨åˆ›å»ºçš„shapeï¼Œå¦‚æœå…¶å†…éƒ¨å†æ¬¡å˜åŠ¨/ææ„ï¼Œé‚£ä¹ˆéœ€è¦æ‰¾åˆ°çˆ¶èŠ‚ç‚¹ï¼Œä»å…¶è¿‡æ¸¡è¡¨ä¸­ç§»é™¤
 
 class ShapeManager : public noncopyable {
 public:
-	ShapeManager();
+	ShapeManager(Context* context);
 	~ShapeManager();
 
-	int add_property(Shape** base_shape, const ShapeProperty& property);
+	int add_property(Shape** base_shape, ShapeProperty&& property);
 
+	auto& context() { return *context_; }
 	Shape& empty_shape() { return *empty_shape_; }
-
+	
 private:
+	Context* context_;
 	Shape* empty_shape_;
 };
 

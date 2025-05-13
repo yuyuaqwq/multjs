@@ -18,7 +18,7 @@ public:
 	Context(Runtime* runtime)
 		: runtime_(runtime)
 		, vm_(this)
-        , shape_manager_()
+        , shape_manager_(this)
        /* , symbol_table_(this)*/ {}
 
     Value Compile(std::string module_name, std::string_view script);
@@ -155,9 +155,14 @@ public:
 		}
 	}
 
-    ConstIndex InsertConst(const Value& value);
+    void ReferenceConstValue(ConstIndex const_index);
+    void DereferenceConstValue(ConstIndex const_index);
+    ConstIndex FindConstOrInsertToLocal(const Value& value);
+    ConstIndex FindConstOrInsertToGlobal(const Value& value);
+    const Value& GetConstValue(ConstIndex const_index);
 
 	auto& runtime() const { return *runtime_; }
+    auto& local_const_pool() { return local_const_pool_; }
 	const auto& microtask_queue() const { return microtask_queue_; }
 	auto& microtask_queue() { return microtask_queue_; }
     // auto& symbol_table() { return symbol_table_; }

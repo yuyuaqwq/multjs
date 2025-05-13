@@ -3,6 +3,10 @@
 
 namespace mjs {
 
+ShapeProperty::ShapeProperty(uint32_t flags, ConstIndex const_index)
+    : flags_(flags)
+    , const_index_(const_index) {}
+
 
 Shape::Shape(ShapeManager* shape_manager, uint32_t property_count)
     : ReferenceCounter()
@@ -29,6 +33,9 @@ Shape::Shape(Shape* parent_shape, uint32_t property_count)
 
 Shape::~Shape() {
     if (properties_) {
+        for (uint32_t i = 0; i < property_size_; i++) {
+            shape_manager_->context().DereferenceConstValue(properties_[i].const_index());
+        }
         delete[] properties_;
     }
     if (slot_indices_) {
@@ -74,6 +81,8 @@ const int Shape::find(ConstIndex const_index) const {
 
 // 如果Shape只被一个位置引用了，那么可以原地增加属性
 void Shape::add(ShapeProperty&& prop) {
+    shape_manager_->context().ReferenceConstValue(prop.const_index());
+
     auto index = property_size_++;
     if (index >= property_capacity_) {
         if (property_capacity_ < 4) {
@@ -160,7 +169,9 @@ void Shape::rehash(uint32_t new_capacity) {
 }
 
 
-ShapeManager::ShapeManager()  {
+ShapeManager::ShapeManager(Context* context) 
+    : context_(context)
+{
     empty_shape_ = new Shape(this, 0);
     empty_shape_->Reference();
 }
@@ -171,7 +182,7 @@ ShapeManager::~ShapeManager() {
     //}
 }
 
-int ShapeManager::add_property(Shape** base_shape_ptr, const ShapeProperty& property) {
+int ShapeManager::add_property(Shape** base_shape_ptr, ShapeProperty&& property) {
     auto base_shape = *base_shape_ptr;
     auto index = base_shape->find(property.const_index());
     if (index != -1) {
@@ -186,7 +197,7 @@ int ShapeManager::add_property(Shape** base_shape_ptr, const ShapeProperty& prop
         base_shape->Dereference();
         *base_shape_ptr = iter->second;
         (*base_shape_ptr)->Reference();
-        return add_property(base_shape_ptr, property);
+        return add_property(base_shape_ptr, std::move(property));
     }
 
     // 不存在，如果Shape只被一个位置引用，则直接add，返回原base_shape
@@ -202,8 +213,7 @@ int ShapeManager::add_property(Shape** base_shape_ptr, const ShapeProperty& prop
             base_shape->set_parent_shape(nullptr);
         }
 
-        auto tmp = property;
-        base_shape->add(std::move(tmp));
+        base_shape->add(std::move(property));
 
         return base_shape->property_size() - 1;
     }
@@ -224,8 +234,7 @@ int ShapeManager::add_property(Shape** base_shape_ptr, const ShapeProperty& prop
     *base_shape_ptr = new_shape;
     (*base_shape_ptr)->Reference();
 
-    ShapeProperty tmp = property;
-    new_shape->add(std::move(tmp));
+    new_shape->add(std::move(property));
     return new_shape->property_size() - 1;
 }
 

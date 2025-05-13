@@ -18,7 +18,7 @@ Value Context::Compile(std::string module_name, std::string_view script) {
 	auto parser = compiler::Parser(&lexer);
 	parser.ParseProgram();
 
-	auto codegener = compiler::CodeGener(runtime_, &parser);
+	auto codegener = compiler::CodeGener(this, &parser);
 	auto module = codegener.Generate(std::move(module_name));
 
 	vm_.ModuleInit(&module);
@@ -43,15 +43,26 @@ Value Context::EvalByPath(std::string_view path) {
 	return module;
 }
 
-ConstIndex Context::InsertConst(const Value& value) {
+void Context::ReferenceConstValue(ConstIndex const_index) {
+	if (const_index < 0) {
+		local_const_pool_.ReferenceConst(const_index);
+	}
+}
+void Context::DereferenceConstValue(ConstIndex const_index) {
+	if (const_index < 0) {
+		local_const_pool_.DereferenceConst(const_index);
+	}
+}
+
+ConstIndex Context::FindConstOrInsertToLocal(const Value& value) {
 	if (value.const_index() != kConstIndexInvalid) {
 		return value.const_index();
 	}
 
-	//ÕâÀïÐèÒª±£Ö¤µÄÊÇ£¬µ±Ç°ContextÔËÐÐÏÂ£¬²»»á³öÏÖÏàµÈµÄValue£¬³öÏÖ²»Í¬µÄconst_index
+	//è¿™é‡Œéœ€è¦ä¿è¯çš„æ˜¯ï¼Œå½“å‰Contextè¿è¡Œä¸‹ï¼Œä¸ä¼šå‡ºçŽ°ç›¸ç­‰çš„Valueï¼Œå‡ºçŽ°ä¸åŒçš„const_index
 
-	// ÏÈ²éLocal£¬ÔÙ²éGlobal£¬×îºó²åÈëLocal£¬¿ÉÒÔ±£Ö¤ÒªÃ´´Óµ±Ç°Ê±¼ä¿ªÊ¼£¬Ê¹ÓÃµÄ¶¼ÊÇGlobalµÄ£¬ÒªÃ´Ê¹ÓÃµÄ¶¼ÊÇLocalµÄ
-	// ¼´Ê¹Î´À´Global±»²åÈëÁËÏàÍ¬µÄValue£¬Ò²²»»áÊ¹ÓÃGlobalµÄValue
+	// å…ˆæŸ¥Localï¼Œå†æŸ¥Globalï¼Œæœ€åŽæ’å…¥Localï¼Œå¯ä»¥ä¿è¯è¦ä¹ˆä»Žå½“å‰æ—¶é—´å¼€å§‹ï¼Œä½¿ç”¨çš„éƒ½æ˜¯Globalçš„ï¼Œè¦ä¹ˆä½¿ç”¨çš„éƒ½æ˜¯Localçš„
+	// å³ä½¿æœªæ¥Globalè¢«æ’å…¥äº†ç›¸åŒçš„Valueï¼Œä¹Ÿä¸ä¼šä½¿ç”¨Globalçš„Value
 
 	auto local_res = local_const_pool_.find(value);
 	if (local_res) {
@@ -65,5 +76,29 @@ ConstIndex Context::InsertConst(const Value& value) {
 
 	return local_const_pool_.insert(value);
 }
+
+// ä»£ç ç”Ÿæˆç”¨ï¼Œä¸»è¦æ˜¯ä¸ºäº†å‡å°‘é‡å¤çš„å†…å­˜å ç”¨ï¼ŒGlobalæ˜¯ä¸ä¼šè¢«å›žæ”¶çš„
+ConstIndex Context::FindConstOrInsertToGlobal(const Value& value) {
+	if (value.const_index() != kConstIndexInvalid) {
+		return value.const_index();
+	}
+
+	auto local_res = local_const_pool_.find(value);
+	if (local_res) {
+		return *local_res;
+	}
+
+	return runtime_->const_pool().insert(value);
+}
+
+const Value& Context::GetConstValue(ConstIndex const_index) {
+	if (const_index < 0) {
+		return local_const_pool_[const_index];
+	}
+	else {
+		return runtime_->const_pool()[const_index];
+	}
+}
+
 
 } // namespace mjs

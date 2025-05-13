@@ -2,15 +2,15 @@
 
 #include <iostream>
 
-#include <mjs/runtime.h>
+#include <mjs/context.h>
 #include <mjs/class_def_impl/object_class_def.h>
 #include <mjs/class_def_impl/array_object_class_def.h>
 
 namespace mjs {
 namespace compiler {
 
-CodeGener::CodeGener(Runtime* runtime, Parser* parser)
-	: runtime_(runtime)
+CodeGener::CodeGener(Context* context, Parser* parser)
+	: context_(context)
 	, parser_(parser){}
 
 void CodeGener::AddCppFunction(const std::string& func_name, CppFunction func) {
@@ -33,7 +33,7 @@ Value CodeGener::Generate(std::string&& module_name) {
 	scopes_.clear();
 
 	// 创建模块的函数定义
-	cur_func_def_ = new ModuleDef(runtime_, std::move(module_name), 0);
+	cur_func_def_ = new ModuleDef(&context_->runtime(), std::move(module_name), 0);
 	cur_func_def_->set_is_module();
 	AllocConst(Value(cur_func_def_));
 
@@ -350,7 +350,7 @@ void CodeGener::GenerateFunctionBody(Statement* statement) {
 }
 
 void CodeGener::GenerateFunctionExpression(FunctionExpression* exp) {
-	auto const_idx = AllocConst(Value(new FunctionDef(runtime_, exp->id(), exp->params().size())));
+	auto const_idx = AllocConst(Value(new FunctionDef(&context_->runtime(), exp->id(), exp->params().size())));
 	auto& func_def = GetConstValueByIndex(const_idx).function_def();
 	func_def.set_is_normal();
 	if (exp->is_generator()) {
@@ -404,7 +404,7 @@ void CodeGener::GenerateFunctionExpression(FunctionExpression* exp) {
 
 void CodeGener::GenerateArrowFunctionExpression(ArrowFunctionExpression* exp) {
 	auto& arrow_exp = exp->as<ArrowFunctionExpression>();
-	auto const_idx = AllocConst(Value(new FunctionDef(runtime_, "", arrow_exp.params().size())));
+	auto const_idx = AllocConst(Value(new FunctionDef(&context_->runtime(), "", arrow_exp.params().size())));
 	auto& func_def = GetConstValueByIndex(const_idx).function_def();
 	func_def.set_is_arrow();
 	if (arrow_exp.is_async()) {
@@ -930,11 +930,11 @@ void CodeGener::ExitScope() {
 
 
 ConstIndex CodeGener::AllocConst(Value&& value) {
-	return runtime_->const_pool().insert(std::move(value));
+	return context_->FindConstOrInsertToGlobal(std::move(value));
 }
 
 const Value& CodeGener::GetConstValueByIndex(ConstIndex idx) {
-	return runtime_->const_pool().at(idx);
+	return context_->GetConstValue(idx);
 }
 
 

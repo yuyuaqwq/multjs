@@ -275,7 +275,7 @@ std::string ByteCode::Disassembly(Context* context, Pc& pc, OpcodeType& opcode, 
 
     if (opcode >= OpcodeType::kCLoad_0 && opcode <= OpcodeType::kCLoad_5) {
         auto idx = opcode - OpcodeType::kCLoad_0;
-        const auto& val = context->runtime().const_pool().at(ConstIndex(idx));
+        const auto& val = context->GetConstValue(idx);
         if (val.IsString()) {
             str += "\"";
         }
@@ -287,7 +287,7 @@ std::string ByteCode::Disassembly(Context* context, Pc& pc, OpcodeType& opcode, 
     }
     else if (opcode == OpcodeType::kCLoad || opcode == OpcodeType::kPropertyLoad || opcode == OpcodeType::kPropertyStore) {
         auto idx = par;
-        const auto& val = context->runtime().const_pool().at(ConstIndex(idx));
+        const auto& val = context->GetConstValue(idx);
         if (val.IsString()) {
             str += "\"";
         }

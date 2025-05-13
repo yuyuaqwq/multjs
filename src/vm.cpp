@@ -29,7 +29,7 @@ void VM::ModuleInit(Value* module_def_value) {
 	*module_def_value = Value(module_obj);
 
 	for (auto& def : module_obj->module_def().export_var_defs()) {
-		module_obj->SetProperty(context_, def.first, 
+		module_obj->SetProperty(context_, context_->FindConstOrInsertToGlobal(Value(def.first)), 
 			Value(&module_obj->module_env().export_vars()[def.second.export_var_index])
 		);
 	}
@@ -111,13 +111,8 @@ void VM::BindClosureVars(StackFrame* stack_frame) {
 	}
 }
 
-const Value& VM::GetGlobalConst(ConstIndex idx) {
-	auto& var = context_->runtime().const_pool().at(idx);
-	return var;
-}
-
 void VM::LoadConst(StackFrame* stack_frame, ConstIndex const_idx) {
-	stack_frame->push(GetGlobalConst(const_idx));
+	stack_frame->push(context_->GetConstValue(const_idx));
 }
 
 
@@ -353,7 +348,7 @@ void VM::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 			case OpcodeType::kClosure: {
 				auto const_idx = ConstIndex(func_def->byte_code().GetI32(stack_frame->pc()));
 				stack_frame->set_pc(stack_frame->pc() + 4);
-				auto value = GetGlobalConst(const_idx);
+				auto value = context_->GetConstValue(const_idx);
 				Closure(*stack_frame, &value);
 				stack_frame->push(std::move(value));
 				break;

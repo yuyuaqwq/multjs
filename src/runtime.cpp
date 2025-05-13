@@ -12,7 +12,8 @@
 namespace mjs {
 
 Runtime::Runtime() 
-	: global_this_(new Object(this, ClassId::kObject))
+	: shape_manager_(nullptr)
+	, global_this_(new Object(this, ClassId::kObject))
 	, class_def_table_(this) {}
 
 } // namespace mjs

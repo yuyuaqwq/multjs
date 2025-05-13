@@ -16,7 +16,7 @@ ClassDef::ClassDef(Runtime* runtime, ClassId id, std::string name)
 	auto prototype = prototype_;
 	constructor_object_.object().SetProperty(runtime, "prototype", std::move(prototype));
 
-	// 挂载构造函数对象到全局对象
+	// 鎸傝浇鏋勯�犲嚱鏁板璞″埌鍏ㄥ眬瀵硅薄
 	auto constructor_object = constructor_object_;
 	runtime->global_this().object().SetProperty(nullptr, name_, std::move(constructor_object));
 }

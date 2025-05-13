@@ -33,7 +33,7 @@ Value ModuleMgr::GetModule(Context* ctx, std::string_view path) {
 
 	auto module = ctx->Compile(absolute_path.string(), content);
 
-	// ÏÈ»º´æÄ£¿é£¬ÔÙµ÷ÓÃ
+	// å…ˆç¼“å­˜æ¨¡å—ï¼Œå†è°ƒç”¨
 	module_cache_.emplace(absolute_path, module);
 
 	ctx->CallModule(&module);

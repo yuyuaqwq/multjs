@@ -58,7 +58,6 @@ private:
 
 	void CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, uint32_t param_count);
 
-	const Value& GetGlobalConst(ConstIndex idx);
 	void LoadConst(StackFrame* stack_frame, ConstIndex const_idx);
 
 	bool ThrowExecption(StackFrame* stack_frame, std::optional<Value>* error_val);

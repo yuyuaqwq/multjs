@@ -11,7 +11,7 @@ public:
 	ModuleDef(Runtime* runtime, std::string name, uint32_t par_count)
 		: FunctionDef(runtime, name, par_count) {}
 
-	void AddExportVar(std::string_view name, VarIndex var_idx);
+	void AddExportVar(std::string name, VarIndex var_idx);
 
 	const auto& export_var_defs() const { return export_var_defs_; }
 	auto& export_var_defs() { return export_var_defs_; }
@@ -21,7 +21,7 @@ private:
 		uint32_t export_var_index;
 		VarIndex var_index;
 	};
-	std::unordered_map<ConstIndex, ExportVarDef> export_var_defs_;
+	std::unordered_map<std::string, ExportVarDef> export_var_defs_;
 };
 
 } // namespace mjs

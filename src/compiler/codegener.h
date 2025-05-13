@@ -39,7 +39,7 @@ public:
 	};
 
 public:
-	CodeGener(Runtime* runtime, Parser* parser);
+	CodeGener(Context* context, Parser* parser);
 
 	void AddCppFunction(const std::string& func_name, CppFunction func);
 
@@ -103,7 +103,7 @@ private:
 	void RepairEntrys(const std::vector<RepairEntry>& entrys, Pc end_pc, Pc reloop_pc);
 
 private:
-	Runtime* runtime_;
+	Context* context_;
 	Parser* parser_;
 
 	// 函数

@@ -86,17 +86,17 @@ void Object::DelProperty(Context* context, ConstIndex key) {
 }
 
 void Object::SetComputedProperty(Context* context, const Value& key, Value&& val) {
-	auto idx = context->InsertConst(key);
+	auto idx = context->FindConstOrInsertToLocal(key);
 	return SetProperty(context, idx, std::move(val));
 }
 
 bool Object::GetComputedProperty(Context* context, const Value& key, Value* value) {
-	auto idx = context->InsertConst(key);
+	auto idx = context->FindConstOrInsertToLocal(key);
 	return GetProperty(context, idx, value);
 }
 
 void Object::DelComputedProperty(Context* context, const Value& key) {
-	auto idx = context->InsertConst(key);
+	auto idx = context->FindConstOrInsertToLocal(key);
 	return DelProperty(context, key.const_index());
 }
 
