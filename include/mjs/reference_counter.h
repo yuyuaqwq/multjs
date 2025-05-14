@@ -6,10 +6,11 @@
 
 namespace mjs {
 
+template <typename T>
 class ReferenceCounter : public noncopyable {
 public:
 	ReferenceCounter() = default;
-	virtual ~ReferenceCounter() = default;
+	~ReferenceCounter() = default;
 
 	void Reference() {
 		++ref_count_;
@@ -18,7 +19,7 @@ public:
 	void Dereference() {
 		--ref_count_;
 		if (ref_count_ == 0) {
-			delete this;
+			delete static_cast<T*>(this);
 		}
 	}
 	

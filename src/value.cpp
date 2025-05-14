@@ -61,12 +61,6 @@ Value::Value(Symbol* symbol) {
 	value_.symbol_->Reference();
 }
 
-Value::Value(ReferenceCounter* rc) {
-	tag_.type_ = ValueType::kReferenceCounter;
-	value_.rc_ = rc;
-	value_.rc_->Reference();
-}
-
 
 Value::Value(Object* object) {
 	tag_.type_ = ValueType::kObject;
@@ -672,11 +666,6 @@ CppFunction Value::cpp_function() const {
 	return value_.cpp_func_;
 }
 
-ReferenceCounter& Value::reference_counter() const {
-	assert(IsReferenceCounter());
-	return *static_cast<ReferenceCounter*>(value_.rc_);
-}
-
 
 bool Value::IsUndefined() const {
 	return type() == ValueType::kUndefined;
@@ -714,7 +703,6 @@ bool Value::IsSymbol() const {
 
 bool Value::IsReferenceCounter() const {
 	switch (type()) {
-	case ValueType::kReferenceCounter:
 	case ValueType::kString:
 	case ValueType::kSymbol:
 	case ValueType::kModuleDef:
@@ -723,6 +711,36 @@ bool Value::IsReferenceCounter() const {
 		return true;
 	default:
 		return false;
+	}
+}
+
+void Value::ReferenceCounterInc() {
+	switch (type()) {
+	case ValueType::kString:
+		value_.string_->Reference();
+	case ValueType::kSymbol:
+		value_.symbol_->Reference();
+	case ValueType::kModuleDef:
+		value_.module_def_->Reference();
+	case ValueType::kFunctionDef:
+		value_.function_def_->Reference();
+	case ValueType::kClosureVar:
+		value_.closure_var_->Reference();
+	}
+}
+
+void Value::ReferenceCounterDec() {
+	switch (type()) {
+	case ValueType::kString:
+		value_.string_->Dereference();
+	case ValueType::kSymbol:
+		value_.symbol_->Dereference();
+	case ValueType::kModuleDef:
+		value_.module_def_->Dereference();
+	case ValueType::kFunctionDef:
+		value_.function_def_->Dereference();
+	case ValueType::kClosureVar:
+		value_.closure_var_->Dereference();
 	}
 }
 
@@ -905,7 +923,7 @@ void Value::Clear() {
 		object().Dereference();
 	}
 	else if (IsReferenceCounter()) {
-		value_.rc_->Dereference();
+		ReferenceCounterDec();
 	}
 	tag_.type_ = ValueType::kUndefined;
 }
@@ -920,7 +938,7 @@ void Value::Copy(const Value& r) {
 	}
 	else if (r.IsReferenceCounter()) {
 		value_.full_ = r.value_.full_;
-		value_.rc_->Reference();
+		ReferenceCounterInc();
 	}
 	else {
 		value_.full_ = r.value_.full_;

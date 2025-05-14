@@ -56,8 +56,6 @@ enum class ValueType : uint32_t {
 
 	kPromiseResolve,
 	kPromiseReject,
-
-	kReferenceCounter,
 };
 
 class Context;
@@ -92,8 +90,6 @@ public:
 	explicit Value(std::string_view string_u8);
 	explicit Value(String* str);
 	explicit Value(Symbol* symbol);
-
-	explicit Value(ReferenceCounter* rc);
 
 	explicit Value(Object* object);
 	explicit Value(FunctionObject* func);
@@ -180,12 +176,6 @@ public:
 	ExportVar& export_var() const;
 	ClosureVar& closure_var() const;
 	
-	ReferenceCounter& reference_counter() const;
-	template<typename ReferenceCounterT>
-	ReferenceCounterT& reference_counter() const {
-		return *static_cast<ReferenceCounterT*>(reference_counter());
-	}
-
 	ConstIndex const_index() const { return tag_.const_index_; }
 	void set_const_index(ConstIndex const_index) { tag_.const_index_ = const_index; }
 
@@ -200,6 +190,9 @@ public:
 	bool IsSymbol() const;
 
 	bool IsReferenceCounter() const;
+	void ReferenceCounterInc();
+	void ReferenceCounterDec();
+
 
 	// 新对象必须添加到IsObject中，否则会内存泄露
 	bool IsObject() const;
@@ -257,9 +250,8 @@ private:
 		String* string_;
 		Symbol* symbol_;
 
-		ReferenceCounter* rc_;
-
 		Object* object_;
+
 
 		int64_t i64_;
 		uint64_t u64_;

@@ -21,7 +21,7 @@ struct ClosureVarDef {
 
 class Runtime;
 // 不会有循环引用问题，仅使用引用计数管理
-class FunctionDef : public ReferenceCounter {
+class FunctionDef : public ReferenceCounter<FunctionDef> {
 public:
 	struct VarDef {
 		std::string name;

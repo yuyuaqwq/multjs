@@ -11,7 +11,7 @@
 namespace mjs {
 
 // 提升到堆的变量
-class ClosureVar : public ReferenceCounter {
+class ClosureVar : public ReferenceCounter<ClosureVar> {
 public:
 	ClosureVar(Value&& value) 
 		: value_(std::move(value))

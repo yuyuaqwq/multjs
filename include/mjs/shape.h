@@ -27,7 +27,7 @@ private:
 };
 
 class ShapeManager;
-class Shape : public ReferenceCounter {
+class Shape : public ReferenceCounter<Shape> {
 public:
 	using TransitionTable = ankerl::unordered_dense::map<ConstIndex, Shape*>;
 
