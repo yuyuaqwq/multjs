@@ -14,6 +14,7 @@ namespace mjs {
 class Runtime : public noncopyable {
 public:
 	Runtime();
+	~Runtime() = default;
 
 	const auto& const_pool() const { return const_pool_; }
 	auto& const_pool() { return const_pool_; }

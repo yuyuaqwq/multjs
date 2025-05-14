@@ -28,8 +28,6 @@ private:
 
 class ShapeManager;
 class Shape : public ReferenceCounter<Shape> {
-public:
-	using TransitionTable = ankerl::unordered_dense::map<ConstIndex, Shape*>;
 
 public:
 	Shape(ShapeManager* shape_manager, uint32_t property_count);
@@ -82,9 +80,6 @@ public:
 
 	auto& transition_table() { return transition_table_; }
 
-	//auto& parent_transition_table_iter() const { return parent_transition_table_iterator_ ; }
-	//void set_parent_transition_table_iter(TransitionTable::iterator iterator) { parent_transition_table_iterator_ = iterator; }
-
 private:
 	uint32_t get_power2(uint32_t n) {
 		if (n <= 1) {
@@ -110,10 +105,9 @@ private:
 	ShapeManager* shape_manager_;
 
 	// 过渡表
-	TransitionTable transition_table_;
+	ankerl::unordered_dense::map<ConstIndex, Shape*> transition_table_;
 
 	Shape* parent_shape_;
-	//TransitionTable::iterator parent_transition_table_iterator_;
 
 	uint32_t hash_;
 
