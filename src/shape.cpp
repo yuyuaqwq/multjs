@@ -202,21 +202,21 @@ int ShapeManager::add_property(Shape** base_shape_ptr, ShapeProperty&& property)
 
     // 不存在，如果Shape只被一个位置引用，则直接add，返回原base_shape
     // 如果是empty_shape_，也不能直接add
-    if (base_shape != empty_shape_
-        && base_shape->ref_count() == 1)
-    {
-        if (base_shape->parent_shape()) {
-            // base_shape->parent_shape()->transition_table().erase(base_shape->parent_transition_table_iter());
-            // 因为只有add才会导致创建新的shape，上次add的一定在末尾
-            auto res = base_shape->parent_shape()->transition_table().erase(base_shape->properties()[base_shape->property_size() - 1].const_index());
-            assert(res > 0);
-            base_shape->set_parent_shape(nullptr);
-        }
+    //if (base_shape != empty_shape_
+    //    && base_shape->ref_count() == 1)
+    //{
+    //    if (base_shape->parent_shape()) {
+    //        // base_shape->parent_shape()->transition_table().erase(base_shape->parent_transition_table_iter());
+    //        // 因为只有add才会导致创建新的shape，上次add的一定在末尾
+    //        auto res = base_shape->parent_shape()->transition_table().erase(base_shape->properties()[base_shape->property_size() - 1].const_index());
+    //        assert(res > 0);
+    //        base_shape->set_parent_shape(nullptr);
+    //    }
 
-        base_shape->add(std::move(property));
+    //    base_shape->add(std::move(property));
 
-        return base_shape->property_size() - 1;
-    }
+    //    return base_shape->property_size() - 1;
+    //}
 
     // 创建新的shape
     Shape* new_shape = new Shape(base_shape, base_shape->property_size() + 1);
@@ -230,7 +230,7 @@ int ShapeManager::add_property(Shape** base_shape_ptr, ShapeProperty&& property)
     auto res = table.emplace(property.const_index(), new_shape);
     // new_shape->set_parent_transition_table_iter(res.first);
 
-    base_shape->Dereference();
+    // base_shape->Dereference();
     *base_shape_ptr = new_shape;
     (*base_shape_ptr)->Reference();
 

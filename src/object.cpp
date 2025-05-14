@@ -29,7 +29,6 @@ Object::~Object() {
 	//if (property_map_) {
 	//	delete property_map_;
 	//}
-	unlink();
 }
 
 

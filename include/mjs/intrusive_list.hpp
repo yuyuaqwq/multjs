@@ -15,7 +15,7 @@ public:
 
     public:
         node() = default;
-        // virtual ~node() { unlink(); }
+        ~node() { unlink(); }
 
         node(const node&) = delete;
         node& operator=(const node&) = delete;
