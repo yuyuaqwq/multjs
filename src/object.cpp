@@ -6,8 +6,9 @@
 namespace mjs {
 
 Object::Object(Runtime* runtime, ClassId class_id) {
-	// 仅runtime使用的对象就提前new
-	//property_map_ = new PropertyMap(runtime);
+	// 挂入gc链表
+	runtime->gc_manager().AddObject(this);
+
 	tag_.class_id_ = static_cast<uint16_t>(class_id);
 	shape_ = &runtime->shape_manager().empty_shape();
 
@@ -16,8 +17,9 @@ Object::Object(Runtime* runtime, ClassId class_id) {
 }
 
 Object::Object(Context* context, ClassId class_id) {
-	// 挂入context obj链表
-	context->AddObject(this);
+	// 挂入gc链表
+	context->gc_manager().AddObject(this);
+
 	shape_ = &context->shape_manager().empty_shape();
 	shape_->Reference();
 
@@ -106,7 +108,12 @@ Value Object::ToString(Context* context) {
 	for (auto value : values_) {
 		// str += context->runtime().const_pool()[prop.first].string().data();
 		// str += ":";
-		str += value.ToString(context).string_view();
+		if (value.IsObject() && &value.object() == this) {
+			str += "self";
+		}
+		else {
+			str += value.ToString(context).string_view();
+		}
 		str += ",";
 	}
 	str.pop_back();

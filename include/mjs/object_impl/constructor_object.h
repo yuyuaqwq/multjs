@@ -10,6 +10,10 @@ public:
 		: Object(runtime, ClassId::kConstructorObject)
 		, target_class_id_(target_class_id) {}
 
+	void Reference() {
+		Object::Reference();
+	}
+
 	ClassId target_class_id() const { return target_class_id_; }
 
 protected:

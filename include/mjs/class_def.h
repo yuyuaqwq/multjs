@@ -54,7 +54,7 @@ class ClassDef : public noncopyable {
 public:
 	ClassDef(Runtime* runtime, ClassId id, std::string name);
 
-	virtual ~ClassDef() = default;
+	virtual ~ClassDef();
 
 	// 如果允许通过new构造，重写该函数，如new ArrayObject()
 	virtual Value NewConstructor(Context* context, uint32_t par_count, const StackFrame& stack) {

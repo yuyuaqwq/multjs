@@ -16,4 +16,12 @@ Runtime::Runtime()
 	, global_this_(new Object(this, ClassId::kObject))
 	, class_def_table_(this) {}
 
+Runtime::~Runtime() {
+	const_pool_.clear();
+	global_this_ = Value();
+	class_def_table_.Clear();
+	module_manager_.ClearModuleCache();
+	gc_manager_.GC(nullptr);
+}
+
 } // namespace mjs

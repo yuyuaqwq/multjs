@@ -19,6 +19,8 @@ public:
 
 	void Register(ClassDefUnique class_def);
 
+	void Clear();
+
 	ClassDef& at(ClassId class_id) {
 		return *class_def_arr_.at(static_cast<uint32_t>(class_id));
 	}

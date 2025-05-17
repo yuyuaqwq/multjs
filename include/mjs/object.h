@@ -28,7 +28,7 @@ public:
 	
 	virtual ~Object();
 
-	void Reference();
+	virtual void Reference();
 	void Dereference();
 	void WeakDereference();
 

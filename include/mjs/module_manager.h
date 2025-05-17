@@ -7,7 +7,7 @@
 
 namespace mjs {
 
-class ModuleMgr : public noncopyable {
+class ModuleManager : public noncopyable {
 public:
 	virtual void AddCppModule(std::string_view path, mjs::CppModuleObject* cpp_module_object);
 

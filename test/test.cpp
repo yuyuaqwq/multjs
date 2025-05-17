@@ -46,20 +46,34 @@ int main() {
 
         auto ctx = Context(&rt);
 
-        ctx.EvalByPath("object.js");
+        // ctx.EvalByPath("object.js");
 
-        ctx.ExecuteMicrotasks();
+        // ctx.ExecuteMicrotasks();
+
+        // rt.module_mgr().ClearModuleCache();
 
         // rt.const_pool().clear();
+        // rt.class_def_table().Clear();
+        // rt.global_this() = Value();
 
-        rt.module_mgr().ClearModuleCache();
+        std::cout << "Context GC begin..." << std::endl;
+        ctx.gc_manager().PrintObjectTree(&ctx);
 
-        ctx.PrintObjectTree();
+        std::cout << "Context GC..." << std::endl;
+        ctx.gc_manager().GC(&ctx);
 
-        std::cout << "GC..." << std::endl;
-        ctx.GC();
+        ctx.gc_manager().PrintObjectTree(&ctx);
+        std::cout << "Context GC end..." << std::endl;
 
-        ctx.PrintObjectTree();
+
+        //std::cout << "Runtime GC begin..." << std::endl;
+        //rt.gc_manager().PrintObjectTree(nullptr);
+
+        //std::cout << "Runtime GC..." << std::endl;
+        //rt.gc_manager().GC(nullptr);
+
+        //std::cout << "Runtime GC end..." << std::endl;
+        //rt.gc_manager().PrintObjectTree(nullptr);
 
         auto start = std::chrono::high_resolution_clock::now();
 

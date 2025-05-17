@@ -1,4 +1,4 @@
-#include <mjs/module_mgr.h>
+#include <mjs/module_manager.h>
 
 #include <fstream>
 
@@ -7,12 +7,12 @@
 
 namespace mjs {
 
-void ModuleMgr::AddCppModule(std::string_view path, CppModuleObject* cpp_module) {
+void ModuleManager::AddCppModule(std::string_view path, CppModuleObject* cpp_module) {
 	auto res = module_cache_.emplace(path, std::move(cpp_module));
 	assert(res.second);
 }
 
-Value ModuleMgr::GetModule(Context* ctx, std::string_view path) {
+Value ModuleManager::GetModule(Context* ctx, std::string_view path) {
 	auto iter = cpp_module_cache_.find(path);
 	if (iter != cpp_module_cache_.end()) {
 		return iter->second;
@@ -41,11 +41,11 @@ Value ModuleMgr::GetModule(Context* ctx, std::string_view path) {
 	return module;
 }
 
-Value ModuleMgr::GetModuleAsync(Context* ctx, std::string_view path) {
+Value ModuleManager::GetModuleAsync(Context* ctx, std::string_view path) {
 	return GetModule(ctx, path);
 }
 
-void ModuleMgr::ClearModuleCache() {
+void ModuleManager::ClearModuleCache() {
 	module_cache_.clear();
 }
 

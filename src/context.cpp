@@ -39,7 +39,7 @@ Value Context::Eval(std::string module_name, std::string_view script) {
 }
 
 Value Context::EvalByPath(std::string_view path) {
-	auto module = runtime_->module_mgr().GetModule(this, path);
+	auto module = runtime_->module_manager().GetModule(this, path);
 	return module;
 }
 
