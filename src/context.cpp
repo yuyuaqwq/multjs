@@ -11,6 +11,19 @@
 #include "compiler/codegener.h"
 
 namespace mjs {
+	
+Context::Context(Runtime* runtime)
+	: runtime_(runtime)
+	, vm_(this)
+	, shape_manager_(this)
+	/* , symbol_table_(this)*/ {}
+
+Context::~Context() {
+	assert(runtime_->stack().size() == 0);
+	microtask_queue_.clear();
+	local_const_pool_.clear();
+	gc_manager_.GC(this);
+}
 
 Value Context::Compile(std::string module_name, std::string_view script) {
 	auto lexer = compiler::Lexer(script.data());

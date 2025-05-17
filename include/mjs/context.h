@@ -16,11 +16,9 @@ namespace mjs {
 
 class Context : public noncopyable {
 public:
-	Context(Runtime* runtime)
-		: runtime_(runtime)
-		, vm_(this)
-        , shape_manager_(this)
-       /* , symbol_table_(this)*/ {}
+	Context(Runtime* runtime);
+
+	~Context();
 
     Value Compile(std::string module_name, std::string_view script);
 
@@ -61,14 +59,11 @@ public:
 
 private:
     Runtime* runtime_;
-	intrusive_list<Object> object_list_;
 	LocalConstPool local_const_pool_;
 	VM vm_;
 	JobQueue microtask_queue_;
     // PropertyMap symbol_table_;
-
     ShapeManager shape_manager_;
-
 	GCManager gc_manager_;
 };
 

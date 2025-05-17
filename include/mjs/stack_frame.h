@@ -84,6 +84,8 @@ public:
 	size_t size()  const noexcept;
 	void resize(size_t size);
 
+	void clear();
+
 	auto& vector() { return vector_; }
 
 private:

@@ -131,6 +131,11 @@ public:
 		}
 	}
 
+	void clear() {
+		map_.clear();
+		pool_.clear();
+	}
+
 private:
 	void erase(ConstIndex index);
 

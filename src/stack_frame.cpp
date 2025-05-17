@@ -46,6 +46,9 @@ void Stack::resize(size_t size) {
 	vector_.resize(size);
 }
 
+void Stack::clear() {
+	vector_.clear();
+}
 
 StackFrame::StackFrame(Stack* stack)
 	: stack_(stack)
