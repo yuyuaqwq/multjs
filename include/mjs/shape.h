@@ -82,6 +82,39 @@ private:
 	int32_t* slot_indices_ = nullptr;
 };
 
+
+// 过渡表是否需要引用ConstIndex？
+class Shape;
+class TransitionTable {
+public:
+	~TransitionTable() {
+		assert(!Has());
+
+		if (type_ == Type::kMap) {
+			delete map_;
+		}
+	}
+
+	bool Has() const;
+	Shape* Find(ConstIndex key) const;
+	void Add(ConstIndex key, Shape*);
+	bool Delete(ConstIndex key);
+
+private:
+	enum class Type {
+		kNone,
+		kOne,
+		kMap
+	} type_ = Type::kNone;
+	ConstIndex key_;
+	union {
+		struct {
+			Shape* shape_;
+		};
+		ankerl::unordered_dense::map<ConstIndex, Shape*>* map_;
+	};
+};
+
 class ShapeManager;
 class Shape : public ReferenceCounter<Shape> {
 public:
@@ -129,16 +162,14 @@ public:
 
 	//size_t hash() const { return hash_; }
 
-	bool has_transition_shape() const;
-	Shape* find_transition_shape(ConstIndex key) const;
-	void add_transition_shape(ConstIndex key, Shape*);
-	bool del_transition_shape(ConstIndex key);
 
 	Shape* parent_shape() const { return parent_shape_; }
 	void set_parent_shape(Shape* parent_shape) { parent_shape_ = nullptr; }
 
 	ShapePropertyHashTable* property_map() const { return property_map_; }
 	void set_property_map(ShapePropertyHashTable* property_map) { property_map_ = property_map; }
+
+	auto& transtion_table() { return transtion_table_; }
 
 	uint32_t property_size() const { return property_size_; }
 
@@ -160,11 +191,8 @@ private:
 
 	ShapePropertyHashTable* property_map_;
 
-	// 过渡表
-	union {
-		std::pair<ConstIndex, Shape*> transition_shape_;
-		ankerl::unordered_dense::map<ConstIndex, Shape*>* transition_table_;
-	};
+	TransitionTable transtion_table_;
+
 
 	Shape* parent_shape_;
 };

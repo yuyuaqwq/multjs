@@ -21,9 +21,7 @@ ClassDef::ClassDef(Runtime* runtime, ClassId id, std::string name)
 	runtime->global_this().object().SetProperty(nullptr, name_, std::move(constructor_object));
 }
 
-ClassDef::~ClassDef() {
-	printf("??");
-}
+ClassDef::~ClassDef() {}
 
 void ClassDef::SetProperty(Context* context, Object* obj, ConstIndex key, Value&& val) {
 	//property_map_.set(&context->runtime(), key, std::move(val));

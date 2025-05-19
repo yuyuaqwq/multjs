@@ -134,6 +134,75 @@ void ShapePropertyHashTable::rehash(uint32_t new_capacity) {
 }
 
 
+
+bool TransitionTable::Has() const {
+    if (type_ == Type::kNone) {
+        return false;
+    }
+    else if (type_ == Type::kOne) {
+        return true;
+    }
+    else {
+        assert(type_ == Type::kMap);
+        return !map_->empty();
+    }
+}
+
+Shape* TransitionTable::Find(ConstIndex key) const {
+    if (type_ == Type::kNone) {
+        return nullptr;
+    }
+    else if (type_ == Type::kOne) {
+        return key_ == key ? shape_ : nullptr;
+    }
+    else {
+        assert(type_ == Type::kMap);
+        auto iter = map_->find(key);
+        if (iter == map_->end()) {
+            return nullptr;
+        }
+        return iter->second;
+    }
+}
+
+void TransitionTable::Add(ConstIndex key, Shape* shape) {
+    if (type_ == Type::kNone) {
+        key_ = key;
+        shape_ = shape;
+        type_ = Type::kOne;
+    }
+    else if (type_ == Type::kOne) {
+        auto map = new ankerl::unordered_dense::map<ConstIndex, Shape*>;
+        map->emplace(key_, shape_);
+        map->emplace(key, shape);
+        map_ = map;
+        type_ = Type::kMap;
+    }
+    else {
+        assert(type_ == Type::kMap);
+        map_->emplace(key, shape);
+    }
+}
+
+bool TransitionTable::Delete(ConstIndex key) {
+    if (type_ == Type::kNone) {
+        return false;
+    }
+    else if (type_ == Type::kOne) {
+        if (key_ == key) {
+            type_ = Type::kNone;
+            return true;
+        }
+        return false;
+    }
+    else {
+        assert(type_ == Type::kMap);
+        auto del_count = map_->erase(key);
+        return del_count > 0;
+    }
+}
+
+
 Shape::Shape(ShapeManager* shape_manager)
     : ReferenceCounter()
     , shape_manager_(shape_manager)
@@ -157,13 +226,11 @@ Shape::Shape(Shape* parent_shape, uint32_t property_size)
 
 
 Shape::~Shape() {
-    assert(!has_transition_shape());
-
     if (parent_shape_) {
         // 从父节点的过渡表中移除
         // base_shape->parent_shape()->transition_table().erase(base_shape->parent_transition_table_iter());
         // 因为只有add才会导致创建新的shape，上次add的一定在末尾
-        auto success = parent_shape_->del_transition_shape(get_property(property_size_ - 1).const_index());
+        auto success = parent_shape_->transtion_table_.Delete(get_property(property_size_ - 1).const_index());
         assert(success);
         
         // 释放property_map_
@@ -174,10 +241,6 @@ Shape::~Shape() {
 
         parent_shape_->Dereference();
     }
-
-    if (flags_.transition_type_ == 2) {
-        delete transition_table_;
-    }
 }
 
 const int Shape::find(ConstIndex const_index) const {
@@ -187,73 +250,6 @@ const int Shape::find(ConstIndex const_index) const {
 void Shape::add(ShapeProperty&& prop) {
     shape_manager_->context().ReferenceConstValue(prop.const_index());
     return property_map_->add(std::move(prop));
-}
-
-bool Shape::has_transition_shape() const { 
-    if (flags_.transition_type_ == 0) {
-        return false;
-    }
-    else if (flags_.transition_type_ == 1) {
-        return true;
-    }
-    else {
-        assert(flags_.transition_type_ == 2);
-        return !transition_table_->empty();
-    }
-}
-
-Shape* Shape::find_transition_shape(ConstIndex key) const {
-    if (flags_.transition_type_ == 0) {
-        return nullptr;
-    }
-    else if (flags_.transition_type_ == 1) {
-        return transition_shape_.first == key ? transition_shape_.second : nullptr;
-    }
-    else {
-        assert(flags_.transition_type_ == 2);
-        auto iter = transition_table_->find(key);
-        if (iter == transition_table_->end()) {
-            return nullptr;
-        }
-        return iter->second;
-    }
-}
-
-void Shape::add_transition_shape(ConstIndex key, Shape* shape) {
-    if (flags_.transition_type_ == 0) {
-        transition_shape_.first = key;
-        transition_shape_.second = shape;
-        flags_.transition_type_ = 1;
-    }
-    else if(flags_.transition_type_ == 1) {
-        auto transition_table = new ankerl::unordered_dense::map<ConstIndex, Shape*>;
-        transition_table->emplace(transition_shape_);
-        transition_table->emplace(key, shape);
-        transition_table_ = transition_table;
-        flags_.transition_type_ = 2;
-    }
-    else {
-        assert(flags_.transition_type_ == 2);
-        transition_table_->emplace(key, shape);
-    }
-}
-
-bool Shape::del_transition_shape(ConstIndex key) {
-    if (flags_.transition_type_ == 0) {
-        return false;
-    }
-    else if (flags_.transition_type_ == 1) {
-        if (transition_shape_.first == key) {
-            flags_.transition_type_ = 0;
-            return true;
-        }
-        return false;
-    }
-    else {
-        assert(flags_.transition_type_ == 2);
-        auto del_count = transition_table_->erase(key);
-        return del_count > 0;
-    }
 }
 
 ShapeManager::ShapeManager(Context* context) 
@@ -278,7 +274,7 @@ int ShapeManager::add_property(Shape** base_shape_ptr, ShapeProperty&& property)
     }
 
     // 查找过渡表
-    auto transition_shape = base_shape->find_transition_shape(property.const_index());
+    auto transition_shape = base_shape->transtion_table().Find(property.const_index());
     if (transition_shape) {
         base_shape->Dereference();
         *base_shape_ptr = transition_shape;
@@ -290,7 +286,7 @@ int ShapeManager::add_property(Shape** base_shape_ptr, ShapeProperty&& property)
     Shape* new_shape = new Shape(base_shape, base_shape->property_size() + 1);
     
     // 这里看情况是否需要分裂，如果过渡表为空，可以不分裂，如果过渡表不为空，需要分裂
-    if (base_shape->has_transition_shape()) {
+    if (base_shape->transtion_table().Has()) {
         new_shape->set_property_map(new ShapePropertyHashTable);
         for (int32_t i = 0; i < base_shape->property_size(); ++i) {
             ShapeProperty property = base_shape->get_property(i);
@@ -299,7 +295,7 @@ int ShapeManager::add_property(Shape** base_shape_ptr, ShapeProperty&& property)
     }
 
     // 放到过渡表
-    base_shape->add_transition_shape(property.const_index(), new_shape);
+    base_shape->transtion_table().Add(property.const_index(), new_shape);
 
     // 子节点引用父节点
     // base_shape->Dereference();
