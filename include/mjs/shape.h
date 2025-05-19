@@ -129,6 +129,10 @@ public:
 
 	//size_t hash() const { return hash_; }
 
+	bool has_transition_shape() const;
+	Shape* find_transition_shape(ConstIndex key) const;
+	void add_transition_shape(ConstIndex key, Shape*);
+	bool del_transition_shape(ConstIndex key);
 
 	Shape* parent_shape() const { return parent_shape_; }
 	void set_parent_shape(Shape* parent_shape) { parent_shape_ = nullptr; }
@@ -140,25 +144,29 @@ public:
 
 	auto& shape_manager() { return shape_manager_; }
 
-	auto& transition_table() { return transition_table_; }
-
-private:
-
 private:
 	ShapeManager* shape_manager_;
 
+	uint32_t hash_;
 	uint32_t property_size_;
+
+	struct {
+		uint32_t transition_type_ : 2 = 0;	// 0:empty, 1:transition_shape_, 2:transition_table_
+	} flags_;
+
+	ClassId class_id_;
+
+	Value prototype_;
+
 	ShapePropertyHashTable* property_map_;
 
 	// 过渡表
-	ankerl::unordered_dense::map<ConstIndex, Shape*> transition_table_;
+	union {
+		std::pair<ConstIndex, Shape*> transition_shape_;
+		ankerl::unordered_dense::map<ConstIndex, Shape*>* transition_table_;
+	};
 
 	Shape* parent_shape_;
-
-	uint32_t hash_;
-
-	ClassId class_id_;
-	Value prototype_;
 };
 
 // 目前仍存在的问题：
