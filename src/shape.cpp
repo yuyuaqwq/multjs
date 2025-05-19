@@ -8,7 +8,16 @@ ShapeProperty::ShapeProperty(uint32_t flags, ConstIndex const_index)
     , const_index_(const_index) {}
 
 
-const int ShapePropertyHashTable::find(ConstIndex const_index, uint32_t property_size) const {
+ShapePropertyHashTable::~ShapePropertyHashTable() {
+    if (properties_) {
+        delete[] properties_;
+    }
+    if (slot_indices_) {
+        delete[] slot_indices_;
+    }
+}
+
+const int ShapePropertyHashTable::Find(ConstIndex const_index, uint32_t property_size) const {
     if (property_size_ <= kPropertiesMaxSize) {
         // 当属性数量较少时，线性查找更优
         for (uint32_t i = 0; i < property_size; i++) {
@@ -47,7 +56,7 @@ const int ShapePropertyHashTable::find(ConstIndex const_index, uint32_t property
     }
 }
 
-void ShapePropertyHashTable::add(ShapeProperty&& prop) {
+void ShapePropertyHashTable::Add(ShapeProperty&& prop) {
     auto index = property_size_++;
     if (index >= property_capacity_) {
         if (property_capacity_ < 4) {
@@ -65,20 +74,20 @@ void ShapePropertyHashTable::add(ShapeProperty&& prop) {
 
     if (property_size_ > kPropertiesMaxSize) {
         if (hash_capacity_ == 0) {
-            auto hash_capacity = get_power2(property_size_);
-            auto loading_factor = calc_loading_factor();
+            auto hash_capacity = GetPower2(property_size_);
+            auto loading_factor = CalcLoadingFactor();
             if (loading_factor >= kLoadingFactor) {
                 hash_capacity *= 2;
             }
             // 提升为哈希表
-            rehash(hash_capacity);
+            Rehash(hash_capacity);
             return;
         }
 
         // 检查是否需要rehash
-        auto loading_factor = calc_loading_factor();
+        auto loading_factor = CalcLoadingFactor();
         if (loading_factor >= kLoadingFactor) {
-            rehash(hash_capacity_ * 2);
+            Rehash(hash_capacity_ * 2);
             return;
         }
 
@@ -100,7 +109,32 @@ void ShapePropertyHashTable::add(ShapeProperty&& prop) {
     }
 }
 
-void ShapePropertyHashTable::rehash(uint32_t new_capacity) {
+const ShapeProperty& ShapePropertyHashTable::GetProperty(int32_t idx) {
+    return properties_[idx];
+}
+
+void ShapePropertyHashTable::DereferenceConstValue(Context* context) {
+    for (uint32_t i = 0; i < property_size_; i++) {
+        context->DereferenceConstValue(properties_[i].const_index());
+    }
+}
+
+uint32_t ShapePropertyHashTable::GetPower2(uint32_t n) {
+    if (n <= 1) {
+        return 1;
+    }
+    uint32_t p = 1;
+    while (p < n) {
+        p <<= 1;
+    }
+    return p;
+}
+
+double ShapePropertyHashTable::CalcLoadingFactor() const {
+    return static_cast<double>(property_size_) / hash_capacity_;
+}
+
+void ShapePropertyHashTable::Rehash(uint32_t new_capacity) {
     // 保存旧的数据
     int32_t* old_indices = slot_indices_;
 
@@ -132,7 +166,6 @@ void ShapePropertyHashTable::rehash(uint32_t new_capacity) {
         delete[] old_indices;
     }
 }
-
 
 
 bool TransitionTable::Has() const {
@@ -208,34 +241,32 @@ Shape::Shape(ShapeManager* shape_manager)
     , shape_manager_(shape_manager)
     , property_size_(0)
     , property_map_(nullptr)
-    , parent_shape_(nullptr)
-    , hash_(0) {}
+    , parent_shape_(nullptr) {}
 
 Shape::Shape(Shape* parent_shape, uint32_t property_size)
     : ReferenceCounter()
+    , parent_shape_(parent_shape)
     , shape_manager_(parent_shape->shape_manager_)
     , property_size_(property_size)
     , property_map_(parent_shape->property_map_)
-    , parent_shape_(parent_shape)
-    , hash_(0)
 {
     if (property_map_ == nullptr) {
         property_map_ = new ShapePropertyHashTable;
     }
 }
 
-
 Shape::~Shape() {
     if (parent_shape_) {
         // 从父节点的过渡表中移除
         // base_shape->parent_shape()->transition_table().erase(base_shape->parent_transition_table_iter());
         // 因为只有add才会导致创建新的shape，上次add的一定在末尾
-        auto success = parent_shape_->transtion_table_.Delete(get_property(property_size_ - 1).const_index());
+        auto success = parent_shape_->transtion_table_.Delete(GetProperty(property_size_ - 1).const_index());
         assert(success);
         
         // 释放property_map_
         if (property_map_ != parent_shape_->property_map_) {
             assert(property_map_);
+            property_map_->DereferenceConstValue(&shape_manager_->context());
             delete property_map_;
         }
 
@@ -243,14 +274,19 @@ Shape::~Shape() {
     }
 }
 
-const int Shape::find(ConstIndex const_index) const {
-    return property_map_->find(const_index, property_size_);
+const int Shape::Find(ConstIndex const_index) const {
+    return property_map_->Find(const_index, property_size_);
 }
 
-void Shape::add(ShapeProperty&& prop) {
+void Shape::Add(ShapeProperty&& prop) {
     shape_manager_->context().ReferenceConstValue(prop.const_index());
-    return property_map_->add(std::move(prop));
+    return property_map_->Add(std::move(prop));
 }
+
+const ShapeProperty& Shape::GetProperty(int32_t idx) const {
+    return property_map_->GetProperty(idx);
+}
+
 
 ShapeManager::ShapeManager(Context* context) 
     : context_(context)
@@ -263,10 +299,10 @@ ShapeManager::~ShapeManager() {
     empty_shape_->Dereference();
 }
 
-int ShapeManager::add_property(Shape** base_shape_ptr, ShapeProperty&& property) {
+int ShapeManager::AddProperty(Shape** base_shape_ptr, ShapeProperty&& property) {
     auto base_shape = *base_shape_ptr;
     if (base_shape != empty_shape_) {
-        auto index = base_shape->find(property.const_index());
+        auto index = base_shape->Find(property.const_index());
         if (index != -1) {
             // 已经存在的属性，返回
             return index;
@@ -279,7 +315,7 @@ int ShapeManager::add_property(Shape** base_shape_ptr, ShapeProperty&& property)
         base_shape->Dereference();
         *base_shape_ptr = transition_shape;
         (*base_shape_ptr)->Reference();
-        return add_property(base_shape_ptr, std::move(property));
+        return AddProperty(base_shape_ptr, std::move(property));
     }
 
     // 创建新的shape
@@ -289,8 +325,8 @@ int ShapeManager::add_property(Shape** base_shape_ptr, ShapeProperty&& property)
     if (base_shape->transtion_table().Has()) {
         new_shape->set_property_map(new ShapePropertyHashTable);
         for (int32_t i = 0; i < base_shape->property_size(); ++i) {
-            ShapeProperty property = base_shape->get_property(i);
-            new_shape->add(std::move(property));
+            ShapeProperty property = base_shape->GetProperty(i);
+            new_shape->Add(std::move(property));
         }
     }
 
@@ -302,9 +338,8 @@ int ShapeManager::add_property(Shape** base_shape_ptr, ShapeProperty&& property)
     *base_shape_ptr = new_shape;
     (*base_shape_ptr)->Reference();
 
-    new_shape->add(std::move(property));
+    new_shape->Add(std::move(property));
     return new_shape->property_size() - 1;
 }
-
 
 } // namespace mjs 

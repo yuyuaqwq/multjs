@@ -48,7 +48,7 @@ bool Object::GetProperty(Runtime* runtime, std::string_view key, Value* value) {
 
 void Object::SetProperty(Context* context, ConstIndex key, Value&& value) {
 	assert(!context || !tag_.is_const_);
-	auto index = shape_->shape_manager()->add_property(&shape_, ShapeProperty(0, key));
+	auto index = shape_->shape_manager()->AddProperty(&shape_, ShapeProperty(0, key));
 	if (index < values_.size()) {
 		values_[index] = std::move(value);
 	}
@@ -62,7 +62,7 @@ bool Object::GetProperty(Context* context, ConstIndex key, Value* value) {
 	// 如果配置了exotic，需要先查找(也就是class_def中的GetProperty等方法)
 
 	// 1. 查找自身属性
-	auto index = shape_->find(key);
+	auto index = shape_->Find(key);
 	if (index != -1) {
 		*value = values_[index];
 		return true;
