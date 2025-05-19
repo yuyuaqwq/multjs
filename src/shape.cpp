@@ -26,10 +26,6 @@ const int ShapePropertyHashTable::find(ConstIndex const_index, uint32_t property
         do {
             int32_t slot_index = slot_indices_[index];
 
-            if (slot_index >= property_size) {
-               return -1;
-            }
-
             if (slot_index == -1) {
                 // 找到空槽位，说明元素不存在
                 return -1;
@@ -37,6 +33,9 @@ const int ShapePropertyHashTable::find(ConstIndex const_index, uint32_t property
 
             const auto& prop = properties_[slot_index];
             if (prop.const_index() == const_index) {
+                if (slot_index >= property_size) {
+                    return -1;
+                }
                 return slot_index;
             }
 
