@@ -82,9 +82,7 @@ private:
 	} type_ = Type::kNone;
 	ConstIndex key_;
 	union {
-		struct {
-			Shape* shape_;
-		};
+		Shape* shape_;
 		ankerl::unordered_dense::map<ConstIndex, Shape*>* map_;
 	};
 };
