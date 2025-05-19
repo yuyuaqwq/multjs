@@ -26,59 +26,30 @@ private:
 	ConstIndex const_index_;
 };
 
-class ShapeManager;
-class Shape : public ReferenceCounter<Shape> {
+// shape链下的所有shape，都指向一个哈希表
+// 每个Shape控制size来限制查找范围
 
+class ShapePropertyHashTable {
 public:
-	Shape(ShapeManager* shape_manager, uint32_t property_count);
-	Shape(Shape* parent_shape, uint32_t property_count);
-	~Shape();
-
-	bool operator==(const Shape& other) const {
-		if (this == &other) return true;
-		if (property_size_ != other.property_size_) return false;
-		if (class_id_ != other.class_id_) return false;
-		if (prototype_ == other.prototype_) return false;
-
-		for (uint32_t i = 0; i < property_size_; ++i) {
-			const auto& lhs_prop = properties_[i];
-			const auto& rhs_prop = other.properties_[i];
-
-			if (lhs_prop.flags() != rhs_prop.flags() ||
-				lhs_prop.const_index() == rhs_prop.const_index()) {
-				return false;
+	~ShapePropertyHashTable() {
+		if (properties_) {
+			for (uint32_t i = 0; i < property_size_; i++) {
+				// shape_manager_->context().DereferenceConstValue(properties_[i].const_index());
 			}
+			delete[] properties_;
+		}
+		if (slot_indices_) {
+			delete[] slot_indices_;
 		}
 	}
 
-	const int find(ConstIndex const_index) const;
+	const int find(ConstIndex const_index, uint32_t property_size) const;
 
 	void add(ShapeProperty&& prop);
 
-	void update_hash() {
-		hash_ = 0;
-		hash_ ^= std::hash<uint32_t>()(static_cast<uint32_t>(class_id_));
-		hash_ ^= prototype_.hash();
-
-		for (uint32_t i = 0; i < property_size_; ++i) {
-			const auto& prop = properties_[i];
-			hash_ = (hash_ ^ prop.const_index()) * 16777619;
-			hash_ = (hash_ ^ prop.flags()) * 16777619;
-		}
+	const ShapeProperty& get_property(int32_t idx) {
+		return properties_[idx];
 	}
-
-	size_t hash() const { return hash_; }
-
-	uint32_t property_size() const { return property_size_; }
-
-	const ShapeProperty* properties() const { return properties_; }
-
-	Shape* parent_shape() const { return parent_shape_; }
-	void set_parent_shape(Shape* parent_shape) { parent_shape_ = nullptr; }
-
-	auto& shape_manager() { return shape_manager_; }
-
-	auto& transition_table() { return transition_table_; }
 
 private:
 	uint32_t get_power2(uint32_t n) {
@@ -102,7 +73,82 @@ private:
 	static constexpr uint32_t kPropertiesMaxSize = 4;
 	static constexpr double kLoadingFactor = 0.75f;
 
+	uint32_t property_size_ = 0;
+	uint32_t property_capacity_ = 0;
+	ShapeProperty* properties_ = nullptr;
+
+	uint32_t hash_mask_ = 0;
+	uint32_t hash_capacity_ = 0;
+	int32_t* slot_indices_ = nullptr;
+};
+
+class ShapeManager;
+class Shape : public ReferenceCounter<Shape> {
+public:
+	Shape(ShapeManager* shape_manager);
+	Shape(Shape* parent_shape, uint32_t property_size);
+	~Shape();
+
+	const int find(ConstIndex const_index) const;
+
+	void add(ShapeProperty&& prop);
+
+	const ShapeProperty& get_property(int32_t idx) {
+		return property_map_->get_property(idx);
+	}
+
+	//bool operator==(const Shape& other) const {
+	//	if (this == &other) return true;
+	//	if (property_size_ != other.property_size_) return false;
+	//	if (class_id_ != other.class_id_) return false;
+	//	if (prototype_ == other.prototype_) return false;
+
+	//	for (uint32_t i = 0; i < property_size_; ++i) {
+	//		const auto& lhs_prop = properties_[i];
+	//		const auto& rhs_prop = other.properties_[i];
+
+	//		if (lhs_prop.flags() != rhs_prop.flags() ||
+	//			lhs_prop.const_index() == rhs_prop.const_index()) {
+	//			return false;
+	//		}
+	//	}
+	//}
+
+
+	//void update_hash() {
+	//	hash_ = 0;
+	//	hash_ ^= std::hash<uint32_t>()(static_cast<uint32_t>(class_id_));
+	//	hash_ ^= prototype_.hash();
+
+	//	for (uint32_t i = 0; i < property_size_; ++i) {
+	//		const auto& prop = properties_[i];
+	//		hash_ = (hash_ ^ prop.const_index()) * 16777619;
+	//		hash_ = (hash_ ^ prop.flags()) * 16777619;
+	//	}
+	//}
+
+	//size_t hash() const { return hash_; }
+
+
+	Shape* parent_shape() const { return parent_shape_; }
+	void set_parent_shape(Shape* parent_shape) { parent_shape_ = nullptr; }
+
+	ShapePropertyHashTable* property_map() const { return property_map_; }
+	void set_property_map(ShapePropertyHashTable* property_map) { property_map_ = property_map; }
+
+	uint32_t property_size() const { return property_size_; }
+
+	auto& shape_manager() { return shape_manager_; }
+
+	auto& transition_table() { return transition_table_; }
+
+private:
+
+private:
 	ShapeManager* shape_manager_;
+
+	uint32_t property_size_;
+	ShapePropertyHashTable* property_map_;
 
 	// 过渡表
 	ankerl::unordered_dense::map<ConstIndex, Shape*> transition_table_;
@@ -113,14 +159,6 @@ private:
 
 	ClassId class_id_;
 	Value prototype_;
-
-	uint32_t property_size_;
-	uint32_t property_capacity_;
-	ShapeProperty* properties_;
-
-	uint32_t hash_mask_ = 0;
-	uint32_t hash_capacity_;
-	int32_t* slot_indices_;
 };
 
 // 目前仍存在的问题：
