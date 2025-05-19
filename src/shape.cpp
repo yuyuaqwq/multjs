@@ -250,7 +250,7 @@ Shape::Shape(Shape* parent_shape, uint32_t property_size)
     , property_size_(property_size)
     , property_map_(parent_shape->property_map_)
 {
-    if (property_map_ == nullptr) {
+    if (!property_map_) {
         property_map_ = new ShapePropertyHashTable;
     }
 }
@@ -271,6 +271,9 @@ Shape::~Shape() {
         }
 
         parent_shape_->Dereference();
+    }
+    else {
+        assert(!property_map_);
     }
 }
 
@@ -320,10 +323,12 @@ int ShapeManager::AddProperty(Shape** base_shape_ptr, ShapeProperty&& property) 
 
     // 创建新的shape
     Shape* new_shape = new Shape(base_shape, base_shape->property_size() + 1);
-    
-    // 这里看情况是否需要分裂，如果过渡表为空，可以不分裂，如果过渡表不为空，需要分裂
+
     if (base_shape->transtion_table().Has()) {
-        new_shape->set_property_map(new ShapePropertyHashTable);
+        // 如果过渡表不为空，需要创建一个分支
+        if (new_shape->property_map() == base_shape->property_map()) {
+            new_shape->set_property_map(new ShapePropertyHashTable);
+        }
         for (int32_t i = 0; i < base_shape->property_size(); ++i) {
             ShapeProperty property = base_shape->GetProperty(i);
             new_shape->Add(std::move(property));
