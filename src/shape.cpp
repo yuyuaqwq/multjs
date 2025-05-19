@@ -157,7 +157,7 @@ Shape::Shape(Shape* parent_shape, uint32_t property_size)
 
 
 Shape::~Shape() {
-    assert(!transition_table_.empty());
+    assert(transition_table_.empty());
 
     if (parent_shape_) {
         // 从父节点的过渡表中移除
