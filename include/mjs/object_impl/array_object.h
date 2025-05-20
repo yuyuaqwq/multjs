@@ -58,6 +58,7 @@ public:
         for (auto& value : values) {
             arr_obj->operator[](i++) = value;
         }
+        return arr_obj;
     }
 
 private:
