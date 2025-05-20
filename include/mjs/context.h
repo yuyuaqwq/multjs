@@ -25,7 +25,7 @@ public:
     Value CallModule(Value* value);
 
     Value Eval(std::string module_name, std::string_view script);
-    Value EvalByPath(std::string_view path);
+    Value EvalFromFile(std::string_view path);
 
 	template<typename It>
 	Value CallFunction(Value* func_val, Value this_val, It begin, It end) {

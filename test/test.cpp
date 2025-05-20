@@ -19,7 +19,7 @@ int main() {
         Runtime rt;
         auto ctx = Context(&rt);
 
-        ctx.EvalByPath("object.js");
+        ctx.EvalFromFile("object.js");
 
         ctx.ExecuteMicrotasks();
 
