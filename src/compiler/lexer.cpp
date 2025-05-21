@@ -2,6 +2,8 @@
 
 #include <format>
 
+#include <mjs/error.h>
+
 namespace mjs {
 namespace compiler {
 
@@ -93,7 +95,7 @@ Token Lexer::MatchToken(TokenType type) {
     if (token.is(type)) {
         return token;
     }
-    throw LexerException("cannot match token");
+    throw SyntaxError("[{}]cannot match token, expected token: '{}', actual token: '{}'.", token.line(), Token::TypeToString(type), Token::TypeToString(token.type()));
 }
 
 Token Lexer::ReadNextToken() {
@@ -133,7 +135,7 @@ Token Lexer::ReadNextToken() {
             }
             if (!end) {
                 // 多行注释未闭合
-                throw LexerException("Unfinished multiline comments");
+                throw SyntaxError("Unfinished multiline comments");
             }
         }
         else {
@@ -268,7 +270,7 @@ Token Lexer::ReadNextToken() {
                 case '\'': str_value.push_back('\''); break;
                 case '\n': continue; // 换行续行
                 default:
-                    throw LexerException("Invalid escape character");
+                    throw SyntaxError("Invalid escape character");
                 }
             }
             else if (c == quote_type) {
@@ -277,7 +279,7 @@ Token Lexer::ReadNextToken() {
             }
             else if (c == '\0') {
                 // 字符串未闭合
-                throw LexerException("Unterminated string literal");
+                throw SyntaxError("Unterminated string literal");
             }
             else {
                 str_value.push_back(c); // 普通字符
@@ -322,7 +324,7 @@ Token Lexer::ReadNextToken() {
         
     }
 
-    throw LexerException("cannot parse token");
+    throw SyntaxError("cannot parse token: {}", c);
 }
 
 } // namespace compiler

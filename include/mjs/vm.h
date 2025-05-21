@@ -15,12 +15,6 @@
 
 namespace mjs {
 
-class VmException : public std::exception {
-public:
-	using Base = std::exception;
-	using Base::Base;
-};
-
 class Context;
 class VM : public noncopyable {
 public:

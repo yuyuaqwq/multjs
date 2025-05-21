@@ -13,12 +13,6 @@ namespace compiler {
 using SourcePos = uint32_t;
 using SourceLine = uint32_t;
 
-class LexerException : public std::exception {
-public:
-	using Base = std::exception;
-	using Base::Base;
-};
-
 class Lexer : public noncopyable {
 public:
 	struct Checkpoint {

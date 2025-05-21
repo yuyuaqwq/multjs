@@ -140,6 +140,8 @@ public:
 	const std::string& str() const { return str_; }
 	void set_str(std::string str) { str_ = std::move(str); }
 
+    static std::string TypeToString(TokenType type);
+
 private:
 	int32_t line_ = 0;		// 行号
 	TokenType type_ = TokenType::kNone;		// token类型

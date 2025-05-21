@@ -2,6 +2,7 @@
 
 #include <iostream>
 
+#include <mjs/error.h>
 #include <mjs/context.h>
 #include <mjs/class_def_impl/object_class_def.h>
 #include <mjs/class_def_impl/array_object_class_def.h>
@@ -178,7 +179,7 @@ void CodeGener::GenerateExpression(Expression* exp) {
 			cur_func_def_->byte_code().EmitOpcode(OpcodeType::kPop);
 			break;
 		default:
-			throw CodeGenerException("Unrecognized unary operator");
+			throw SyntaxError("Unrecognized unary operator.");
 		}
 		break;
 	}
@@ -238,7 +239,7 @@ void CodeGener::GenerateExpression(Expression* exp) {
 		case TokenType::kSepComma:
 			break;
 		default:
-			throw CodeGenerException("Unrecognized binary operator");
+			throw SyntaxError("Unrecognized binary operator.");
 		}
 		break;
 	}
@@ -295,7 +296,7 @@ void CodeGener::GenerateExpression(Expression* exp) {
 		break;
 	}
 	default:
-		throw CodeGenerException("Unrecognized exp");
+		throw SyntaxError("Unrecognized exp.");
 		break;
 	}
 }
@@ -442,7 +443,7 @@ void CodeGener::GenerateArrowFunctionExpression(ArrowFunctionExpression* exp) {
 
 void CodeGener::GenerateLValueStore(Expression* lvalue_exp) {
 	if (lvalue_exp->value_category() != ValueCategory::kLValue) {
-		throw CodeGenerException("The left side of the assignment operator must be an lvalue.");
+		throw SyntaxError("The left side of the assignment operator must be an lvalue.");
 	}
 
 	// 再处理左值表达式
@@ -452,7 +453,7 @@ void CodeGener::GenerateLValueStore(Expression* lvalue_exp) {
 		const auto* var_info = GetVarByExpression(lvalue_exp);
 		assert(var_info);
 		if ((var_info->flags & VarFlags::kConst) == VarFlags::kConst) {
-			throw CodeGenerException("Cannot change const var.");
+			throw SyntaxError("Cannot change const var.");
 		}
 		cur_func_def_->byte_code().EmitVarStore(var_info->var_idx);
 		break;
@@ -477,7 +478,7 @@ void CodeGener::GenerateLValueStore(Expression* lvalue_exp) {
 		break;
 	}
 	default:
-		throw CodeGenerException("Lvalue expression type error.");
+		throw SyntaxError("Lvalue expression type error.");
 	}
 }
 
@@ -540,7 +541,7 @@ void CodeGener::GenerateStatement(Statement* stat) {
 		break;
 	}
 	default:
-		throw CodeGenerException("Unknown statement type");
+		throw SyntaxError("Unknown statement type");
 	}
 }
 
@@ -567,7 +568,7 @@ void CodeGener::GenerateImportDeclaration(ImportDeclaration* stat) {
 
 void CodeGener::GenerateExportDeclaration(ExportDeclaration* stat) {
 	if (!cur_func_def_->is_module()) {
-		throw CodeGenerException("Only modules can export.");
+		throw SyntaxError("Only modules can export.");
 	}
 	GenerateStatement(stat->declaration().get());
 }
@@ -631,7 +632,7 @@ void CodeGener::GenerateIfStatement(IfStatement* stat) {
 void CodeGener::GenerateLabeledStatement(LabeledStatement* stat) {
 	auto res = label_map_.emplace(stat->label(), LableInfo());
 	if (!res.second) {
-		throw CodeGenerException("Duplicate label.");
+		throw SyntaxError("Duplicate label.");
 	}
 
 	auto save_cur_label_reloop_pc_ = cur_label_reloop_pc_;
@@ -737,13 +738,13 @@ void CodeGener::GenerateWhileStatement(WhileStatement* stat) {
 
 void CodeGener::GenerateContinueStatement(ContinueStatement* stat) {
 	if (cur_loop_repair_entrys_ == nullptr) {
-		throw CodeGenerException("Cannot use break in acyclic scope");
+		throw SyntaxError("Cannot use break in acyclic scope");
 	}
 
 	if (stat->label()) {
 		auto iter = label_map_.find(*stat->label());
 		if (iter == label_map_.end()) {
-			throw CodeGenerException("Label does not exist.");
+			throw SyntaxError("Label does not exist.");
 		}
 		iter->second.entrys.emplace_back(RepairEntry{
 			.type = RepairEntry::Type::kContinue,
@@ -769,13 +770,13 @@ void CodeGener::GenerateContinueStatement(ContinueStatement* stat) {
 
 void CodeGener::GenerateBreakStatement(BreakStatement* stat) {
 	if (cur_loop_repair_entrys_ == nullptr) {
-		throw CodeGenerException("Cannot use break in acyclic scope.");
+		throw SyntaxError("Cannot use break in acyclic scope.");
 	}
 
 	if (stat->label()) {
 		auto iter = label_map_.find(*stat->label());
 		if (iter == label_map_.end()) {
-			throw CodeGenerException("Label does not exist.");
+			throw SyntaxError("Label does not exist.");
 		}
 		iter->second.entrys.emplace_back(RepairEntry{
 			.type = RepairEntry::Type::kBreak,
@@ -867,7 +868,7 @@ void CodeGener::GenerateTryStatement(TryStatement* stat) {
 	cur_func_def_->byte_code().EmitOpcode(OpcodeType::kTryEnd);
 
 	if (!stat->handler() && !stat->finalizer()) {
-		throw CodeGenerException("There cannot be a statement with only try.");
+		throw SyntaxError("There cannot be a statement with only try.");
 	}
 
 	// 添加到异常表
@@ -1027,7 +1028,7 @@ Value CodeGener::MakeConstValue(Expression* exp) {
 		return Value(String::New(exp->as<StringLiteral>().value()));
 	}
 	default:
-		throw CodeGenerException("Unable to generate expression for value");
+		throw SyntaxError("Unable to generate expression for value");
 	}
 }
 
@@ -1044,7 +1045,7 @@ void CodeGener::RepairEntrys(const std::vector<RepairEntry>& entrys, Pc end_pc, 
 			break;
 		}
 		default:
-			throw CodeGenerException("Incorrect type.");
+			throw SyntaxError("Incorrect type.");
 			break;
 		}
 	}

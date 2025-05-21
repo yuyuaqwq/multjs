@@ -21,13 +21,6 @@ class Runtime;
 
 namespace compiler {
 
-// 代码生成时发生的异常
-class CodeGenerException : public std::exception{
-public:
-	using Base = std::exception;
-	using Base::Base;
-};
-
 class CodeGener : public noncopyable {
 public:
 	struct RepairEntry {

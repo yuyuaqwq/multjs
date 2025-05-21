@@ -1,7 +1,8 @@
-#include <iostream>
-
 #include <mjs/vm.h>
 
+#include <iostream>
+
+#include <mjs/error.h>
 #include <mjs/runtime.h>
 #include <mjs/context.h>
 #include <mjs/opcode.h>
@@ -128,7 +129,7 @@ bool VM::FunctionScheduling(StackFrame* stack_frame, uint32_t par_count) {
 		// printf("%s\n", function_def->Disassembly().c_str());
 
 		if (par_count < function_def->par_count()) {
-			throw VmException("Wrong number of parameters passed when calling the function");
+			throw Error("Wrong number of parameters passed when calling the function.");
 		}
 
 		// 弹出多余参数
@@ -243,7 +244,7 @@ bool VM::FunctionScheduling(StackFrame* stack_frame, uint32_t par_count) {
 		return true;
 	}
 	default:
-		throw VmException("Non callable type.");
+		throw TypeError(std::format("Non callable type: '{}'.", Value::TypeToString(stack_frame->function_val().type())));
 	}
 }
 
@@ -649,7 +650,7 @@ void VM::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 				auto& table = func_def->exception_table();
 				auto* entry = table.FindEntry(stack_frame->pc());
 				if (!entry || !entry->HasFinally()) {
-					throw VmException("Incorrect finally return.");
+					throw std::runtime_error("Incorrect finally return.");
 				}
 				pending_return_val = stack_frame->pop();
 				if (entry->LocatedInFinally(stack_frame->pc())) {
@@ -667,7 +668,7 @@ void VM::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 				auto& table = func_def->exception_table();
 				auto* entry = table.FindEntry(stack_frame->pc());
 				if (!entry || !entry->HasFinally()) {
-					throw VmException("Incorrect finally return.");
+					throw std::runtime_error("Incorrect finally return.");
 				}
 				pending_goto_pc = func_def->byte_code().CalcPc(stack_frame->pc());
 				if (entry->LocatedInFinally(stack_frame->pc())) {
@@ -685,7 +686,7 @@ void VM::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 				Value value;
 				auto success = context_->runtime().global_this().object().GetProperty(context_, const_idx, &value);
 				if (!success) {
-					throw VmException("ReferenceError.");
+					throw ReferenceError("GetProperty.");
 				}
 				stack_frame->push(std::move(value));
 				break;
@@ -693,7 +694,7 @@ void VM::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 			case OpcodeType::kGetModule: {
 				auto path = stack_frame->pop();
 				if (!path.IsString()) {
-					throw VmException("Can only provide string paths for module loading.");
+					throw TypeError("Can only provide string paths for module loading.");
 				}
 				stack_frame->push(context_->runtime().module_manager().GetModule(context_, path.string_view()));
 				break;
@@ -701,14 +702,14 @@ void VM::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 			case OpcodeType::kGetModuleAsync: {
 				auto path = stack_frame->pop();
 				if (!path.IsString()) {
-					throw VmException("Can only provide string paths for module loading.");
+					throw TypeError("Can only provide string paths for module loading.");
 				}
 				auto module = context_->runtime().module_manager().GetModuleAsync(context_, path.string_view());
 				stack_frame->push(std::move(module));
 				break;
 			}
 			default:
-				throw VmException("Unknown instruction.");
+				throw std::runtime_error("Unknown instruction.");
 			}
 		}
 	}
@@ -764,7 +765,7 @@ bool VM::ThrowExecption(StackFrame* stack_frame, std::optional<Value>* error_val
 		stack_frame->set_pc(entry->finally_end_pc);
 	}
 	else {
-		throw VmException("Incorrect execption address.");
+		throw std::runtime_error("Incorrect execption address.");
 	}
 	return true;
 }

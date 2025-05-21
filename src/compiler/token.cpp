@@ -3,6 +3,25 @@
 namespace mjs {
 namespace compiler {
 
+std::string Token::TypeToString(TokenType type) {
+	for (auto it : g_operators) {
+		if (it.second == type) {
+			return it.first;
+		}
+	}
+	for (auto it : g_keywords) {
+		if (it.second == type) {
+			return it.first;
+		}
+	}
+	if (type == TokenType::kNone) {
+		return "[none]";
+	}
+	else {
+		return "[unknown]";
+	}
+}
+
 std::unordered_map<std::string, TokenType> g_operators = {
 	{ ";", TokenType::kSepSemi },
 	{ ":", TokenType::kSepColon },

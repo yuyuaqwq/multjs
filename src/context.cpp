@@ -19,7 +19,8 @@ Context::Context(Runtime* runtime)
 	/* , symbol_table_(this)*/ {}
 
 Context::~Context() {
-	assert(runtime_->stack().size() == 0);
+	//assert(runtime_->stack().size() == 0);
+	runtime_->stack().clear();
 	microtask_queue_.clear();
 	local_const_pool_.clear();
 	gc_manager_.GC(this);

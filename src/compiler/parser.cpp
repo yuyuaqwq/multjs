@@ -2,6 +2,8 @@
 
 #include <unordered_set>
 
+#include <mjs/error.h>
+
 /* EBNF
 exp = exp3
 exp3 = exp2 {oper3 exp2}
@@ -165,7 +167,7 @@ std::unique_ptr<Expression> Parser::ParseTraditionalFunction(SourcePos start, bo
 	// 处理生成器函数
 	if (lexer_->PeekToken().is(TokenType::kOpMul)) {
 		if (is_async) {
-			throw ParserException("Does not support asynchronous generator function.");
+			throw SyntaxError("Does not support asynchronous generator function.");
 		}
 		lexer_->NextToken();
 		is_generator = true;
@@ -421,7 +423,7 @@ std::unique_ptr<Expression> Parser::ParseUnaryExpression() {
 		lexer_->NextToken();
 		exp = ParseUnaryExpression();
 		if (exp->value_category() != ValueCategory::kLValue) {
-			throw ParserException("Only use auto inc on lvalue.");
+			throw SyntaxError("Only use auto inc on lvalue.");
 		}
 		exp = std::make_unique<UnaryExpression>(start, lexer_->pos(), TokenType::kOpPrefixInc, std::move(exp));
 		break;
@@ -430,7 +432,7 @@ std::unique_ptr<Expression> Parser::ParseUnaryExpression() {
 		lexer_->NextToken();
 		exp = ParseUnaryExpression();
 		if (exp->value_category() != ValueCategory::kLValue) {
-			throw ParserException("Only use auto dec on lvalue.");
+			throw SyntaxError("Only use auto dec on lvalue.");
 		}
 		exp = std::make_unique<UnaryExpression>(start, lexer_->pos(), TokenType::kOpPrefixDec, std::move(exp));
 		break;
@@ -529,7 +531,7 @@ std::unique_ptr<MemberExpression> Parser::ParseMemberExpression(std::unique_ptr<
 		computed = true;
 	}
 	else {
-		throw ParserException("Incorrect member expression.");
+		throw SyntaxError("Incorrect member expression.");
 	}
 
 	bool is_method_call = false;
@@ -634,7 +636,7 @@ std::unique_ptr<ThisExpression> Parser::ParseThis() {
 std::unique_ptr<Expression> Parser::ParseLiteral() {
 	auto exp = TryParseLiteral();
 	if (!exp) {
-		throw ParserException("Unable to parse expression.");
+		throw SyntaxError("Unable to parse expression.");
 	}
 	return exp;
 }
@@ -787,7 +789,7 @@ std::unique_ptr<Statement> Parser::ParseImportStatement(TokenType type) {
 		return ParseExpressionStatement();
 	}
 	else {
-		throw ParserException("Unsupported module parsing.");
+		throw SyntaxError("Unsupported module parsing.");
 	}
 }
 
@@ -809,7 +811,7 @@ std::unique_ptr<ExportDeclaration> Parser::ParseExportDeclaration(TokenType type
 		var_decl.set_is_export(true);
 	}
 	else {
-		throw ParserException("Statement that cannot be exported.");
+		throw SyntaxError("Statement that cannot be exported.");
 	}
 	auto end = lexer_->pos();
 	return std::make_unique<ExportDeclaration>(start, end, std::move(stat));
@@ -1127,7 +1129,7 @@ std::unique_ptr<UnionType> Parser::ParseUnionType() {
 				types.emplace_back(std::make_unique<LieralType>(start, end,std::move(literal)));
 			}
 			else {
-				throw ParserException("Type annotation incorrect.");
+				throw SyntaxError("Type annotation incorrect.");
 			}
 		}
 

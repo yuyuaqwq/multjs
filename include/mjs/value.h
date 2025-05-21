@@ -228,6 +228,39 @@ public:
 	bool IsException() const { return tag_.exception_; }
 	Value& SetException() { tag_.exception_ = 1; return *this; }
 
+	static std::string TypeToString(ValueType type) {
+		switch (type) {
+		case ValueType::kUndefined:
+			return "undefined";
+		case ValueType::kNull:
+			return "null";
+		case ValueType::kBoolean:
+			return "boolean";
+		case ValueType::kFloat64:
+			return "float64";
+		case ValueType::kInt64:
+			return "int64";
+		case ValueType::kUInt64:
+			return "uint64";
+		case ValueType::kString:
+			return "string";
+		case ValueType::kStringView:
+			return "string_view";
+		case ValueType::kSymbol:
+			return "symbol";
+		case ValueType::kObject:
+			return "objerct";
+		case ValueType::kFunctionDef:
+			return "function_def";
+		case ValueType::kCppFunction:
+			return "cpp_function";
+		case ValueType::kClosureVar:
+			return "closure_var";
+		default:
+			throw std::runtime_error("Incorrect value type.");
+		}
+	}
+
 private:
 	void Clear();
 	void Copy(const Value& r);

@@ -13,12 +13,6 @@
 namespace mjs {
 namespace compiler {
 
-class ParserException : public std::exception {
-public:
-	using Base = std::exception;
-	using Base::Base;
-};
-
 class Parser : public noncopyable {
 public:
 	Parser(Lexer* t_lexer);
