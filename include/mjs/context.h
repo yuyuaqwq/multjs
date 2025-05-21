@@ -20,8 +20,10 @@ public:
 
 	~Context();
 
-    Value Compile(std::string module_name, std::string_view script);
+	// 编译模块，返回模块定义
+    Value CompileModule(std::string module_name, std::string_view script);
 
+	// 执行模块
     Value CallModule(Value* value);
 
     Value Eval(std::string module_name, std::string_view script);
@@ -30,7 +32,6 @@ public:
 	template<typename It>
 	Value CallFunction(Value* func_val, Value this_val, It begin, It end) {
         auto stack_frame = StackFrame(&runtime().stack());
-
 		return vm_.CallFunction(&stack_frame, *func_val, std::move(this_val), begin, end);
 	}
 

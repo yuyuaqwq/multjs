@@ -38,23 +38,47 @@ Runtime::Runtime()
 	: shape_manager_(nullptr)
 	, global_this_(new Object(this, ClassId::kObject))
 	, class_def_table_(this)
+    , module_manager_(std::make_unique<ModuleManager>())
 {
-	auto const_idx = const_pool_.insert(Value("globalThis"));
-	auto globalThis = global_this_;
-	global_this_.object().SetProperty(nullptr, const_idx, std::move(globalThis));
+    Initialize();
+}
 
-	const_idx = const_pool_.insert(Value("console"));
-	auto console_object = new ConsoleObject(this);
-	global_this_.object().SetProperty(nullptr, const_idx, Value(console_object));
-
+Runtime::Runtime(std::unique_ptr<ModuleManagerBase> module_manager)
+    : shape_manager_(nullptr)
+    , global_this_(new Object(this, ClassId::kObject))
+    , class_def_table_(this)
+    , module_manager_(std::move(module_manager))
+{
+    Initialize();
 }
 
 Runtime::~Runtime() {
 	const_pool_.clear();
 	global_this_ = Value();
 	class_def_table_.Clear();
-	module_manager_.ClearModuleCache();
+	module_manager_->ClearModuleCache();
 	gc_manager_.GC(nullptr);
+}
+
+void Runtime::AddPropertyToGlobalThis(std::string_view property_key, Value&& value) {
+    auto const_idx = const_pool_.insert(Value(property_key));
+    global_this_.object().SetProperty(nullptr, const_idx, std::move(value));
+}
+
+void Runtime::Initialize() {
+    GlobalThisInitialize();
+    ConsoleInitialize();
+}
+
+void Runtime::GlobalThisInitialize() {
+    auto const_idx = const_pool_.insert(Value("globalThis"));
+    auto globalThis = global_this_;
+    global_this_.object().SetProperty(nullptr, const_idx, std::move(globalThis));
+}
+
+void Runtime::ConsoleInitialize() {
+    auto console_object = new ConsoleObject(this);
+    AddPropertyToGlobalThis("console", Value(console_object));
 }
 
 } // namespace mjs

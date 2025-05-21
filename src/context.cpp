@@ -26,28 +26,28 @@ Context::~Context() {
 	gc_manager_.GC(this);
 }
 
-Value Context::Compile(std::string module_name, std::string_view script) {
+Value Context::CompileModule(std::string module_name, std::string_view script) {
 	auto lexer = compiler::Lexer(script.data());
 
 	auto parser = compiler::Parser(&lexer);
 	parser.ParseProgram();
 
 	auto codegener = compiler::CodeGener(this, &parser);
-	auto module = codegener.Generate(std::move(module_name));
-
-	vm_.ModuleInit(&module);
-
-	return module;
+	auto module_def = codegener.Generate(std::move(module_name));
+	return module_def;
 }
 
 Value Context::CallModule(Value* value) {
+	if (value->IsModuleDef()) {
+		vm_.ModuleInit(value);
+	}
 	std::initializer_list<Value> argv = {};
 	return CallFunction(value, Value(), argv.begin(), argv.end());
 }
 
 
 Value Context::Eval(std::string module_name, std::string_view script) {
-	auto module = Compile(std::move(module_name), script);
+	auto module = CompileModule(std::move(module_name), script);
 	CallModule(&module);
 	return module;
 }

@@ -7,17 +7,22 @@
 
 namespace mjs {
 
-class ModuleManager : public noncopyable {
+class ModuleManagerBase : public noncopyable {
 public:
-	virtual void AddCppModule(std::string_view path, mjs::CppModuleObject* cpp_module_object);
+	virtual void AddCppModule(std::string_view path, CppModuleObject* cpp_module_object) = 0;
+	virtual Value GetModule(Context* ctx, std::string_view path) = 0;
+	virtual Value GetModuleAsync(Context* ctx, std::string_view path) = 0;
+	virtual void ClearModuleCache() = 0;
+};
 
-	virtual Value GetModule(Context* ctx, std::string_view path);
+class ModuleManager : public ModuleManagerBase {
+public:
+	void AddCppModule(std::string_view path, CppModuleObject* cpp_module_object) override;
+	Value GetModule(Context* ctx, std::string_view path) override;
+	Value GetModuleAsync(Context* ctx, std::string_view path) override;
+	void ClearModuleCache() override;
 
-	virtual Value GetModuleAsync(Context* ctx, std::string_view path);
-
-	virtual void ClearModuleCache();
-
-private:
+protected:
 	std::unordered_map<std::filesystem::path, Value> cpp_module_cache_;
 	std::unordered_map<std::filesystem::path, Value> module_cache_;
 };

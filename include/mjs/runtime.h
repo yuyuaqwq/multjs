@@ -15,7 +15,10 @@ namespace mjs {
 class Runtime : public noncopyable {
 public:
 	Runtime();
+	Runtime(std::unique_ptr<ModuleManagerBase> module_manager);
 	~Runtime();
+
+	void AddPropertyToGlobalThis(std::string_view property_key, Value&& value);
 
 	const auto& const_pool() const { return const_pool_; }
 	auto& const_pool() { return const_pool_; }
@@ -34,7 +37,12 @@ public:
 	const auto& class_def_table() const { return class_def_table_; }
 	auto& class_def_table() { return class_def_table_; }
 
-	auto& module_manager() { return module_manager_; }
+	auto& module_manager() { return *module_manager_; }
+
+private:
+	void Initialize();
+	void GlobalThisInitialize();
+	void ConsoleInitialize();
 
 private:
 	GlobalConstPool const_pool_;
@@ -42,7 +50,7 @@ private:
 	ShapeManager shape_manager_;
 	Value global_this_;
 	ClassDefTable class_def_table_;
-	ModuleManager module_manager_;
+	std::unique_ptr<ModuleManagerBase> module_manager_;
 };
 
 } // namespace mjs

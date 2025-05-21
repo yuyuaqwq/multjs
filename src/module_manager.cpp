@@ -8,7 +8,7 @@
 namespace mjs {
 
 void ModuleManager::AddCppModule(std::string_view path, CppModuleObject* cpp_module) {
-	auto res = module_cache_.emplace(path, std::move(cpp_module));
+	auto res = cpp_module_cache_.emplace(path, std::move(cpp_module));
 	assert(res.second);
 }
 
@@ -31,7 +31,7 @@ Value ModuleManager::GetModule(Context* ctx, std::string_view path) {
 	auto content = std::string((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());;
 	file.close();
 
-	auto module = ctx->Compile(absolute_path.string(), content);
+	auto module = ctx->CompileModule(absolute_path.string(), content);
 
 	// 先缓存模块，再调用
 	module_cache_.emplace(absolute_path, module);
