@@ -21,7 +21,7 @@ inline static size_t operator-(OpcodeType a, OpcodeType b) {
 
 class Context;
 class FunctionDef;
-class ByteCode : public noncopyable {
+class BytecodeTable : public noncopyable {
 public:
 	OpcodeType GetOpcode(Pc pc) const;
 	Pc GetPc(Pc* pc) const;

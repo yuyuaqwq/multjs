@@ -483,6 +483,7 @@ void CodeGener::GenerateLValueStore(Expression* lvalue_exp) {
 }
 
 void CodeGener::GenerateStatement(Statement* stat) {
+	auto start_pc = cur_func_def_->byte_code().Size();
 	switch (stat->type()) {
 	case StatementType::kBlock: {
 		GenerateBlock(&stat->as<BlockStatement>());
@@ -543,6 +544,8 @@ void CodeGener::GenerateStatement(Statement* stat) {
 	default:
 		throw SyntaxError("Unknown statement type");
 	}
+	auto end_pc = cur_func_def_->byte_code().Size();
+	cur_func_def_->debug_table().AddEntry(start_pc, end_pc, stat->start(), stat->end());
 }
 
 void CodeGener::GenerateExpressionStatement(ExpressionStatement* stat) {

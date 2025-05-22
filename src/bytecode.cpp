@@ -1,4 +1,4 @@
-#include <mjs/bytecode.h>
+#include <mjs/Bytecode.h>
 
 #include <mjs/context.h>
 #include <mjs/runtime.h>
@@ -94,58 +94,58 @@ std::unordered_map<OpcodeType, InstrInfo> g_instr_symbol{
 };
 
 
-uint8_t* ByteCode::GetPtr(Pc pc) {
+uint8_t* BytecodeTable::GetPtr(Pc pc) {
 	return bytes_.data() + pc;
 }
 
-const uint8_t* ByteCode::GetPtr(Pc pc) const {
+const uint8_t* BytecodeTable::GetPtr(Pc pc) const {
     return bytes_.data() + pc;
 }
 
 
-OpcodeType ByteCode::GetOpcode(Pc pc) const {
+OpcodeType BytecodeTable::GetOpcode(Pc pc) const {
 	return (OpcodeType)bytes_[pc];
 }
 
 
-Pc ByteCode::GetPc(Pc* pc) const {
+Pc BytecodeTable::GetPc(Pc* pc) const {
     auto pc_ = *pc;
     *pc += sizeof(Pc);
     return GetU32(pc_);
 }
 
-VarIndex ByteCode::GetVarIndex(Pc* pc) {
+VarIndex BytecodeTable::GetVarIndex(Pc* pc) {
     auto pc_ = *pc;
     *pc += sizeof(VarIndex);
     return GetU16(pc_);
 }
 
-ConstIndex ByteCode::GetConstIndex(Pc* pc) {
+ConstIndex BytecodeTable::GetConstIndex(Pc* pc) {
     auto pc_ = *pc;
     *pc += sizeof(ConstIndex);
     return ConstIndex(GetI32(pc_));
 }
 
 
-void ByteCode::EmitOpcode(OpcodeType opcode) {
+void BytecodeTable::EmitOpcode(OpcodeType opcode) {
 	bytes_.push_back(static_cast<uint8_t>(opcode));
 }
 
 
 
-void ByteCode::EmitPcOffset(PcOffset offset) {
+void BytecodeTable::EmitPcOffset(PcOffset offset) {
     EmitU16(offset);
 }
 
-void ByteCode::EmitVarIndex(VarIndex idx) {
+void BytecodeTable::EmitVarIndex(VarIndex idx) {
     EmitU16(idx);
 }
 
-void ByteCode::EmitConstIndex(ConstIndex idx) {
+void BytecodeTable::EmitConstIndex(ConstIndex idx) {
     EmitI32(idx);
 }
 
-void ByteCode::EmitConstLoad(ConstIndex idx) {
+void BytecodeTable::EmitConstLoad(ConstIndex idx) {
     if (idx <= 5) {
         EmitOpcode(OpcodeType::kCLoad_0 + idx);
     }
@@ -164,12 +164,12 @@ void ByteCode::EmitConstLoad(ConstIndex idx) {
 	}
 }
 
-void ByteCode::EmitClosure(ConstIndex idx) {
+void BytecodeTable::EmitClosure(ConstIndex idx) {
     EmitOpcode(OpcodeType::kClosure);
     EmitU32(idx);
 }
 
-void ByteCode::EmitVarStore(VarIndex idx) {
+void BytecodeTable::EmitVarStore(VarIndex idx) {
     if (idx >= 0 && idx <= 3) {
         EmitOpcode(OpcodeType::kVStore_0 + idx);
     }
@@ -182,7 +182,7 @@ void ByteCode::EmitVarStore(VarIndex idx) {
     }
 }
 
-void ByteCode::EmitVarLoad(VarIndex idx) {
+void BytecodeTable::EmitVarLoad(VarIndex idx) {
     if (idx >= 0 && idx <= 3) {
         EmitOpcode(OpcodeType::kVLoad_0 + idx);
     }
@@ -195,26 +195,26 @@ void ByteCode::EmitVarLoad(VarIndex idx) {
     }
 }
 
-void ByteCode::EmitPropertyLoad(ConstIndex const_idx) {
+void BytecodeTable::EmitPropertyLoad(ConstIndex const_idx) {
     EmitOpcode(OpcodeType::kPropertyLoad);
     EmitU32(const_idx);
 }
 
-void ByteCode::EmitPropertyStore(ConstIndex const_idx) {
+void BytecodeTable::EmitPropertyStore(ConstIndex const_idx) {
     EmitOpcode(OpcodeType::kPropertyStore);
     EmitU32(const_idx);
 }
 
 
-void ByteCode::EmitIndexedLoad() {
+void BytecodeTable::EmitIndexedLoad() {
     EmitOpcode(OpcodeType::kIndexedLoad);
 }
 
-void ByteCode::EmitIndexedStore() {
+void BytecodeTable::EmitIndexedStore() {
     EmitOpcode(OpcodeType::kIndexedStore);
 }
 
-void ByteCode::EmitReturn(FunctionDef* function_def) {
+void BytecodeTable::EmitReturn(FunctionDef* function_def) {
     if (function_def->is_generator()) {
         EmitOpcode(OpcodeType::kGeneratorReturn);
     }
@@ -226,23 +226,23 @@ void ByteCode::EmitReturn(FunctionDef* function_def) {
     }
 }
 
-void ByteCode::RepairOpcode(Pc opcode_pc, OpcodeType op) {
+void BytecodeTable::RepairOpcode(Pc opcode_pc, OpcodeType op) {
     // skip opcode
     *reinterpret_cast<OpcodeType*>(GetPtr(opcode_pc)) = op;
 }
 
 
-void ByteCode::RepairPc(Pc pc_from, Pc pc_to) {
+void BytecodeTable::RepairPc(Pc pc_from, Pc pc_to) {
 	// skip opcode
 	*reinterpret_cast<int16_t*>(GetPtr(pc_from) + 1) = int64_t(pc_to) - int64_t(pc_from);
 }
 
-Pc ByteCode::CalcPc(Pc cur_pc) const {
+Pc BytecodeTable::CalcPc(Pc cur_pc) const {
     // skip opcode
     return cur_pc + *reinterpret_cast<const int16_t*>(GetPtr(cur_pc) + 1);
 }
 
-std::string ByteCode::Disassembly(Context* context, Pc& pc, OpcodeType& opcode, uint32_t& par, const FunctionDef* func_def) const {
+std::string BytecodeTable::Disassembly(Context* context, Pc& pc, OpcodeType& opcode, uint32_t& par, const FunctionDef* func_def) const {
     std::string str;
     char buf[16] = { 0 };
     sprintf_s(buf, "%04d\t", pc);
@@ -339,58 +339,58 @@ std::string ByteCode::Disassembly(Context* context, Pc& pc, OpcodeType& opcode, 
 }
 
 
-int8_t ByteCode::GetI8(Pc pc) const {
+int8_t BytecodeTable::GetI8(Pc pc) const {
     return *(int8_t*)&bytes_[pc];
 }
 
-uint8_t ByteCode::GetU8(Pc pc) const {
+uint8_t BytecodeTable::GetU8(Pc pc) const {
     return *(uint8_t*)&bytes_[pc];
 }
 
-int16_t ByteCode::GetI16(Pc pc) const {
+int16_t BytecodeTable::GetI16(Pc pc) const {
     return *(int16_t*)&bytes_[pc];
 }
 
-uint16_t ByteCode::GetU16(Pc pc) const {
+uint16_t BytecodeTable::GetU16(Pc pc) const {
     return *(uint16_t*)&bytes_[pc];
 }
 
-int32_t ByteCode::GetI32(Pc pc) const {
+int32_t BytecodeTable::GetI32(Pc pc) const {
     return *(int32_t*)&bytes_[pc];
 }
 
-Pc ByteCode::GetU32(Pc pc) const {
+Pc BytecodeTable::GetU32(Pc pc) const {
     return *(Pc*)&bytes_[pc];
 }
 
 
 
-void ByteCode::EmitI8(int8_t val) {
+void BytecodeTable::EmitI8(int8_t val) {
     bytes_.push_back(static_cast<uint8_t>(val));
 }
 
-void ByteCode::EmitU8(uint8_t val) {
+void BytecodeTable::EmitU8(uint8_t val) {
     bytes_.push_back(val);
 }
 
-void ByteCode::EmitI16(int16_t val) {
+void BytecodeTable::EmitI16(int16_t val) {
     bytes_.push_back(static_cast<uint8_t>(val & 0xff));
     bytes_.push_back(static_cast<uint8_t>(val >> 8));
 }
 
-void ByteCode::EmitU16(uint16_t val) {
+void BytecodeTable::EmitU16(uint16_t val) {
     bytes_.push_back(static_cast<uint8_t>(val & 0xff));
     bytes_.push_back(static_cast<uint8_t>(val >> 8));
 }
 
-void ByteCode::EmitI32(uint32_t val) {
+void BytecodeTable::EmitI32(uint32_t val) {
     bytes_.push_back(static_cast<uint8_t>(val & 0xff));
     bytes_.push_back(static_cast<uint8_t>(val >> 8));
     bytes_.push_back(static_cast<uint8_t>(val >> 16));
     bytes_.push_back(static_cast<uint8_t>(val >> 24));
 }
 
-void ByteCode::EmitU32(uint32_t val) {
+void BytecodeTable::EmitU32(uint32_t val) {
     bytes_.push_back(static_cast<uint8_t>(val & 0xff));
     bytes_.push_back(static_cast<uint8_t>(val >> 8));
     bytes_.push_back(static_cast<uint8_t>(val >> 16));

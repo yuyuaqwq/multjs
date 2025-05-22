@@ -1,5 +1,6 @@
 #include <mjs/module_manager.h>
 
+#include <iostream>
 #include <fstream>
 
 #include <mjs/context.h>
@@ -26,10 +27,19 @@ Value ModuleManager::GetModule(Context* ctx, std::string_view path) {
 		return iter->second;
 	}
 
-	std::fstream file;
-	file.open(absolute_path);
-	auto content = std::string((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());;
+	std::ifstream file(absolute_path, std::ios::binary);  // 二进制模式
+	if (!file.is_open()) {
+		return Value();
+	}
+
+	// 读取所有内容（包括 \r\n，不做任何转换）
+	std::string content(
+		(std::istreambuf_iterator<char>(file)),
+		std::istreambuf_iterator<char>()
+	);
+
 	file.close();
+
 
 	auto module = ctx->CompileModule(absolute_path.string(), content);
 

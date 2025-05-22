@@ -8,7 +8,7 @@ using ExceptionIdx = uint32_t;
 constexpr ExceptionIdx kExceptionInvalidIdx = 0xffffffff;
 
 struct ExceptionEntry{
-    // 左开右闭
+    // 左闭右开
     Pc try_start_pc = kInvalidPc;
     Pc try_end_pc = kInvalidPc;
     Pc catch_start_pc = kInvalidPc;
@@ -61,7 +61,8 @@ public:
     }
 
     ExceptionEntry* FindEntry(Pc throw_pc) {
-        // 反向查找，确保最近嵌套的try块优先匹配
+        // 反向查找？确保最近嵌套的try块优先匹配
+        // 这里是正向
         for (auto it = entries_.begin(); it != entries_.end(); ++it) {
             if (it->Contains(throw_pc)) {
                 return &(*it); // 返回匹配的条目

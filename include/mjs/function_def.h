@@ -8,6 +8,7 @@
 #include <mjs/exception.h>
 #include <mjs/var_def.h>
 #include <mjs/bytecode.h>
+#include <mjs/debug.h>
 
 namespace mjs {
 
@@ -103,7 +104,6 @@ public:
 	}
 
 
-
 	auto par_count() const { return par_count_; }
 	auto var_count() const { return var_count_; }
 
@@ -116,9 +116,11 @@ public:
 	const auto& has_this() const { return has_this_; }
 	void set_has_this(bool has_this) { has_this_ = has_this; }
 	
-
 	const auto& exception_table() const { return exception_table_; }
 	auto& exception_table() { return exception_table_; }
+
+	const auto& debug_table() const { return debug_table_; }
+    auto& debug_table() { return debug_table_; }
 
 protected:
 	Runtime* runtime_;
@@ -135,7 +137,7 @@ protected:
 	} flags_;
 
 	// 字节码
-	ByteCode byte_code_;
+	BytecodeTable byte_code_;
 
 	// 变量
 	uint32_t par_count_;
@@ -146,6 +148,9 @@ protected:
 
 	// 异常
 	ExceptionTable exception_table_;
+
+	// 调试
+	DebugTable debug_table_;
 };
 
 } // namespace mjs

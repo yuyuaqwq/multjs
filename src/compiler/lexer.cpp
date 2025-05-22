@@ -36,8 +36,64 @@ bool Lexer::TestStr(const std::string& str) {
     return !src_.compare(pos_, str.size(), str);
 }
 
+bool Lexer::TestStr(const char* str, size_t size) {
+    return !src_.compare(pos_, size, str);
+}
+
+
 bool Lexer::TestChar(char c) {
     return src_[pos_] == c;
+}
+
+void Lexer::SkipUselessStr() {
+    char c = PeekChar();
+    do {
+        // 跳过空格和换行
+        do {
+            if (c == ' ' || c == '\r' || c == '\t') {
+                NextChar();
+                continue;
+            }
+            else if (c == '\n') {
+                NextChar();
+                line_++;
+            }
+            else {
+                break;
+            }
+        } while (c = PeekChar());
+
+        // 跳过注释
+        if (TestStr("//", 2)) {
+            SkipChar(2);
+            while ((c = PeekChar()) && c != '\n') {
+                NextChar();
+            }
+        }
+        else if (TestStr("/*", 2)) {
+            // 多行注释
+            SkipChar(2);
+            bool end = false;
+            while (c = PeekChar()) {
+                if (c == '\n') {
+                    NextChar();
+                    line_++;
+                }
+                else if (TestStr("*/", 2)) {
+                    SkipChar(2);
+                    end = true;
+                    break;
+                }
+            }
+            if (!end) {
+                // 多行注释未闭合
+                throw SyntaxError("Unfinished multiline comments");
+            }
+        }
+        else {
+            break;
+        }
+    } while (true);
 }
 
 
@@ -45,7 +101,10 @@ bool Lexer::TestChar(char c) {
 Token Lexer::PeekToken() {
     // 如果没有前瞻过
     if (peek_.is(TokenType::kNone)) {
+        auto save_pos = pos_;
         peek_ = NextToken();
+        peek_pos_ = pos_;
+        pos_ = save_pos;
     }
     return peek_;
 }
@@ -83,6 +142,7 @@ Token Lexer::NextToken() {
         // 如果有前瞻保存的token，返回前瞻的结果
         Token token = std::move(peek_);
         peek_.set_type(TokenType::kNone);
+        pos_ = peek_pos_;
         return token;
     }
     cur_token_ = ReadNextToken();
@@ -100,49 +160,8 @@ Token Lexer::MatchToken(TokenType type) {
 
 Token Lexer::ReadNextToken() {
     Token token;
-    char c;
-    do {
-        // 跳过空格和换行
-        while (c = NextChar()) {
-            if (c == ' ' || c == '\t') {
-                continue;
-            }
-            else if (c == '\n') {
-                line_++;
-            }
-            else {
-                break;
-            }
-        }
-
-        // 跳过注释
-        if (c == '/' && TestChar('/')) {
-            while ((c = NextChar()) && c != '\n');
-        }
-        else if (c == '/' && TestChar('*')) {
-            // 多行注释
-            SkipChar(1);
-            bool end = false;
-            while (c = NextChar()) {
-                if (c == '\n') {
-                    line_++;
-                }
-                else if (c == '*' && TestChar('/')) {
-                    SkipChar(1);
-                    end = true;
-                    break;
-                }
-            }
-            if (!end) {
-                // 多行注释未闭合
-                throw SyntaxError("Unfinished multiline comments");
-            }
-        }
-        else {
-            break;
-        }
-    } while (true);
-
+    SkipUselessStr();
+    char c = NextChar();
     token.set_line(line_);
 
     if (c == 0) {
