@@ -44,6 +44,7 @@ enum class ClassId : uint16_t {
 	kAsyncObject,
 	kModuleObject,
 	kConstructorObject,
+	kCppModuleObject,
 
 	kCustom,
 };
