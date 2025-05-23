@@ -10,7 +10,8 @@ class Runtime;
 class ModuleDef : public FunctionDef {
 public:
 	ModuleDef(Runtime* runtime, std::string name, std::string_view source, uint32_t par_count)
-		: FunctionDef(runtime, this, name, par_count)
+		: runtime_(runtime)
+		, FunctionDef(this, name, par_count)
 	{
 		line_table_.Build(source);
 	}
@@ -23,6 +24,8 @@ public:
 	const auto& line_table() const { return line_table_; }
 
 private:
+	Runtime* runtime_;
+
 	struct ExportVarDef {
 		uint32_t export_var_index;
 		VarIndex var_index;

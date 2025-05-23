@@ -4,8 +4,8 @@
 #include <vector>
 #include <string>
 
-#include <mjs/const_def.h>
-#include <mjs/var_def.h>
+#include <mjs/constant.h>
+#include <mjs/variable.h>
 
 namespace mjs {
 

@@ -4,7 +4,6 @@
 #include <mjs/runtime.h>
 #include <mjs/function_def.h>
 
-
 namespace mjs {
 
 std::unordered_map<OpcodeType, InstrInfo> g_instr_symbol{
@@ -301,14 +300,14 @@ std::string BytecodeTable::Disassembly(Context* context, Pc& pc, OpcodeType& opc
 
     if (opcode >= OpcodeType::kVLoad_0 && opcode <= OpcodeType::kVLoad_3) {
         auto idx = opcode - OpcodeType::kVLoad_0;
-        auto& info = func_def->GetVarInfo(idx);
+        auto& info = func_def->var_def_table().GetVarInfo(idx);
         str += "$";
         str += info.name;
         str += "\t";
     }
     if (opcode == OpcodeType::kVLoad) {
         auto idx = par;
-        auto& info = func_def->GetVarInfo(idx);
+        auto& info = func_def->var_def_table().GetVarInfo(idx);
         str += "$";
         str += info.name;
         str += "\t";
@@ -316,14 +315,14 @@ std::string BytecodeTable::Disassembly(Context* context, Pc& pc, OpcodeType& opc
 
     if (opcode >= OpcodeType::kVStore_0 && opcode <= OpcodeType::kVStore_3) {
         auto idx = opcode - OpcodeType::kVStore_0;
-        auto& info = func_def->GetVarInfo(idx);
+        auto& info = func_def->var_def_table().GetVarInfo(idx);
         str += "$";
         str += info.name;
         str += "\t";
     }
     if (opcode == OpcodeType::kVStore) {
         auto idx = par;
-        auto& info = func_def->GetVarInfo(idx);
+        auto& info = func_def->var_def_table().GetVarInfo(idx);
         str += "$";
         str += info.name;
         str += "\t";

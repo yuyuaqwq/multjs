@@ -7,7 +7,7 @@
 #include <stdexcept>
 #include <functional>
 
-#include <mjs/const_def.h>
+#include <mjs/constant.h>
 #include <mjs/string.h>
 #include <mjs/symbol.h>
 #include <mjs/exception.h>

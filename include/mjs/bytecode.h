@@ -5,8 +5,8 @@
 #include <string>
 
 #include <mjs/noncopyable.h>
-#include <mjs/const_def.h>
-#include <mjs/var_def.h>
+#include <mjs/constant.h>
+#include <mjs/variable.h>
 #include <mjs/opcode.h>
 
 namespace mjs {

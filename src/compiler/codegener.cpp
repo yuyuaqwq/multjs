@@ -20,9 +20,9 @@ void CodeGener::AddCppFunction(const std::string& func_name, CppFunction func) {
 
 	// 生成将函数放到变量表中的代码
 	// 交给虚拟机执行时去加载，虚拟机发现加载的常量是函数体，就会将函数原型赋给局部变量
-	cur_func_def_->byte_code().EmitConstLoad(const_idx);
-	cur_func_def_->byte_code().EmitVarStore(var_info.var_idx);
-	cur_func_def_->byte_code().EmitOpcode(OpcodeType::kPop);
+	cur_func_def_->bytecode_table().EmitConstLoad(const_idx);
+	cur_func_def_->bytecode_table().EmitVarStore(var_info.var_idx);
+	cur_func_def_->bytecode_table().EmitOpcode(OpcodeType::kPop);
 }
 
 //void CodeGener::AddCppModule() {
@@ -49,8 +49,8 @@ Value CodeGener::Generate(std::string&& module_name, std::string_view source) {
 		GenerateStatement(stat.get());
 	}
 
-	cur_func_def_->byte_code().EmitOpcode(OpcodeType::kUndefined);
-	cur_func_def_->byte_code().EmitOpcode(OpcodeType::kReturn);
+	cur_func_def_->bytecode_table().EmitOpcode(OpcodeType::kUndefined);
+	cur_func_def_->bytecode_table().EmitOpcode(OpcodeType::kReturn);
 
 	ExitScope();
 
@@ -68,7 +68,7 @@ void CodeGener::GenerateExpression(Expression* exp) {
 	case ExpressionType::kFloat:
 	case ExpressionType::kString: {
 		auto const_idx = AllocConst(MakeConstValue(exp));
-		cur_func_def_->byte_code().EmitConstLoad(const_idx);
+		cur_func_def_->bytecode_table().EmitConstLoad(const_idx);
 		break;
 	}
 	case ExpressionType::kArrayExpression: {
@@ -95,13 +95,13 @@ void CodeGener::GenerateExpression(Expression* exp) {
 			const auto* var_info = GetVarByExpression(exp);
 			if (var_info) {
 				// 从变量中获取
-				cur_func_def_->byte_code().EmitVarLoad(var_info->var_idx);
+				cur_func_def_->bytecode_table().EmitVarLoad(var_info->var_idx);
 			}
 			else {
 				// 尝试从全局对象获取
 				auto const_idx = AllocConst(Value(String::New(ident_exp.name())));
-				cur_func_def_->byte_code().EmitOpcode(OpcodeType::kGetGlobal);
-				cur_func_def_->byte_code().EmitI32(const_idx);
+				cur_func_def_->bytecode_table().EmitOpcode(OpcodeType::kGetGlobal);
+				cur_func_def_->bytecode_table().EmitI32(const_idx);
 			}
 		// }
 		break;
@@ -109,10 +109,10 @@ void CodeGener::GenerateExpression(Expression* exp) {
 	case ExpressionType::kThisExpression: {
 		cur_func_def_->set_has_this(true);
 		if (IsInTypeScope({ ScopeType::kFunction }, { ScopeType::kArrowFunction })) {
-			cur_func_def_->byte_code().EmitOpcode(OpcodeType::kGetThis);
+			cur_func_def_->bytecode_table().EmitOpcode(OpcodeType::kGetThis);
 		}
 		else {
-			cur_func_def_->byte_code().EmitOpcode(OpcodeType::kGetOuterThis);
+			cur_func_def_->bytecode_table().EmitOpcode(OpcodeType::kGetOuterThis);
 		}
 		break;
 	}
@@ -123,7 +123,7 @@ void CodeGener::GenerateExpression(Expression* exp) {
 		GenerateExpression(mem_exp.object().get());
 		// 判断下是否调用函数，是则dump
 		if (mem_exp.is_method_call()) {
-			cur_func_def_->byte_code().EmitOpcode(OpcodeType::kDump);
+			cur_func_def_->bytecode_table().EmitOpcode(OpcodeType::kDump);
 		}
 
 		if (mem_exp.computed()) {
@@ -131,7 +131,7 @@ void CodeGener::GenerateExpression(Expression* exp) {
 			GenerateExpression(mem_exp.property().get());
 
 			// 生成索引访问的指令
-			cur_func_def_->byte_code().EmitIndexedLoad();
+			cur_func_def_->bytecode_table().EmitIndexedLoad();
 		}
 		else {
 			// 成员访问表达式
@@ -143,7 +143,7 @@ void CodeGener::GenerateExpression(Expression* exp) {
 
 			// 访问对象成员
 			auto const_idx = AllocConst(Value(String::New(prop_exp.name())));
-			cur_func_def_->byte_code().EmitPropertyLoad(const_idx);
+			cur_func_def_->bytecode_table().EmitPropertyLoad(const_idx);
 		}
 		break;
 	}
@@ -163,20 +163,20 @@ void CodeGener::GenerateExpression(Expression* exp) {
 		// 生成运算指令
 		switch (unary_exp.op()) {
 		case TokenType::kOpSub:
-			cur_func_def_->byte_code().EmitOpcode(OpcodeType::kNeg);
+			cur_func_def_->bytecode_table().EmitOpcode(OpcodeType::kNeg);
 			break;
 		case TokenType::kKwAwait:
-			cur_func_def_->byte_code().EmitOpcode(OpcodeType::kAwait);
+			cur_func_def_->bytecode_table().EmitOpcode(OpcodeType::kAwait);
 			break;
 		case TokenType::kOpPrefixInc:
-			cur_func_def_->byte_code().EmitOpcode(OpcodeType::kInc);
+			cur_func_def_->bytecode_table().EmitOpcode(OpcodeType::kInc);
 			GenerateLValueStore(unary_exp.argument().get());
 			break;
 		case TokenType::kOpSuffixInc:
-			cur_func_def_->byte_code().EmitOpcode(OpcodeType::kDump);
-			cur_func_def_->byte_code().EmitOpcode(OpcodeType::kInc);
+			cur_func_def_->bytecode_table().EmitOpcode(OpcodeType::kDump);
+			cur_func_def_->bytecode_table().EmitOpcode(OpcodeType::kInc);
 			GenerateLValueStore(unary_exp.argument().get());
-			cur_func_def_->byte_code().EmitOpcode(OpcodeType::kPop);
+			cur_func_def_->bytecode_table().EmitOpcode(OpcodeType::kPop);
 			break;
 		default:
 			throw SyntaxError("Unrecognized unary operator.");
@@ -207,34 +207,34 @@ void CodeGener::GenerateExpression(Expression* exp) {
 		// 生成运算指令
 		switch (bina_exp.op()) {
 		case TokenType::kOpAdd:
-			cur_func_def_->byte_code().EmitOpcode(OpcodeType::kAdd);
+			cur_func_def_->bytecode_table().EmitOpcode(OpcodeType::kAdd);
 			break;
 		case TokenType::kOpSub:
-			cur_func_def_->byte_code().EmitOpcode(OpcodeType::kSub);
+			cur_func_def_->bytecode_table().EmitOpcode(OpcodeType::kSub);
 			break;
 		case TokenType::kOpMul:
-			cur_func_def_->byte_code().EmitOpcode(OpcodeType::kMul);
+			cur_func_def_->bytecode_table().EmitOpcode(OpcodeType::kMul);
 			break;
 		case TokenType::kOpDiv:
-			cur_func_def_->byte_code().EmitOpcode(OpcodeType::kDiv);
+			cur_func_def_->bytecode_table().EmitOpcode(OpcodeType::kDiv);
 			break;
 		case TokenType::kOpNe:
-			cur_func_def_->byte_code().EmitOpcode(OpcodeType::kNe);
+			cur_func_def_->bytecode_table().EmitOpcode(OpcodeType::kNe);
 			break;
 		case TokenType::kOpEq:
-			cur_func_def_->byte_code().EmitOpcode(OpcodeType::kEq);
+			cur_func_def_->bytecode_table().EmitOpcode(OpcodeType::kEq);
 			break;
 		case TokenType::kOpLt:
-			cur_func_def_->byte_code().EmitOpcode(OpcodeType::kLt);
+			cur_func_def_->bytecode_table().EmitOpcode(OpcodeType::kLt);
 			break;
 		case TokenType::kOpLe:
-			cur_func_def_->byte_code().EmitOpcode(OpcodeType::kLe);
+			cur_func_def_->bytecode_table().EmitOpcode(OpcodeType::kLe);
 			break;
 		case TokenType::kOpGt:
-			cur_func_def_->byte_code().EmitOpcode(OpcodeType::kGt);
+			cur_func_def_->bytecode_table().EmitOpcode(OpcodeType::kGt);
 			break;
 		case TokenType::kOpGe:
-			cur_func_def_->byte_code().EmitOpcode(OpcodeType::kGe);
+			cur_func_def_->bytecode_table().EmitOpcode(OpcodeType::kGe);
 			break;
 		case TokenType::kSepComma:
 			break;
@@ -259,7 +259,7 @@ void CodeGener::GenerateExpression(Expression* exp) {
 			GenerateExpression(new_exp.callee().get());
 		//}
 
-		cur_func_def_->byte_code().EmitOpcode(OpcodeType::kNew);
+		cur_func_def_->bytecode_table().EmitOpcode(OpcodeType::kNew);
 		break;
 	}
 	case ExpressionType::kCallExpression: {
@@ -274,25 +274,25 @@ void CodeGener::GenerateExpression(Expression* exp) {
 
 		// 将this置于栈顶
 		if (call_exp.callee()->is(ExpressionType::kMemberExpression)) {
-			cur_func_def_->byte_code().EmitOpcode(OpcodeType::kSwap);
+			cur_func_def_->bytecode_table().EmitOpcode(OpcodeType::kSwap);
 		}
 		else {
-			cur_func_def_->byte_code().EmitOpcode(OpcodeType::kUndefined);
+			cur_func_def_->bytecode_table().EmitOpcode(OpcodeType::kUndefined);
 		}
 
-		cur_func_def_->byte_code().EmitOpcode(OpcodeType::kFunctionCall);
+		cur_func_def_->bytecode_table().EmitOpcode(OpcodeType::kFunctionCall);
 		break;
 	}
 	case ExpressionType::kYieldExpression: {
 		GenerateExpression(exp->as<YieldExpression>().argument().get());
-		cur_func_def_->byte_code().EmitOpcode(OpcodeType::kYield);
+		cur_func_def_->bytecode_table().EmitOpcode(OpcodeType::kYield);
 		break;
 	}
 	case ExpressionType::kImportExpression: {
 		auto& import_exp = exp->as<ImportExpression>();
 		auto const_idx = AllocConst(MakeConstValue(import_exp.source().get()));
-		cur_func_def_->byte_code().EmitConstLoad(const_idx);
-		cur_func_def_->byte_code().EmitOpcode(OpcodeType::kGetModuleAsync);
+		cur_func_def_->bytecode_table().EmitConstLoad(const_idx);
+		cur_func_def_->bytecode_table().EmitOpcode(OpcodeType::kGetModuleAsync);
 		break;
 	}
 	default:
@@ -305,25 +305,25 @@ void CodeGener::GeneratorArrayExpression(ArrayExpression* arr_exp) {
 	GenerateParamList(arr_exp->elements());
 
 	auto literal_new = AllocConst(Value(ArrayObjectClassDef::LiteralNew));
-	cur_func_def_->byte_code().EmitConstLoad(literal_new);
-	cur_func_def_->byte_code().EmitOpcode(OpcodeType::kUndefined);
-	cur_func_def_->byte_code().EmitOpcode(OpcodeType::kFunctionCall);
+	cur_func_def_->bytecode_table().EmitConstLoad(literal_new);
+	cur_func_def_->bytecode_table().EmitOpcode(OpcodeType::kUndefined);
+	cur_func_def_->bytecode_table().EmitOpcode(OpcodeType::kFunctionCall);
 }
 
 void CodeGener::GeneratorObjectExpression(ObjectExpression* obj_exp) {
 	for (auto& prop : obj_exp->properties()) {
 		// 将key和value入栈
 		auto key_const_index = AllocConst(Value(String::New(prop.key)));
-		cur_func_def_->byte_code().EmitConstLoad(key_const_index);
+		cur_func_def_->bytecode_table().EmitConstLoad(key_const_index);
 		GenerateExpression(prop.value.get());
 	}
 	auto const_idx = AllocConst(Value(obj_exp->properties().size() * 2));
-	cur_func_def_->byte_code().EmitConstLoad(const_idx);
+	cur_func_def_->bytecode_table().EmitConstLoad(const_idx);
 
 	auto literal_new = AllocConst(Value(ObjectClassDef::LiteralNew));
-	cur_func_def_->byte_code().EmitConstLoad(literal_new);
-	cur_func_def_->byte_code().EmitOpcode(OpcodeType::kUndefined);
-	cur_func_def_->byte_code().EmitOpcode(OpcodeType::kFunctionCall);
+	cur_func_def_->bytecode_table().EmitConstLoad(literal_new);
+	cur_func_def_->bytecode_table().EmitOpcode(OpcodeType::kUndefined);
+	cur_func_def_->bytecode_table().EmitOpcode(OpcodeType::kFunctionCall);
 }
 
 void CodeGener::GenerateFunctionBody(Statement* statement) {
@@ -337,21 +337,21 @@ void CodeGener::GenerateFunctionBody(Statement* statement) {
 			}
 			if (!stat->is(StatementType::kReturn)) {
 				// 补全末尾的return
-				cur_func_def_->byte_code().EmitOpcode(OpcodeType::kUndefined);
-				cur_func_def_->byte_code().EmitReturn(cur_func_def_);
+				cur_func_def_->bytecode_table().EmitOpcode(OpcodeType::kUndefined);
+				cur_func_def_->bytecode_table().EmitReturn(cur_func_def_);
 			}
 		}
 	}
 	else {
 		// 表达式体
 		GenerateExpression(statement->as<ExpressionStatement>().expression().get());
-		cur_func_def_->byte_code().EmitReturn(cur_func_def_);
+		cur_func_def_->bytecode_table().EmitReturn(cur_func_def_);
 	}
 	
 }
 
 void CodeGener::GenerateFunctionExpression(FunctionExpression* exp) {
-	auto const_idx = AllocConst(Value(new FunctionDef(&context_->runtime(), cur_module_def_, exp->id(), exp->params().size())));
+	auto const_idx = AllocConst(Value(new FunctionDef(cur_module_def_, exp->id(), exp->params().size())));
 	auto& func_def = GetConstValueByIndex(const_idx).function_def();
 	func_def.set_is_normal();
 	if (exp->is_generator()) {
@@ -361,16 +361,16 @@ void CodeGener::GenerateFunctionExpression(FunctionExpression* exp) {
 		func_def.set_is_async();
 	}
 
-	auto load_pc = cur_func_def_->byte_code().Size();
+	auto load_pc = cur_func_def_->bytecode_table().Size();
 	// 可能需要修复，统一用U32了
-	cur_func_def_->byte_code().EmitOpcode(OpcodeType::kCLoadD);
-	cur_func_def_->byte_code().EmitU32(const_idx);
+	cur_func_def_->bytecode_table().EmitOpcode(OpcodeType::kCLoadD);
+	cur_func_def_->bytecode_table().EmitU32(const_idx);
 
 	if (!exp->id().empty()) {
 		// 非匿名函数分配变量来装，这里其实有个没考虑的地方
 		// 如果外层还有一层赋值，那么该函数的名字应该只在函数内作用域有效
 		auto& var_info = AllocVar(exp->id(), VarFlags::kConst);
-		cur_func_def_->byte_code().EmitVarStore(var_info.var_idx);
+		cur_func_def_->bytecode_table().EmitVarStore(var_info.var_idx);
 
 		if (exp->is_export()) {
 			static_cast<ModuleDef*>(cur_func_def_)->AddExportVar(exp->id(), var_info.var_idx);
@@ -391,30 +391,30 @@ void CodeGener::GenerateFunctionExpression(FunctionExpression* exp) {
 
 	GenerateFunctionBody(exp->body().get());
 	
-	bool need_repair = !cur_func_def_->closure_var_defs().empty();
+	bool need_repair = !cur_func_def_->closure_var_table().closure_var_defs().empty();
 
 	// 恢复环境
 	ExitScope();
 	cur_func_def_ = savefunc;
 
 	if (need_repair) {
-		cur_func_def_->byte_code().RepairOpcode(load_pc, OpcodeType::kClosure);
+		cur_func_def_->bytecode_table().RepairOpcode(load_pc, OpcodeType::kClosure);
 	}
 
 }
 
 void CodeGener::GenerateArrowFunctionExpression(ArrowFunctionExpression* exp) {
 	auto& arrow_exp = exp->as<ArrowFunctionExpression>();
-	auto const_idx = AllocConst(Value(new FunctionDef(&context_->runtime(), cur_module_def_, "<anonymous_function>", arrow_exp.params().size())));
+	auto const_idx = AllocConst(Value(new FunctionDef(cur_module_def_, "<anonymous_function>", arrow_exp.params().size())));
 	auto& func_def = GetConstValueByIndex(const_idx).function_def();
 	func_def.set_is_arrow();
 	if (arrow_exp.is_async()) {
 		func_def.set_is_async();
 	}
 
-	auto load_pc = cur_func_def_->byte_code().Size();
-	cur_func_def_->byte_code().EmitOpcode(OpcodeType::kCLoadD);
-	cur_func_def_->byte_code().EmitU32(const_idx);
+	auto load_pc = cur_func_def_->bytecode_table().Size();
+	cur_func_def_->bytecode_table().EmitOpcode(OpcodeType::kCLoadD);
+	cur_func_def_->bytecode_table().EmitU32(const_idx);
 
 	// 保存环境，以生成新指令流
 	auto savefunc = cur_func_def_;
@@ -430,14 +430,14 @@ void CodeGener::GenerateArrowFunctionExpression(ArrowFunctionExpression* exp) {
 
 	GenerateFunctionBody(exp->body().get());
 
-	bool need_repair = cur_func_def_->has_this() || !cur_func_def_->closure_var_defs().empty();
+	bool need_repair = cur_func_def_->has_this() || !cur_func_def_->closure_var_table().closure_var_defs().empty();
 
 	// 恢复环境
 	cur_func_def_ = savefunc;
 	ExitScope();
 
 	if (need_repair) {
-		cur_func_def_->byte_code().RepairOpcode(load_pc, OpcodeType::kClosure);
+		cur_func_def_->bytecode_table().RepairOpcode(load_pc, OpcodeType::kClosure);
 	}
 }
 
@@ -455,7 +455,7 @@ void CodeGener::GenerateLValueStore(Expression* lvalue_exp) {
 		if ((var_info->flags & VarFlags::kConst) == VarFlags::kConst) {
 			throw SyntaxError("Cannot change const var.");
 		}
-		cur_func_def_->byte_code().EmitVarStore(var_info->var_idx);
+		cur_func_def_->bytecode_table().EmitVarStore(var_info->var_idx);
 		break;
 	}
 	case ExpressionType::kMemberExpression: {
@@ -468,12 +468,12 @@ void CodeGener::GenerateLValueStore(Expression* lvalue_exp) {
 
 		if (member_exp.computed()) {
 			GenerateExpression(member_exp.property().get());
-			cur_func_def_->byte_code().EmitIndexedStore();
+			cur_func_def_->bytecode_table().EmitIndexedStore();
 		}
 		else {
 			auto& prop_exp = member_exp.property()->as<Identifier>();
 			auto const_idx = AllocConst(Value(String::New(prop_exp.name())));
-			cur_func_def_->byte_code().EmitPropertyStore(const_idx);
+			cur_func_def_->bytecode_table().EmitPropertyStore(const_idx);
 		}
 		break;
 	}
@@ -483,7 +483,7 @@ void CodeGener::GenerateLValueStore(Expression* lvalue_exp) {
 }
 
 void CodeGener::GenerateStatement(Statement* stat) {
-	auto start_pc = cur_func_def_->byte_code().Size();
+	auto start_pc = cur_func_def_->bytecode_table().Size();
 	switch (stat->type()) {
 	case StatementType::kBlock: {
 		GenerateBlock(&stat->as<BlockStatement>());
@@ -544,7 +544,7 @@ void CodeGener::GenerateStatement(Statement* stat) {
 	default:
 		throw SyntaxError("Unknown statement type");
 	}
-	auto end_pc = cur_func_def_->byte_code().Size();
+	auto end_pc = cur_func_def_->bytecode_table().Size();
 	auto&& [line, column] = cur_module_def_->line_table().PosToLineAndColumn(stat->start());
 	cur_func_def_->debug_table().AddEntry(start_pc, end_pc, stat->start(), stat->end(), line);
 }
@@ -554,20 +554,20 @@ void CodeGener::GenerateExpressionStatement(ExpressionStatement* stat) {
 	// 抛弃纯表达式语句的最终结果
 	if (exp) {
 		GenerateExpression(exp);
-		cur_func_def_->byte_code().EmitOpcode(OpcodeType::kPop);
+		cur_func_def_->bytecode_table().EmitOpcode(OpcodeType::kPop);
 	}
 }
 
 void CodeGener::GenerateImportDeclaration(ImportDeclaration* stat) {
 	auto const_idx = AllocConst(Value(String::New(stat->source())));
-	cur_func_def_->byte_code().EmitConstLoad(const_idx);
+	cur_func_def_->bytecode_table().EmitConstLoad(const_idx);
 
-	cur_func_def_->byte_code().EmitOpcode(OpcodeType::kGetModule);
+	cur_func_def_->bytecode_table().EmitOpcode(OpcodeType::kGetModule);
 
 	// 模块对象保存到变量
 	auto& var_info = AllocVar(stat->name(), VarFlags::kConst);
-	cur_func_def_->byte_code().EmitVarStore(var_info.var_idx);
-	cur_func_def_->byte_code().EmitOpcode(OpcodeType::kPop);
+	cur_func_def_->bytecode_table().EmitVarStore(var_info.var_idx);
+	cur_func_def_->bytecode_table().EmitOpcode(OpcodeType::kPop);
 }
 
 void CodeGener::GenerateExportDeclaration(ExportDeclaration* stat) {
@@ -587,8 +587,8 @@ void CodeGener::GenerateVariableDeclaration(VariableDeclaration* decl) {
 	auto& var_info = AllocVar(decl->name(), flags);
 	GenerateExpression(decl->init().get());
 	// 保存到变量中
-	cur_func_def_->byte_code().EmitVarStore(var_info.var_idx);
-	cur_func_def_->byte_code().EmitOpcode(OpcodeType::kPop);
+	cur_func_def_->bytecode_table().EmitVarStore(var_info.var_idx);
+	cur_func_def_->bytecode_table().EmitOpcode(OpcodeType::kPop);
 
 	if (decl->is_export()) {
 		static_cast<ModuleDef*>(cur_func_def_)->AddExportVar(decl->name(), var_info.var_idx);
@@ -601,7 +601,7 @@ void CodeGener::GenerateIfStatement(IfStatement* stat) {
 	GenerateExpression(stat->test().get());
 
 	// 条件为false时，跳转到if块之后的地址
-	auto if_pc = cur_func_def_->byte_code().Size();
+	auto if_pc = cur_func_def_->bytecode_table().Size();
 	GenerateIfEq(stat->test().get());
 
 	GenerateBlock(stat->consequent().get());
@@ -609,13 +609,13 @@ void CodeGener::GenerateIfStatement(IfStatement* stat) {
 
 	if (stat->alternate()) {
 		// 跳过当前余下所有else if / else的指令
-		auto end_pc = cur_func_def_->byte_code().Size();
+		auto end_pc = cur_func_def_->bytecode_table().Size();
 
-		cur_func_def_->byte_code().EmitOpcode(OpcodeType::kGoto);
-		cur_func_def_->byte_code().EmitPcOffset(0);
+		cur_func_def_->bytecode_table().EmitOpcode(OpcodeType::kGoto);
+		cur_func_def_->bytecode_table().EmitPcOffset(0);
 
 		// 修复条件为false时，跳转到if块之后的地址
-		cur_func_def_->byte_code().RepairPc(if_pc, cur_func_def_->byte_code().Size());
+		cur_func_def_->bytecode_table().RepairPc(if_pc, cur_func_def_->bytecode_table().Size());
 
 		if (stat->alternate()->is(StatementType::kIf)) {
 			GenerateIfStatement(&stat->alternate()->as<IfStatement>());
@@ -625,11 +625,11 @@ void CodeGener::GenerateIfStatement(IfStatement* stat) {
 			GenerateBlock(&stat->alternate()->as<BlockStatement>());
 		}
 
-		cur_func_def_->byte_code().RepairPc(end_pc, cur_func_def_->byte_code().Size());
+		cur_func_def_->bytecode_table().RepairPc(end_pc, cur_func_def_->bytecode_table().Size());
 	}
 	else {
 		// 修复条件为false时，跳转到if块之后的地址
-		cur_func_def_->byte_code().RepairPc(if_pc, cur_func_def_->byte_code().Size());
+		cur_func_def_->bytecode_table().RepairPc(if_pc, cur_func_def_->bytecode_table().Size());
 	}
 }
 
@@ -644,7 +644,7 @@ void CodeGener::GenerateLabeledStatement(LabeledStatement* stat) {
 
 	GenerateStatement(stat->body().get());
 
-	RepairEntrys(res.first->second.entrys, cur_func_def_->byte_code().Size(), *cur_label_reloop_pc_);
+	RepairEntrys(res.first->second.entrys, cur_func_def_->bytecode_table().Size(), *cur_label_reloop_pc_);
 
 	label_map_.erase(res.first);
 
@@ -663,7 +663,7 @@ void CodeGener::GenerateForStatement(ForStatement* stat) {
 	// init
 	GenerateStatement(stat->init().get());
 
-	auto start_pc = cur_func_def_->byte_code().Size();
+	auto start_pc = cur_func_def_->bytecode_table().Size();
 
 	// 表达式结果压栈
 	if (stat->test()) {
@@ -673,7 +673,7 @@ void CodeGener::GenerateForStatement(ForStatement* stat) {
 	// 等待修复
 	loop_repair_entrys.emplace_back(RepairEntry{
 		.type = RepairEntry::Type::kBreak,
-		.repair_pc = cur_func_def_->byte_code().Size(),
+		.repair_pc = cur_func_def_->bytecode_table().Size(),
 	});
 	// 提前写入跳转的指令
 	GenerateIfEq(stat->test().get());
@@ -684,7 +684,7 @@ void CodeGener::GenerateForStatement(ForStatement* stat) {
 	GenerateBlock(stat->body().get(), false);
 
 	// 记录重新循环的pc
-	auto reloop_pc = cur_func_def_->byte_code().Size();
+	auto reloop_pc = cur_func_def_->bytecode_table().Size();
 	if (need_set_label) {
 		cur_label_reloop_pc_ = reloop_pc;
 	}
@@ -696,11 +696,11 @@ void CodeGener::GenerateForStatement(ForStatement* stat) {
 	ExitScope();
 
 	// 重新回去看是否需要循环
-	cur_func_def_->byte_code().EmitOpcode(OpcodeType::kGoto);
-	cur_func_def_->byte_code().EmitPcOffset(0);
-	cur_func_def_->byte_code().RepairPc(cur_func_def_->byte_code().Size() - 3, start_pc);
+	cur_func_def_->bytecode_table().EmitOpcode(OpcodeType::kGoto);
+	cur_func_def_->bytecode_table().EmitPcOffset(0);
+	cur_func_def_->bytecode_table().RepairPc(cur_func_def_->bytecode_table().Size() - 3, start_pc);
 
-	RepairEntrys(loop_repair_entrys, cur_func_def_->byte_code().Size(), reloop_pc);
+	RepairEntrys(loop_repair_entrys, cur_func_def_->bytecode_table().Size(), reloop_pc);
 
 	cur_loop_repair_entrys_ = save_cur_loop_repair_entrys;
 }
@@ -712,7 +712,7 @@ void CodeGener::GenerateWhileStatement(WhileStatement* stat) {
 	cur_loop_repair_entrys_ = &loop_repair_entrys;
 
 	// 记录重新循环的pc
-	auto reloop_pc = cur_func_def_->byte_code().Size();
+	auto reloop_pc = cur_func_def_->bytecode_table().Size();
 	if (cur_label_reloop_pc_ && cur_label_reloop_pc_ == kInvalidPc) {
 		cur_label_reloop_pc_ = reloop_pc;
 	}
@@ -723,7 +723,7 @@ void CodeGener::GenerateWhileStatement(WhileStatement* stat) {
 	// 等待修复
 	loop_repair_entrys.emplace_back(RepairEntry{
 		.type = RepairEntry::Type::kBreak,
-		.repair_pc = cur_func_def_->byte_code().Size(),
+		.repair_pc = cur_func_def_->bytecode_table().Size(),
 		});
 	// 提前写入跳转的指令
 	GenerateIfEq(stat->test().get());
@@ -731,11 +731,11 @@ void CodeGener::GenerateWhileStatement(WhileStatement* stat) {
 	GenerateBlock(stat->body().get(), true, ScopeType::kWhile);
 
 	// 重新回去看是否需要循环
-	cur_func_def_->byte_code().EmitOpcode(OpcodeType::kGoto);
-	cur_func_def_->byte_code().EmitPcOffset(0);
-	cur_func_def_->byte_code().RepairPc(cur_func_def_->byte_code().Size() - 3, reloop_pc);
+	cur_func_def_->bytecode_table().EmitOpcode(OpcodeType::kGoto);
+	cur_func_def_->bytecode_table().EmitPcOffset(0);
+	cur_func_def_->bytecode_table().RepairPc(cur_func_def_->bytecode_table().Size() - 3, reloop_pc);
 
-	RepairEntrys(loop_repair_entrys, cur_func_def_->byte_code().Size(), reloop_pc);
+	RepairEntrys(loop_repair_entrys, cur_func_def_->bytecode_table().Size(), reloop_pc);
 
 	cur_loop_repair_entrys_ = save_cur_loop_repair_entrys;
 }
@@ -752,24 +752,24 @@ void CodeGener::GenerateContinueStatement(ContinueStatement* stat) {
 		}
 		iter->second.entrys.emplace_back(RepairEntry{
 			.type = RepairEntry::Type::kContinue,
-			.repair_pc = cur_func_def_->byte_code().Size(),
+			.repair_pc = cur_func_def_->bytecode_table().Size(),
 		});
 	}
 	else {
 		cur_loop_repair_entrys_->emplace_back(RepairEntry{
 			.type = RepairEntry::Type::kContinue,
-			.repair_pc = cur_func_def_->byte_code().Size(),
+			.repair_pc = cur_func_def_->bytecode_table().Size(),
 		});
 	}
 
 	// 跳到当前循环的末尾pc，等待修复
 	if (IsInTypeScope({ ScopeType::kTryFinally,ScopeType::kCatchFinally, ScopeType::kFinally }, { ScopeType::kWhile, ScopeType::kFunction, ScopeType::kArrowFunction })) {
-		cur_func_def_->byte_code().EmitOpcode(OpcodeType::kFinallyGoto);
+		cur_func_def_->bytecode_table().EmitOpcode(OpcodeType::kFinallyGoto);
 	}
 	else {
-		cur_func_def_->byte_code().EmitOpcode(OpcodeType::kGoto);
+		cur_func_def_->bytecode_table().EmitOpcode(OpcodeType::kGoto);
 	}
-	cur_func_def_->byte_code().EmitPcOffset(0);
+	cur_func_def_->bytecode_table().EmitPcOffset(0);
 }
 
 void CodeGener::GenerateBreakStatement(BreakStatement* stat) {
@@ -784,24 +784,24 @@ void CodeGener::GenerateBreakStatement(BreakStatement* stat) {
 		}
 		iter->second.entrys.emplace_back(RepairEntry{
 			.type = RepairEntry::Type::kBreak,
-			.repair_pc = cur_func_def_->byte_code().Size(),
+			.repair_pc = cur_func_def_->bytecode_table().Size(),
 		});
 	}
 	else {
 		cur_loop_repair_entrys_->emplace_back(RepairEntry{
 			.type = RepairEntry::Type::kBreak,
-			.repair_pc = cur_func_def_->byte_code().Size(),
+			.repair_pc = cur_func_def_->bytecode_table().Size(),
 		});
 	}
 	
 	// 无法提前得知结束pc，保存待修复pc，等待修复
 	if (IsInTypeScope({ ScopeType::kTryFinally,ScopeType::kCatchFinally, ScopeType::kFinally }, { ScopeType::kWhile, ScopeType::kFunction, ScopeType::kArrowFunction })) {
-		cur_func_def_->byte_code().EmitOpcode(OpcodeType::kFinallyGoto);
+		cur_func_def_->bytecode_table().EmitOpcode(OpcodeType::kFinallyGoto);
 	}
 	else {
-		cur_func_def_->byte_code().EmitOpcode(OpcodeType::kGoto);
+		cur_func_def_->bytecode_table().EmitOpcode(OpcodeType::kGoto);
 	}
-	cur_func_def_->byte_code().EmitPcOffset(0);
+	cur_func_def_->bytecode_table().EmitPcOffset(0);
 }
 
 
@@ -810,13 +810,13 @@ void CodeGener::GenerateReturnStatement(ReturnStatement* stat) {
 		GenerateExpression(stat->argument().get());
 	}
 	else {
-		cur_func_def_->byte_code().EmitOpcode(OpcodeType::kUndefined);
+		cur_func_def_->bytecode_table().EmitOpcode(OpcodeType::kUndefined);
 	}
 	if (IsInTypeScope({ ScopeType::kTryFinally,ScopeType::kCatchFinally, ScopeType::kFinally }, { ScopeType::kFunction })) {
-		cur_func_def_->byte_code().EmitOpcode(OpcodeType::kFinallyReturn);
+		cur_func_def_->bytecode_table().EmitOpcode(OpcodeType::kFinallyReturn);
 	}
 	else {
-		cur_func_def_->byte_code().EmitReturn(cur_func_def_);
+		cur_func_def_->bytecode_table().EmitReturn(cur_func_def_);
 	}
 }
 
@@ -824,25 +824,25 @@ void CodeGener::GenerateReturnStatement(ReturnStatement* stat) {
 void CodeGener::GenerateTryStatement(TryStatement* stat) {
 	auto has_finally = bool(stat->finalizer());
 
-	auto try_start_pc = cur_func_def_->byte_code().Size();
+	auto try_start_pc = cur_func_def_->bytecode_table().Size();
 
-	cur_func_def_->byte_code().EmitOpcode(OpcodeType::kTryBegin);
+	cur_func_def_->bytecode_table().EmitOpcode(OpcodeType::kTryBegin);
 
 	GenerateBlock(stat->block().get(), true, has_finally ? ScopeType::kTryFinally : ScopeType::kTry);
 
-	auto try_end_pc = cur_func_def_->byte_code().Size();
+	auto try_end_pc = cur_func_def_->bytecode_table().Size();
 
 	// 这里需要生成跳向finally的指令
 	auto repair_end_pc = try_end_pc;
-	cur_func_def_->byte_code().EmitOpcode(OpcodeType::kGoto);
-	cur_func_def_->byte_code().EmitPcOffset(0);
+	cur_func_def_->bytecode_table().EmitOpcode(OpcodeType::kGoto);
+	cur_func_def_->bytecode_table().EmitPcOffset(0);
 
 	auto catch_start_pc = kInvalidPc;
 	auto catch_end_pc = kInvalidPc;
 	auto catch_err_var_idx = kVarInvaildIndex;
 
 	if (stat->handler()) {
-		catch_start_pc = cur_func_def_->byte_code().Size();
+		catch_start_pc = cur_func_def_->bytecode_table().Size();
 		EntryScope(nullptr, has_finally ? ScopeType::kCatchFinally : ScopeType::kCatch);
 
 		// 加载error参数到变量
@@ -851,25 +851,25 @@ void CodeGener::GenerateTryStatement(TryStatement* stat) {
 		GenerateBlock(stat->handler()->body().get(), false);
 
 		ExitScope();
-		catch_end_pc = cur_func_def_->byte_code().Size();
+		catch_end_pc = cur_func_def_->bytecode_table().Size();
 	}
 	else {
 		catch_end_pc = try_end_pc;
 	}
 
 	// 修复pc
-	cur_func_def_->byte_code().RepairPc(repair_end_pc, cur_func_def_->byte_code().Size());
+	cur_func_def_->bytecode_table().RepairPc(repair_end_pc, cur_func_def_->bytecode_table().Size());
 
 	// finally是必定会执行的
 	auto finally_start_pc = kInvalidPc;
 	auto finally_end_pc = kInvalidPc;
 	if (stat->finalizer()) {
-		finally_start_pc = cur_func_def_->byte_code().Size();
+		finally_start_pc = cur_func_def_->bytecode_table().Size();
 		GenerateBlock(stat->finalizer()->body().get(), true, ScopeType::kFinally);
-		finally_end_pc = cur_func_def_->byte_code().Size();
+		finally_end_pc = cur_func_def_->bytecode_table().Size();
 	}
 
-	cur_func_def_->byte_code().EmitOpcode(OpcodeType::kTryEnd);
+	cur_func_def_->bytecode_table().EmitOpcode(OpcodeType::kTryEnd);
 
 	if (!stat->handler() && !stat->finalizer()) {
 		throw SyntaxError("There cannot be a statement with only try.");
@@ -890,7 +890,7 @@ void CodeGener::GenerateTryStatement(TryStatement* stat) {
 
 void CodeGener::GenerateThrowStatement(ThrowStatement* stat) {
 	GenerateExpression(stat->argument().get());
-	cur_func_def_->byte_code().EmitOpcode(OpcodeType::kThrow);
+	cur_func_def_->bytecode_table().EmitOpcode(OpcodeType::kThrow);
 }
 
 
@@ -908,8 +908,8 @@ void CodeGener::GenerateBlock(BlockStatement* block, bool entry_scope, ScopeType
 
 
 void CodeGener::GenerateIfEq(Expression* exp) {
-	cur_func_def_->byte_code().EmitOpcode(OpcodeType::kIfEq);
-	cur_func_def_->byte_code().EmitPcOffset(0);
+	cur_func_def_->bytecode_table().EmitOpcode(OpcodeType::kIfEq);
+	cur_func_def_->bytecode_table().EmitPcOffset(0);
 }
 
 void CodeGener::GenerateParamList(const std::vector<std::unique_ptr<Expression>>& par_list) {
@@ -919,7 +919,7 @@ void CodeGener::GenerateParamList(const std::vector<std::unique_ptr<Expression>>
 	}
 
 	auto const_idx = AllocConst(Value(par_list.size()));
-	cur_func_def_->byte_code().EmitConstLoad(const_idx);
+	cur_func_def_->bytecode_table().EmitConstLoad(const_idx);
 }
 
 void CodeGener::EntryScope(FunctionDef* sub_func, ScopeType type) {
@@ -974,7 +974,7 @@ const VarInfo* CodeGener::FindVarIndexByName(const std::string& var_name) {
 
 				// 为Value(&closure_var)分配变量
 				find_var_info = &scopes_[j].AllocVar(var_name, var_info->flags);
-				scope_func->AddClosureVar(find_var_info->var_idx, var_idx);
+				scope_func->closure_var_table().AddClosureVar(find_var_info->var_idx, var_idx);
 				var_idx = find_var_info->var_idx;
 			}
 		}
@@ -1040,12 +1040,12 @@ void CodeGener::RepairEntrys(const std::vector<RepairEntry>& entrys, Pc end_pc, 
 	for (auto& repair_info : entrys) {
 		switch (repair_info.type) {
 		case RepairEntry::Type::kBreak: {
-			cur_func_def_->byte_code().RepairPc(repair_info.repair_pc, end_pc);
+			cur_func_def_->bytecode_table().RepairPc(repair_info.repair_pc, end_pc);
 			break;
 		}
 		case RepairEntry::Type::kContinue: {
 			assert(reloop_pc != kInvalidPc);
-			cur_func_def_->byte_code().RepairPc(repair_info.repair_pc, reloop_pc);
+			cur_func_def_->bytecode_table().RepairPc(repair_info.repair_pc, reloop_pc);
 			break;
 		}
 		default:

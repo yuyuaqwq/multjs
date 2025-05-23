@@ -7,7 +7,7 @@
 
 #include <mjs/noncopyable.h>
 #include <mjs/segmented_array.h>
-#include <mjs/const_def.h>
+#include <mjs/constant.h>
 #include <mjs/value.h>
 
 // 常量池设计

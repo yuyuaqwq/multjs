@@ -9,7 +9,7 @@
 
 #include <mjs/value.h>
 #include <mjs/const_pool.h>
-#include <mjs/var_def.h>
+#include <mjs/variable.h>
 #include <mjs/stack_frame.h>
 #include <mjs/value.h>
 

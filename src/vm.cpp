@@ -74,7 +74,7 @@ void VM::SetVar(StackFrame* stack_frame, VarIndex idx, Value&& var) {
 
 void VM::Closure(const StackFrame& stack_frame, Value* func_def_val) {
 	auto& func_def = func_def_val->function_def();
-	assert(!func_def.closure_var_defs().empty() || func_def.has_this() && func_def.is_normal());
+	assert(!func_def.closure_var_table().closure_var_defs().empty() || func_def.has_this() && func_def.is_normal());
 	
 	*func_def_val = Value(new FunctionObject(context_, &func_def));
 	auto* func_obj = &func_def_val->function();
@@ -82,7 +82,7 @@ void VM::Closure(const StackFrame& stack_frame, Value* func_def_val) {
 	auto& env = func_obj->closure_env();
 
 	// 捕获变量
-	auto& closure_var_defs = func_def.closure_var_defs();
+	auto& closure_var_defs = func_def.closure_var_table().closure_var_defs();
 	for (auto& def : closure_var_defs) {
 		auto& var = stack_frame.get(def.second.parent_var_idx);
 		if (!var.IsClosureVar()) {
@@ -106,7 +106,7 @@ void VM::BindClosureVars(StackFrame* stack_frame) {
 
 	// 需要将栈上对应的局部变量绑定到堆上的ClosureVar
 	auto& env = func_obj->closure_env();
-	for (auto& def : func_def->closure_var_defs()) {
+	for (auto& def : func_def->closure_var_table().closure_var_defs()) {
 		// 栈上的Value关联到闭包变量
 		stack_frame->set(def.first, Value(&env.closure_var_refs()[def.second.env_var_idx].closure_var()));
 	}
@@ -135,8 +135,8 @@ bool VM::FunctionScheduling(StackFrame* stack_frame, uint32_t par_count) {
 		// 弹出多余参数
 		stack().reduce(par_count - function_def->par_count());
 
-		assert(function_def->var_count() >= function_def->par_count());
-		stack_frame->upgrade(function_def->var_count() - function_def->par_count());
+		assert(function_def->var_def_table().var_count() >= function_def->par_count());
+		stack_frame->upgrade(function_def->var_def_table().var_count() - function_def->par_count());
 		if (stack_frame->function_val().type() == ValueType::kFunctionObject) {
 			BindClosureVars(stack_frame);
 		}
@@ -154,11 +154,11 @@ bool VM::FunctionScheduling(StackFrame* stack_frame, uint32_t par_count) {
 			}
 
 			// 提前分配参数和局部变量栈空间
-			generator->stack().upgrade(function_def->var_count());
+			generator->stack().upgrade(function_def->var_def_table().var_count());
 
 			if (stack_frame->function_val().type() == ValueType::kFunctionObject) {
 				// 复制参数和变量(因为变量可能通过BindClosureVars绑定了)
-				for (int32_t i = 0; i < function_def->var_count(); ++i) {
+				for (int32_t i = 0; i < function_def->var_def_table().var_count(); ++i) {
 					generator->stack().set(i, stack_frame->get(i));
 				}
 			}
@@ -265,10 +265,10 @@ void VM::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 		Pc pending_goto_pc = kInvalidPc;
 
 		auto* func_def = stack_frame->function_def();
-		while (stack_frame->pc() >= 0 && func_def && stack_frame->pc() < func_def->byte_code().Size()) {
+		while (stack_frame->pc() >= 0 && func_def && stack_frame->pc() < func_def->bytecode_table().Size()) {
 			// OpcodeType opcode_; uint32_t par; auto pc = stack_frame->pc(); std::cout << func_def->byte_code().Disassembly(context_, pc, opcode_, par, func_def) << std::endl;
 			
-			auto opcode = func_def->byte_code().GetOpcode(stack_frame->pc());
+			auto opcode = func_def->bytecode_table().GetOpcode(stack_frame->pc());
 			stack_frame->set_pc(stack_frame->pc() + 1);
 			switch (opcode) {
 				//case OpcodeType::kStop:
@@ -283,25 +283,25 @@ void VM::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 				break;
 			}
 			case OpcodeType::kCLoad: {
-				auto const_idx = ConstIndex(func_def->byte_code().GetI8(stack_frame->pc()));
+				auto const_idx = ConstIndex(func_def->bytecode_table().GetI8(stack_frame->pc()));
 				stack_frame->set_pc(stack_frame->pc() + 1);
 				LoadConst(stack_frame, const_idx);
 				break;
 			}
 			case OpcodeType::kCLoadW: {
-				auto const_idx = ConstIndex(func_def->byte_code().GetI16(stack_frame->pc()));
+				auto const_idx = ConstIndex(func_def->bytecode_table().GetI16(stack_frame->pc()));
 				stack_frame->set_pc(stack_frame->pc() + 2);
 				LoadConst(stack_frame, const_idx);
 				break;
 			}
 			case OpcodeType::kCLoadD: {
-				auto const_idx = ConstIndex(func_def->byte_code().GetI32(stack_frame->pc()));
+				auto const_idx = ConstIndex(func_def->bytecode_table().GetI32(stack_frame->pc()));
 				stack_frame->set_pc(stack_frame->pc() + 4);
 				LoadConst(stack_frame, const_idx);
 				break;
 			}
 			case OpcodeType::kVLoad: {
-				auto var_idx = func_def->byte_code().GetU8(stack_frame->pc());
+				auto var_idx = func_def->bytecode_table().GetU8(stack_frame->pc());
 				stack_frame->set_pc(stack_frame->pc() + 1);
 				stack_frame->push(GetVar(stack_frame, var_idx));
 				break;
@@ -331,7 +331,7 @@ void VM::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 				break;
 			}
 			case OpcodeType::kVStore: {
-				auto var_idx = func_def->byte_code().GetU8(stack_frame->pc());
+				auto var_idx = func_def->bytecode_table().GetU8(stack_frame->pc());
 				stack_frame->set_pc(stack_frame->pc() + 1);
 				auto val = stack_frame->get(-1);
 				SetVar(stack_frame, var_idx, std::move(val));
@@ -347,7 +347,7 @@ void VM::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 				break;
 			}
 			case OpcodeType::kClosure: {
-				auto const_idx = ConstIndex(func_def->byte_code().GetI32(stack_frame->pc()));
+				auto const_idx = ConstIndex(func_def->bytecode_table().GetI32(stack_frame->pc()));
 				stack_frame->set_pc(stack_frame->pc() + 4);
 				auto value = context_->GetConstValue(const_idx);
 				Closure(*stack_frame, &value);
@@ -355,7 +355,7 @@ void VM::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 				break;
 			}
 			case OpcodeType::kPropertyLoad: {
-				auto const_idx = ConstIndex(func_def->byte_code().GetI32(stack_frame->pc()));
+				auto const_idx = ConstIndex(func_def->bytecode_table().GetI32(stack_frame->pc()));
 				stack_frame->set_pc(stack_frame->pc() + 4);
 				auto& obj_val = stack_frame->get(-1);
 				bool success = false;
@@ -379,7 +379,7 @@ void VM::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 				break;
 			}
 			case OpcodeType::kPropertyStore: {
-				auto const_idx = ConstIndex(func_def->byte_code().GetI32(stack_frame->pc()));
+				auto const_idx = ConstIndex(func_def->bytecode_table().GetI32(stack_frame->pc()));
 				stack_frame->set_pc(stack_frame->pc() + 4);
 				auto obj_val = stack_frame->pop();
 				auto val = stack_frame->get(-1);
@@ -578,7 +578,7 @@ void VM::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 			case OpcodeType::kIfEq: {
 				auto boolean_val = stack_frame->pop().ToBoolean();
 				if (boolean_val.boolean() == false) {
-					stack_frame->set_pc(func_def->byte_code().CalcPc(stack_frame->pc() - 1));
+					stack_frame->set_pc(func_def->bytecode_table().CalcPc(stack_frame->pc() - 1));
 				}
 				else {
 					stack_frame->set_pc(stack_frame->pc() + 2);
@@ -586,7 +586,7 @@ void VM::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 				break;
 			}
 			case OpcodeType::kGoto: {
-				stack_frame->set_pc(func_def->byte_code().CalcPc(stack_frame->pc() - 1));
+				stack_frame->set_pc(func_def->bytecode_table().CalcPc(stack_frame->pc() - 1));
 				break;
 			}
 			case OpcodeType::kTryBegin: {
@@ -670,7 +670,7 @@ void VM::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 				if (!entry || !entry->HasFinally()) {
 					throw std::runtime_error("Incorrect finally return.");
 				}
-				pending_goto_pc = func_def->byte_code().CalcPc(stack_frame->pc());
+				pending_goto_pc = func_def->bytecode_table().CalcPc(stack_frame->pc());
 				if (entry->LocatedInFinally(stack_frame->pc())) {
 					// 位于finally的goto
 					stack_frame->set_pc(entry->finally_end_pc);
@@ -681,7 +681,7 @@ void VM::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 				break;
 			}
 			case OpcodeType::kGetGlobal: {
-				auto const_idx = ConstIndex(func_def->byte_code().GetU32(stack_frame->pc()));
+				auto const_idx = ConstIndex(func_def->bytecode_table().GetU32(stack_frame->pc()));
 				stack_frame->set_pc(stack_frame->pc() + 4);
 				Value value;
 				auto success = context_->runtime().global_this().object().GetProperty(context_, const_idx, &value);

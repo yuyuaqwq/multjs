@@ -80,8 +80,8 @@ public:
 		if (var_table_.find(var_name) != var_table_.end()) {
 			throw ScopeException("local var redefinition");
 		}
-		auto var_idx = function_def_->var_count();
-		function_def_->AddVar(var_name);
+		auto var_idx = function_def_->var_def_table().var_count();
+		function_def_->var_def_table().AddVar(var_name);
 		auto res = var_table_.emplace(var_name, VarInfo{ .var_idx = var_idx, .flags = flags });
 		return res.first->second;
 	}

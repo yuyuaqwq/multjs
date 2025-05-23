@@ -38,13 +38,10 @@ public:
             throw std::out_of_range("LineTable is not initialized");
         }
 
-        // 查找第一个大于pos的行起始位置
-        auto it = std::upper_bound(line_offsets_.begin(), line_offsets_.end(), pos);
+        // 查找第一个大于等于pos的行起始位置
+        auto it = std::lower_bound(line_offsets_.begin(), line_offsets_.end(), pos);
 
-        if (it == line_offsets_.begin()) {
-            throw std::out_of_range("Position is before the first line");
-        }
-        else if (it == line_offsets_.end()) {
+        if (it == line_offsets_.end()) {
             throw std::out_of_range("Position is beyond the last line");
         }
 
