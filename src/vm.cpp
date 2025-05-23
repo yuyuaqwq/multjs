@@ -691,7 +691,7 @@ void VM::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 				Value value;
 				auto success = context_->runtime().global_this().object().GetProperty(context_, const_idx, &value);
 				if (!success) {
-					pending_error_val = ReferenceError::Throw("GetProperty.");
+					pending_error_val = ReferenceError::Throw("Failed to retrieve properties from global this.");
 					if (!ThrowExecption(stack_frame, &pending_error_val)) {
 						pending_return_val = std::move(pending_error_val);
 						goto exit_;
