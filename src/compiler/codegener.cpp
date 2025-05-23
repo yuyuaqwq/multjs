@@ -373,7 +373,7 @@ void CodeGener::GenerateFunctionExpression(FunctionExpression* exp) {
 		cur_func_def_->bytecode_table().EmitVarStore(var_info.var_idx);
 
 		if (exp->is_export()) {
-			static_cast<ModuleDef*>(cur_func_def_)->AddExportVar(exp->id(), var_info.var_idx);
+			static_cast<ModuleDef*>(cur_func_def_)->export_var_def_table().AddExportVar(exp->id(), var_info.var_idx);
 		}
 	}
 
@@ -591,7 +591,7 @@ void CodeGener::GenerateVariableDeclaration(VariableDeclaration* decl) {
 	cur_func_def_->bytecode_table().EmitOpcode(OpcodeType::kPop);
 
 	if (decl->is_export()) {
-		static_cast<ModuleDef*>(cur_func_def_)->AddExportVar(decl->name(), var_info.var_idx);
+		static_cast<ModuleDef*>(cur_func_def_)->export_var_def_table().AddExportVar(decl->name(), var_info.var_idx);
 	}
 }
 

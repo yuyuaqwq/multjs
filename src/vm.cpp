@@ -22,14 +22,14 @@ VM::VM(Context* context)
 
 void VM::ModuleInit(Value* module_def_value) {
 	auto& module_def = module_def_value->module_def();
-	if (module_def.export_var_defs().empty()) {
+	if (module_def.export_var_def_table().export_var_defs().empty()) {
 		return;
 	}
 
 	auto module_obj = new ModuleObject(context_, &module_def);
 	*module_def_value = Value(module_obj);
 
-	for (auto& def : module_obj->module_def().export_var_defs()) {
+	for (auto& def : module_obj->module_def().export_var_def_table().export_var_defs()) {
 		module_obj->SetProperty(context_, context_->FindConstOrInsertToGlobal(Value(def.first)), 
 			Value(&module_obj->module_env().export_vars()[def.second.export_var_index])
 		);
@@ -40,7 +40,7 @@ void VM::BindModuleExportVars(StackFrame* stack_frame) {
 	auto& func_val = stack_frame->function_val();
 
 	auto& module_obj = func_val.module();
-	for (auto& def : module_obj.module_def().export_var_defs()) {
+	for (auto& def : module_obj.module_def().export_var_def_table().export_var_defs()) {
 		// 栈上的Value关联到导出变量
 		stack_frame->set(def.second.var_index, 
 			Value(&module_obj.module_env().export_vars()[def.second.export_var_index])

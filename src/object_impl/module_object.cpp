@@ -6,7 +6,7 @@ ModuleObject::ModuleObject(Context* context, ModuleDef* module_def)
     : FunctionObject(context, module_def)
 {
     //property_map_ = new PropertyMap(context);
-    module_env_.export_vars().resize(module_def->export_var_defs().size());
+    module_env_.export_vars().resize(module_def->export_var_def_table().export_var_defs().size());
     
 }
 

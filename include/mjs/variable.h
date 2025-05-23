@@ -33,4 +33,28 @@ private:
 	std::vector<VarDef> var_defs_;
 };
 
+
+struct ExportVarDef {
+	uint32_t export_var_index;
+	VarIndex var_index;
+};
+
+class ExportVarDefTable {
+public:
+	void AddExportVar(std::string name, VarIndex var_idx) {
+		auto res = export_var_defs_.emplace(std::move(name),
+			ExportVarDef{
+				.export_var_index = uint32_t(export_var_defs_.size()),
+				.var_index = var_idx,
+			}
+		);
+		assert(res.second);
+	}
+
+	const auto& export_var_defs() const { return export_var_defs_; }
+
+private:
+	std::unordered_map<std::string, ExportVarDef> export_var_defs_;
+};
+
 } // namespace mjs 
