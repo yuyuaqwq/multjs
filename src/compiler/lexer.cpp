@@ -112,9 +112,6 @@ Token Lexer::PeekTokenN(uint32_t n) {
     if (n == 1) {
         return PeekToken();
     }
-    else if (n > 1 && !peek_.is(TokenType::kNone)) {
-        n -= 1;
-    }
     auto checkpoint = CreateCheckpoint();
     for (uint32_t i = 0; i < n; ++i) {
         if (i + 1 == n) {
