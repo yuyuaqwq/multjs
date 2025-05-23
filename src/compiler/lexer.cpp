@@ -56,7 +56,6 @@ void Lexer::SkipUselessStr() {
             }
             else if (c == '\n') {
                 NextChar();
-                line_++;
             }
             else {
                 break;
@@ -77,7 +76,6 @@ void Lexer::SkipUselessStr() {
             while (c = PeekChar()) {
                 if (c == '\n') {
                     NextChar();
-                    line_++;
                 }
                 else if (TestStr("*/", 2)) {
                     SkipChar(2);
@@ -155,14 +153,15 @@ Token Lexer::MatchToken(TokenType type) {
     if (token.is(type)) {
         return token;
     }
-    throw SyntaxError("[{}]cannot match token, expected token: '{}', actual token: '{}'.", token.line(), Token::TypeToString(type), Token::TypeToString(token.type()));
+    throw SyntaxError("[{}]cannot match token, expected token: '{}', actual token: '{}'.", token.pos(), Token::TypeToString(type), Token::TypeToString(token.type()));
 }
 
 Token Lexer::ReadNextToken() {
     Token token;
     SkipUselessStr();
+
+    token.set_pos(GetRawSourcePos());
     char c = NextChar();
-    token.set_line(line_);
 
     if (c == 0) {
         token.set_type(TokenType::kEof);

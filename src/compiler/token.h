@@ -3,6 +3,8 @@
 #include <string>
 #include <unordered_map>
 
+#include <mjs/source.h>
+
 namespace mjs {
 namespace compiler {
 
@@ -130,11 +132,11 @@ public:
         return type_ == type;
     }
 
+    SourcePos pos() const { return pos_; }
+    void set_pos(SourcePos pos) { pos_ = pos; }
+
 	TokenType type() const { return type_; }
 	void set_type(TokenType type) { type_ = type; }
-
-	int32_t line() const { return line_; }
-	void set_line(int32_t line) { line_ = line; }
 
 	std::string* mutable_str() { return &str_; }
 	const std::string& str() const { return str_; }
@@ -143,7 +145,7 @@ public:
     static std::string TypeToString(TokenType type);
 
 private:
-	int32_t line_ = 0;		// 行号
+	SourcePos pos_ = 0;		// 位置
 	TokenType type_ = TokenType::kNone;		// token类型
 	std::string str_;	// 保存必要的信息
 };

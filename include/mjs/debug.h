@@ -1,7 +1,7 @@
 #pragma once
 
 #include <mjs/opcode.h>
-#include <mjs/source_def.h>
+#include <mjs/source.h>
 
 namespace mjs {
 

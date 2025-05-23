@@ -42,7 +42,7 @@ std::unique_ptr<Expression> Parser::ParseCommaExpression() {
 			break;
 		}
 		lexer_->NextToken();
-		auto end = lexer_->GetSourcePos();
+		auto end = lexer_->GetRawSourcePos();
 		exp = std::make_unique<BinaryExpression>(start, end, op, std::move(exp), ParseAssignmentOrFunction());
 
 	} while (true);
@@ -72,7 +72,7 @@ std::unique_ptr<YieldExpression> Parser::ParseYieldExpression() {
 	auto start = lexer_->GetSourcePos();
 	lexer_->NextToken();
 	std::unique_ptr<Expression> yielded_value = ParseAssignmentExpression();
-	auto end = lexer_->GetSourcePos();
+	auto end = lexer_->GetRawSourcePos();
 	return std::make_unique<YieldExpression>(start, end, std::move(yielded_value));
 }
 
@@ -150,11 +150,11 @@ std::unique_ptr<Expression> Parser::TryParseArrowFunction(SourcePos start, bool 
 		auto exp_start = lexer_->GetSourcePos();
 		// 避免解析kSepComma
 		auto exp = ParseAssignmentOrFunction();
-		auto exp_end = lexer_->GetSourcePos();
+		auto exp_end = lexer_->GetRawSourcePos();
 		body = std::make_unique<ExpressionStatement>(exp_start, exp_end, std::move(exp));
 	}
 
-	auto end = lexer_->GetSourcePos();
+	auto end = lexer_->GetRawSourcePos();
 	return std::make_unique<ArrowFunctionExpression>(start, end, std::move(params),
 		std::move(body), is_async);
 
@@ -188,7 +188,7 @@ std::unique_ptr<Expression> Parser::ParseTraditionalFunction(SourcePos start, bo
 	// 函数体
 	auto block = ParseBlockStatement();
 
-	auto end = lexer_->GetSourcePos();
+	auto end = lexer_->GetRawSourcePos();
 	return std::make_unique<FunctionExpression>(start, end, id, std::move(params),
 		std::move(block), is_generator, is_async, false);
 }
@@ -202,7 +202,7 @@ std::unique_ptr<Expression> Parser::ParseAssignmentExpression() {
 		return exp;
 	}
 	lexer_->NextToken();
-	auto end = lexer_->GetSourcePos();
+	auto end = lexer_->GetRawSourcePos();
 	exp = std::make_unique<AssignmentExpression>(start, end, op, std::move(exp), ParseAssignmentExpression());
 	return exp;
 }
@@ -219,7 +219,7 @@ std::unique_ptr<Expression> Parser::ParseTernaryExpression() {
 	auto consequent = ParseTernaryExpression();
 	lexer_->MatchToken(TokenType::kSepColon);
 	auto alternate = ParseTernaryExpression();
-	auto end = lexer_->GetSourcePos();
+	auto end = lexer_->GetRawSourcePos();
 	return std::make_unique<ConditionalExpression>(start, end, 
 		std::move(test), std::move(consequent), std::move(alternate));
 }
@@ -234,7 +234,7 @@ std::unique_ptr<Expression> Parser::ParseLogicalOrExpression() {
 			break;
 		}
 		lexer_->NextToken();
-		auto end = lexer_->GetSourcePos();
+		auto end = lexer_->GetRawSourcePos();
 		exp = std::make_unique<BinaryExpression>(start, end, op, std::move(exp), ParseLogicalAndExpression());
 	} while (true);
 	return exp;
@@ -249,7 +249,7 @@ std::unique_ptr<Expression> Parser::ParseLogicalAndExpression() {
 			break;
 		}
 		lexer_->NextToken();
-		auto end = lexer_->GetSourcePos();
+		auto end = lexer_->GetRawSourcePos();
 		exp = std::make_unique<BinaryExpression>(start, end, op, std::move(exp), ParseBitwiseOrExpression());
 	} while (true);
 	return exp;
@@ -264,7 +264,7 @@ std::unique_ptr<Expression> Parser::ParseBitwiseOrExpression() {
 			break;
 		}
 		lexer_->NextToken();
-		auto end = lexer_->GetSourcePos();
+		auto end = lexer_->GetRawSourcePos();
 		exp = std::make_unique<BinaryExpression>(start, end, op, std::move(exp),  ParseBitwiseXorExpression());
 	} while (true);
 	return exp;
@@ -279,7 +279,7 @@ std::unique_ptr<Expression> Parser::ParseBitwiseXorExpression() {
 			break;
 		}
 		lexer_->NextToken();
-		auto end = lexer_->GetSourcePos();
+		auto end = lexer_->GetRawSourcePos();
 		exp = std::make_unique<BinaryExpression>(start, end, op, std::move(exp), ParseBitwiseAndExpression());
 	} while (true);
 	return exp;
@@ -294,7 +294,7 @@ std::unique_ptr<Expression> Parser::ParseBitwiseAndExpression() {
 			break;
 		}
 		lexer_->NextToken();
-		auto end = lexer_->GetSourcePos();
+		auto end = lexer_->GetRawSourcePos();
 		exp = std::make_unique<BinaryExpression>(start, end, op, std::move(exp),ParseEqualityExpression());
 	} while (true);
 	return exp;
@@ -312,7 +312,7 @@ std::unique_ptr<Expression> Parser::ParseEqualityExpression() {
 			break;
 		}
 		lexer_->NextToken();
-		auto end = lexer_->GetSourcePos();
+		auto end = lexer_->GetRawSourcePos();
 		exp = std::make_unique<BinaryExpression>(start, end, op, std::move(exp),  ParseRelationalExpression());
 	} while (true);
 	return exp;
@@ -332,7 +332,7 @@ std::unique_ptr<Expression> Parser::ParseRelationalExpression() {
 			break;
 		}
 		lexer_->NextToken();
-		auto end = lexer_->GetSourcePos();
+		auto end = lexer_->GetRawSourcePos();
 		exp = std::make_unique<BinaryExpression>(start, end, op, std::move(exp), ParseShiftExpression());
 	} while (true);
 	return exp;
@@ -349,7 +349,7 @@ std::unique_ptr<Expression> Parser::ParseShiftExpression() {
 			break;
 		}
 		lexer_->NextToken();
-		auto end = lexer_->GetSourcePos();
+		auto end = lexer_->GetRawSourcePos();
 		exp = std::make_unique<BinaryExpression>(start, end, op, std::move(exp), ParseAdditiveExpression());
 	} while (true);
 	return exp;
@@ -365,7 +365,7 @@ std::unique_ptr<Expression> Parser::ParseAdditiveExpression() {
 			break;
 		}
 		lexer_->NextToken();
-		auto end = lexer_->GetSourcePos();
+		auto end = lexer_->GetRawSourcePos();
 		exp = std::make_unique<BinaryExpression>(start, end, op, std::move(exp),  ParseMultiplicativeExpression());
 	} while (true);
 	return exp;
@@ -382,7 +382,7 @@ std::unique_ptr<Expression> Parser::ParseMultiplicativeExpression() {
 			break;
 		}
 		lexer_->NextToken();
-		auto end = lexer_->GetSourcePos();
+		auto end = lexer_->GetRawSourcePos();
 		exp = std::make_unique<BinaryExpression>(start, end, op, std::move(exp), ParseExponentiationExpression());
 	} while (true);
 	return exp;
@@ -397,7 +397,7 @@ std::unique_ptr<Expression> Parser::ParseExponentiationExpression() {
 		return exp;
 	}
 	lexer_->NextToken();
-	auto end = lexer_->GetSourcePos();
+	auto end = lexer_->GetRawSourcePos();
 	exp = std::make_unique<UnaryExpression>(start, end, type, ParseExponentiationExpression());
 	return exp;
 }
@@ -453,7 +453,7 @@ std::unique_ptr<Expression> Parser::ParsePostfixExpression() {
 			break;
 		}
 		lexer_->NextToken();
-		auto end = lexer_->GetSourcePos();
+		auto end = lexer_->GetRawSourcePos();
 		exp = std::make_unique<UnaryExpression>(start, end, TokenType::kOpSuffixInc, std::move(exp));
 	} while (true);
 	return exp;
@@ -489,7 +489,7 @@ std::unique_ptr<Expression> Parser::ParseNewExpression() {
 		arguments = ParseExpressions(TokenType::kSepLParen, TokenType::kSepRParen, false);
 	}
 
-	auto end = lexer_->GetSourcePos();
+	auto end = lexer_->GetRawSourcePos();
 	auto exp = std::make_unique<NewExpression>(start, end, std::move(callee), std::move(arguments));
 
 	// 后面可能还会跟函数调用之类的
@@ -539,7 +539,7 @@ std::unique_ptr<MemberExpression> Parser::ParseMemberExpression(std::unique_ptr<
 		is_method_call = true;
 	}
 
-	auto end = lexer_->GetSourcePos();
+	auto end = lexer_->GetRawSourcePos();
 
 	return std::make_unique<MemberExpression>(start, end,
 		std::move(object), std::move(member), is_method_call, computed, false);
@@ -550,7 +550,7 @@ std::unique_ptr<CallExpression> Parser::ParseCallExpression(std::unique_ptr<Expr
 
 	auto arguments = ParseExpressions(TokenType::kSepLParen, TokenType::kSepRParen, false);
 
-	auto end = lexer_->GetSourcePos();
+	auto end = lexer_->GetRawSourcePos();
 	return std::make_unique<CallExpression>(start, end, std::move(callee), std::move(arguments));
 }
 
@@ -560,7 +560,7 @@ std::unique_ptr<ImportExpression> Parser::ParseImportExpression() {
 	lexer_->MatchToken(TokenType::kSepLParen);
 	auto source = ParseExpression();
 	lexer_->MatchToken(TokenType::kSepRParen);
-	auto end = lexer_->GetSourcePos();
+	auto end = lexer_->GetRawSourcePos();
 	return std::make_unique<ImportExpression>(start, end, std::move(source));
 }
 
@@ -594,7 +594,7 @@ std::unique_ptr<Expression> Parser::ParsePrimaryExpression() {
 std::unique_ptr<ArrayExpression> Parser::ParseArrayExpression() {
 	auto start = lexer_->GetSourcePos();
 	auto arr_literal = ParseExpressions(TokenType::kSepLBrack, TokenType::kSepRBrack, true);
-	auto end = lexer_->GetSourcePos();
+	auto end = lexer_->GetRawSourcePos();
 	return std::make_unique<ArrayExpression>(start, end, std::move(arr_literal));
 }
 
@@ -622,14 +622,14 @@ std::unique_ptr<ObjectExpression> Parser::ParseObjectExpression() {
 		} while (true);
 	}
 	lexer_->MatchToken(TokenType::kSepRCurly);
-	auto end = lexer_->GetSourcePos();
+	auto end = lexer_->GetRawSourcePos();
 	return std::make_unique<ObjectExpression>(start, end, std::move(properties));
 }
 
 std::unique_ptr<ThisExpression> Parser::ParseThis() {
 	auto start = lexer_->GetSourcePos();
 	lexer_->MatchToken(TokenType::kKwThis);
-	auto end = lexer_->GetSourcePos();
+	auto end = lexer_->GetRawSourcePos();
 	return std::make_unique<ThisExpression>(start, end);
 }
 
@@ -648,37 +648,37 @@ std::unique_ptr<Expression> Parser::TryParseLiteral() {
 	switch (token.type()) {
 	case TokenType::kUndefined: {
 		lexer_->NextToken();
-		exp = std::make_unique<UndefinedLiteral>(start, lexer_->GetSourcePos());
+		exp = std::make_unique<UndefinedLiteral>(start, lexer_->GetRawSourcePos());
 		break;
 	}
 	case TokenType::kNull: {
 		lexer_->NextToken();
-		exp = std::make_unique<NullLiteral>(start, lexer_->GetSourcePos());
+		exp = std::make_unique<NullLiteral>(start, lexer_->GetRawSourcePos());
 		break;
 	}
 	case TokenType::kTrue: {
 		lexer_->NextToken();
-		exp = std::make_unique<BooleanLiteral>(start, lexer_->GetSourcePos(), true);
+		exp = std::make_unique<BooleanLiteral>(start, lexer_->GetRawSourcePos(), true);
 		break;
 	}
 	case TokenType::kFalse: {
 		lexer_->NextToken();
-		exp = std::make_unique<BooleanLiteral>(start, lexer_->GetSourcePos(), false);
+		exp = std::make_unique<BooleanLiteral>(start, lexer_->GetRawSourcePos(), false);
 		break;
 	}
 	case TokenType::kFloat: {
 		lexer_->NextToken();
-		exp = std::make_unique<FloatLiteral>(start, lexer_->GetSourcePos(), std::stod(token.str()));
+		exp = std::make_unique<FloatLiteral>(start, lexer_->GetRawSourcePos(), std::stod(token.str()));
 		break;
 	}
 	case TokenType::kInteger: {
 		lexer_->NextToken();
-		exp = std::make_unique<IntegerLiteral>(start, lexer_->GetSourcePos(), std::stoll(token.str()));
+		exp = std::make_unique<IntegerLiteral>(start, lexer_->GetRawSourcePos(), std::stoll(token.str()));
 		break;
 	}
 	case TokenType::kString: {
 		lexer_->NextToken();
-		exp = std::make_unique<StringLiteral>(start, lexer_->GetSourcePos(), std::string(token.str()));
+		exp = std::make_unique<StringLiteral>(start, lexer_->GetRawSourcePos(), std::string(token.str()));
 		break;
 	}
 	}
@@ -689,7 +689,7 @@ std::unique_ptr<Expression> Parser::TryParseLiteral() {
 std::unique_ptr<Identifier> Parser::ParseIdentifier() {
 	auto start = lexer_->GetSourcePos();
 	auto token = lexer_->MatchToken(TokenType::kIdentifier);
-	auto end = lexer_->GetSourcePos();
+	auto end = lexer_->GetRawSourcePos();
 	auto exp = std::make_unique<Identifier>(start, end, std::string(token.str()));
 	exp->set_value_category(ValueCategory::kLValue);
 	return exp;
@@ -739,7 +739,7 @@ std::unique_ptr<Statement> Parser::ParseStatement() {
 		// 如果是直接定义，就不需要添加分号
 		auto start = lexer_->GetSourcePos();
 		auto exp = ParseFunctionExpression();
-		auto end = lexer_->GetSourcePos();
+		auto end = lexer_->GetRawSourcePos();
 		return std::make_unique<ExpressionStatement>(start, end, std::move(exp));
 	}
 	case TokenType::kKwReturn: {
@@ -777,7 +777,7 @@ std::unique_ptr<Statement> Parser::ParseImportStatement(TokenType type) {
 		auto source = lexer_->MatchToken(TokenType::kString).str();
 
 		// 静态import会被提升，单独保存
-		auto end = lexer_->GetSourcePos();
+		auto end = lexer_->GetRawSourcePos();
 		auto import_stat = std::make_unique<ImportDeclaration>(start, end, std::move(source), std::move(module_name));
 		import_declarations_.emplace_back(std::move(import_stat));
 
@@ -802,7 +802,7 @@ std::unique_ptr<ExportDeclaration> Parser::ParseExportDeclaration(TokenType type
 		if (exp->is(ExpressionType::kFunctionExpression)) {
 			auto& func_decl_exp = exp->as<FunctionExpression>();
 			func_decl_exp.set_is_export(true);
-			auto end = lexer_->GetSourcePos();
+			auto end = lexer_->GetRawSourcePos();
 			return std::make_unique<ExportDeclaration>(start, end, std::move(stat));
 		}
 	}
@@ -813,7 +813,7 @@ std::unique_ptr<ExportDeclaration> Parser::ParseExportDeclaration(TokenType type
 	else {
 		throw SyntaxError("Statement that cannot be exported.");
 	}
-	auto end = lexer_->GetSourcePos();
+	auto end = lexer_->GetRawSourcePos();
 	return std::make_unique<ExportDeclaration>(start, end, std::move(stat));
 }
 
@@ -828,7 +828,7 @@ std::unique_ptr<VariableDeclaration> Parser::ParseVariableDeclaration(TokenType 
 	lexer_->MatchToken(TokenType::kOpAssign);
 	auto init = ParseExpression();
 	lexer_->MatchToken(TokenType::kSepSemi);
-	auto end = lexer_->GetSourcePos();
+	auto end = lexer_->GetRawSourcePos();
 	return std::make_unique<VariableDeclaration>(start, end, std::move(name), std::move(init), kind);
 }
 
@@ -856,7 +856,7 @@ std::unique_ptr<IfStatement> Parser::ParseIfStatement() {
 			alternate = ParseBlockStatement();
 		}
 	}
-	auto end = lexer_->GetSourcePos();
+	auto end = lexer_->GetRawSourcePos();
 	return std::make_unique<IfStatement>(start, end, std::move(test), std::move(consequent), std::move(alternate));
 }
 
@@ -865,7 +865,7 @@ std::unique_ptr<LabeledStatement> Parser::ParseLabeledStatement() {
 	auto label_name = lexer_->MatchToken(TokenType::kIdentifier).str();
 	lexer_->MatchToken(TokenType::kSepColon);
 	auto stat = ParseStatement();
-	auto end = lexer_->GetSourcePos();
+	auto end = lexer_->GetRawSourcePos();
 	return std::make_unique<LabeledStatement>(start, end, std::move(label_name), std::move(stat));
 }
 
@@ -878,7 +878,7 @@ std::unique_ptr<ReturnStatement> Parser::ParseReturnStatement() {
 		exp = ParseExpression();
 	}
 	lexer_->MatchToken(TokenType::kSepSemi);
-	auto end = lexer_->GetSourcePos();
+	auto end = lexer_->GetRawSourcePos();
 	return std::make_unique<ReturnStatement>(start, end, std::move(exp));
 }
 
@@ -918,7 +918,7 @@ std::unique_ptr<ForStatement> Parser::ParseForStatement() {
 
 	auto block = ParseBlockStatement();
 
-	auto end = lexer_->GetSourcePos();
+	auto end = lexer_->GetRawSourcePos();
 	return std::make_unique<ForStatement>(start, end, 
 		std::move(initialization), std::move(condition),
 		std::move(final_expression), std::move(block));
@@ -931,7 +931,7 @@ std::unique_ptr<WhileStatement> Parser::ParseWhileStatement() {
 	auto exp = ParseExpression();
 	lexer_->MatchToken(TokenType::kSepRParen);
 	auto block = ParseBlockStatement();
-	auto end = lexer_->GetSourcePos();
+	auto end = lexer_->GetRawSourcePos();
 	return std::make_unique<WhileStatement>(start, end, std::move(exp), std::move(block));
 }
 
@@ -943,7 +943,7 @@ std::unique_ptr<ContinueStatement> Parser::ParseContinueStatement() {
 		label_name = lexer_->NextToken().str();
 	}
 	lexer_->MatchToken(TokenType::kSepSemi);
-	auto end = lexer_->GetSourcePos();
+	auto end = lexer_->GetRawSourcePos();
 	return std::make_unique<ContinueStatement>(start, end, std::move(label_name));
 }
 
@@ -955,7 +955,7 @@ std::unique_ptr<BreakStatement> Parser::ParseBreakStatement() {
 		label_name = lexer_->NextToken().str();
 	}
 	lexer_->MatchToken(TokenType::kSepSemi);
-	auto end = lexer_->GetSourcePos();
+	auto end = lexer_->GetRawSourcePos();
 	return std::make_unique<BreakStatement>(start, end, std::move(label_name));
 }
 
@@ -979,7 +979,7 @@ std::unique_ptr<TryStatement> Parser::ParseTryStatement() {
 		finally_stat = ParseFinallyClause();
 	}
 
-	auto end = lexer_->GetSourcePos();
+	auto end = lexer_->GetRawSourcePos();
 	return std::make_unique<TryStatement>(start, end, std::move(block), std::move(catch_stat), std::move(finally_stat));
 }
 
@@ -993,7 +993,7 @@ std::unique_ptr<CatchClause> Parser::ParseCatchClause() {
 
 	auto block = ParseBlockStatement();
 
-	auto end = lexer_->GetSourcePos();
+	auto end = lexer_->GetRawSourcePos();
 	return std::make_unique<CatchClause>(start, end, std::move(exp), std::move(block));
 }
 
@@ -1001,7 +1001,7 @@ std::unique_ptr<FinallyClause> Parser::ParseFinallyClause() {
 	auto start = lexer_->GetSourcePos();
 	lexer_->MatchToken(TokenType::kKwFinally);
 	auto block = ParseBlockStatement();
-	auto end = lexer_->GetSourcePos();
+	auto end = lexer_->GetRawSourcePos();
 	return std::make_unique<FinallyClause>(start, end, std::move(block));
 }
 
@@ -1009,7 +1009,7 @@ std::unique_ptr<ThrowStatement> Parser::ParseThrowStatement() {
 	auto start = lexer_->GetSourcePos();
 	lexer_->MatchToken(TokenType::kKwThrow);
 	auto exp = ParseExpression();
-	auto end = lexer_->GetSourcePos();
+	auto end = lexer_->GetRawSourcePos();
 	return std::make_unique<ThrowStatement>(start, end, std::move(exp));
 }
 
@@ -1026,7 +1026,7 @@ std::unique_ptr<BlockStatement> Parser::ParseBlockStatement() {
 
 	lexer_->MatchToken(TokenType::kSepRCurly);
 
-	auto end = lexer_->GetSourcePos();
+	auto end = lexer_->GetRawSourcePos();
 	return std::make_unique<BlockStatement>(start, end, std::move(stat_list));
 }
 
@@ -1034,12 +1034,12 @@ std::unique_ptr<ExpressionStatement> Parser::ParseExpressionStatement() {
 	auto start = lexer_->GetSourcePos();
 	if (lexer_->PeekToken().is(TokenType::kSepSemi)) {
 		lexer_->NextToken();
-		auto end = lexer_->GetSourcePos();
+		auto end = lexer_->GetRawSourcePos();
 		return std::make_unique<ExpressionStatement>(start, end, nullptr);
 	}
 	auto exp = ParseExpression();
 	lexer_->MatchToken(TokenType::kSepSemi);
-	auto end = lexer_->GetSourcePos();
+	auto end = lexer_->GetRawSourcePos();
 	return std::make_unique<ExpressionStatement>(start, end, std::move(exp));
 }
 
@@ -1089,7 +1089,7 @@ std::unique_ptr<TypeAnnotation> Parser::ParseTypeAnnotation() {
 	auto start = lexer_->GetSourcePos();
 	if (lexer_->PeekToken().is(TokenType::kSepColon)) {
 		lexer_->NextToken();
-		auto end = lexer_->GetSourcePos();
+		auto end = lexer_->GetRawSourcePos();
 		return std::make_unique<TypeAnnotation>(start, end, ParseUnionType());
 	}
 	return nullptr;
@@ -1113,7 +1113,7 @@ std::unique_ptr<UnionType> Parser::ParseUnionType() {
 			auto start = lexer_->GetSourcePos();
 			lexer_->NextToken();
 			auto iter = predefined_type.find(token.str());
-			auto end = lexer_->GetSourcePos();
+			auto end = lexer_->GetRawSourcePos();
 			if (iter != predefined_type.end()) {
 				types.emplace_back(std::make_unique<PredefinedType>(start, end, iter->second));
 			}
@@ -1124,7 +1124,7 @@ std::unique_ptr<UnionType> Parser::ParseUnionType() {
 		else {
 			auto start = lexer_->GetSourcePos();
 			auto literal = TryParseLiteral();
-			auto end = lexer_->GetSourcePos();
+			auto end = lexer_->GetRawSourcePos();
 			if (literal) {
 				types.emplace_back(std::make_unique<LieralType>(start, end,std::move(literal)));
 			}
@@ -1140,7 +1140,7 @@ std::unique_ptr<UnionType> Parser::ParseUnionType() {
 		lexer_->NextToken();
 	} while (true);
 
-	auto end = lexer_->GetSourcePos();
+	auto end = lexer_->GetRawSourcePos();
 	return std::make_unique<UnionType>(start, end, std::move(types));
 }
 
