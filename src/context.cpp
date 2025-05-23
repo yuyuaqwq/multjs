@@ -4,6 +4,7 @@
 #include <string_view>
 
 #include <mjs/runtime.h>
+#include <mjs/error.h>
 #include <mjs/object_impl/module_object.h>
 
 #include "compiler/lexer.h"
@@ -27,14 +28,20 @@ Context::~Context() {
 }
 
 Value Context::CompileModule(std::string module_name, std::string_view script) {
-	auto lexer = compiler::Lexer(script.data());
+	try {
+		auto lexer = compiler::Lexer(script.data());
 
-	auto parser = compiler::Parser(&lexer);
-	parser.ParseProgram();
+		auto parser = compiler::Parser(&lexer);
+		parser.ParseProgram();
 
-	auto codegener = compiler::CodeGener(this, &parser);
-	auto module_def = codegener.Generate(std::move(module_name), script);
-	return module_def;
+		auto codegener = compiler::CodeGener(this, &parser);
+		auto module_def = codegener.Generate(std::move(module_name), script);
+		return module_def;
+	}
+	catch (SyntaxError& e) {
+		// todo: 未来转为Error对象
+		return Value(String::New(std::string(e.error_name()) + ": " + e.what())).SetException();
+	}
 }
 
 Value Context::CallModule(Value* value) {

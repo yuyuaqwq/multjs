@@ -9,12 +9,6 @@
 namespace mjs {
 namespace compiler {
 
-class ScopeException : public std::exception{
-public:
-	using Base = std::exception;
-	using Base::Base;
-};
-
 enum class ScopeType {
 	kNone = 0,
 	kIf,
@@ -78,7 +72,7 @@ public:
 
 	const VarInfo& AllocVar(const std::string& var_name, VarFlags flags) {
 		if (var_table_.find(var_name) != var_table_.end()) {
-			throw ScopeException("local var redefinition");
+			throw std::runtime_error("local var redefinition");
 		}
 		auto var_idx = function_def_->var_def_table().var_count();
 		function_def_->var_def_table().AddVar(var_name);

@@ -33,11 +33,9 @@ public:
 		for (It it = begin; it != end; ++it) {
 			stack_frame->push(*it);
 		}
-
 		CallInternal(stack_frame, std::move(func_val), std::move(this_val), std::distance(begin, end));
-
 		return stack_frame->pop();
-	}
+}
 
 private:
 	Value& GetVar(StackFrame* stack_frame, VarIndex idx);

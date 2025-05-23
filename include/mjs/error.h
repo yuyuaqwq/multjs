@@ -5,6 +5,8 @@
 #include <utility>
 #include <exception>
 
+#include <mjs/value.h>
+
 namespace mjs {
 
 class Error : public std::exception {
@@ -23,16 +25,15 @@ public:
 	}
 
 	virtual const char* what() const override {
-		if (!error_name_) {
-			auto mut_this = const_cast<Error*>(this);
-			mut_this->info_ = std::string(error_name()) + ": " + info_;
-			mut_this->error_name_ = true;
-		}
 		return info_.c_str();
 	}
 
+	template<typename... Args>
+	static Value Throw(std::format_string<Args...> fmt, Args&&... args) {
+		return Value(String::New(std::format(fmt, std::forward<Args>(args)...))).SetException();
+	}
+
 private:
-	bool error_name_ = false;
 	std::string info_;
 };
 

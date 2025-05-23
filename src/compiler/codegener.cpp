@@ -90,7 +90,7 @@ void CodeGener::GenerateExpression(Expression* exp) {
 		//	cur_func_def_->byte_code().EmitConstLoad(const_idx);
 		//}
 		//else {
-			// throw CodeGenerException("Undefined class.");
+			// throw std::runtime_error("Undefined class.");
 			// 尝试查找到对应的变量索引
 			const auto* var_info = GetVarByExpression(exp);
 			if (var_info) {
@@ -138,7 +138,7 @@ void CodeGener::GenerateExpression(Expression* exp) {
 			auto& prop_exp = mem_exp.property()->as<Identifier>();
 
 			//if (prop_exp->GetType() != ExpType::kIdentifier) {
-			//	throw CodeGenerException("Incorrect right value for attribute access.");
+			//	throw std::runtime_error("Incorrect right value for attribute access.");
 			//}
 
 			// 访问对象成员
@@ -266,7 +266,7 @@ void CodeGener::GenerateExpression(Expression* exp) {
 		auto& call_exp = exp->as<CallExpression>();
 
 		//if (func_call_exp->par_list.size() < const_table_[]->function_def()->par_count) {
-		//	throw CodeGenerException("Wrong number of parameters passed during function call");
+		//	throw std::runtime_error("Wrong number of parameters passed during function call");
 		//}
 
 		GenerateParamList(call_exp.arguments());
