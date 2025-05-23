@@ -21,7 +21,7 @@ using Source = std::string;
 class LineTable {
 public:
     // 预处理源码，构建行号映射表
-    void Build(const Source& source) {
+    void Build(std::string_view source) {
         line_offsets_.clear();
         line_offsets_.push_back(0); // 第1行从0开始
 

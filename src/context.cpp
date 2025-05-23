@@ -33,7 +33,7 @@ Value Context::CompileModule(std::string module_name, std::string_view script) {
 	parser.ParseProgram();
 
 	auto codegener = compiler::CodeGener(this, &parser);
-	auto module_def = codegener.Generate(std::move(module_name));
+	auto module_def = codegener.Generate(std::move(module_name), script);
 	return module_def;
 }
 

@@ -35,7 +35,7 @@ public:
 	void set(ptrdiff_t index, const Value& value);
 	void set(ptrdiff_t index, Value&& value);
 
-	const auto& upper_stack_frame() const { return *upper_stack_frame_; }
+	const auto* upper_stack_frame() const { return upper_stack_frame_; }
 
 	size_t bottom() const { return bottom_; }
 	void set_bottom(size_t bottom) { bottom_ = bottom; }

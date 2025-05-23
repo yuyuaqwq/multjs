@@ -267,7 +267,7 @@ Token Lexer::ReadNextToken() {
     }
 
     // String
-    if (c == '\'' || c == '\"') {
+    if (c == '\'' || c == '\"' || c == '`') {
         char quote_type = c; // 记录引号类型（单引号或双引号）
         size_t begin_pos = pos_; // 记录字符串开始位置
         std::string str_value;

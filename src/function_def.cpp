@@ -4,8 +4,9 @@
 
 namespace mjs {
 
-FunctionDef::FunctionDef(Runtime* runtime, std::string name, uint32_t par_count) noexcept
+FunctionDef::FunctionDef(Runtime* runtime, ModuleDef* module_def, std::string name, uint32_t par_count) noexcept
 	: runtime_(runtime)
+	, module_def_(module_def)
 	, name_(name)
 	, par_count_(par_count) {}
 

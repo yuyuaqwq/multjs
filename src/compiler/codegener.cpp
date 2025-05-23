@@ -30,11 +30,12 @@ void CodeGener::AddCppFunction(const std::string& func_name, CppFunction func) {
 //	GenerateImportDeclaration(&decl);
 //}
 
-Value CodeGener::Generate(std::string&& module_name) {
+Value CodeGener::Generate(std::string&& module_name, std::string_view source) {
 	scopes_.clear();
 
 	// 创建模块的函数定义
-	cur_func_def_ = new ModuleDef(&context_->runtime(), std::move(module_name), 0);
+	cur_module_def_ = new ModuleDef(&context_->runtime(), std::move(module_name), source, 0);
+	cur_func_def_ = cur_module_def_;
 	cur_func_def_->set_is_module();
 	AllocConst(Value(cur_func_def_));
 
@@ -54,7 +55,6 @@ Value CodeGener::Generate(std::string&& module_name) {
 	ExitScope();
 
 	return Value(static_cast<ModuleDef*>(cur_func_def_));
-
 }
 
 
@@ -351,7 +351,7 @@ void CodeGener::GenerateFunctionBody(Statement* statement) {
 }
 
 void CodeGener::GenerateFunctionExpression(FunctionExpression* exp) {
-	auto const_idx = AllocConst(Value(new FunctionDef(&context_->runtime(), exp->id(), exp->params().size())));
+	auto const_idx = AllocConst(Value(new FunctionDef(&context_->runtime(), cur_module_def_, exp->id(), exp->params().size())));
 	auto& func_def = GetConstValueByIndex(const_idx).function_def();
 	func_def.set_is_normal();
 	if (exp->is_generator()) {
@@ -405,7 +405,7 @@ void CodeGener::GenerateFunctionExpression(FunctionExpression* exp) {
 
 void CodeGener::GenerateArrowFunctionExpression(ArrowFunctionExpression* exp) {
 	auto& arrow_exp = exp->as<ArrowFunctionExpression>();
-	auto const_idx = AllocConst(Value(new FunctionDef(&context_->runtime(), "", arrow_exp.params().size())));
+	auto const_idx = AllocConst(Value(new FunctionDef(&context_->runtime(), cur_module_def_, "<anonymous_function>", arrow_exp.params().size())));
 	auto& func_def = GetConstValueByIndex(const_idx).function_def();
 	func_def.set_is_arrow();
 	if (arrow_exp.is_async()) {
@@ -545,7 +545,8 @@ void CodeGener::GenerateStatement(Statement* stat) {
 		throw SyntaxError("Unknown statement type");
 	}
 	auto end_pc = cur_func_def_->byte_code().Size();
-	cur_func_def_->debug_table().AddEntry(start_pc, end_pc, stat->start(), stat->end());
+	auto&& [line, column] = cur_module_def_->line_table().PosToLineAndColumn(stat->start());
+	cur_func_def_->debug_table().AddEntry(start_pc, end_pc, stat->start(), stat->end(), line);
 }
 
 void CodeGener::GenerateExpressionStatement(ExpressionStatement* stat) {

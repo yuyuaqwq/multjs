@@ -38,7 +38,7 @@ public:
 
 	// void AddImportModule();
 
-	Value Generate(std::string&& module_name);
+	Value Generate(std::string&& module_name, std::string_view source);
 
 
 private:
@@ -98,6 +98,9 @@ private:
 private:
 	Context* context_;
 	Parser* parser_;
+
+	// 模块
+	ModuleDef* cur_module_def_ = nullptr;				// 当前生成模块
 
 	// 函数
 	FunctionDef* cur_func_def_ = nullptr;				// 当前生成函数

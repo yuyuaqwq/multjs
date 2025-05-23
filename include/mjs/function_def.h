@@ -21,6 +21,7 @@ struct ClosureVarDef {
 };
 
 class Runtime;
+class ModuleDef;
 // 不会有循环引用问题，仅使用引用计数管理
 class FunctionDef : public ReferenceCounter<FunctionDef> {
 public:
@@ -32,7 +33,7 @@ public:
 	};
 
 public:
-	FunctionDef(Runtime* runtime, std::string name, uint32_t par_count) noexcept;
+	FunctionDef(Runtime* runtime, ModuleDef* module_def, std::string name, uint32_t par_count) noexcept;
 
 	std::string Disassembly(Context* context) const;
 
@@ -55,6 +56,7 @@ public:
 		);
 	}
 
+	const auto& module_def() const { return *module_def_; }
 	const auto& name() const { return name_; }
 
 	void set_is_normal() {
@@ -103,7 +105,6 @@ public:
 		return flags_.is_asnyc_;
 	}
 
-
 	auto par_count() const { return par_count_; }
 	auto var_count() const { return var_count_; }
 
@@ -124,6 +125,8 @@ public:
 
 protected:
 	Runtime* runtime_;
+
+	ModuleDef* module_def_;
 
 	std::string name_;
 	// FunctionType type_ = FunctionType::kNormal;
