@@ -278,6 +278,7 @@ Shape::~Shape() {
 }
 
 const int Shape::Find(ConstIndex const_index) const {
+    if (!property_map_) { return -1; }
     return property_map_->Find(const_index, property_size_);
 }
 

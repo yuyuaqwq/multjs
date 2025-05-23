@@ -877,8 +877,7 @@ Value Value::ToString(Context* context) const {
 		if (IsObject()) {
 			return object().ToString(context);
 		}
-		return Value("unknown");
-		// throw std::runtime_error("Incorrect value type.");
+		throw std::runtime_error("Incorrect value type.");
 	}
 }
 
