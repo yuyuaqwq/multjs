@@ -45,8 +45,8 @@ public:
             throw std::out_of_range("Position is beyond the last line");
         }
 
-        SourceLine line = static_cast<SourceLine>(std::distance(line_offsets_.begin(), it));
-        SourceColumn column = pos - line_offsets_[line - 1] + 1; // 转为1-based列号
+        SourceLine line = static_cast<SourceLine>(std::distance(line_offsets_.begin(), it)) + 1;
+        SourceColumn column = pos - *it; // 转为1-based列号
         return { line, column };
     }
 
