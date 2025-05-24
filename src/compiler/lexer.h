@@ -17,7 +17,9 @@ public:
 		SourcePos pos;
 		SourcePos peek_pos;
 		Token cur_token;
-		Token peek_;
+		Token peek;
+		bool in_template;
+		bool in_template_interpolation;
 	};
 
 public:
@@ -34,7 +36,9 @@ public:
 			.pos = pos_,
 			.peek_pos = peek_pos_,
 			.cur_token = cur_token_,
-			.peek_ = peek_,
+			.peek = peek_,
+			.in_template = in_template_,
+			.in_template_interpolation = in_template_interpolation_,
 		};
 	}
 
@@ -42,7 +46,9 @@ public:
 		pos_ = checkpoint.pos;
 		peek_pos_ = checkpoint.peek_pos;
 		cur_token_ = checkpoint.cur_token;
-		peek_ = checkpoint.peek_;
+		peek_ = checkpoint.peek;
+		in_template_ = checkpoint.in_template;
+		in_template_interpolation_ = checkpoint.in_template_interpolation;
 	}
 
 	//SourcePos GetSourcePosWithSkipUselessString() { 
@@ -65,13 +71,14 @@ private:
 	char NextChar() noexcept;
 	char PeekChar() noexcept;
 	void SkipChar(int count) noexcept;
-	bool TestStr(const std::string& str);
-	bool TestStr(const char* str, size_t size);
+	bool TestStr(std::string_view string);
 	bool TestChar(char c);
 
 	void SkipUselessStr();
 
 	Token ReadNextToken();
+
+	std::string ReadString(char quote_type, std::initializer_list<std::string_view> end_strings = {});
 
 private:
 	std::string src_;
@@ -79,6 +86,9 @@ private:
 	SourcePos peek_pos_ = 0;
 	Token cur_token_;
 	Token peek_;
+
+	bool in_template_ = false;
+	bool in_template_interpolation_ = false;
 };
 
 } // namespace compiler

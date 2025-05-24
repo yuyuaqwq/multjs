@@ -35,10 +35,10 @@ public:
         return state_ == State::kRejected;
     }
 
-    const auto& result() const { return result_or_reason_; }
-    void set_result(Value result) { result_or_reason_ = std::move(result); }
+    const auto& result() const { assert(IsFulfilled()); return result_or_reason_; }
+    void set_result(Value result) { assert(IsFulfilled()); result_or_reason_ = std::move(result); }
     
-    const auto& reason() const { assert(IsFulfilled());  return result_or_reason_; }
+    const auto& reason() const { assert(IsRejected());  return result_or_reason_; }
     void set_reason(Value reason) { assert(IsRejected()); result_or_reason_ = std::move(reason); }
 
 private:

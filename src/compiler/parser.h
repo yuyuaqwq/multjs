@@ -52,6 +52,7 @@ public:
 	std::unique_ptr<ArrayExpression> ParseArrayExpression();
 	std::unique_ptr<ObjectExpression> ParseObjectExpression();
 	std::unique_ptr<ThisExpression> ParseThis();
+	std::unique_ptr<TemplateLiteral> ParseTemplateLiteral();
 	std::unique_ptr<Expression> ParseLiteral();
 	std::unique_ptr<Expression> TryParseLiteral();
 	std::unique_ptr<Identifier> ParseIdentifier();

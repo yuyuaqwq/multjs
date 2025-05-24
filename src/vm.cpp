@@ -422,6 +422,11 @@ void VM::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 				obj.SetComputedProperty(context_, idx_val, std::move(val));
 				break;
 			}
+			case OpcodeType::kToString: {
+				auto& a = stack_frame->get(-1);
+				a = a.ToString(context_);
+				break;
+			}
 			case OpcodeType::kAdd: {
 				auto a = stack_frame->pop();
 				auto& b = stack_frame->get(-1);

@@ -32,12 +32,8 @@ void Lexer::SkipChar(int count) noexcept {
     pos_ += count;
 }
 
-bool Lexer::TestStr(const std::string& str) {
+bool Lexer::TestStr(std::string_view str) {
     return !src_.compare(pos_, str.size(), str);
-}
-
-bool Lexer::TestStr(const char* str, size_t size) {
-    return !src_.compare(pos_, size, str);
 }
 
 
@@ -63,13 +59,13 @@ void Lexer::SkipUselessStr() {
         } while (c = PeekChar());
 
         // 跳过注释
-        if (TestStr("//", 2)) {
+        if (TestStr({ "//", 2 })) {
             SkipChar(2);
             while ((c = PeekChar()) && c != '\n') {
                 NextChar();
             }
         }
-        else if (TestStr("/*", 2)) {
+        else if (TestStr({ "/*", 2 })) {
             // 多行注释
             SkipChar(2);
             bool end = false;
@@ -77,7 +73,7 @@ void Lexer::SkipUselessStr() {
                 if (c == '\n') {
                     NextChar();
                 }
-                else if (TestStr("*/", 2)) {
+                else if (TestStr({ "*/", 2 })) {
                     SkipChar(2);
                     end = true;
                     break;
@@ -165,6 +161,36 @@ Token Lexer::ReadNextToken() {
         return token;
     }
 
+    // TemplateString
+    if (c == '`') {
+        in_template_ = !in_template_;
+        token.set_type(TokenType::kBacktick);
+        return token;
+    }
+    if (in_template_) {
+        if (c == '$' && TestChar('{')) {
+            if (in_template_interpolation_) {
+                throw SyntaxError("Nested interpolation expression.");
+            }
+            SkipChar(1);
+            in_template_interpolation_ = true;
+            token.set_type(TokenType::kTemplateInterpolationStart);
+            return token;
+        }
+        else if (in_template_interpolation_ && c == '}') {
+            in_template_interpolation_ = false;
+            token.set_type(TokenType::kTemplateInterpolationEnd);
+            return token;
+        }
+        else if (!in_template_interpolation_) {
+            // 解析模板元素
+            token.set_type(TokenType::kTemplateElement);
+            token.set_value(ReadString(c, { "${" }));
+            return token;
+        }
+    }
+
+
     // 根据符号返回对应类型的Token
     // 目前没有一个字符找不到但是两个能找到的类型
     auto c_str = std::string(1, c);
@@ -190,46 +216,46 @@ Token Lexer::ReadNextToken() {
     // Number
     if (c == 'N' && TestStr("aN")) {
         token.set_type(TokenType::kFloat);
-        token.set_str("NaN");
+        token.set_value("NaN");
         return token;
     }
     else if (c == 'I' && TestStr("nfinity")) {
         token.set_type(TokenType::kFloat);
-        token.set_str("Infinity");
+        token.set_value("Infinity");
         return token;
     }
     else if (c == '0') {
         token.set_type(TokenType::kInteger);
-        token.mutable_str()->push_back(c);
+        token.mutable_value()->push_back(c);
         char next_char = PeekChar();
         if (next_char == 'x' || next_char == 'X') {
             // Hexadecimal
-            token.mutable_str()->push_back(NextChar());
+            token.mutable_value()->push_back(NextChar());
             while (std::isxdigit(c = NextChar())) {
-                token.mutable_str()->push_back(c);
+                token.mutable_value()->push_back(c);
             }
             SkipChar(-1);
         }
         else if (next_char == 'b' || next_char == 'B') {
             // Binary
-            token.mutable_str()->push_back(NextChar());
+            token.mutable_value()->push_back(NextChar());
             while ((c = NextChar()) == '0' || c == '1') {
-                token.mutable_str()->push_back(c);
+                token.mutable_value()->push_back(c);
             }
             SkipChar(-1);
         }
         else if (next_char == 'o' || next_char == 'O') {
             // Octal
-            token.mutable_str()->push_back(NextChar());
+            token.mutable_value()->push_back(NextChar());
             while ((c = NextChar()) >= '0' && c <= '7') {
-                token.mutable_str()->push_back(c);
+                token.mutable_value()->push_back(c);
             }
             SkipChar(-1);
         }
         else {
             // Normal number starting with 0
             while (IsDigit(c = NextChar())) {
-                token.mutable_str()->push_back(c);
+                token.mutable_value()->push_back(c);
             }
             SkipChar(-1);
         }
@@ -239,7 +265,7 @@ Token Lexer::ReadNextToken() {
         // Float and integer parsing, including scientific notation
         bool point = false, exp = false;
         token.set_type(TokenType::kInteger);
-        token.mutable_str()->push_back(c);
+        token.mutable_value()->push_back(c);
         while (c = NextChar()) {
             if (c == '.' && !point && !exp) {
                 point = true;
@@ -247,10 +273,10 @@ Token Lexer::ReadNextToken() {
             else if ((c == 'e' || c == 'E') && !exp) {
                 exp = true;
                 point = true; // After 'e' no more decimal point allowed
-                token.mutable_str()->push_back(c);
+                token.mutable_value()->push_back(c);
                 char next_char = PeekChar();
                 if (next_char == '+' || next_char == '-') {
-                    token.mutable_str()->push_back(NextChar());
+                    token.mutable_value()->push_back(NextChar());
                 }
                 continue;
             }
@@ -258,7 +284,7 @@ Token Lexer::ReadNextToken() {
                 SkipChar(-1);
                 break;
             }
-            token.mutable_str()->push_back(c);
+            token.mutable_value()->push_back(c);
         }
         if (point == true || exp == true) {
             token.set_type(TokenType::kFloat);
@@ -267,41 +293,8 @@ Token Lexer::ReadNextToken() {
     }
 
     // String
-    if (c == '\'' || c == '\"' || c == '`') {
-        char quote_type = c; // 记录引号类型（单引号或双引号）
-        size_t begin_pos = pos_; // 记录字符串开始位置
-        std::string str_value;
-        while (true) {
-            c = NextChar();
-            if (c == '\\') {
-                // 处理转义字符
-                char escapedChar = NextChar();
-                switch (escapedChar) {
-                case 'n': str_value.push_back('\n'); break;
-                case 't': str_value.push_back('\t'); break;
-                case 'r': str_value.push_back('\r'); break;
-                case '\\': str_value.push_back('\\'); break;
-                case '\"': str_value.push_back('\"'); break;
-                case '\'': str_value.push_back('\''); break;
-                case '\n': continue; // 换行续行
-                default:
-                    throw SyntaxError("Invalid escape character");
-                }
-            }
-            else if (c == quote_type) {
-                // 遇到匹配的引号，字符串结束
-                break;
-            }
-            else if (c == '\0') {
-                // 字符串未闭合
-                throw SyntaxError("Unterminated string literal");
-            }
-            else {
-                str_value.push_back(c); // 普通字符
-            }
-        }
-
-        token.set_str(str_value);
+    if (c == '\'' || c == '\"') {
+        token.set_value(ReadString(c));
         token.set_type(TokenType::kString);
         return token;
     }
@@ -322,7 +315,7 @@ Token Lexer::ReadNextToken() {
 
         if (cur_token_.is(TokenType::kSepDot)) {
             token.set_type(TokenType::kIdentifier);
-            token.set_str(ident);
+            token.set_value(ident);
             return token;
         }
 
@@ -334,12 +327,59 @@ Token Lexer::ReadNextToken() {
         }
 
         token.set_type(TokenType::kIdentifier);
-        token.set_str(ident);
+        token.set_value(ident);
         return token;
         
     }
 
     throw SyntaxError("cannot parse token: {}", c);
+}
+
+std::string Lexer::ReadString(char quote_type, std::initializer_list<std::string_view> end_strings) {
+    size_t begin_pos = pos_; // 记录字符串开始位置
+    std::string str_value;
+    while (true) {
+        char c = NextChar();
+
+        bool end = false;
+        for (auto end_string : end_strings) {
+            if (end_string.empty()) continue;
+            if (c == end_string[0] && TestStr(end_string.data() + 1)) {
+                SkipChar(end_string.size() - 1);
+                end = true;
+            }
+            
+        }
+        if (end) break;
+
+        if (c == '\\') {
+            // 处理转义字符
+            char escapedChar = NextChar();
+            switch (escapedChar) {
+            case 'n': str_value.push_back('\n'); break;
+            case 't': str_value.push_back('\t'); break;
+            case 'r': str_value.push_back('\r'); break;
+            case '\\': str_value.push_back('\\'); break;
+            case '\"': str_value.push_back('\"'); break;
+            case '\'': str_value.push_back('\''); break;
+            case '\n': continue; // 换行续行
+            default:
+                throw SyntaxError("Invalid escape character");
+            }
+        }
+        else if (c == quote_type) {
+            // 遇到匹配的引号，字符串结束
+            break;
+        }
+        else if (c == '\0') {
+            // 字符串未闭合
+            throw SyntaxError("Unterminated string literal");
+        }
+        else {
+            str_value.push_back(c); // 普通字符
+        }
+    }
+    return str_value;
 }
 
 } // namespace compiler

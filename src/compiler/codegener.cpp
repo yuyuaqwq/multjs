@@ -117,6 +117,25 @@ void CodeGener::GenerateExpression(Expression* exp) {
 		}
 		break;
 	}
+	case ExpressionType::kTemplateLiteral: {
+		// 生成字符串拼接
+		auto& template_exp = exp->as<TemplateLiteral>();
+		if (template_exp.expressions().empty()) {
+			auto const_idx = AllocConst(Value(""));
+			cur_func_def_->bytecode_table().EmitConstLoad(const_idx);
+		}
+		size_t i = 0;
+		for (auto& exp : template_exp.expressions()) {
+			GenerateExpression(exp.get());
+			if (i == 0) {
+				cur_func_def_->bytecode_table().EmitOpcode(OpcodeType::kToString);
+			}
+			if (++i < template_exp.expressions().size()) {
+				cur_func_def_->bytecode_table().EmitOpcode(OpcodeType::kAdd);
+			}
+		}
+		break;
+	}
 	case ExpressionType::kMemberExpression: {
 		auto& mem_exp = exp->as<MemberExpression>();
 

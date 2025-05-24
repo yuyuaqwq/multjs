@@ -31,21 +31,29 @@ Value Context::CompileModule(std::string module_name, std::string_view script) {
 	auto lexer = compiler::Lexer(script.data());
 	auto parser = compiler::Parser(&lexer);
 	auto codegener = compiler::CodeGener(this, &parser);
+	// todo: 未来转为Error对象
+
 	try {
 		parser.ParseProgram();
+	}
+	catch (SyntaxError& e) {
+		auto pos = lexer.GetRawSourcePos();
+		LineTable line_table;
+		line_table.Build(script);
+		auto&& [line, column] = line_table.PosToLineAndColumn(pos);
+		auto info = std::format("{}: [name:{}, line:{}, column:{}] {}", e.error_name(), module_name, line, column, e.what());
+		return Value(String::New(info)).SetException();
+	}
+	try {
 		auto module_def = codegener.Generate(std::move(module_name), script);
 		return module_def;
 	}
 	catch (SyntaxError& e) {
 		std::string info;
 		if (codegener.cur_module_def()) {
-			// todo: 未来转为Error对象
 			auto pos = lexer.GetRawSourcePos();
 			auto&& [line, column] = codegener.cur_module_def()->line_table().PosToLineAndColumn(pos);
 			info = std::format("{}: [name:{}, line:{}, column:{}] {}", e.error_name(), codegener.cur_module_def()->name(), line, column, e.what());
-		}
-		else {
-			info = "unknown error.";
 		}
 		return Value(String::New(info)).SetException();
 	}

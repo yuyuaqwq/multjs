@@ -22,6 +22,11 @@ enum class TokenType {
     kFloat,  // 浮点数
     kInteger,  // 整数
     kString,       // 字符串
+    kBacktick,     // `
+    kTemplateElement, 
+    kTemplateInterpolationStart, // ${
+    kTemplateInterpolationEnd, // }
+
     kIdentifier,   // [a-zA-Z_][a-zA-Z0-9_]*
 
     // 分隔符
@@ -138,16 +143,16 @@ public:
 	TokenType type() const { return type_; }
 	void set_type(TokenType type) { type_ = type; }
 
-	std::string* mutable_str() { return &str_; }
-	const std::string& str() const { return str_; }
-	void set_str(std::string str) { str_ = std::move(str); }
+	std::string* mutable_value() { return &value_; }
+	const std::string& value() const { return value_; }
+	void set_value(std::string value) { value_ = std::move(value); }
 
     static std::string TypeToString(TokenType type);
 
 private:
 	SourcePos pos_ = 0;		// 位置
 	TokenType type_ = TokenType::kNone;		// token类型
-	std::string str_;	// 保存必要的信息
+	std::string value_;	// 保存必要的信息
 };
 
 extern std::unordered_map<std::string, TokenType> g_operators;

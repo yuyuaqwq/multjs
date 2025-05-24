@@ -126,7 +126,7 @@ std::unique_ptr<Expression> Parser::TryParseArrowFunction(SourcePos start, bool 
 	}
 	else {
 		// 单个参数
-		params.push_back(lexer_->NextToken().str());
+		params.push_back(lexer_->NextToken().value());
 	}
 
 	// 检查是否有箭头 =>
@@ -176,7 +176,7 @@ std::unique_ptr<Expression> Parser::ParseTraditionalFunction(SourcePos start, bo
 	// 函数名
 	std::string id;
 	if (lexer_->PeekToken().is(TokenType::kIdentifier)) {
-		id = lexer_->NextToken().str();
+		id = lexer_->NextToken().value();
 	}
 
 	// 参数
@@ -609,7 +609,7 @@ std::unique_ptr<ObjectExpression> Parser::ParseObjectExpression() {
 			lexer_->MatchToken(TokenType::kSepColon);
 			// 避免解析kSepComma
 			properties.emplace_back(ObjectExpression::Property{
-				.key = ident.str(),
+				.key = ident.value(),
 				.value = ParseAssignmentOrFunction()
 			});
 			if (!lexer_->PeekToken().is(TokenType::kSepComma)) {
@@ -631,6 +631,36 @@ std::unique_ptr<ThisExpression> Parser::ParseThis() {
 	lexer_->MatchToken(TokenType::kKwThis);
 	auto end = lexer_->GetRawSourcePos();
 	return std::make_unique<ThisExpression>(start, end);
+}
+
+std::unique_ptr<TemplateLiteral> Parser::ParseTemplateLiteral() {
+	auto start = lexer_->GetSourcePos();
+	lexer_->MatchToken(TokenType::kBacktick);
+	// std::vector<std::unique_ptr<TemplateElement>> quasis;
+	std::vector<std::unique_ptr<Expression>> expressions;
+
+	do {
+		auto token = lexer_->PeekToken();
+		if (token.is(TokenType::kBacktick)) {
+			lexer_->NextToken();
+			// return std::make_unique<TemplateLiteral>(start, lexer_->GetSourcePos(), std::move(quasis), std::move(expressions));
+			return std::make_unique<TemplateLiteral>(start, lexer_->GetSourcePos(), std::move(expressions));
+		}
+		else if (token.is(TokenType::kTemplateElement)) {
+			auto element = ParseLiteral();
+			// quasis.emplace_back(std::unique_ptr<TemplateElement>(static_cast<TemplateElement*>(element.release())));
+			expressions.emplace_back(std::move(element));
+		}
+		else if (token.is(TokenType::kTemplateInterpolationStart)) {
+			lexer_->NextToken();
+			expressions.emplace_back(ParseExpression());
+			lexer_->MatchToken(TokenType::kTemplateInterpolationEnd);
+		}
+		else {
+			throw SyntaxError("Incorrect token: {}.", Token::TypeToString(token.type()));
+		}
+	} while (true);
+
 }
 
 std::unique_ptr<Expression> Parser::ParseLiteral() {
@@ -668,17 +698,25 @@ std::unique_ptr<Expression> Parser::TryParseLiteral() {
 	}
 	case TokenType::kFloat: {
 		lexer_->NextToken();
-		exp = std::make_unique<FloatLiteral>(start, lexer_->GetRawSourcePos(), std::stod(token.str()));
+		exp = std::make_unique<FloatLiteral>(start, lexer_->GetRawSourcePos(), std::stod(token.value()));
 		break;
 	}
 	case TokenType::kInteger: {
 		lexer_->NextToken();
-		exp = std::make_unique<IntegerLiteral>(start, lexer_->GetRawSourcePos(), std::stoll(token.str()));
+		exp = std::make_unique<IntegerLiteral>(start, lexer_->GetRawSourcePos(), std::stoll(token.value()));
 		break;
 	}
 	case TokenType::kString: {
 		lexer_->NextToken();
-		exp = std::make_unique<StringLiteral>(start, lexer_->GetRawSourcePos(), std::string(token.str()));
+		exp = std::make_unique<StringLiteral>(start, lexer_->GetRawSourcePos(), std::string(token.value()));
+		break;
+	}
+	case TokenType::kBacktick: {
+		return ParseTemplateLiteral();
+	}
+	case TokenType::kTemplateElement: {
+		lexer_->NextToken();
+		exp = std::make_unique<TemplateElement>(start, lexer_->GetRawSourcePos(), std::string(token.value()));
 		break;
 	}
 	}
@@ -690,7 +728,7 @@ std::unique_ptr<Identifier> Parser::ParseIdentifier() {
 	auto start = lexer_->GetSourcePos();
 	auto token = lexer_->MatchToken(TokenType::kIdentifier);
 	auto end = lexer_->GetRawSourcePos();
-	auto exp = std::make_unique<Identifier>(start, end, std::string(token.str()));
+	auto exp = std::make_unique<Identifier>(start, end, std::string(token.value()));
 	exp->set_value_category(ValueCategory::kLValue);
 	return exp;
 }
@@ -771,10 +809,10 @@ std::unique_ptr<Statement> Parser::ParseImportStatement(TokenType type) {
 		lexer_->MatchToken(type);
 		auto token = lexer_->NextToken();
 		lexer_->MatchToken(TokenType::kKwAs);
-		auto module_name = lexer_->MatchToken(TokenType::kIdentifier).str();
+		auto module_name = lexer_->MatchToken(TokenType::kIdentifier).value();
 		lexer_->MatchToken(TokenType::kKwFrom);
 
-		auto source = lexer_->MatchToken(TokenType::kString).str();
+		auto source = lexer_->MatchToken(TokenType::kString).value();
 
 		// 静态import会被提升，单独保存
 		auto end = lexer_->GetRawSourcePos();
@@ -821,7 +859,7 @@ std::unique_ptr<ExportDeclaration> Parser::ParseExportDeclaration(TokenType type
 std::unique_ptr<VariableDeclaration> Parser::ParseVariableDeclaration(TokenType kind) {
 	auto start = lexer_->GetSourcePos();
 	lexer_->MatchToken(kind);
-	auto name = lexer_->MatchToken(TokenType::kIdentifier).str();
+	auto name = lexer_->MatchToken(TokenType::kIdentifier).value();
 
 	ParseTypeAnnotation();
 
@@ -862,7 +900,7 @@ std::unique_ptr<IfStatement> Parser::ParseIfStatement() {
 
 std::unique_ptr<LabeledStatement> Parser::ParseLabeledStatement() {
 	auto start = lexer_->GetSourcePos();
-	auto label_name = lexer_->MatchToken(TokenType::kIdentifier).str();
+	auto label_name = lexer_->MatchToken(TokenType::kIdentifier).value();
 	lexer_->MatchToken(TokenType::kSepColon);
 	auto stat = ParseStatement();
 	auto end = lexer_->GetRawSourcePos();
@@ -940,7 +978,7 @@ std::unique_ptr<ContinueStatement> Parser::ParseContinueStatement() {
 	lexer_->MatchToken(TokenType::kKwContinue);
 	std::optional<std::string> label_name;
 	if (lexer_->PeekToken().is(TokenType::kIdentifier)) {
-		label_name = lexer_->NextToken().str();
+		label_name = lexer_->NextToken().value();
 	}
 	lexer_->MatchToken(TokenType::kSepSemi);
 	auto end = lexer_->GetRawSourcePos();
@@ -952,7 +990,7 @@ std::unique_ptr<BreakStatement> Parser::ParseBreakStatement() {
 	lexer_->MatchToken(TokenType::kKwBreak);
 	std::optional<std::string> label_name;
 	if (lexer_->PeekToken().is(TokenType::kIdentifier)) {
-		label_name = lexer_->NextToken().str();
+		label_name = lexer_->NextToken().value();
 	}
 	lexer_->MatchToken(TokenType::kSepSemi);
 	auto end = lexer_->GetRawSourcePos();
@@ -1049,7 +1087,7 @@ std::vector<std::string> Parser::ParseParameters() {
 	std::vector<std::string> parList;
 	if (!lexer_->PeekToken().is(TokenType::kSepRParen)) {
 		do {
-			parList.push_back(lexer_->MatchToken(TokenType::kIdentifier).str());
+			parList.push_back(lexer_->MatchToken(TokenType::kIdentifier).value());
 
 			ParseTypeAnnotation();
 
@@ -1112,13 +1150,13 @@ std::unique_ptr<UnionType> Parser::ParseUnionType() {
 		if (token.is(TokenType::kIdentifier)) {
 			auto start = lexer_->GetSourcePos();
 			lexer_->NextToken();
-			auto iter = predefined_type.find(token.str());
+			auto iter = predefined_type.find(token.value());
 			auto end = lexer_->GetRawSourcePos();
 			if (iter != predefined_type.end()) {
 				types.emplace_back(std::make_unique<PredefinedType>(start, end, iter->second));
 			}
 			else {
-				types.emplace_back(std::make_unique<NamedType>(start, end, std::string(token.str())));
+				types.emplace_back(std::make_unique<NamedType>(start, end, std::string(token.value())));
 			}
 		}
 		else {

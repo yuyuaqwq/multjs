@@ -36,6 +36,7 @@ enum class ExpressionType {
 
     // 模板字符串
     kTemplateLiteral,
+    kTemplateElement,
     kTaggedTemplateExpression,
 
     // 成员访问与调用
@@ -185,6 +186,46 @@ public:
         return ExpressionType::kThisExpression;
     }
 };
+
+
+class TemplateElement : public Expression {
+public:
+    TemplateElement(SourcePos start, SourcePos end, std::string&& value)
+        : Expression(start, end), value_(std::move(value)) {
+    }
+
+    ExpressionType type() const noexcept override {
+        return ExpressionType::kTemplateElement;
+    }
+
+    const std::string& value() const { return value_; }
+
+private:
+    std::string value_;
+};
+
+class TemplateLiteral : public Expression {
+public:
+    TemplateLiteral(SourcePos start, SourcePos end
+        // , std::vector<std::unique_ptr<TemplateElement>>&& quasis
+        , std::vector<std::unique_ptr<Expression>>&& expressions)
+        : Expression(start, end)
+        // , quasis_(std::move(quasis))
+        , expressions_(std::move(expressions)) {}
+
+    ExpressionType type() const noexcept override {
+        return ExpressionType::kTemplateLiteral;
+    }
+
+    // const auto& quasis() const { return quasis_; }
+    const auto& expressions() const { return expressions_; }
+
+
+private:
+    // std::vector<std::unique_ptr<TemplateElement>> quasis_;
+    std::vector<std::unique_ptr<Expression>> expressions_;
+};
+
 
 
 class ArrayExpression : public Expression {

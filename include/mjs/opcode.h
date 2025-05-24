@@ -56,6 +56,8 @@ enum class OpcodeType : uint8_t {
 	kSwap = 0x52,
 	kUndefined = 0x53,
 
+	kToString = 0x58,
+
 	// Arithmetic operations
 	kAdd = 0x60,
 	kInc = 0x61,	
