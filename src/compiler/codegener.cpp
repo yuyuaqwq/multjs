@@ -128,13 +128,16 @@ void CodeGener::GenerateExpression(Expression* exp) {
 		size_t i = 0;
 		for (auto& exp : template_exp.expressions()) {
 			GenerateExpression(exp.get());
-			if (++i < template_exp.expressions().size()) {
-				cur_func_def_->bytecode_table().EmitOpcode(OpcodeType::kAdd);
+			++i;
+			if (i == 1) {
+				continue;
 			}
+			else if (i == 2) {
+				cur_func_def_->bytecode_table().EmitOpcode(OpcodeType::kToString);
+			}
+			cur_func_def_->bytecode_table().EmitOpcode(OpcodeType::kAdd);
 		}
-		if (!template_exp.expressions().empty()) {
-			cur_func_def_->bytecode_table().EmitOpcode(OpcodeType::kToString);
-		}
+
 		break;
 	}
 	case ExpressionType::kMemberExpression: {
