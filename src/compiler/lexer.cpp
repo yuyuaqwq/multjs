@@ -183,9 +183,10 @@ Token Lexer::ReadNextToken() {
             return token;
         }
         else if (!in_template_interpolation_) {
+            --pos_;
             // 解析模板元素
             token.set_type(TokenType::kTemplateElement);
-            token.set_value(ReadString(c, { "${" }));
+            token.set_value(ReadString('\0', {"`", "${"}));
             return token;
         }
     }
@@ -345,8 +346,9 @@ std::string Lexer::ReadString(char quote_type, std::initializer_list<std::string
         for (auto end_string : end_strings) {
             if (end_string.empty()) continue;
             if (c == end_string[0] && TestStr(end_string.data() + 1)) {
-                SkipChar(end_string.size() - 1);
+                --pos_;
                 end = true;
+                break;
             }
             
         }

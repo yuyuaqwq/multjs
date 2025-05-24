@@ -739,7 +739,15 @@ void VM::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 						goto exit_;
 					}
 				}
-				stack_frame->push(context_->runtime().module_manager().GetModule(context_, path.string_view()));
+				auto module = context_->runtime().module_manager().GetModule(context_, path.string_view());
+				stack_frame->push(module);
+				if (module.IsException()) {
+					pending_error_val = std::move(module);
+					if (!ThrowExecption(stack_frame, &pending_error_val)) {
+						pending_return_val = std::move(pending_error_val);
+						goto exit_;
+					}
+				}
 				break;
 			}
 			case OpcodeType::kGetModuleAsync: {
@@ -752,7 +760,14 @@ void VM::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 					}
 				}
 				auto module = context_->runtime().module_manager().GetModuleAsync(context_, path.string_view());
-				stack_frame->push(std::move(module));
+				stack_frame->push(module);
+				if (module.IsException()) {
+					pending_error_val = std::move(module);
+					if (!ThrowExecption(stack_frame, &pending_error_val)) {
+						pending_return_val = std::move(pending_error_val);
+						goto exit_;
+					}
+				}
 				break;
 			}
 			default:

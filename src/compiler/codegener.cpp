@@ -67,6 +67,7 @@ void CodeGener::GenerateExpression(Expression* exp) {
 	case ExpressionType::kBoolean:
 	case ExpressionType::kInteger:
 	case ExpressionType::kFloat:
+	case ExpressionType::kTemplateElement:
 	case ExpressionType::kString: {
 		auto const_idx = AllocConst(MakeConstValue(exp));
 		cur_func_def_->bytecode_table().EmitConstLoad(const_idx);
@@ -328,8 +329,7 @@ void CodeGener::GenerateExpression(Expression* exp) {
 	}
 	case ExpressionType::kImportExpression: {
 		auto& import_exp = exp->as<ImportExpression>();
-		auto const_idx = AllocConst(MakeConstValue(import_exp.source().get()));
-		cur_func_def_->bytecode_table().EmitConstLoad(const_idx);
+		GenerateExpression(import_exp.source().get());
 		cur_func_def_->bytecode_table().EmitOpcode(OpcodeType::kGetModuleAsync);
 		break;
 	}
@@ -1077,6 +1077,9 @@ Value CodeGener::MakeConstValue(Expression* exp) {
 	}
 	case ExpressionType::kString: {
 		return Value(String::New(exp->as<StringLiteral>().value()));
+	}
+	case ExpressionType::kTemplateElement: {
+		return Value(String::New(exp->as<TemplateElement>().value()));
 	}
 	default:
 		throw SyntaxError("Unable to generate expression for value");
