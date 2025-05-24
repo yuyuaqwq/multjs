@@ -40,6 +40,7 @@ public:
 
 	Value Generate(std::string&& module_name, std::string_view source);
 
+	const ModuleDef* cur_module_def() const { return cur_module_def_; }
 
 private:
 	void GenerateExpression(Expression* exp);

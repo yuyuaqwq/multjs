@@ -456,6 +456,31 @@ void VM::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 				a = -a;
 				break;
 			}
+
+			case OpcodeType::kShl: {
+				auto a = stack_frame->pop();
+				auto& b = stack_frame->get(-1);
+				b = b << a;
+				break;
+			}
+			case OpcodeType::kShr: {
+				auto a = stack_frame->pop();
+				auto& b = stack_frame->get(-1);
+				b = b >> a;
+				break;
+			}
+			case OpcodeType::kBitAnd: {
+				auto a = stack_frame->pop();
+				auto& b = stack_frame->get(-1);
+				b = b & a;
+				break;
+			}
+			case OpcodeType::kBitOr: {
+				auto a = stack_frame->pop();
+				auto& b = stack_frame->get(-1);
+				b = b | a;
+				break;
+			}
 			case OpcodeType::kNew: {
 				// this，然后让function call处理
 				stack_frame->push(Value());

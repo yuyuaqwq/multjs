@@ -449,6 +449,119 @@ Value Value::operator/(const Value& rhs) const {
 	throw std::runtime_error("Division not supported for these Value types.");
 }
 
+Value Value::operator<<(const Value& rhs) const {
+	switch (type()) {
+	case ValueType::kFloat64: {
+		switch (rhs.type()) {
+		case ValueType::kFloat64: {
+			return Value(int32_t(f64()) << int32_t(rhs.f64()));
+		}
+		case ValueType::kInt64: {
+			return Value(int32_t(f64()) << int32_t(rhs.i64()));
+		}
+		}
+		break;
+	}
+	case ValueType::kInt64: {
+		switch (rhs.type()) {
+		case ValueType::kFloat64: {
+			return Value(int32_t(i64()) << int32_t(rhs.f64()));
+		}
+		case ValueType::kInt64: {
+			return Value(int32_t(i64()) << int32_t(rhs.i64()));
+		}
+		}
+		break;
+	}
+	}
+	throw std::runtime_error("Types that do not support left shift operation.");
+}
+
+Value Value::operator>>(const Value& rhs) const {
+	switch (type()) {
+	case ValueType::kFloat64: {
+		switch (rhs.type()) {
+		case ValueType::kFloat64: {
+			return Value(int32_t(f64()) >> int32_t(rhs.f64()));
+		}
+		case ValueType::kInt64: {
+			return Value(int32_t(f64()) >> int32_t(rhs.i64()));
+		}
+		}
+		break;
+	}
+	case ValueType::kInt64: {
+		switch (rhs.type()) {
+		case ValueType::kFloat64: {
+			return Value(int32_t(i64()) >> int32_t(rhs.f64()));
+		}
+		case ValueType::kInt64: {
+			return Value(int32_t(i64()) >> int32_t(rhs.i64()));
+		}
+		}
+		break;
+	}
+	}
+	throw std::runtime_error("Types that do not support left shift operation.");
+}
+
+Value Value::operator&(const Value& rhs) const {
+	switch (type()) {
+	case ValueType::kFloat64: {
+		switch (rhs.type()) {
+		case ValueType::kFloat64: {
+			return Value(int32_t(f64()) & int32_t(rhs.f64()));
+		}
+		case ValueType::kInt64: {
+			return Value(int32_t(f64()) & int32_t(rhs.i64()));
+		}
+		}
+		break;
+	}
+	case ValueType::kInt64: {
+		switch (rhs.type()) {
+		case ValueType::kFloat64: {
+			return Value(int32_t(i64()) & int32_t(rhs.f64()));
+		}
+		case ValueType::kInt64: {
+			return Value(int32_t(i64()) & int32_t(rhs.i64()));
+		}
+		}
+		break;
+	}
+	}
+	throw std::runtime_error("Types that do not support left shift operation.");
+}
+
+Value Value::operator|(const Value& rhs) const {
+	switch (type()) {
+	case ValueType::kFloat64: {
+		switch (rhs.type()) {
+		case ValueType::kFloat64: {
+			return Value(int32_t(f64()) | int32_t(rhs.f64()));
+		}
+		case ValueType::kInt64: {
+			return Value(int32_t(f64()) | int32_t(rhs.i64()));
+		}
+		}
+		break;
+	}
+	case ValueType::kInt64: {
+		switch (rhs.type()) {
+		case ValueType::kFloat64: {
+			return Value(int32_t(i64()) | int32_t(rhs.f64()));
+		}
+		case ValueType::kInt64: {
+			return Value(int32_t(i64()) | int32_t(rhs.i64()));
+		}
+		}
+		break;
+	}
+	}
+	throw std::runtime_error("Types that do not support left shift operation.");
+}
+
+
 Value Value::operator-() const {
 	switch (type()) {
 	case ValueType::kFloat64: {

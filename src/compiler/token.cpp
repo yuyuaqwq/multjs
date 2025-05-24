@@ -51,7 +51,15 @@ std::unordered_map<std::string, TokenType> g_operators = {
 	{ "<=", TokenType::kOpLe },
 	{ ">", TokenType::kOpGt },
 	{ ">=", TokenType::kOpGe },
-	{ "|", TokenType::kUnionType },
+	// { "|", TokenType::kUnionType },
+
+	{ "~", TokenType::kOpBitNot},
+	{ "&", TokenType::kOpBitAnd},
+	{ "|", TokenType::kOpBitOr },
+	{ "^", TokenType::kOpBitXor},
+	{ "<<", TokenType::kOpShiftLeft},
+	{ ">>", TokenType::kOpShiftRight},
+	{ ">>>", TokenType::kOpUnsignedShiftRight},
 };
 
 std::unordered_map<std::string, TokenType> g_keywords = {

@@ -58,17 +58,22 @@ enum class OpcodeType : uint8_t {
 
 	// Arithmetic operations
 	kAdd = 0x60,
-	kInc = 0x61,
+	kInc = 0x61,	
 	kSub = 0x64,
 	kMul = 0x68,
 	kDiv = 0x6c,
 
 	// Bitwise and shift operations
-	kShl = 0x78,
-	kShr = 0x7a,
+	kShl = 0x71,
+	kShr = 0x72,
+	kUShr = 0x73,
+	kBitAnd = 0x74,
+	kBitOr = 0x75,
+	kBitXor = 0x76,
+	kBitNot = 0x77,
 
 	// Negation
-	kNeg = 0x74,
+	kNeg = 0x70,
 
 	// Comparisons
 	kEq = 0x99,

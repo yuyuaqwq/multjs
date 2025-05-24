@@ -42,7 +42,14 @@ public:
         auto it = std::lower_bound(line_offsets_.begin(), line_offsets_.end(), pos);
 
         if (it == line_offsets_.end()) {
-            throw std::out_of_range("Position is beyond the last line");
+            --it;
+        }
+
+        if (*it > pos) {
+            if (it == line_offsets_.begin()) {
+                throw std::out_of_range("Position is beyond the last line");
+            }
+            --it;
         }
 
         SourceLine line = static_cast<SourceLine>(std::distance(line_offsets_.begin(), it)) + 1;

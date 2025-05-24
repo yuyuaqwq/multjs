@@ -122,7 +122,7 @@ enum class TokenType {
     kOpTernary,           // ?: 三元运算符
 
     // 类型
-    kUnionType,       // |
+    kUnionType = kOpBitOr,       // |
 };
 
 

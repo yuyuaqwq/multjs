@@ -150,7 +150,7 @@ Token Lexer::MatchToken(TokenType type) {
     if (token.is(type)) {
         return token;
     }
-    throw SyntaxError("[{}]cannot match token, expected token: '{}', actual token: '{}'.", token.pos(), Token::TypeToString(type), Token::TypeToString(token.type()));
+    throw SyntaxError("cannot match token, expected token: '{}', actual token: '{}'.", Token::TypeToString(type), Token::TypeToString(token.type()));
 }
 
 Token Lexer::ReadNextToken() {

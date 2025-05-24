@@ -54,6 +54,7 @@ Value CodeGener::Generate(std::string&& module_name, std::string_view source) {
 
 	ExitScope();
 
+	cur_module_def_->debug_table().Sort();
 	return Value(static_cast<ModuleDef*>(cur_func_def_));
 }
 
@@ -238,6 +239,24 @@ void CodeGener::GenerateExpression(Expression* exp) {
 			break;
 		case TokenType::kSepComma:
 			break;
+		case TokenType::kOpShiftLeft:
+			cur_func_def_->bytecode_table().EmitOpcode(OpcodeType::kShl);
+			break;
+		case TokenType::kOpShiftRight:
+			cur_func_def_->bytecode_table().EmitOpcode(OpcodeType::kShr);
+			break;
+		case TokenType::kOpUnsignedShiftRight:
+			cur_func_def_->bytecode_table().EmitOpcode(OpcodeType::kUShr);
+			break;
+		case TokenType::kOpBitAnd:
+			cur_func_def_->bytecode_table().EmitOpcode(OpcodeType::kBitAnd);
+			break;
+		case TokenType::kOpBitOr:
+			cur_func_def_->bytecode_table().EmitOpcode(OpcodeType::kBitOr);
+			break;
+		case TokenType::kOpBitXor:
+			cur_func_def_->bytecode_table().EmitOpcode(OpcodeType::kBitXor);
+			break;
 		default:
 			throw SyntaxError("Unrecognized binary operator.");
 		}
@@ -395,6 +414,7 @@ void CodeGener::GenerateFunctionExpression(FunctionExpression* exp) {
 
 	// 恢复环境
 	ExitScope();
+	cur_func_def_->debug_table().Sort();
 	cur_func_def_ = savefunc;
 
 	if (need_repair) {
@@ -433,6 +453,7 @@ void CodeGener::GenerateArrowFunctionExpression(ArrowFunctionExpression* exp) {
 	bool need_repair = cur_func_def_->has_this() || !cur_func_def_->closure_var_table().closure_var_defs().empty();
 
 	// 恢复环境
+	cur_func_def_->debug_table().Sort();
 	cur_func_def_ = savefunc;
 	ExitScope();
 
@@ -544,9 +565,16 @@ void CodeGener::GenerateStatement(Statement* stat) {
 	default:
 		throw SyntaxError("Unknown statement type");
 	}
-	auto end_pc = cur_func_def_->bytecode_table().Size();
-	auto&& [line, column] = cur_module_def_->line_table().PosToLineAndColumn(stat->start());
-	cur_func_def_->debug_table().AddEntry(start_pc, end_pc, stat->start(), stat->end(), line);
+	switch (stat->type()) {
+	case StatementType::kBlock:
+	case StatementType::kExport:
+		break;
+	default: {
+		auto end_pc = cur_func_def_->bytecode_table().Size();
+		auto&& [line, column] = cur_module_def_->line_table().PosToLineAndColumn(stat->start());
+		cur_func_def_->debug_table().AddEntry(start_pc, end_pc, stat->start(), stat->end(), line);
+	}
+	}
 }
 
 void CodeGener::GenerateExpressionStatement(ExpressionStatement* stat) {
