@@ -130,10 +130,9 @@ void CodeGener::GenerateExpression(Expression* exp) {
 			GenerateExpression(exp.get());
 			++i;
 			if (i == 1) {
-				continue;
-			}
-			else if (i == 2) {
+				// 确保有一个字符串
 				cur_func_def_->bytecode_table().EmitOpcode(OpcodeType::kToString);
+				continue;
 			}
 			cur_func_def_->bytecode_table().EmitOpcode(OpcodeType::kAdd);
 		}
