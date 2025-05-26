@@ -14,7 +14,7 @@ using SourceLine = uint32_t;
 using SourceColumn = uint32_t;
 
 constexpr SourcePos kInvalidSourcePos = 0xffffffff;
-constexpr SourceLine kInvalidSourceLine = 0xffffffff;
+constexpr SourceLine kInvalidSourceLine = 0;
 
 using Source = std::string;
 

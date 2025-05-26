@@ -130,7 +130,7 @@ bool VM::FunctionScheduling(StackFrame* stack_frame, uint32_t par_count) {
 
 		if (par_count < function_def->par_count()) {
 			stack_frame->push(
-				Error::Throw("Wrong number of parameters passed when calling the function.")
+				Error::Throw(context_, *stack_frame, "Wrong number of parameters passed when calling the function.")
 			);
 			return false;
 		}
@@ -248,7 +248,7 @@ bool VM::FunctionScheduling(StackFrame* stack_frame, uint32_t par_count) {
 	}
 	default:
 	    stack_frame->push(
-			TypeError::Throw("Non callable type: '{}'.", Value::TypeToString(stack_frame->function_val().type()))
+			TypeError::Throw(context_, *stack_frame, "Non callable type: '{}'.", Value::TypeToString(stack_frame->function_val().type()))
 		);
 		return false;
 	}
@@ -721,7 +721,7 @@ void VM::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 				Value value;
 				auto success = context_->runtime().global_this().object().GetProperty(context_, const_idx, &value);
 				if (!success) {
-					pending_error_val = ReferenceError::Throw("Failed to retrieve properties from global this: {}.", context_->GetConstValue(const_idx).ToString(context_).string_view());
+					pending_error_val = ReferenceError::Throw(context_, *stack_frame, "Failed to retrieve properties from global this: {}.", context_->GetConstValue(const_idx).ToString(context_).string_view());
 					if (!ThrowExecption(stack_frame, &pending_error_val)) {
 						pending_return_val = std::move(pending_error_val);
 						goto exit_;
@@ -733,7 +733,7 @@ void VM::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 			case OpcodeType::kGetModule: {
 				auto path = stack_frame->pop();
 				if (!path.IsString()) {
-					pending_error_val = TypeError::Throw("Can only provide string paths for module loading.");
+					pending_error_val = TypeError::Throw(context_, *stack_frame, "Can only provide string paths for module loading.");
 					if (!ThrowExecption(stack_frame, &pending_error_val)) {
 						pending_return_val = std::move(pending_error_val);
 						goto exit_;
@@ -753,7 +753,7 @@ void VM::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 			case OpcodeType::kGetModuleAsync: {
 				auto path = stack_frame->pop();
 				if (!path.IsString()) {
-					pending_error_val = TypeError::Throw("Can only provide string paths for module loading.");
+					pending_error_val = TypeError::Throw(context_, *stack_frame, "Can only provide string paths for module loading.");
 					if (!ThrowExecption(stack_frame, &pending_error_val)) {
 						pending_return_val = std::move(pending_error_val);
 						goto exit_;

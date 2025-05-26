@@ -9,19 +9,16 @@
 
 namespace mjs {
 
+class Context;
+class StackFrame;
 class Error : public std::exception {
 public:
-	Error(std::string info) {
-		info_ = info;
-	}
-
-	template<typename... Args>
-	Error(std::format_string<Args...> fmt, Args&&... args) {
-		info_ = std::format(fmt, std::forward<Args>(args)...);
-	}
-
 	virtual const char* error_name() const {
 		return "Error";
+	}
+
+	Pc error_pc() const {
+		return error_pc_;
 	}
 
 	virtual const char* what() const override {
@@ -29,12 +26,33 @@ public:
 	}
 
 	template<typename... Args>
-	static Value Throw(std::format_string<Args...> fmt, Args&&... args) {
-		return Value(String::New(std::format(fmt, std::forward<Args>(args)...))).SetException();
+	static Value Throw(Context* context, const StackFrame& stack_frame, std::format_string<Args...> fmt, Args&&... args) {
+		return Throw(context, stack_frame, std::format(fmt, std::forward<Args>(args)...));
+	}
+
+	static Value Throw(Context* context, const StackFrame& stack_frame, std::string&& string);
+
+protected:
+	template<typename... Args>
+	Error(Pc error_pc, std::format_string<Args...> fmt, Args&&... args) {
+		error_pc_ = error_pc;
+		info_ = std::format(fmt, std::forward<Args>(args)...);
 	}
 
 private:
+	Pc error_pc_;
 	std::string info_;
+};
+
+class SyntaxError : public Error {
+public:
+	template<typename... Args>
+	SyntaxError(std::format_string<Args...> fmt, Args&&... args)
+		: Error(kInvalidPc, std::move(fmt), std::forward<Args>(args)...) {}
+
+	const char* error_name() const override {
+		return "SyntaxError";
+	}
 };
 
 class InternalError : public Error {
@@ -61,15 +79,6 @@ public:
 
 	const char* error_name() const override {
 		return "ReferenceError";
-	}
-};
-
-class SyntaxError : public Error {
-public:
-	using Error::Error;
-
-	const char* error_name() const override {
-		return "SyntaxError";
 	}
 };
 
