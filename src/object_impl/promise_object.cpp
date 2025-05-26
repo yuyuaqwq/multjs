@@ -43,7 +43,7 @@ void PromiseObject::Resolve(Context* context, Value result) {
     auto& microtask_queue = context->microtask_queue();
     while (!on_fulfill_callbacks_.empty()) {
         auto& job = on_fulfill_callbacks_.front();
-        job.AddArg(result);
+        job.AddArg(result_or_reason_);
         microtask_queue.emplace_back(std::move(job));
         on_fulfill_callbacks_.pop_front();
     }
@@ -64,12 +64,12 @@ void PromiseObject::Reject(Context* context, Value reason) {
     }
 
     state_ = State::kRejected;
-    result_or_reason_ = reason;
+    result_or_reason_ = reason.SetException();
 
     auto& microtask_queue = context->microtask_queue();
     while (!on_reject_callbacks_.empty()) {
         auto& job = on_reject_callbacks_.front();
-        job.AddArg(reason);
+        job.AddArg(result_or_reason_);
         microtask_queue.emplace_back(std::move(job));
         on_reject_callbacks_.pop_front();
     }

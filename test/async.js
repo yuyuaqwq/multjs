@@ -36,8 +36,8 @@ async function asyncfunc() {
         resolve(666);
     });
     console.log("asyncfunc await ok1!!", res);
-    res = await new Promise(function(resolve) {
-        resolve(777);
+    res = await new Promise(function(resolve, reject) {
+        reject(777);
     });
     console.log("asyncfunc await ok2!!", res);
     res = await asyncfunc2(114514);

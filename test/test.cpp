@@ -19,7 +19,11 @@ int main() {
         Runtime rt;
         auto ctx = Context(&rt);
 
-        ctx.EvalFromFile("object.js");
+        auto module = ctx.EvalFromFile("async.js");
+        if (module.IsException()) {
+            std::cerr << "Error evaluating module: " << module.string_view() << std::endl;
+            return 1;
+        }
 
         ctx.ExecuteMicrotasks();
 

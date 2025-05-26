@@ -6,6 +6,7 @@ function* gen(a, b, c) {
     console.log(res1, " ", ada);
     let bbb = res1 + 1000;
     let res2 = yield b + bbb;
+    //throw "sb666";
     console.log(res2, " ", bbb);
     let ccc = res2 + 2000;
     let res3 = yield c + ccc;

@@ -159,7 +159,7 @@ bool VM::FunctionScheduling(StackFrame* stack_frame, uint32_t par_count) {
 			// 提前分配参数和局部变量栈空间
 			generator->stack().upgrade(function_def->var_def_table().var_count());
 
-			if (stack_frame->function_val().type() == ValueType::kFunctionObject) {
+			if (function_def->is_generator() || stack_frame->function_val().type() == ValueType::kFunctionObject) {
 				// 复制参数和变量(因为变量可能通过BindClosureVars绑定了)
 				for (int32_t i = 0; i < function_def->var_def_table().var_count(); ++i) {
 					generator->stack().set(i, stack_frame->get(i));
@@ -240,6 +240,7 @@ bool VM::FunctionScheduling(StackFrame* stack_frame, uint32_t par_count) {
 		return false;
 	}
 	case ValueType::kAsyncObject: {
+		// Async函数恢复执行，目前由await触发
 		auto& async = stack_frame->function_val().async();
 		// assert(async.res_promise().promise().IsFulfilled());
 		auto ret = stack_frame->pop();
@@ -247,6 +248,7 @@ bool VM::FunctionScheduling(StackFrame* stack_frame, uint32_t par_count) {
 
 		stack_frame->push(std::move(ret));
 		if (async.res_promise().promise().IsRejected()) {
+			// 等待的promise被拒绝，抛出异常
 			return false;
 		}
 		return true;
@@ -291,7 +293,7 @@ void VM::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 
 	if (!FunctionScheduling(stack_frame, param_count)) {
 		if (stack_frame->function_val().IsAsyncObject()) {
-			goto async_exception_;
+			goto throw_next_;
 		}
 		goto exit_;
 	}
@@ -300,15 +302,13 @@ void VM::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 	
 	func_def = stack_frame->function_def();
 	while (stack_frame->pc() >= 0 && func_def && stack_frame->pc() < func_def->bytecode_table().Size()) {
-		// OpcodeType opcode_; uint32_t par; auto pc = stack_frame->pc(); std::cout << func_def->byte_code().Disassembly(context_, pc, opcode_, par, func_def) << std::endl;
-			
+		//{
+		//	OpcodeType opcode_; uint32_t par; auto pc = stack_frame->pc(); std::cout << func_def->bytecode_table().Disassembly(context_, pc, opcode_, par, func_def) << std::endl;
+		//}
+
 		opcode = func_def->bytecode_table().GetOpcode(stack_frame->pc());
 		stack_frame->set_pc(stack_frame->pc() + 1);
 		switch (opcode) {
-		case OpcodeType::kAsyncExceptionCountinue:
-		async_exception_:
-			VM_EXCEPTION_THROW(stack_frame->pop());
-			break;
 		case OpcodeType::kCLoad_0: {
 		case OpcodeType::kCLoad_1:
 		case OpcodeType::kCLoad_2:
@@ -577,12 +577,12 @@ void VM::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 			if (val.IsPromiseObject()) {
 				auto& promise = val.promise();
 				if (promise.IsRejected()) {
-					assert(promise.reason().IsException());
 					Value tmp = promise.reason();
-					VM_EXCEPTION_CHECK_AND_THROW(tmp);
+					assert(tmp.IsException());
+					VM_EXCEPTION_THROW(tmp);
 				}
 			}
-			if (!val.IsPromiseObject()) {
+			else {
 				// 不是Promise，则用Promise包装
 				val = PromiseObjectClassDef::Resolve(context_, std::move(val));
 			}
@@ -752,6 +752,11 @@ void VM::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 			}
 			break;
 		}
+		case OpcodeType::kThrowNext: {
+		throw_next_:
+			VM_EXCEPTION_THROW(stack_frame->pop());
+			break;
+		}
 		case OpcodeType::kGetGlobal: {
 			auto const_idx = ConstIndex(func_def->bytecode_table().GetU32(stack_frame->pc()));
 			stack_frame->set_pc(stack_frame->pc() + 4);
@@ -819,16 +824,18 @@ exit_:
 				line = debug_info->source_line;
 			}
 		}
-		pending_return_val = Value(String::Format("[func: {}, line:{}] {}", func, line, pending_return_val->string_view())).SetException();
+		pending_return_val = Value(String::Format("[func: {}, line:{}] {}", func, line, pending_return_val->ToString(context_).string_view())).SetException();
 
 		if (stack_frame->function_val().IsAsyncObject()) {
 			auto& async = stack_frame->function_val().async();
 			async.res_promise().promise().Reject(context_, *pending_return_val);
 			pending_return_val = async.res_promise();
 		}
+		else if (stack_frame->function_val().IsGeneratorNext()) {
+			auto& generator = stack_frame->this_val().generator();
+			generator.SetClosed();
+		}
 	}
-
-
 
 	// 还原栈帧
 	stack().resize(stack_frame->bottom());
