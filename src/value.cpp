@@ -3,6 +3,7 @@
 #include <format>
 
 #include <mjs/context.h>
+#include <mjs/error.h>
 #include <mjs/object.h>
 #include <mjs/object_impl/module_object.h>
 #include <mjs/object_impl/function_object.h>
@@ -212,7 +213,7 @@ void Value::operator=(Value&& r) noexcept {
 	Move(std::move(r));
 }
 
-ptrdiff_t Value::Comparer(const Value& rhs) const {
+ptrdiff_t Value::Comparer(Context* context, const Value& rhs) const {
 	if (type() != rhs.type()) {
 		if (!(IsString() && rhs.IsString())) {
 			return static_cast<ptrdiff_t>(type()) - static_cast<ptrdiff_t>(rhs.type());
@@ -244,17 +245,12 @@ ptrdiff_t Value::Comparer(const Value& rhs) const {
 		return i64() - rhs.i64();
 	case ValueType::kUInt64:
 		return u64() - rhs.u64();
-	//case mjs::ValueType::kPrimitiveConstructor:
-	//case mjs::ValueType::kNewConstructor:
-		// 上面判断了type，这里可以直接比较full
-		return value_.full_ - rhs.value_.full_;
-	//case ValueType::kClassDef:
 	case ValueType::kFunctionDef:
 	case ValueType::kCppFunction:
 	case ValueType::kClosureVar:
 		return value_.full_ - rhs.value_.full_;
 	default:
-		throw std::runtime_error("Incorrect value type.");
+		throw TypeError(kInvalidPc, "Incorrect value type");
 	}
 }
 
@@ -275,44 +271,36 @@ size_t Value::hash() const {
 	case mjs::ValueType::kSymbol:
 		return std::hash<const void*>()(&symbol());
 	case mjs::ValueType::kObject:
-		// 使用对象地址计算哈希
 		return std::hash<const void*>()(&object());
 	case mjs::ValueType::kInt64:
 		return std::hash<int64_t>()(i64());
 	case mjs::ValueType::kUInt64:
 		return std::hash<uint64_t>()(u64());
-	//case mjs::ValueType::kPrimitiveConstructor:
-	//case mjs::ValueType::kNewConstructor:
-		// 这里hash暂时不考虑class_def一致但是type不一致的情况
-		return std::hash<uint64_t>()(value_.full_);
 	case mjs::ValueType::kFunctionDef:
-	//case mjs::ValueType::kClassDef:
 	case mjs::ValueType::kCppFunction:
 	case mjs::ValueType::kClosureVar:
-		// 使用内部值计算哈希
 		return std::hash<uint64_t>()(value_.full_);
 	default:
-		throw std::runtime_error("Unhashable value type.");
+		throw TypeError("Unhashable value type.");
 	}
-	
 }
 
-bool Value::operator<(const Value& rhs) const {
-	return Comparer(rhs) < 0;
+bool Value::LessThan(Context* context, const Value& rhs) const {
+	return Comparer(context, rhs) < 0;
 }
 
-bool Value::operator>(const Value& rhs) const {
-	return Comparer(rhs) > 0;
+bool Value::GreaterThan(Context* context, const Value& rhs) const {
+	return Comparer(context, rhs) > 0;
 }
 
-bool Value::operator==(const Value& rhs) const {
+bool Value::EqualTo(Context* context, const Value& rhs) const {
 	if (const_index() != kConstIndexInvalid && rhs.const_index() != kConstIndexInvalid) {
 		return const_index() == rhs.const_index();
 	}
-	return Comparer(rhs) == 0;
+	return Comparer(context, rhs) == 0;
 }
 
-Value Value::operator+(const Value& rhs) const {
+Value Value::Add(Context* context, const Value& rhs) const {
 	switch (type()) {
 	case ValueType::kFloat64: {
 		switch (rhs.type()) {
@@ -359,10 +347,10 @@ Value Value::operator+(const Value& rhs) const {
 		}
 	}
 	}
-	throw std::runtime_error("Addition not supported for these Value types.");
+	throw TypeError(kInvalidPc, "Addition not supported for these Value types");
 }
 
-Value Value::operator-(const Value& rhs) const {
+Value Value::Subtract(Context* context, const Value& rhs) const {
 	switch (type()) {
 	case ValueType::kFloat64: {
 		switch (rhs.type()) {
@@ -387,12 +375,10 @@ Value Value::operator-(const Value& rhs) const {
 		break;
 	}
 	}
-
-	throw std::runtime_error("Subtraction not supported for these Value types.");
-	
+	throw TypeError("Subtraction not supported for these Value types");
 }
 
-Value Value::operator*(const Value& rhs) const {
+Value Value::Multiply(Context* context, const Value& rhs) const {
 	switch (type()) {
 	case ValueType::kFloat64: {
 		switch (rhs.type()) {
@@ -417,11 +403,10 @@ Value Value::operator*(const Value& rhs) const {
 		break;
 	}
 	}
-
-	throw std::runtime_error("Multiplication not supported for these Value types.");
+	throw TypeError("Multiplication not supported for these Value types");
 }
 
-Value Value::operator/(const Value& rhs) const {
+Value Value::Divide(Context* context, const Value& rhs) const {
 	switch (type()) {
 	case ValueType::kFloat64: {
 		switch (rhs.type()) {
@@ -446,10 +431,10 @@ Value Value::operator/(const Value& rhs) const {
 		break;
 	}
 	}
-	throw std::runtime_error("Division not supported for these Value types.");
+	throw TypeError("Division not supported for these Value types");
 }
 
-Value Value::operator<<(const Value& rhs) const {
+Value Value::LeftShift(Context* context, const Value& rhs) const {
 	switch (type()) {
 	case ValueType::kFloat64: {
 		switch (rhs.type()) {
@@ -474,10 +459,10 @@ Value Value::operator<<(const Value& rhs) const {
 		break;
 	}
 	}
-	throw std::runtime_error("Types that do not support left shift operation.");
+	throw TypeError("Left shift not supported for these Value types");
 }
 
-Value Value::operator>>(const Value& rhs) const {
+Value Value::RightShift(Context* context, const Value& rhs) const {
 	switch (type()) {
 	case ValueType::kFloat64: {
 		switch (rhs.type()) {
@@ -502,10 +487,10 @@ Value Value::operator>>(const Value& rhs) const {
 		break;
 	}
 	}
-	throw std::runtime_error("Types that do not support left shift operation.");
+	throw TypeError("Right shift not supported for these Value types");
 }
 
-Value Value::operator&(const Value& rhs) const {
+Value Value::BitwiseAnd(Context* context, const Value& rhs) const {
 	switch (type()) {
 	case ValueType::kFloat64: {
 		switch (rhs.type()) {
@@ -530,10 +515,10 @@ Value Value::operator&(const Value& rhs) const {
 		break;
 	}
 	}
-	throw std::runtime_error("Types that do not support left shift operation.");
+	throw TypeError("Bitwise AND not supported for these Value types");
 }
 
-Value Value::operator|(const Value& rhs) const {
+Value Value::BitwiseOr(Context* context, const Value& rhs) const {
 	switch (type()) {
 	case ValueType::kFloat64: {
 		switch (rhs.type()) {
@@ -558,11 +543,10 @@ Value Value::operator|(const Value& rhs) const {
 		break;
 	}
 	}
-	throw std::runtime_error("Types that do not support left shift operation.");
+	throw TypeError("Bitwise OR not supported for these Value types");
 }
 
-
-Value Value::operator-() const {
+Value Value::Negate(Context* context) const {
 	switch (type()) {
 	case ValueType::kFloat64: {
 		return Value(-f64());
@@ -571,10 +555,10 @@ Value Value::operator-() const {
 		return Value(-i64());
 	}
 	}
-	throw std::runtime_error("Neg not supported for these Value types.");
+	throw TypeError("Negation not supported for these Value types");
 }
 
-Value& Value::operator++() {
+Value& Value::Increment(Context* context) {
 	switch (type()) {
 	case ValueType::kFloat64: {
 		++value_.f64_;
@@ -585,12 +569,12 @@ Value& Value::operator++() {
 		break;
 	}
 	default:
-		throw std::runtime_error("Neg not supported for these Value types.");
+		throw TypeError("Increment not supported for these Value types");
 	}
 	return *this;
 }
 
-Value& Value::operator--() {
+Value& Value::Decrement(Context* context) {
 	switch (type()) {
 	case ValueType::kFloat64: {
 		--value_.f64_;
@@ -601,12 +585,12 @@ Value& Value::operator--() {
 		break;
 	}
 	default:
-		throw std::runtime_error("Neg not supported for these Value types.");
+		throw TypeError("Decrement not supported for these Value types");
 	}
 	return *this;
 }
 
-Value Value::operator++(int) {
+Value Value::PostIncrement(Context* context) {
 	Value old = *this;
 	switch (type()) {
 	case ValueType::kFloat64: {
@@ -618,12 +602,12 @@ Value Value::operator++(int) {
 		break;
 	}
 	default:
-		throw std::runtime_error("Neg not supported for these Value types.");
+		throw TypeError("Post increment not supported for these Value types");
 	}
 	return old;
 }
 
-Value Value::operator--(int) {
+Value Value::PostDecrement(Context* context) {
 	Value old = *this;
 	switch (type()) {
 	case ValueType::kFloat64: {
@@ -635,11 +619,10 @@ Value Value::operator--(int) {
 		break;
 	}
 	default:
-		throw std::runtime_error("Neg not supported for these Value types.");
+		throw TypeError("Post decrement not supported for these Value types");
 	}
 	return old;
 }
-
 
 ValueType Value::type() const { 
 	return tag_.type_;
@@ -665,7 +648,7 @@ const char* Value::string_view() const {
 	case ValueType::kStringView:
 		return value_.string_view_;
 	default:
-		throw std::runtime_error("Non string type.");
+		throw TypeError("Non string type");
 	}
 }
 
@@ -674,7 +657,7 @@ const String& Value::string() const {
 	case ValueType::kString:
 		return *value_.string_;
 	default:
-		throw std::runtime_error("Non string type.");
+		throw TypeError("Non string type");
 	}
 }
 
@@ -980,17 +963,13 @@ Value Value::ToString(Context* context) const {
 		return Value(String::Format("function_def:{}", function_def().name()));
 	case ValueType::kCppFunction:
 		return Value("cpp_function");
-	//case ValueType::kNewConstructor:
-	//	return Value(String::Format("new_constructor:{}", class_def().name_string()));
-	//case ValueType::kPrimitiveConstructor:
-	//	return Value(String::Format("primitive_constructor:{}", class_def().name_string()));
 	case ValueType::kClosureVar:
 		return closure_var().value().ToString(context);
 	default:
 		if (IsObject()) {
 			return object().ToString(context);
 		}
-		throw std::runtime_error("Incorrect value type.");
+		throw TypeError(kInvalidPc, "Incorrect value type");
 	}
 }
 
@@ -1014,7 +993,10 @@ Value Value::ToBoolean() const {
 		return Value(string_view() != nullptr && string_view()[0] != '\0');
 	}
 	default:
-		throw std::runtime_error("Incorrect value type.");
+		if (IsObject()) {
+			return Value(true);
+		}
+		throw TypeError(kInvalidPc, "Incorrect value type");
 	}
 }
 
@@ -1026,7 +1008,26 @@ Value Value::ToNumber() const {
 		return Value(double(i64()));
 	}
 	default:
-		throw std::runtime_error("Incorrect value type.");
+		throw TypeError("Incorrect value type");
+	}
+}
+
+bool Value::GetProperty(Context* context, ConstIndex key, Value* value) {
+	switch (type()) {
+	case ValueType::kFloat64:
+	case ValueType::kInt64: {
+		auto& class_def = context->runtime().class_def_table().at(ClassId::kNumberObject);
+		return class_def.prototype().object().GetProperty(context, key, value);
+		break;
+	}
+	case ValueType::kString:
+	case ValueType::kStringView: {
+		auto& class_def = context->runtime().class_def_table().at(ClassId::kStringObject);
+		return class_def.prototype().object().GetProperty(context, key, value);
+		break;
+	}
+	default:
+		throw TypeError("Incorrect value type");
 	}
 }
 

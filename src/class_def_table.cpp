@@ -1,6 +1,7 @@
 #include <mjs/class_def_table.h>
 
 #include <mjs/runtime.h>
+#include <mjs/class_def_impl/string_object_class_def.h>
 #include <mjs/class_def_impl/symbol_class_def.h>
 #include <mjs/class_def_impl/array_object_class_def.h>
 #include <mjs/class_def_impl/object_class_def.h>
@@ -10,10 +11,10 @@
 namespace mjs {
 
 ClassDefTable::ClassDefTable(Runtime* runtime) {
-	Register(std::make_unique<ClassDef>(runtime, ClassId::kNumber, "Number"));
-	Register(std::make_unique<ClassDef>(runtime, ClassId::kString, "String"));
 	Register(std::make_unique<SymbolClassDef>(runtime));
 	Register(std::make_unique<ObjectClassDef>(runtime));
+	Register(std::make_unique<ClassDef>(runtime, ClassId::kNumberObject, "Number"));
+	Register(std::make_unique<StringObjectClassDef>(runtime));
 	Register(std::make_unique<ArrayObjectClassDef>(runtime));
 	Register(std::make_unique<ClassDef>(runtime, ClassId::kFunctionObject, "Function"));
 	Register(std::make_unique<GeneratorObjectClassDef>(runtime));

@@ -20,6 +20,7 @@
         "valarray": "cpp",
         "cstddef": "cpp",
         "cstdlib": "cpp",
-        "cstring": "cpp"
+        "cstring": "cpp",
+        "stdexcept": "cpp"
     }
 }

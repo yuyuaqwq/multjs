@@ -31,13 +31,11 @@ enum class FunctionInternalMethods {
 
 enum class ClassId : uint16_t {
 	kInvalid = 0,
-	kNumber,
-	kString,
 	kSymbol,
 	kObject,
+	kNumberObject,
+	kStringObject,
 	kArrayObject,
-	//kNumberObject,
-	//kArrayObject,
 	kFunctionObject,
 	kGeneratorObject,
 	kPromiseObject,

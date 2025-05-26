@@ -127,24 +127,24 @@ public:
 	void operator=(const Value& r);
 	void operator=(Value&& r) noexcept;
 
-	ptrdiff_t Comparer(const Value& rhs) const;
-	bool operator<(const Value& rhs) const;
-	bool operator>(const Value& rhs) const;
-	bool operator==(const Value& rhs) const;
+	ptrdiff_t Comparer(Context* context, const Value& rhs) const;
+	bool LessThan(Context* context, const Value& rhs) const;
+	bool GreaterThan(Context* context, const Value& rhs) const;
+	bool EqualTo(Context* context, const Value& rhs) const;
 
-	Value operator+(const Value& rhs) const;
-	Value operator-(const Value& rhs) const;
-	Value operator*(const Value& rhs) const;
-	Value operator/(const Value& rhs) const;
-	Value operator<<(const Value& rhs) const;
-	Value operator>>(const Value& rhs) const;
-	Value operator&(const Value& rhs) const;
-	Value operator|(const Value& rhs) const;
-	Value operator-() const;
-	Value& operator++();
-	Value& operator--();
-	Value operator++(int);
-	Value operator--(int);
+	Value Add(Context* context, const Value& rhs) const;
+	Value Subtract(Context* context, const Value& rhs) const;
+	Value Multiply(Context* context, const Value& rhs) const;
+	Value Divide(Context* context, const Value& rhs) const;
+	Value LeftShift(Context* context, const Value& rhs) const;
+	Value RightShift(Context* context, const Value& rhs) const;
+	Value BitwiseAnd(Context* context, const Value& rhs) const;
+	Value BitwiseOr(Context* context, const Value& rhs) const;
+	Value Negate(Context* context) const;
+	Value& Increment(Context* context);
+	Value& Decrement(Context* context);
+	Value PostIncrement(Context* context);
+	Value PostDecrement(Context* context);
 
 	ValueType type() const;
 
@@ -231,6 +231,8 @@ public:
 
 	bool IsException() const { return tag_.exception_; }
 	Value& SetException() { tag_.exception_ = 1; return *this; }
+
+	bool GetProperty(Context* context, ConstIndex key, Value* value);
 
 	static std::string TypeToString(ValueType type) {
 		switch (type) {

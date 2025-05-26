@@ -369,14 +369,11 @@ void VM::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 					auto& obj = obj_val.object();
 					success = obj.GetProperty(context_, const_idx, &obj_val);
 				}
-				//else if (obj_val.IsClassDef()) {
-				//	auto& class_def = obj_val.class_def();
-				//	success = class_def.GetStaticProperty(&context_->runtime(), const_idx, &obj_val);
-				//}
 				else {
 					// 非Object类型，根据类型来处理
 					// 如undefined需要报错
 					// number等需要转成临时Number Object
+					success = obj_val.GetProperty(context_, const_idx, &obj_val);
 				}
 
 				if (!success) {
@@ -394,11 +391,7 @@ void VM::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 					obj.SetProperty(context_, const_idx, std::move(val));
 				}
 				else {
-					// 非Object类型，根据类型来处理
-					// 如undefined需要报错
-					// number等需要转成临时Number Object
-					// throw std::runtime_error("unrealized.");
-
+					throw std::runtime_error("Cannot modify the properties of temporary objects.");
 				}
 				break;
 			}

@@ -61,6 +61,10 @@ public:
         return arr_obj;
     }
 
+    static ArrayObject* New(Context* context, size_t count) {
+        return new ArrayObject(context, count);
+    }
+
 private:
     std::vector<Value> values_;
 };
