@@ -239,18 +239,20 @@ bool VM::FunctionScheduling(StackFrame* stack_frame, uint32_t par_count) {
 
 		return false;
 	}
-	case ValueType::kAsyncObject: {
+	case ValueType::kAsyncResolveResume: {
 		// Async函数恢复执行，目前由await触发
 		auto& async = stack_frame->function_val().async();
-		// assert(async.res_promise().promise().IsFulfilled());
 		auto ret = stack_frame->pop();
 		GeneratorRestoreContext(stack_frame, &async);
 		stack_frame->push(ret);
-		if (ret.IsException()) {
-			// 抛出异常
-			return false;
-		}
 		return true;
+	}case ValueType::kAsyncRejectResume: {
+		// Async函数恢复执行，目前由await触发
+		auto& async = stack_frame->function_val().async();
+		auto ret = stack_frame->pop();
+		GeneratorRestoreContext(stack_frame, &async);
+		stack_frame->push(ret);
+		return false;
 	}
 	default:
 	    stack_frame->push(
@@ -291,7 +293,7 @@ void VM::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 	const FunctionDef* func_def = nullptr;
 
 	if (!FunctionScheduling(stack_frame, param_count)) {
-		if (stack_frame->function_val().IsAsyncObject()) {
+		if (stack_frame->function_val().IsAsyncRejectResume() || stack_frame->function_val().IsAsyncResolveResume()) {
 			// await等待发生异常，注入异常
 			goto inject_exception_;
 		}
@@ -582,7 +584,9 @@ void VM::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 			auto& promise = val.promise();
 			auto& async_obj = stack_frame->function_val().async();
 			GeneratorSaveContext(stack_frame, &async_obj);
-			promise.Then(context_, Value(&async_obj), Value(&async_obj));
+
+			// 在被等待的promise被解决或拒绝后，恢复当前async函数的执行
+			promise.Then(context_, Value(ValueType::kAsyncResolveResume, &async_obj), Value(ValueType::kAsyncRejectResume, &async_obj));
 
 			stack_frame->push(async_obj.res_promise());
 

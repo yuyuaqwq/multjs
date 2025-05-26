@@ -54,6 +54,9 @@ enum class ValueType : uint32_t {
 
 	kGeneratorNext,
 
+	kAsyncResolveResume,
+	kAsyncRejectResume,
+
 	kPromiseResolve,
 	kPromiseReject,
 };
@@ -96,6 +99,7 @@ public:
 	explicit Value(GeneratorObject* generator);
 	explicit Value(PromiseObject* promise);
 	explicit Value(AsyncObject* async);
+	explicit Value(ValueType type, AsyncObject* async);
 	explicit Value(CppModuleObject* module_);
 	explicit Value(ModuleObject* module_);
 	explicit Value(ConstructorObject* module_);
@@ -212,6 +216,8 @@ public:
 	bool IsGeneratorObject() const;
 	bool IsPromiseObject() const;
 	bool IsAsyncObject() const;
+	bool IsAsyncResolveResume() const;
+	bool IsAsyncRejectResume() const;
 	bool IsCppModuleObject() const;
 	bool IsModuleObject() const;
 	bool IsConstructorObject() const;

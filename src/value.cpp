@@ -93,6 +93,17 @@ Value::Value(AsyncObject* async) {
 	value_.object_->Reference();
 }
 
+Value::Value(ValueType type, AsyncObject* async) {
+	tag_.type_ = type;
+	if (type == ValueType::kAsyncResolveResume || type == ValueType::kAsyncRejectResume) {
+		value_.object_ = reinterpret_cast<Object*>(async);
+		value_.object_->Reference();
+	}
+	else {
+		assert(0);
+	}
+}
+
 Value::Value(CppModuleObject* module_) {
 	tag_.type_ = ValueType::kCppModuleObject;
 	value_.object_ = reinterpret_cast<Object*>(module_);
@@ -734,7 +745,7 @@ PromiseObject& Value::promise() const {
 }
 
 AsyncObject& Value::async() const {
-	assert(IsAsyncObject());
+	assert(IsAsyncObject() || IsAsyncResolveResume() || IsAsyncRejectResume());
 	return *reinterpret_cast<AsyncObject*>(value_.object_);
 }
 
@@ -873,6 +884,8 @@ bool Value::IsObject() const {
 	case ValueType::kPromiseResolve:
 	case ValueType::kPromiseReject:
 	case ValueType::kAsyncObject:
+	case ValueType::kAsyncResolveResume:
+	case ValueType::kAsyncRejectResume:
 	case ValueType::kCppModuleObject:
 	case ValueType::kModuleObject:
 	case ValueType::kConstructorObject:
@@ -900,6 +913,14 @@ bool Value::IsPromiseObject() const {
 
 bool Value::IsAsyncObject() const {
 	return type() == ValueType::kAsyncObject;
+}
+
+bool Value::IsAsyncResolveResume() const {
+	return type() == ValueType::kAsyncResolveResume;
+}
+
+bool Value::IsAsyncRejectResume() const {
+	return type() == ValueType::kAsyncRejectResume;
 }
 
 bool Value::IsCppModuleObject() const {
