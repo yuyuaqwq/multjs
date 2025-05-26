@@ -127,10 +127,17 @@ public:
 	void operator=(const Value& r);
 	void operator=(Value&& r) noexcept;
 
+	bool operator==(const Value& r) const {
+		return Comparer(nullptr, r) == 0;
+	}
+
 	ptrdiff_t Comparer(Context* context, const Value& rhs) const;
-	bool LessThan(Context* context, const Value& rhs) const;
-	bool GreaterThan(Context* context, const Value& rhs) const;
-	bool EqualTo(Context* context, const Value& rhs) const;
+	Value LessThan(Context* context, const Value& rhs) const;
+	Value LessThanOrEqual(Context* context, const Value& rhs) const;
+	Value GreaterThan(Context* context, const Value& rhs) const;
+	Value GreaterThanOrEqual(Context* context, const Value& rhs) const;
+	Value NotEqualTo(Context* context, const Value& rhs) const;
+	Value EqualTo(Context* context, const Value& rhs) const;
 
 	Value Add(Context* context, const Value& rhs) const;
 	Value Subtract(Context* context, const Value& rhs) const;
@@ -141,8 +148,8 @@ public:
 	Value BitwiseAnd(Context* context, const Value& rhs) const;
 	Value BitwiseOr(Context* context, const Value& rhs) const;
 	Value Negate(Context* context) const;
-	Value& Increment(Context* context);
-	Value& Decrement(Context* context);
+	Value Increment(Context* context);
+	Value Decrement(Context* context);
 	Value PostIncrement(Context* context);
 	Value PostDecrement(Context* context);
 
@@ -228,6 +235,8 @@ public:
 	Value ToString(Context* context) const;
 	Value ToBoolean() const;
 	Value ToNumber() const;
+	const ModuleDef& ToModuleDef() const;
+	const FunctionDef& ToFunctionDef() const;
 
 	bool IsException() const { return tag_.exception_; }
 	Value& SetException() { tag_.exception_ = 1; return *this; }

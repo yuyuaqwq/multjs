@@ -130,7 +130,7 @@ bool VM::FunctionScheduling(StackFrame* stack_frame, uint32_t par_count) {
 
 		if (par_count < function_def->par_count()) {
 			stack_frame->push(
-				Error::Throw(context_, *stack_frame, "Wrong number of parameters passed when calling the function.")
+				Error::Throw(context_, "Wrong number of parameters passed when calling the function.")
 			);
 			return false;
 		}
@@ -248,11 +248,31 @@ bool VM::FunctionScheduling(StackFrame* stack_frame, uint32_t par_count) {
 	}
 	default:
 	    stack_frame->push(
-			TypeError::Throw(context_, *stack_frame, "Non callable type: '{}'.", Value::TypeToString(stack_frame->function_val().type()))
+			TypeError::Throw(context_, "Non callable type: '{}'.", Value::TypeToString(stack_frame->function_val().type()))
 		);
 		return false;
 	}
 }
+
+#define VM_EXCEPTION_CHECK_AND_THROW(VALUE) \
+	if (VALUE.IsException()) { \
+		pending_error_val = std::move(VALUE); \
+		if (!ThrowException(stack_frame, &pending_error_val)) { \
+			pending_return_val = std::move(pending_error_val); \
+			goto exit_; \
+		} \
+		break; \
+	} \
+
+#define VM_EXCEPTION_THROW(VALUE) \
+	pending_error_val = std::move(VALUE); \
+	if (!ThrowException(stack_frame, &pending_error_val)) { \
+		pending_return_val = std::move(pending_error_val); \
+		goto exit_; \
+	} \
+    break;
+
+
 
 void VM::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, uint32_t param_count) {
 	stack_frame->set_function_val(std::move(func_val));
@@ -423,60 +443,70 @@ void VM::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 			case OpcodeType::kAdd: {
 				auto a = stack_frame->pop();
 				auto& b = stack_frame->get(-1);
-				b = b + a;
+				b = b.Add(context_, a);
+				VM_EXCEPTION_CHECK_AND_THROW(b);
 				break;
 			}
 			case OpcodeType::kInc: {
 				auto& arg = stack_frame->get(-1);
-				++arg;
+				arg = arg.Increment(context_);
+				VM_EXCEPTION_CHECK_AND_THROW(arg);
 				break;
 			}
 			case OpcodeType::kSub: {
 				auto a = stack_frame->pop();
 				auto& b = stack_frame->get(-1);
-				b = b - a;
+				b = b.Subtract(context_, a);
+				VM_EXCEPTION_CHECK_AND_THROW(b);
 				break;
 			}
 			case OpcodeType::kMul: {
 				auto a = stack_frame->pop();
 				auto& b = stack_frame->get(-1);
-				b = b * a;
+				b = b.Multiply(context_, a);
+				VM_EXCEPTION_CHECK_AND_THROW(b);
 				break;
 			}
 			case OpcodeType::kDiv: {
 				auto a = stack_frame->pop();
 				auto& b = stack_frame->get(-1);
-				b = b / a;
+				b = b.Divide(context_, a);
+				VM_EXCEPTION_CHECK_AND_THROW(b);
 				break;
 			}
 			case OpcodeType::kNeg: {
 				auto& a = stack_frame->get(-1);
-				a = -a;
+				a = a.Negate(context_);
+				VM_EXCEPTION_CHECK_AND_THROW(a);
 				break;
 			}
 
 			case OpcodeType::kShl: {
 				auto a = stack_frame->pop();
 				auto& b = stack_frame->get(-1);
-				b = b << a;
+				b = b.LeftShift(context_, a);
+				VM_EXCEPTION_CHECK_AND_THROW(b);
 				break;
 			}
 			case OpcodeType::kShr: {
 				auto a = stack_frame->pop();
 				auto& b = stack_frame->get(-1);
-				b = b >> a;
+				b = b.RightShift(context_, a);
+				VM_EXCEPTION_CHECK_AND_THROW(b);
 				break;
 			}
 			case OpcodeType::kBitAnd: {
 				auto a = stack_frame->pop();
 				auto& b = stack_frame->get(-1);
-				b = b & a;
+				b = b.BitwiseAnd(context_, a);
+				VM_EXCEPTION_CHECK_AND_THROW(b);
 				break;
 			}
 			case OpcodeType::kBitOr: {
 				auto a = stack_frame->pop();
 				auto& b = stack_frame->get(-1);
-				b = b | a;
+				b = b.BitwiseOr(context_, a);
+				VM_EXCEPTION_CHECK_AND_THROW(b);
 				break;
 			}
 			case OpcodeType::kNew: {
@@ -496,13 +526,7 @@ void VM::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 				);
 				CallInternal(&new_stack_frame, func_val, this_val, param_count);
 				auto& ret = new_stack_frame.get(-1);
-				if (ret.IsException()) {
-					pending_error_val = std::move(ret);
-					if (!ThrowExecption(stack_frame, &pending_error_val)) {
-						pending_return_val = std::move(pending_error_val);
-						goto exit_;
-					}
-				}
+				VM_EXCEPTION_CHECK_AND_THROW(ret);
 				break;
 			}
 			case OpcodeType::kGetThis: {
@@ -546,6 +570,11 @@ void VM::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 				}
 
 				auto& promise = val.promise();
+				if (promise.IsRejected()) {
+					assert(promise.reason().IsException());
+					Value tmp = promise.reason();
+					VM_EXCEPTION_CHECK_AND_THROW(tmp);
+				}
 				auto& async_obj = stack_frame->function_val().async();
 				GeneratorSaveContext(stack_frame, &async_obj);
 				promise.Then(context_, Value(&async_obj), Value());
@@ -570,37 +599,43 @@ void VM::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 			case OpcodeType::kNe: {
 				auto a = stack_frame->pop();
 				auto& b = stack_frame->get(-1);
-				b = Value(!(b == a));
+				b = b.NotEqualTo(context_, a);
+				VM_EXCEPTION_CHECK_AND_THROW(b);
 				break;
 			}
 			case OpcodeType::kEq: {
 				auto a = stack_frame->pop();
 				auto& b = stack_frame->get(-1);
-				b = Value(b == a);
+				b = b.EqualTo(context_, a);
+				VM_EXCEPTION_CHECK_AND_THROW(b);
 				break;
 			}
 			case OpcodeType::kLt: {
 				auto a = stack_frame->pop();
 				auto& b = stack_frame->get(-1);
-				b = Value(b < a);
+				b = b.LessThan(context_, a);
+				VM_EXCEPTION_CHECK_AND_THROW(b);
 				break;
 			}
 			case OpcodeType::kLe: {
 				auto a = stack_frame->pop();
 				auto& b = stack_frame->get(-1);
-				b = Value(!(b > a));
+				b = b.LessThanOrEqual(context_, a);
+				VM_EXCEPTION_CHECK_AND_THROW(b);
 				break;
 			}
 			case OpcodeType::kGt: {
 				auto a = stack_frame->pop();
 				auto& b = stack_frame->get(-1);
-				b = Value(b > a);
+				b = b.GreaterThan(context_, a);
+				VM_EXCEPTION_CHECK_AND_THROW(b);
 				break;
 			}
 			case OpcodeType::kGe: {
 				auto a = stack_frame->pop();
 				auto& b = stack_frame->get(-1);
-				b = Value(!(b < a));
+				b = b.GreaterThanOrEqual(context_, a);
+				VM_EXCEPTION_CHECK_AND_THROW(b);
 				break;
 			}
 			case OpcodeType::kIfEq: {
@@ -622,11 +657,7 @@ void VM::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 			}
 			case OpcodeType::kThrow: {
 				stack_frame->set_pc(stack_frame->pc() - 1);
-				pending_error_val = stack_frame->pop();
-				if (!ThrowExecption(stack_frame, &pending_error_val)) {
-					pending_return_val = std::move(pending_error_val);
-					goto exit_;
-				}
+				VM_EXCEPTION_THROW(stack_frame->pop());
 				break;
 			}
 			case OpcodeType::kTryEnd: {
@@ -634,7 +665,7 @@ void VM::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 				stack_frame->set_pc(stack_frame->pc() - 1);
 				if (pending_error_val) {
 					// 如果还有记录的异常，就重抛，这里的重抛是直接到上层抛的，因为try end不属于当前层
-					if (!ThrowExecption(stack_frame, &pending_error_val)) {
+					if (!ThrowException(stack_frame, &pending_error_val)) {
 						goto exit_;
 					}
 				}
@@ -714,11 +745,9 @@ void VM::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 				Value value;
 				auto success = context_->runtime().global_this().object().GetProperty(context_, const_idx, &value);
 				if (!success) {
-					pending_error_val = ReferenceError::Throw(context_, *stack_frame, "Failed to retrieve properties from global this: {}.", context_->GetConstValue(const_idx).ToString(context_).string_view());
-					if (!ThrowExecption(stack_frame, &pending_error_val)) {
-						pending_return_val = std::move(pending_error_val);
-						goto exit_;
-					}
+					VM_EXCEPTION_THROW(
+						ReferenceError::Throw(context_, "Failed to retrieve properties from global this: {}.", context_->GetConstValue(const_idx).ToString(context_).string_view())
+					);
 				}
 				stack_frame->push(std::move(value));
 				break;
@@ -726,41 +755,25 @@ void VM::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 			case OpcodeType::kGetModule: {
 				auto path = stack_frame->pop();
 				if (!path.IsString()) {
-					pending_error_val = TypeError::Throw(context_, *stack_frame, "Can only provide string paths for module loading.");
-					if (!ThrowExecption(stack_frame, &pending_error_val)) {
-						pending_return_val = std::move(pending_error_val);
-						goto exit_;
-					}
+					VM_EXCEPTION_THROW(
+						TypeError::Throw(context_, "Can only provide string paths for module loading.")
+					);
 				}
 				auto module = context_->runtime().module_manager().GetModule(context_, path.string_view());
 				stack_frame->push(module);
-				if (module.IsException()) {
-					pending_error_val = std::move(module);
-					if (!ThrowExecption(stack_frame, &pending_error_val)) {
-						pending_return_val = std::move(pending_error_val);
-						goto exit_;
-					}
-				}
+				VM_EXCEPTION_CHECK_AND_THROW(module);
 				break;
 			}
 			case OpcodeType::kGetModuleAsync: {
 				auto path = stack_frame->pop();
 				if (!path.IsString()) {
-					pending_error_val = TypeError::Throw(context_, *stack_frame, "Can only provide string paths for module loading.");
-					if (!ThrowExecption(stack_frame, &pending_error_val)) {
-						pending_return_val = std::move(pending_error_val);
-						goto exit_;
-					}
+					VM_EXCEPTION_THROW(
+						TypeError::Throw(context_, "Can only provide string paths for module loading.")
+					);
 				}
 				auto module = context_->runtime().module_manager().GetModuleAsync(context_, path.string_view());
 				stack_frame->push(module);
-				if (module.IsException()) {
-					pending_error_val = std::move(module);
-					if (!ThrowExecption(stack_frame, &pending_error_val)) {
-						pending_return_val = std::move(pending_error_val);
-						goto exit_;
-					}
-				}
+				VM_EXCEPTION_CHECK_AND_THROW(module);
 				break;
 			}
 			default:
@@ -772,15 +785,37 @@ void VM::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 exit_:
 	if (!pending_return_val) {
 		pending_return_val = stack_frame->pop();
+		assert(!pending_return_val->IsException());
 	}
 	else {
 		pending_return_val->SetException();
+
+		const mjs::StackFrame* tmp_stack_frame = stack_frame;
+		while (!tmp_stack_frame->function_def()) {
+			if (!tmp_stack_frame->upper_stack_frame()) {
+				break;
+			}
+			tmp_stack_frame = tmp_stack_frame->upper_stack_frame();
+		}
+		std::string_view func = "<unknown>";
+		SourceLine line = kInvalidSourceLine;
+		if (tmp_stack_frame->function_def()) {
+			func = tmp_stack_frame->function_def()->name();
+			auto debug_info = tmp_stack_frame->function_def()->debug_table().FindEntry(tmp_stack_frame->pc());
+			if (debug_info) {
+				line = debug_info->source_line;
+			}
+		}
+		pending_return_val = Value(String::Format("[func: {}, line:{}] {}", func, line, pending_return_val->string_view())).SetException();
+
 		if (stack_frame->function_val().IsAsyncObject()) {
 			auto& async = stack_frame->function_val().async();
 			async.res_promise().promise().Reject(context_, *pending_return_val);
 			pending_return_val = async.res_promise();
 		}
 	}
+
+
 
 	// 还原栈帧
 	stack().resize(stack_frame->bottom());
@@ -789,7 +824,7 @@ exit_:
 }
 
 
-bool VM::ThrowExecption(StackFrame* stack_frame, std::optional<Value>* error_val) {
+bool VM::ThrowException(StackFrame* stack_frame, std::optional<Value>* error_val) {
 	auto& table = stack_frame->function_def()->exception_table();
 
 	auto* entry = table.FindEntry(stack_frame->pc());

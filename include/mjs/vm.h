@@ -52,7 +52,7 @@ private:
 
 	void LoadConst(StackFrame* stack_frame, ConstIndex const_idx);
 
-	bool ThrowExecption(StackFrame* stack_frame, std::optional<Value>* error_val);
+	bool ThrowException(StackFrame* stack_frame, std::optional<Value>* error_val);
 
 private:
 	void GeneratorSaveContext(StackFrame* stack_frame, GeneratorObject* generator);

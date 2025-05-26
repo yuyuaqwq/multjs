@@ -26,11 +26,9 @@ public:
 	}
 
 	template<typename... Args>
-	static Value Throw(Context* context, const StackFrame& stack_frame, std::format_string<Args...> fmt, Args&&... args) {
-		return Throw(context, stack_frame, std::format(fmt, std::forward<Args>(args)...));
+	static Value Throw(Context* context, std::format_string<Args...> fmt, Args&&... args) {
+		return Value(String::Format(fmt, std::forward<Args>(args)...)).SetException();
 	}
-
-	static Value Throw(Context* context, const StackFrame& stack_frame, std::string&& string);
 
 protected:
 	template<typename... Args>

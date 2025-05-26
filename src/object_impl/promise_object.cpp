@@ -118,12 +118,12 @@ Value PromiseObject::Then(Context* context, Value on_fulfilled, Value on_rejecte
 
     if (on_fulfilled.IsUndefined()) {
         on_fulfilled = Value([](Context* ctx, uint32_t, const StackFrame& stack) {
-            return stack.get(1);
+            return stack.get(0);
         });
     }
     if (on_rejected.IsUndefined()) {
         on_rejected = Value([](Context* ctx, uint32_t, const StackFrame& stack) {
-            return stack.get(1).SetException();
+            return stack.get(0).SetException();
         });
     }
 
