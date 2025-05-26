@@ -245,10 +245,9 @@ bool VM::FunctionScheduling(StackFrame* stack_frame, uint32_t par_count) {
 		// assert(async.res_promise().promise().IsFulfilled());
 		auto ret = stack_frame->pop();
 		GeneratorRestoreContext(stack_frame, &async);
-
-		stack_frame->push(std::move(ret));
-		if (async.res_promise().promise().IsRejected()) {
-			// 等待的promise被拒绝，抛出异常
+		stack_frame->push(ret);
+		if (ret.IsException()) {
+			// 抛出异常
 			return false;
 		}
 		return true;
@@ -293,7 +292,8 @@ void VM::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 
 	if (!FunctionScheduling(stack_frame, param_count)) {
 		if (stack_frame->function_val().IsAsyncObject()) {
-			goto throw_next_;
+			// await等待发生异常，注入异常
+			goto inject_exception_;
 		}
 		goto exit_;
 	}
@@ -574,15 +574,7 @@ void VM::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 		case OpcodeType::kAwait: {
 			auto val = stack_frame->pop();
 
-			if (val.IsPromiseObject()) {
-				auto& promise = val.promise();
-				if (promise.IsRejected()) {
-					Value tmp = promise.reason();
-					assert(tmp.IsException());
-					VM_EXCEPTION_THROW(tmp);
-				}
-			}
-			else {
+			if (!val.IsPromiseObject()) {
 				// 不是Promise，则用Promise包装
 				val = PromiseObjectClassDef::Resolve(context_, std::move(val));
 			}
@@ -752,11 +744,6 @@ void VM::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 			}
 			break;
 		}
-		case OpcodeType::kThrowNext: {
-		throw_next_:
-			VM_EXCEPTION_THROW(stack_frame->pop());
-			break;
-		}
 		case OpcodeType::kGetGlobal: {
 			auto const_idx = ConstIndex(func_def->bytecode_table().GetU32(stack_frame->pc()));
 			stack_frame->set_pc(stack_frame->pc() + 4);
@@ -796,6 +783,12 @@ void VM::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 		}
 		default:
 			throw std::runtime_error("Unknown instruction.");
+			break;
+		{
+		inject_exception_:
+			VM_EXCEPTION_THROW(stack_frame->pop());
+			break;
+		}
 		}
 	}
 	

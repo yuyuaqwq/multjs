@@ -112,9 +112,6 @@ enum class OpcodeType : uint8_t {
 	kFinallyReturn = 0xd5,
 	kFinallyGoto = 0xd6,
 
-	kThrowNext = 0xd7,
-
-
 	// 0xf0 ~ 0xff 保留
 };
 

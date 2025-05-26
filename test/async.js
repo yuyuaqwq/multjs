@@ -45,9 +45,9 @@ async function asyncfunc() {
 }
 
 let res_promise1 = asyncfunc();
-let res_promise66 = asyncfunc();
+//let res_promise66 = asyncfunc();
 
-let res_promise2 = asyncfunc2(123);
+//let res_promise2 = asyncfunc2(123);
 
 
 // Promise.resolve(res_promise2);
