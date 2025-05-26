@@ -10,7 +10,7 @@
 namespace mjs {
 
 enum class OpcodeType : uint8_t {
-	// kStop = 0x00,
+	kAsyncExceptionCountinue = 0x01,
 
 	kCLoad_0 = 0x03,
 	kCLoad_1 = 0x04,

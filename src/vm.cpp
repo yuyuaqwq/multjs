@@ -244,13 +244,10 @@ bool VM::FunctionScheduling(StackFrame* stack_frame, uint32_t par_count) {
 		// assert(async.res_promise().promise().IsFulfilled());
 		auto ret = stack_frame->pop();
 		GeneratorRestoreContext(stack_frame, &async);
-		stack_frame->push(std::move(ret));
 
+		stack_frame->push(std::move(ret));
 		if (async.res_promise().promise().IsRejected()) {
-			// todo：可能不能这样子做
-			// 这里需要让VM处理一个异常
-			// 回到await指令
-			stack_frame->set_pc(stack_frame->pc() - 1);
+			return false;
 		}
 		return true;
 	}
@@ -287,511 +284,516 @@ void VM::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 	stack_frame->set_this_val(std::move(this_val));
 	
 	std::optional<Value> pending_return_val;
-	
+	std::optional<Value> pending_error_val;
+	OpcodeType opcode;
+	Pc pending_goto_pc = kInvalidPc;
+	const FunctionDef* func_def = nullptr;
+
 	if (!FunctionScheduling(stack_frame, param_count)) {
+		if (stack_frame->function_val().IsAsyncObject()) {
+			goto async_exception_;
+		}
 		goto exit_;
 	}
 
 	// std::cout << stack_frame->function_def()->Disassembly(context_);
-
-	{
-		std::optional<Value> pending_error_val;
-		Pc pending_goto_pc = kInvalidPc;
-
-		auto* func_def = stack_frame->function_def();
-		while (stack_frame->pc() >= 0 && func_def && stack_frame->pc() < func_def->bytecode_table().Size()) {
-			// OpcodeType opcode_; uint32_t par; auto pc = stack_frame->pc(); std::cout << func_def->byte_code().Disassembly(context_, pc, opcode_, par, func_def) << std::endl;
+	
+	func_def = stack_frame->function_def();
+	while (stack_frame->pc() >= 0 && func_def && stack_frame->pc() < func_def->bytecode_table().Size()) {
+		// OpcodeType opcode_; uint32_t par; auto pc = stack_frame->pc(); std::cout << func_def->byte_code().Disassembly(context_, pc, opcode_, par, func_def) << std::endl;
 			
-			auto opcode = func_def->bytecode_table().GetOpcode(stack_frame->pc());
+		opcode = func_def->bytecode_table().GetOpcode(stack_frame->pc());
+		stack_frame->set_pc(stack_frame->pc() + 1);
+		switch (opcode) {
+		case OpcodeType::kAsyncExceptionCountinue:
+		async_exception_:
+			VM_EXCEPTION_THROW(stack_frame->pop());
+			break;
+		case OpcodeType::kCLoad_0: {
+		case OpcodeType::kCLoad_1:
+		case OpcodeType::kCLoad_2:
+		case OpcodeType::kCLoad_3:
+		case OpcodeType::kCLoad_4:
+		case OpcodeType::kCLoad_5:
+			LoadConst(stack_frame, ConstIndex(opcode - OpcodeType::kCLoad_0));
+			break;
+		}
+		case OpcodeType::kCLoad: {
+			auto const_idx = ConstIndex(func_def->bytecode_table().GetI8(stack_frame->pc()));
 			stack_frame->set_pc(stack_frame->pc() + 1);
-			switch (opcode) {
-				//case OpcodeType::kStop:
-				//	return;
-			case OpcodeType::kCLoad_0: {
-			case OpcodeType::kCLoad_1:
-			case OpcodeType::kCLoad_2:
-			case OpcodeType::kCLoad_3:
-			case OpcodeType::kCLoad_4:
-			case OpcodeType::kCLoad_5:
-				LoadConst(stack_frame, ConstIndex(opcode - OpcodeType::kCLoad_0));
-				break;
-			}
-			case OpcodeType::kCLoad: {
-				auto const_idx = ConstIndex(func_def->bytecode_table().GetI8(stack_frame->pc()));
-				stack_frame->set_pc(stack_frame->pc() + 1);
-				LoadConst(stack_frame, const_idx);
-				break;
-			}
-			case OpcodeType::kCLoadW: {
-				auto const_idx = ConstIndex(func_def->bytecode_table().GetI16(stack_frame->pc()));
-				stack_frame->set_pc(stack_frame->pc() + 2);
-				LoadConst(stack_frame, const_idx);
-				break;
-			}
-			case OpcodeType::kCLoadD: {
-				auto const_idx = ConstIndex(func_def->bytecode_table().GetI32(stack_frame->pc()));
-				stack_frame->set_pc(stack_frame->pc() + 4);
-				LoadConst(stack_frame, const_idx);
-				break;
-			}
-			case OpcodeType::kVLoad: {
-				auto var_idx = func_def->bytecode_table().GetU8(stack_frame->pc());
-				stack_frame->set_pc(stack_frame->pc() + 1);
-				stack_frame->push(GetVar(stack_frame, var_idx));
-				break;
-			}
-			case OpcodeType::kVLoad_0:
-			case OpcodeType::kVLoad_1:
-			case OpcodeType::kVLoad_2:
-			case OpcodeType::kVLoad_3: {
-				auto var_idx = opcode - OpcodeType::kVLoad_0;
-				stack_frame->push(GetVar(stack_frame, var_idx));
-				break;
-			}
-			case OpcodeType::kPop: {
-				stack_frame->pop();
-				break;
-			}
-			case OpcodeType::kDump: {
-				stack_frame->push(stack_frame->get(-1));
-				break;
-			}
-			case OpcodeType::kSwap: {
-				std::swap(stack_frame->get(-1), stack_frame->get(-2));
-				break;
-			}
-			case OpcodeType::kUndefined: {
-				stack_frame->push(Value());
-				break;
-			}
-			case OpcodeType::kVStore: {
-				auto var_idx = func_def->bytecode_table().GetU8(stack_frame->pc());
-				stack_frame->set_pc(stack_frame->pc() + 1);
-				auto val = stack_frame->get(-1);
-				SetVar(stack_frame, var_idx, std::move(val));
-				break;
-			}
-			case OpcodeType::kVStore_0:
-			case OpcodeType::kVStore_1:
-			case OpcodeType::kVStore_2:
-			case OpcodeType::kVStore_3: {
-				auto var_idx = opcode - OpcodeType::kVStore_0;
-				auto val = stack_frame->get(-1);
-				SetVar(stack_frame, var_idx, std::move(val));
-				break;
-			}
-			case OpcodeType::kClosure: {
-				auto const_idx = ConstIndex(func_def->bytecode_table().GetI32(stack_frame->pc()));
-				stack_frame->set_pc(stack_frame->pc() + 4);
-				auto value = context_->GetConstValue(const_idx);
-				Closure(*stack_frame, &value);
-				stack_frame->push(std::move(value));
-				break;
-			}
-			case OpcodeType::kPropertyLoad: {
-				auto const_idx = ConstIndex(func_def->bytecode_table().GetI32(stack_frame->pc()));
-				stack_frame->set_pc(stack_frame->pc() + 4);
-				auto& obj_val = stack_frame->get(-1);
-				bool success = false;
-				if (obj_val.IsObject()) {
-					auto& obj = obj_val.object();
-					success = obj.GetProperty(context_, const_idx, &obj_val);
-				}
-				else {
-					// 非Object类型，根据类型来处理
-					// 如undefined需要报错
-					// number等需要转成临时Number Object
-					success = obj_val.GetProperty(context_, const_idx, &obj_val);
-				}
-
-				if (!success) {
-					obj_val = Value();
-				}
-				break;
-			}
-			case OpcodeType::kPropertyStore: {
-				auto const_idx = ConstIndex(func_def->bytecode_table().GetI32(stack_frame->pc()));
-				stack_frame->set_pc(stack_frame->pc() + 4);
-				auto obj_val = stack_frame->pop();
-				auto val = stack_frame->get(-1);
-				if (obj_val.IsObject()) {
-					auto& obj = obj_val.object();
-					obj.SetProperty(context_, const_idx, std::move(val));
-				}
-				else {
-					throw std::runtime_error("Cannot modify the properties of temporary objects.");
-				}
-				break;
-			}
-			case OpcodeType::kIndexedLoad: {
-				auto idx_val = stack_frame->pop();
-				auto& obj_val = stack_frame->get(-1);
+			LoadConst(stack_frame, const_idx);
+			break;
+		}
+		case OpcodeType::kCLoadW: {
+			auto const_idx = ConstIndex(func_def->bytecode_table().GetI16(stack_frame->pc()));
+			stack_frame->set_pc(stack_frame->pc() + 2);
+			LoadConst(stack_frame, const_idx);
+			break;
+		}
+		case OpcodeType::kCLoadD: {
+			auto const_idx = ConstIndex(func_def->bytecode_table().GetI32(stack_frame->pc()));
+			stack_frame->set_pc(stack_frame->pc() + 4);
+			LoadConst(stack_frame, const_idx);
+			break;
+		}
+		case OpcodeType::kVLoad: {
+			auto var_idx = func_def->bytecode_table().GetU8(stack_frame->pc());
+			stack_frame->set_pc(stack_frame->pc() + 1);
+			stack_frame->push(GetVar(stack_frame, var_idx));
+			break;
+		}
+		case OpcodeType::kVLoad_0:
+		case OpcodeType::kVLoad_1:
+		case OpcodeType::kVLoad_2:
+		case OpcodeType::kVLoad_3: {
+			auto var_idx = opcode - OpcodeType::kVLoad_0;
+			stack_frame->push(GetVar(stack_frame, var_idx));
+			break;
+		}
+		case OpcodeType::kPop: {
+			stack_frame->pop();
+			break;
+		}
+		case OpcodeType::kDump: {
+			stack_frame->push(stack_frame->get(-1));
+			break;
+		}
+		case OpcodeType::kSwap: {
+			std::swap(stack_frame->get(-1), stack_frame->get(-2));
+			break;
+		}
+		case OpcodeType::kUndefined: {
+			stack_frame->push(Value());
+			break;
+		}
+		case OpcodeType::kVStore: {
+			auto var_idx = func_def->bytecode_table().GetU8(stack_frame->pc());
+			stack_frame->set_pc(stack_frame->pc() + 1);
+			auto val = stack_frame->get(-1);
+			SetVar(stack_frame, var_idx, std::move(val));
+			break;
+		}
+		case OpcodeType::kVStore_0:
+		case OpcodeType::kVStore_1:
+		case OpcodeType::kVStore_2:
+		case OpcodeType::kVStore_3: {
+			auto var_idx = opcode - OpcodeType::kVStore_0;
+			auto val = stack_frame->get(-1);
+			SetVar(stack_frame, var_idx, std::move(val));
+			break;
+		}
+		case OpcodeType::kClosure: {
+			auto const_idx = ConstIndex(func_def->bytecode_table().GetI32(stack_frame->pc()));
+			stack_frame->set_pc(stack_frame->pc() + 4);
+			auto value = context_->GetConstValue(const_idx);
+			Closure(*stack_frame, &value);
+			stack_frame->push(std::move(value));
+			break;
+		}
+		case OpcodeType::kPropertyLoad: {
+			auto const_idx = ConstIndex(func_def->bytecode_table().GetI32(stack_frame->pc()));
+			stack_frame->set_pc(stack_frame->pc() + 4);
+			auto& obj_val = stack_frame->get(-1);
+			bool success = false;
+			if (obj_val.IsObject()) {
 				auto& obj = obj_val.object();
-
-				auto success = obj.GetComputedProperty(context_, idx_val, &obj_val);
-				if (!success) {
-					obj_val = Value();
-				}
-				break;
+				success = obj.GetProperty(context_, const_idx, &obj_val);
 			}
-			case OpcodeType::kIndexedStore: {
-				auto idx_val = stack_frame->pop();
-				auto obj_val = stack_frame->pop();
+			else {
+				// 非Object类型，根据类型来处理
+				// 如undefined需要报错
+				// number等需要转成临时Number Object
+				success = obj_val.GetProperty(context_, const_idx, &obj_val);
+			}
+
+			if (!success) {
+				obj_val = Value();
+			}
+			break;
+		}
+		case OpcodeType::kPropertyStore: {
+			auto const_idx = ConstIndex(func_def->bytecode_table().GetI32(stack_frame->pc()));
+			stack_frame->set_pc(stack_frame->pc() + 4);
+			auto obj_val = stack_frame->pop();
+			auto val = stack_frame->get(-1);
+			if (obj_val.IsObject()) {
 				auto& obj = obj_val.object();
+				obj.SetProperty(context_, const_idx, std::move(val));
+			}
+			else {
+				throw std::runtime_error("Cannot modify the properties of temporary objects.");
+			}
+			break;
+		}
+		case OpcodeType::kIndexedLoad: {
+			auto idx_val = stack_frame->pop();
+			auto& obj_val = stack_frame->get(-1);
+			auto& obj = obj_val.object();
 
-				auto val = stack_frame->get(-1);
-				obj.SetComputedProperty(context_, idx_val, std::move(val));
-				break;
+			auto success = obj.GetComputedProperty(context_, idx_val, &obj_val);
+			if (!success) {
+				obj_val = Value();
 			}
-			case OpcodeType::kToString: {
-				auto& a = stack_frame->get(-1);
-				a = a.ToString(context_);
-				break;
-			}
-			case OpcodeType::kAdd: {
-				auto a = stack_frame->pop();
-				auto& b = stack_frame->get(-1);
-				b = b.Add(context_, a);
-				VM_EXCEPTION_CHECK_AND_THROW(b);
-				break;
-			}
-			case OpcodeType::kInc: {
-				auto& arg = stack_frame->get(-1);
-				arg = arg.Increment(context_);
-				VM_EXCEPTION_CHECK_AND_THROW(arg);
-				break;
-			}
-			case OpcodeType::kSub: {
-				auto a = stack_frame->pop();
-				auto& b = stack_frame->get(-1);
-				b = b.Subtract(context_, a);
-				VM_EXCEPTION_CHECK_AND_THROW(b);
-				break;
-			}
-			case OpcodeType::kMul: {
-				auto a = stack_frame->pop();
-				auto& b = stack_frame->get(-1);
-				b = b.Multiply(context_, a);
-				VM_EXCEPTION_CHECK_AND_THROW(b);
-				break;
-			}
-			case OpcodeType::kDiv: {
-				auto a = stack_frame->pop();
-				auto& b = stack_frame->get(-1);
-				b = b.Divide(context_, a);
-				VM_EXCEPTION_CHECK_AND_THROW(b);
-				break;
-			}
-			case OpcodeType::kNeg: {
-				auto& a = stack_frame->get(-1);
-				a = a.Negate(context_);
-				VM_EXCEPTION_CHECK_AND_THROW(a);
-				break;
-			}
+			break;
+		}
+		case OpcodeType::kIndexedStore: {
+			auto idx_val = stack_frame->pop();
+			auto obj_val = stack_frame->pop();
+			auto& obj = obj_val.object();
 
-			case OpcodeType::kShl: {
-				auto a = stack_frame->pop();
-				auto& b = stack_frame->get(-1);
-				b = b.LeftShift(context_, a);
-				VM_EXCEPTION_CHECK_AND_THROW(b);
-				break;
-			}
-			case OpcodeType::kShr: {
-				auto a = stack_frame->pop();
-				auto& b = stack_frame->get(-1);
-				b = b.RightShift(context_, a);
-				VM_EXCEPTION_CHECK_AND_THROW(b);
-				break;
-			}
-			case OpcodeType::kBitAnd: {
-				auto a = stack_frame->pop();
-				auto& b = stack_frame->get(-1);
-				b = b.BitwiseAnd(context_, a);
-				VM_EXCEPTION_CHECK_AND_THROW(b);
-				break;
-			}
-			case OpcodeType::kBitOr: {
-				auto a = stack_frame->pop();
-				auto& b = stack_frame->get(-1);
-				b = b.BitwiseOr(context_, a);
-				VM_EXCEPTION_CHECK_AND_THROW(b);
-				break;
-			}
-			case OpcodeType::kNew: {
-				// this，然后让function call处理
-				stack_frame->push(Value());
-			}
-			case OpcodeType::kFunctionCall: {
-				auto this_val = stack_frame->pop();
-				auto func_val = stack_frame->pop();
-				auto param_count = stack_frame->pop().u64();
+			auto val = stack_frame->get(-1);
+			obj.SetComputedProperty(context_, idx_val, std::move(val));
+			break;
+		}
+		case OpcodeType::kToString: {
+			auto& a = stack_frame->get(-1);
+			a = a.ToString(context_);
+			break;
+		}
+		case OpcodeType::kAdd: {
+			auto a = stack_frame->pop();
+			auto& b = stack_frame->get(-1);
+			b = b.Add(context_, a);
+			VM_EXCEPTION_CHECK_AND_THROW(b);
+			break;
+		}
+		case OpcodeType::kInc: {
+			auto& arg = stack_frame->get(-1);
+			arg = arg.Increment(context_);
+			VM_EXCEPTION_CHECK_AND_THROW(arg);
+			break;
+		}
+		case OpcodeType::kSub: {
+			auto a = stack_frame->pop();
+			auto& b = stack_frame->get(-1);
+			b = b.Subtract(context_, a);
+			VM_EXCEPTION_CHECK_AND_THROW(b);
+			break;
+		}
+		case OpcodeType::kMul: {
+			auto a = stack_frame->pop();
+			auto& b = stack_frame->get(-1);
+			b = b.Multiply(context_, a);
+			VM_EXCEPTION_CHECK_AND_THROW(b);
+			break;
+		}
+		case OpcodeType::kDiv: {
+			auto a = stack_frame->pop();
+			auto& b = stack_frame->get(-1);
+			b = b.Divide(context_, a);
+			VM_EXCEPTION_CHECK_AND_THROW(b);
+			break;
+		}
+		case OpcodeType::kNeg: {
+			auto& a = stack_frame->get(-1);
+			a = a.Negate(context_);
+			VM_EXCEPTION_CHECK_AND_THROW(a);
+			break;
+		}
+
+		case OpcodeType::kShl: {
+			auto a = stack_frame->pop();
+			auto& b = stack_frame->get(-1);
+			b = b.LeftShift(context_, a);
+			VM_EXCEPTION_CHECK_AND_THROW(b);
+			break;
+		}
+		case OpcodeType::kShr: {
+			auto a = stack_frame->pop();
+			auto& b = stack_frame->get(-1);
+			b = b.RightShift(context_, a);
+			VM_EXCEPTION_CHECK_AND_THROW(b);
+			break;
+		}
+		case OpcodeType::kBitAnd: {
+			auto a = stack_frame->pop();
+			auto& b = stack_frame->get(-1);
+			b = b.BitwiseAnd(context_, a);
+			VM_EXCEPTION_CHECK_AND_THROW(b);
+			break;
+		}
+		case OpcodeType::kBitOr: {
+			auto a = stack_frame->pop();
+			auto& b = stack_frame->get(-1);
+			b = b.BitwiseOr(context_, a);
+			VM_EXCEPTION_CHECK_AND_THROW(b);
+			break;
+		}
+		case OpcodeType::kNew: {
+			// this，然后让function call处理
+			stack_frame->push(Value());
+		}
+		case OpcodeType::kFunctionCall: {
+			auto this_val = stack_frame->pop();
+			auto func_val = stack_frame->pop();
+			auto param_count = stack_frame->pop().u64();
 				
-				auto new_stack_frame = StackFrame(stack_frame);
+			auto new_stack_frame = StackFrame(stack_frame);
 
-				// 参数已经在栈上了，调整bottom
-				new_stack_frame.set_bottom(
-					new_stack_frame.bottom() - param_count
-				);
-				CallInternal(&new_stack_frame, func_val, this_val, param_count);
-				auto& ret = new_stack_frame.get(-1);
-				VM_EXCEPTION_CHECK_AND_THROW(ret);
-				break;
-			}
-			case OpcodeType::kGetThis: {
-				stack_frame->push(stack_frame->this_val());
-				break;
-			}
-			case OpcodeType::kGetOuterThis: {
-				auto& lexical_this = stack_frame->function_val().function().closure_env().lexical_this();
-				stack_frame->push(lexical_this);
-				break;
-			}
-			case OpcodeType::kReturn: {
-				goto exit_;
-				break;
-			}
-			case OpcodeType::kGeneratorReturn: {
-				auto& generator = stack_frame->this_val().generator();
-				generator.SetClosed();
+			// 参数已经在栈上了，调整bottom
+			new_stack_frame.set_bottom(
+				new_stack_frame.bottom() - param_count
+			);
+			CallInternal(&new_stack_frame, func_val, this_val, param_count);
+			auto& ret = new_stack_frame.get(-1);
+			VM_EXCEPTION_CHECK_AND_THROW(ret);
+			break;
+		}
+		case OpcodeType::kGetThis: {
+			stack_frame->push(stack_frame->this_val());
+			break;
+		}
+		case OpcodeType::kGetOuterThis: {
+			auto& lexical_this = stack_frame->function_val().function().closure_env().lexical_this();
+			stack_frame->push(lexical_this);
+			break;
+		}
+		case OpcodeType::kReturn: {
+			goto exit_;
+			break;
+		}
+		case OpcodeType::kGeneratorReturn: {
+			auto& generator = stack_frame->this_val().generator();
+			generator.SetClosed();
 
-				auto ret_value = stack_frame->pop();
-				auto ret_obj = generator.MakeReturnObject(context_, std::move(ret_value));
-				stack_frame->push(std::move(ret_obj));
+			auto ret_value = stack_frame->pop();
+			auto ret_obj = generator.MakeReturnObject(context_, std::move(ret_value));
+			stack_frame->push(std::move(ret_obj));
 
-				goto exit_;
-				break;
-			}
-			case OpcodeType::kAsyncReturn: {
-				auto& async = stack_frame->function_val().async();
-				auto return_value = stack_frame->pop();
-				async.res_promise().promise().Resolve(context_, return_value);
-				stack_frame->push(async.res_promise());
-				goto exit_;
-				break;
-			}
-			case OpcodeType::kAwait: {
-				auto val = stack_frame->pop();
+			goto exit_;
+			break;
+		}
+		case OpcodeType::kAsyncReturn: {
+			auto& async = stack_frame->function_val().async();
+			auto return_value = stack_frame->pop();
+			async.res_promise().promise().Resolve(context_, return_value);
+			stack_frame->push(async.res_promise());
+			goto exit_;
+			break;
+		}
+		case OpcodeType::kAwait: {
+			auto val = stack_frame->pop();
 
-				if (val.IsPromiseObject()) {
-					auto& promise = val.promise();
-					if (promise.IsRejected()) {
-						assert(promise.reason().IsException());
-						Value tmp = promise.reason();
-						VM_EXCEPTION_CHECK_AND_THROW(tmp);
-					}
-				}
-				if (!val.IsPromiseObject()) {
-					// 不是Promise，则用Promise包装
-					val = PromiseObjectClassDef::Resolve(context_, std::move(val));
-				}
-
+			if (val.IsPromiseObject()) {
 				auto& promise = val.promise();
-				auto& async_obj = stack_frame->function_val().async();
-				GeneratorSaveContext(stack_frame, &async_obj);
-				promise.Then(context_, Value(&async_obj), Value(&async_obj));
-
-				stack_frame->push(async_obj.res_promise());
-
-				goto exit_;
-				break;
-			}
-			case OpcodeType::kYield: {
-				auto& generator = stack_frame->this_val().generator();
-
-				GeneratorSaveContext(stack_frame, &generator);
-
-				auto ret_value = stack_frame->pop();
-				auto ret_obj = generator.MakeReturnObject(context_, std::move(ret_value));
-				stack_frame->push(std::move(ret_obj));
-
-				goto exit_;
-				break;
-			}
-			case OpcodeType::kNe: {
-				auto a = stack_frame->pop();
-				auto& b = stack_frame->get(-1);
-				b = b.NotEqualTo(context_, a);
-				VM_EXCEPTION_CHECK_AND_THROW(b);
-				break;
-			}
-			case OpcodeType::kEq: {
-				auto a = stack_frame->pop();
-				auto& b = stack_frame->get(-1);
-				b = b.EqualTo(context_, a);
-				VM_EXCEPTION_CHECK_AND_THROW(b);
-				break;
-			}
-			case OpcodeType::kLt: {
-				auto a = stack_frame->pop();
-				auto& b = stack_frame->get(-1);
-				b = b.LessThan(context_, a);
-				VM_EXCEPTION_CHECK_AND_THROW(b);
-				break;
-			}
-			case OpcodeType::kLe: {
-				auto a = stack_frame->pop();
-				auto& b = stack_frame->get(-1);
-				b = b.LessThanOrEqual(context_, a);
-				VM_EXCEPTION_CHECK_AND_THROW(b);
-				break;
-			}
-			case OpcodeType::kGt: {
-				auto a = stack_frame->pop();
-				auto& b = stack_frame->get(-1);
-				b = b.GreaterThan(context_, a);
-				VM_EXCEPTION_CHECK_AND_THROW(b);
-				break;
-			}
-			case OpcodeType::kGe: {
-				auto a = stack_frame->pop();
-				auto& b = stack_frame->get(-1);
-				b = b.GreaterThanOrEqual(context_, a);
-				VM_EXCEPTION_CHECK_AND_THROW(b);
-				break;
-			}
-			case OpcodeType::kIfEq: {
-				auto boolean_val = stack_frame->pop().ToBoolean();
-				if (boolean_val.boolean() == false) {
-					stack_frame->set_pc(func_def->bytecode_table().CalcPc(stack_frame->pc() - 1));
+				if (promise.IsRejected()) {
+					assert(promise.reason().IsException());
+					Value tmp = promise.reason();
+					VM_EXCEPTION_CHECK_AND_THROW(tmp);
 				}
-				else {
-					stack_frame->set_pc(stack_frame->pc() + 2);
-				}
-				break;
 			}
-			case OpcodeType::kGoto: {
+			if (!val.IsPromiseObject()) {
+				// 不是Promise，则用Promise包装
+				val = PromiseObjectClassDef::Resolve(context_, std::move(val));
+			}
+
+			auto& promise = val.promise();
+			auto& async_obj = stack_frame->function_val().async();
+			GeneratorSaveContext(stack_frame, &async_obj);
+			promise.Then(context_, Value(&async_obj), Value(&async_obj));
+
+			stack_frame->push(async_obj.res_promise());
+
+			goto exit_;
+			break;
+		}
+		case OpcodeType::kYield: {
+			auto& generator = stack_frame->this_val().generator();
+
+			GeneratorSaveContext(stack_frame, &generator);
+
+			auto ret_value = stack_frame->pop();
+			auto ret_obj = generator.MakeReturnObject(context_, std::move(ret_value));
+			stack_frame->push(std::move(ret_obj));
+
+			goto exit_;
+			break;
+		}
+		case OpcodeType::kNe: {
+			auto a = stack_frame->pop();
+			auto& b = stack_frame->get(-1);
+			b = b.NotEqualTo(context_, a);
+			VM_EXCEPTION_CHECK_AND_THROW(b);
+			break;
+		}
+		case OpcodeType::kEq: {
+			auto a = stack_frame->pop();
+			auto& b = stack_frame->get(-1);
+			b = b.EqualTo(context_, a);
+			VM_EXCEPTION_CHECK_AND_THROW(b);
+			break;
+		}
+		case OpcodeType::kLt: {
+			auto a = stack_frame->pop();
+			auto& b = stack_frame->get(-1);
+			b = b.LessThan(context_, a);
+			VM_EXCEPTION_CHECK_AND_THROW(b);
+			break;
+		}
+		case OpcodeType::kLe: {
+			auto a = stack_frame->pop();
+			auto& b = stack_frame->get(-1);
+			b = b.LessThanOrEqual(context_, a);
+			VM_EXCEPTION_CHECK_AND_THROW(b);
+			break;
+		}
+		case OpcodeType::kGt: {
+			auto a = stack_frame->pop();
+			auto& b = stack_frame->get(-1);
+			b = b.GreaterThan(context_, a);
+			VM_EXCEPTION_CHECK_AND_THROW(b);
+			break;
+		}
+		case OpcodeType::kGe: {
+			auto a = stack_frame->pop();
+			auto& b = stack_frame->get(-1);
+			b = b.GreaterThanOrEqual(context_, a);
+			VM_EXCEPTION_CHECK_AND_THROW(b);
+			break;
+		}
+		case OpcodeType::kIfEq: {
+			auto boolean_val = stack_frame->pop().ToBoolean();
+			if (boolean_val.boolean() == false) {
 				stack_frame->set_pc(func_def->bytecode_table().CalcPc(stack_frame->pc() - 1));
-				break;
 			}
-			case OpcodeType::kTryBegin: {
-				break;
+			else {
+				stack_frame->set_pc(stack_frame->pc() + 2);
 			}
-			case OpcodeType::kThrow: {
-				stack_frame->set_pc(stack_frame->pc() - 1);
-				VM_EXCEPTION_THROW(stack_frame->pop());
-				break;
-			}
-			case OpcodeType::kTryEnd: {
-				// 先回到try end
-				stack_frame->set_pc(stack_frame->pc() - 1);
-				if (pending_error_val) {
-					// 如果还有记录的异常，就重抛，这里的重抛是直接到上层抛的，因为try end不属于当前层
-					if (!ThrowException(stack_frame, &pending_error_val)) {
-						goto exit_;
-					}
-				}
-				else if (pending_return_val) {
-					// finally完成了，有保存的返回值
-					auto& table = func_def->exception_table();
-					auto* entry = table.FindEntry(stack_frame->pc());
-					if (entry && entry->HasFinally()) {
-						// 上层还存在finally，继续执行上层finally
-						stack_frame->set_pc(entry->finally_start_pc);
-						break;
-					}
-					stack_frame->push(std::move(*pending_return_val));
-					stack_frame->push(stack_frame->pop());
-					pending_return_val.reset();
+			break;
+		}
+		case OpcodeType::kGoto: {
+			stack_frame->set_pc(func_def->bytecode_table().CalcPc(stack_frame->pc() - 1));
+			break;
+		}
+		case OpcodeType::kTryBegin: {
+			break;
+		}
+		case OpcodeType::kThrow: {
+			stack_frame->set_pc(stack_frame->pc() - 1);
+			VM_EXCEPTION_THROW(stack_frame->pop());
+			break;
+		}
+		case OpcodeType::kTryEnd: {
+			// 先回到try end
+			stack_frame->set_pc(stack_frame->pc() - 1);
+			if (pending_error_val) {
+				// 如果还有记录的异常，就重抛，这里的重抛是直接到上层抛的，因为try end不属于当前层
+				if (!ThrowException(stack_frame, &pending_error_val)) {
 					goto exit_;
 				}
-				else if (pending_goto_pc != kInvalidPc) {
-					// finally完成了，有未完成的跳转
-					auto& table = func_def->exception_table();
-					auto* entry = table.FindEntry(stack_frame->pc());
-					auto* goto_entry = table.FindEntry(pending_goto_pc);
-					// Goto是否跳过上层finally
-					if (!goto_entry || entry == goto_entry) {
-						stack_frame->set_pc(pending_goto_pc);
-						pending_goto_pc = kInvalidPc;
-					}
-					else {
-						stack_frame->set_pc(entry->finally_start_pc);
-					}
+			}
+			else if (pending_return_val) {
+				// finally完成了，有保存的返回值
+				auto& table = func_def->exception_table();
+				auto* entry = table.FindEntry(stack_frame->pc());
+				if (entry && entry->HasFinally()) {
+					// 上层还存在finally，继续执行上层finally
+					stack_frame->set_pc(entry->finally_start_pc);
+					break;
+				}
+				stack_frame->push(std::move(*pending_return_val));
+				stack_frame->push(stack_frame->pop());
+				pending_return_val.reset();
+				goto exit_;
+			}
+			else if (pending_goto_pc != kInvalidPc) {
+				// finally完成了，有未完成的跳转
+				auto& table = func_def->exception_table();
+				auto* entry = table.FindEntry(stack_frame->pc());
+				auto* goto_entry = table.FindEntry(pending_goto_pc);
+				// Goto是否跳过上层finally
+				if (!goto_entry || entry == goto_entry) {
+					stack_frame->set_pc(pending_goto_pc);
+					pending_goto_pc = kInvalidPc;
 				}
 				else {
-					stack_frame->set_pc(stack_frame->pc() + 1);
+					stack_frame->set_pc(entry->finally_start_pc);
 				}
+			}
+			else {
+				stack_frame->set_pc(stack_frame->pc() + 1);
+			}
 
-				break;
+			break;
+		}
+		case OpcodeType::kFinallyReturn: {
+			stack_frame->set_pc(stack_frame->pc() - 1);
+			// 存在finally的return语句，先跳转到finally
+			auto& table = func_def->exception_table();
+			auto* entry = table.FindEntry(stack_frame->pc());
+			if (!entry || !entry->HasFinally()) {
+				throw std::runtime_error("Incorrect finally return.");
 			}
-			case OpcodeType::kFinallyReturn: {
-				stack_frame->set_pc(stack_frame->pc() - 1);
-				// 存在finally的return语句，先跳转到finally
-				auto& table = func_def->exception_table();
-				auto* entry = table.FindEntry(stack_frame->pc());
-				if (!entry || !entry->HasFinally()) {
-					throw std::runtime_error("Incorrect finally return.");
-				}
-				pending_return_val = stack_frame->pop();
-				if (entry->LocatedInFinally(stack_frame->pc())) {
-					// 位于finally的返回，覆盖掉原先的返回，跳转到TryEnd
-					stack_frame->set_pc(entry->finally_end_pc);
-				}
-				else {
-					stack_frame->set_pc(entry->finally_start_pc);
-				}
-				break;
+			pending_return_val = stack_frame->pop();
+			if (entry->LocatedInFinally(stack_frame->pc())) {
+				// 位于finally的返回，覆盖掉原先的返回，跳转到TryEnd
+				stack_frame->set_pc(entry->finally_end_pc);
 			}
-			case OpcodeType::kFinallyGoto: {
-				stack_frame->set_pc(stack_frame->pc() - 1);
-				// goto会跳过finally，先执行finally
-				auto& table = func_def->exception_table();
-				auto* entry = table.FindEntry(stack_frame->pc());
-				if (!entry || !entry->HasFinally()) {
-					throw std::runtime_error("Incorrect finally return.");
-				}
-				pending_goto_pc = func_def->bytecode_table().CalcPc(stack_frame->pc());
-				if (entry->LocatedInFinally(stack_frame->pc())) {
-					// 位于finally的goto
-					stack_frame->set_pc(entry->finally_end_pc);
-				}
-				else {
-					stack_frame->set_pc(entry->finally_start_pc);
-				}
-				break;
+			else {
+				stack_frame->set_pc(entry->finally_start_pc);
 			}
-			case OpcodeType::kGetGlobal: {
-				auto const_idx = ConstIndex(func_def->bytecode_table().GetU32(stack_frame->pc()));
-				stack_frame->set_pc(stack_frame->pc() + 4);
-				Value value;
-				auto success = context_->runtime().global_this().object().GetProperty(context_, const_idx, &value);
-				if (!success) {
-					VM_EXCEPTION_THROW(
-						ReferenceError::Throw(context_, "Failed to retrieve properties from global this: {}.", context_->GetConstValue(const_idx).ToString(context_).string_view())
-					);
-				}
-				stack_frame->push(std::move(value));
-				break;
+			break;
+		}
+		case OpcodeType::kFinallyGoto: {
+			stack_frame->set_pc(stack_frame->pc() - 1);
+			// goto会跳过finally，先执行finally
+			auto& table = func_def->exception_table();
+			auto* entry = table.FindEntry(stack_frame->pc());
+			if (!entry || !entry->HasFinally()) {
+				throw std::runtime_error("Incorrect finally return.");
 			}
-			case OpcodeType::kGetModule: {
-				auto path = stack_frame->pop();
-				if (!path.IsString()) {
-					VM_EXCEPTION_THROW(
-						TypeError::Throw(context_, "Can only provide string paths for module loading.")
-					);
-				}
-				auto module = context_->runtime().module_manager().GetModule(context_, path.string_view());
-				stack_frame->push(module);
-				VM_EXCEPTION_CHECK_AND_THROW(module);
-				break;
+			pending_goto_pc = func_def->bytecode_table().CalcPc(stack_frame->pc());
+			if (entry->LocatedInFinally(stack_frame->pc())) {
+				// 位于finally的goto
+				stack_frame->set_pc(entry->finally_end_pc);
 			}
-			case OpcodeType::kGetModuleAsync: {
-				auto path = stack_frame->pop();
-				if (!path.IsString()) {
-					VM_EXCEPTION_THROW(
-						TypeError::Throw(context_, "Can only provide string paths for module loading.")
-					);
-				}
-				auto module = context_->runtime().module_manager().GetModuleAsync(context_, path.string_view());
-				stack_frame->push(module);
-				VM_EXCEPTION_CHECK_AND_THROW(module);
-				break;
+			else {
+				stack_frame->set_pc(entry->finally_start_pc);
 			}
-			default:
-				throw std::runtime_error("Unknown instruction.");
+			break;
+		}
+		case OpcodeType::kGetGlobal: {
+			auto const_idx = ConstIndex(func_def->bytecode_table().GetU32(stack_frame->pc()));
+			stack_frame->set_pc(stack_frame->pc() + 4);
+			Value value;
+			auto success = context_->runtime().global_this().object().GetProperty(context_, const_idx, &value);
+			if (!success) {
+				VM_EXCEPTION_THROW(
+					ReferenceError::Throw(context_, "Failed to retrieve properties from global this: {}.", context_->GetConstValue(const_idx).ToString(context_).string_view())
+				);
 			}
+			stack_frame->push(std::move(value));
+			break;
+		}
+		case OpcodeType::kGetModule: {
+			auto path = stack_frame->pop();
+			if (!path.IsString()) {
+				VM_EXCEPTION_THROW(
+					TypeError::Throw(context_, "Can only provide string paths for module loading.")
+				);
+			}
+			auto module = context_->runtime().module_manager().GetModule(context_, path.string_view());
+			stack_frame->push(module);
+			VM_EXCEPTION_CHECK_AND_THROW(module);
+			break;
+		}
+		case OpcodeType::kGetModuleAsync: {
+			auto path = stack_frame->pop();
+			if (!path.IsString()) {
+				VM_EXCEPTION_THROW(
+					TypeError::Throw(context_, "Can only provide string paths for module loading.")
+				);
+			}
+			auto module = context_->runtime().module_manager().GetModuleAsync(context_, path.string_view());
+			stack_frame->push(module);
+			VM_EXCEPTION_CHECK_AND_THROW(module);
+			break;
+		}
+		default:
+			throw std::runtime_error("Unknown instruction.");
 		}
 	}
+	
 
 exit_:
 	if (!pending_return_val) {
