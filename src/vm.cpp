@@ -241,6 +241,7 @@ bool VM::FunctionScheduling(StackFrame* stack_frame, uint32_t par_count) {
 	}
 	case ValueType::kAsyncObject: {
 		auto& async = stack_frame->function_val().async();
+		assert(async.res_promise().promise().IsFulfilled());
 		auto ret = stack_frame->pop();
 		GeneratorRestoreContext(stack_frame, &async);
 		stack_frame->push(std::move(ret));
@@ -577,7 +578,13 @@ void VM::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 				}
 				auto& async_obj = stack_frame->function_val().async();
 				GeneratorSaveContext(stack_frame, &async_obj);
-				promise.Then(context_, Value(&async_obj), Value());
+				promise.Then(context_, Value(&async_obj),
+					Value([](Context* context, uint32_t param_count, const StackFrame& stack_frame) -> Value {
+						auto& async = stack_frame.function_val().async();
+						assert(async.res_promise().promise().IsRejected());
+						return async.res_promise().promise().reason();
+					})
+				);
 
 				stack_frame->push(async_obj.res_promise());
 
