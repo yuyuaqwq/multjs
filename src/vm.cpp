@@ -241,10 +241,17 @@ bool VM::FunctionScheduling(StackFrame* stack_frame, uint32_t par_count) {
 	}
 	case ValueType::kAsyncObject: {
 		auto& async = stack_frame->function_val().async();
-		assert(async.res_promise().promise().IsFulfilled());
+		// assert(async.res_promise().promise().IsFulfilled());
 		auto ret = stack_frame->pop();
 		GeneratorRestoreContext(stack_frame, &async);
 		stack_frame->push(std::move(ret));
+
+		if (async.res_promise().promise().IsRejected()) {
+			// todo：可能不能这样子做
+			// 这里需要让VM处理一个异常
+			// 回到await指令
+			stack_frame->set_pc(stack_frame->pc() - 1);
+		}
 		return true;
 	}
 	default:
@@ -565,26 +572,23 @@ void VM::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 			case OpcodeType::kAwait: {
 				auto val = stack_frame->pop();
 
+				if (val.IsPromiseObject()) {
+					auto& promise = val.promise();
+					if (promise.IsRejected()) {
+						assert(promise.reason().IsException());
+						Value tmp = promise.reason();
+						VM_EXCEPTION_CHECK_AND_THROW(tmp);
+					}
+				}
 				if (!val.IsPromiseObject()) {
 					// 不是Promise，则用Promise包装
 					val = PromiseObjectClassDef::Resolve(context_, std::move(val));
 				}
 
 				auto& promise = val.promise();
-				if (promise.IsRejected()) {
-					assert(promise.reason().IsException());
-					Value tmp = promise.reason();
-					VM_EXCEPTION_CHECK_AND_THROW(tmp);
-				}
 				auto& async_obj = stack_frame->function_val().async();
 				GeneratorSaveContext(stack_frame, &async_obj);
-				promise.Then(context_, Value(&async_obj),
-					Value([](Context* context, uint32_t param_count, const StackFrame& stack_frame) -> Value {
-						auto& async = stack_frame.function_val().async();
-						assert(async.res_promise().promise().IsRejected());
-						return async.res_promise().promise().reason();
-					})
-				);
+				promise.Then(context_, Value(&async_obj), Value(&async_obj));
 
 				stack_frame->push(async_obj.res_promise());
 
