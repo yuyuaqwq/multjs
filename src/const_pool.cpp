@@ -68,19 +68,22 @@ ConstIndex LocalConstPool::insert(Value&& value) {
 		value = Value(String::New(value.string_view()));
 	}
 
-	auto const_idx = pool_.size();
-	auto res = map_.emplace(std::move(value), const_idx);
+	
+	auto const_index = kConstIndexInvalid;
 	if (first_ == -1) {
+		const_index = pool_.size();
+		auto res = map_.emplace(std::move(value), const_index);
 		pool_.emplace_back(Node{ .value_ = const_cast<Value*>(&res.first->first) });
 	}
 	else {
-		auto alloc = first_;
+		const_index = first_;
 		first_ = pool_[first_].next_;
-		pool_[alloc] = Node{ .value_ = const_cast<Value*>(&res.first->first) };
+		auto res = map_.emplace(std::move(value), const_index);
+		pool_[const_index] = Node{ .value_ = const_cast<Value*>(&res.first->first) };
 	}
-	const_idx = -const_idx;
-	pool_.back().value_->set_const_index(const_idx);
-	return const_idx;
+	const_index = -const_index;
+	pool_.back().value_->set_const_index(const_index);
+	return const_index;
 }
 
 std::optional<ConstIndex> LocalConstPool::find(const Value& value) {
