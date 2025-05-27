@@ -116,7 +116,7 @@ void VM::LoadConst(StackFrame* stack_frame, ConstIndex const_idx) {
 	stack_frame->push(context_->GetConstValue(const_idx));
 }
 
-
+// 返回值决定是否进vm执行指令
 bool VM::FunctionScheduling(StackFrame* stack_frame, uint32_t par_count) {
 	switch (stack_frame->function_val().type()) {
 	case ValueType::kModuleDef:
@@ -287,8 +287,8 @@ void VM::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 	stack_frame->set_function_val(std::move(func_val));
 	stack_frame->set_this_val(std::move(this_val));
 	
-	std::optional<Value> pending_return_val;
-	std::optional<Value> pending_error_val;
+	std::optional<Value> pending_return_val;	// 异常时等待返回的值，需要执行finally才能返回
+	std::optional<Value> pending_error_val;		// 异常处理过程中临时保存的异常值，没有被catch处理最后会被重抛
 	OpcodeType opcode;
 	Pc pending_goto_pc = kInvalidPc;
 	const FunctionDef* func_def = nullptr;
@@ -298,7 +298,10 @@ void VM::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 			// await等待的promise被拒绝，注入异常
 			goto inject_exception_;
 		}
-		goto exit_;
+
+		// todo: 暂时有点丑陋，先这么干吧，以后再来整体优化
+		pending_return_val = stack_frame->pop();
+		goto return_;
 	}
 
 	// std::cout << stack_frame->function_def()->Disassembly(context_);
@@ -804,7 +807,8 @@ exit_:
 		assert(!pending_return_val->IsException());
 	}
 	else {
-		pending_return_val->SetException();
+		assert(pending_return_val->IsException());
+		// pending_return_val->SetException();
 
 		const mjs::StackFrame* tmp_stack_frame = stack_frame;
 		while (!tmp_stack_frame->function_def()) {
@@ -837,6 +841,7 @@ exit_:
 		}
 	}
 
+return_:
 	// 还原栈帧
 	stack().resize(stack_frame->bottom());
 	stack_frame->push(std::move(*pending_return_val));

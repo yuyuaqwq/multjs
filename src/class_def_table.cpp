@@ -22,6 +22,7 @@ ClassDefTable::ClassDefTable(Runtime* runtime) {
 	Register(std::make_unique<ClassDef>(runtime, ClassId::kAsyncObject, "Async"));
 	Register(std::make_unique<ClassDef>(runtime, ClassId::kModuleObject, "Module"));
 	Register(std::make_unique<ClassDef>(runtime, ClassId::kConstructorObject, "Constructor"));
+	Register(std::make_unique<ClassDef>(runtime, ClassId::kCppModuleObject, "CppModule"));
 }
 
 void ClassDefTable::Register(ClassDefUnique class_def) {
