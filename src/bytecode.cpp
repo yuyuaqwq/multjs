@@ -147,27 +147,28 @@ void BytecodeTable::EmitConstIndex(ConstIndex idx) {
 }
 
 void BytecodeTable::EmitConstLoad(ConstIndex idx) {
-    if (idx <= 5) {
+    assert(idx != kConstIndexInvalid);
+    if (idx >= 0 && idx <= 5) {
+        // 实际上不应该出现0
         EmitOpcode(OpcodeType::kCLoad_0 + idx);
     }
-	else if (idx <= 0xff) {
-		// 64bit？
+	else if (idx <= -128 && idx <= 127) {
 		EmitOpcode(OpcodeType::kCLoad);
-		EmitU8(idx);
+		EmitI8(idx);
 	}
-	else if (idx <= 0xffff) {
+	else if (idx <= -32768 && idx <= 32767) {
 		EmitOpcode(OpcodeType::kCLoadW);
-		EmitU16(idx);
+		EmitI16(idx);
 	}
 	else {
         EmitOpcode(OpcodeType::kCLoadD);
-        EmitU32(idx);
+        EmitI32(idx);
 	}
 }
 
 void BytecodeTable::EmitClosure(ConstIndex idx) {
     EmitOpcode(OpcodeType::kClosure);
-    EmitU32(idx);
+    EmitI32(idx);
 }
 
 void BytecodeTable::EmitVarStore(VarIndex idx) {
@@ -367,7 +368,8 @@ Pc BytecodeTable::GetU32(Pc pc) const {
 
 
 void BytecodeTable::EmitI8(int8_t val) {
-    bytes_.push_back(static_cast<uint8_t>(val));
+    bytes_.push_back(0);
+    *(int8_t*)&bytes_[bytes_.size() - 1] = val;
 }
 
 void BytecodeTable::EmitU8(uint8_t val) {
@@ -375,27 +377,31 @@ void BytecodeTable::EmitU8(uint8_t val) {
 }
 
 void BytecodeTable::EmitI16(int16_t val) {
-    bytes_.push_back(static_cast<uint8_t>(val & 0xff));
-    bytes_.push_back(static_cast<uint8_t>(val >> 8));
+    bytes_.push_back(0);
+    bytes_.push_back(0);
+    *(int16_t*)&bytes_[bytes_.size() - 2] = val;
 }
 
 void BytecodeTable::EmitU16(uint16_t val) {
-    bytes_.push_back(static_cast<uint8_t>(val & 0xff));
-    bytes_.push_back(static_cast<uint8_t>(val >> 8));
+    bytes_.push_back(0);
+    bytes_.push_back(0);
+    *(uint16_t*)&bytes_[bytes_.size() - 2] = val;
 }
 
-void BytecodeTable::EmitI32(uint32_t val) {
-    bytes_.push_back(static_cast<uint8_t>(val & 0xff));
-    bytes_.push_back(static_cast<uint8_t>(val >> 8));
-    bytes_.push_back(static_cast<uint8_t>(val >> 16));
-    bytes_.push_back(static_cast<uint8_t>(val >> 24));
+void BytecodeTable::EmitI32(int32_t val) {
+    bytes_.push_back(0);
+    bytes_.push_back(0);
+    bytes_.push_back(0);
+    bytes_.push_back(0);
+    *(int32_t*)&bytes_[bytes_.size() - 4] = val;
 }
 
 void BytecodeTable::EmitU32(uint32_t val) {
-    bytes_.push_back(static_cast<uint8_t>(val & 0xff));
-    bytes_.push_back(static_cast<uint8_t>(val >> 8));
-    bytes_.push_back(static_cast<uint8_t>(val >> 16));
-    bytes_.push_back(static_cast<uint8_t>(val >> 24));
+    bytes_.push_back(0);
+    bytes_.push_back(0);
+    bytes_.push_back(0);
+    bytes_.push_back(0);
+    *(uint32_t*)&bytes_[bytes_.size() - 4] = val;
 }
 
 

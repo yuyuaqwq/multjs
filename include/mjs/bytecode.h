@@ -72,7 +72,7 @@ public:
 	void EmitU8(uint8_t val);
 	void EmitI16(int16_t val);
 	void EmitU16(uint16_t val);
-	void EmitI32(uint32_t val);
+	void EmitI32(int32_t val);
 	void EmitU32(uint32_t val);
 
 private:
