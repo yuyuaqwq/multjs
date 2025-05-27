@@ -5,11 +5,15 @@
 namespace mjs {
 
 class CppModuleObject : public Object {
-public:
+protected:
 	CppModuleObject(Runtime* runtime);
 
+public:
 	void AddExportMethod(Runtime* runtime, std::string_view name, CppFunction function);
 
+	static CppModuleObject* New(Runtime* runtime) {
+		return new CppModuleObject(runtime);
+    }
 };
 
 } // namespace mjs

@@ -32,7 +32,7 @@ Value GeneratorObject::MakeReturnObject(Context* context, Value&& ret_value) {
     // 这里的ret value，可能需要保存到GeneratorObject里
     // set的时候再提升为object
 
-    auto ret_obj = Value(new Object(context, ClassId::kObject));
+    auto ret_obj = Value(Object::New(context));
 
     auto& class_def = context->runtime().class_def_table().at(class_id()).get<GeneratorObjectClassDef>();
 

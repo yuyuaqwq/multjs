@@ -34,7 +34,7 @@ Value ArrayObjectClassDef::Of(Context* context, uint32_t par_count, const StackF
 }
 
 Value ArrayObjectClassDef::LiteralNew(Context* context, uint32_t par_count, const StackFrame& stack) {
-	auto arr = new ArrayObject(context, par_count);
+	auto arr = ArrayObject::New(context, par_count);
 	for (size_t i = 0; i < par_count; ++i) {
 		arr->operator[](i) = std::move(stack.get(i));
 	}

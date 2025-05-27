@@ -36,9 +36,10 @@ private:
 };
 
 class ModuleObject : public FunctionObject {
-public:
+private:
     ModuleObject(Context* context, ModuleDef* module_def);
 
+public:
 	void GCForEachChild(Context* context, intrusive_list<Object>* list, void(*callback)(Context* context, intrusive_list<Object>* list, const Value& child)) override {
 		FunctionObject::GCForEachChild(context, list, callback);
 		for (auto& var : module_env_.export_vars()) {
@@ -51,6 +52,10 @@ public:
 
     ModuleDef& module_def() const { return static_cast<ModuleDef&>(function_def()); }
 	auto& module_env() { return module_env_; }
+
+	static ModuleObject* New(Context* context, ModuleDef* module_def) {
+		return new ModuleObject(context, module_def);
+	}
 
 protected:
     ModuleEnvironment module_env_;

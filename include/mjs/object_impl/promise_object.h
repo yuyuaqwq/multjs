@@ -9,9 +9,10 @@ namespace mjs {
 
 class Context;
 class PromiseObject : public Object {
-public:
+private:
     PromiseObject(Context* context, Value executor);
 
+public:
     void GCForEachChild(Context* context, intrusive_list<Object>* list, void(*callback)(Context* context, intrusive_list<Object>* list, const Value& child)) override {
         Object::GCForEachChild(context, list, callback);
         on_fulfill_callbacks_.ForEachChild(context, list, callback);
@@ -40,6 +41,10 @@ public:
     
     const auto& reason() const { assert(IsRejected());  return result_or_reason_; }
     void set_reason(Value reason) { assert(IsRejected()); result_or_reason_ = std::move(reason); }
+
+    static PromiseObject* New(Context* context, Value executor) {
+        return new PromiseObject(context, std::move(executor));
+    }
 
 private:
     bool UnwrapPromise(Context* context, Value* result);

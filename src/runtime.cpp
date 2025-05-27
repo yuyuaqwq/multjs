@@ -12,11 +12,11 @@
 namespace mjs {
 
 class ConsoleObject : public mjs::Object {
-public:
-    ConsoleObject(mjs::Runtime* rt) 
-        : Object(rt, mjs::ClassId::kObject)
+private:
+    ConsoleObject(mjs::Runtime* runtime)
+        : Object(runtime, mjs::ClassId::kObject)
     {
-        auto log_const_index = rt->const_pool().insert(mjs::Value("log"));
+        auto log_const_index = runtime->const_pool().insert(mjs::Value("log"));
         SetProperty(nullptr, log_const_index, mjs::Value([](mjs::Context* context, uint32_t par_count, const mjs::StackFrame& stack) -> mjs::Value {
             for (size_t i = 0; i < par_count; i++) {
                 auto val = stack.get(i);
@@ -32,11 +32,16 @@ public:
             return mjs::Value();
         }));
     }
+
+public:
+    static ConsoleObject* New(Runtime* runtime) {
+        return new ConsoleObject(runtime);
+    }
 };
 
 Runtime::Runtime() 
 	: shape_manager_(nullptr)
-	, global_this_(new Object(this, ClassId::kObject))
+	, global_this_(Object::New(this))
 	, class_def_table_(this)
     , module_manager_(std::make_unique<ModuleManager>())
 {
@@ -45,7 +50,7 @@ Runtime::Runtime()
 
 Runtime::Runtime(std::unique_ptr<ModuleManagerBase> module_manager)
     : shape_manager_(nullptr)
-    , global_this_(new Object(this, ClassId::kObject))
+    , global_this_(Object::New(this))
     , class_def_table_(this)
     , module_manager_(std::move(module_manager))
 {
@@ -77,7 +82,7 @@ void Runtime::GlobalThisInitialize() {
 }
 
 void Runtime::ConsoleInitialize() {
-    auto console_object = new ConsoleObject(this);
+    auto console_object = ConsoleObject::New(this);
     AddPropertyToGlobalThis("console", Value(console_object));
 }
 

@@ -69,6 +69,12 @@ Value::Value(Object* object) {
 	value_.object_->Reference();
 }
 
+Value::Value(ArrayObject* array) {
+	tag_.type_ = ValueType::kArrayObject;
+	value_.object_ = reinterpret_cast<Object*>(array);
+	value_.object_->Reference();
+}
+
 Value::Value(FunctionObject* function) {
 	tag_.type_ = ValueType::kFunctionObject;
 	value_.object_ = reinterpret_cast<Object*>(function);
@@ -1075,6 +1081,36 @@ Value Value::ToNumber() const {
 		return Value(f64());
 	case ValueType::kInt64: {
 		return Value(double(i64()));
+	}
+	default:
+		throw std::runtime_error("Incorrect value type");
+	}
+}
+
+Value Value::ToInt64() const {
+	switch (type()) {
+	case ValueType::kFloat64:
+		return Value(int64_t(f64()));
+	case ValueType::kInt64: {
+		return *this;
+	}
+	case ValueType::kUInt64: {
+		return Value(int64_t(u64()));
+	}
+	default:
+		throw std::runtime_error("Incorrect value type");
+	}
+}
+
+Value Value::ToUInt64() const {
+	switch (type()) {
+	case ValueType::kFloat64:
+		return Value(uint64_t(f64()));
+	case ValueType::kInt64: {
+		return Value(uint64_t(i64()));
+	}
+	case ValueType::kUInt64: {
+		return *this;
 	}
 	default:
 		throw std::runtime_error("Incorrect value type");

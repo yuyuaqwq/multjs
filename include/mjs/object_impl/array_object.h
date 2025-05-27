@@ -5,11 +5,12 @@
 namespace mjs {
 
 class ArrayObject : public Object {
-public:
+private:
     ArrayObject(Context* context, size_t length)
         : Object(context, ClassId::kArrayObject)
         , values_(length) {}
 
+public:
     void SetComputedProperty(Context* context, const Value& key, Value&& value) override {
         if (key.i64() < 0 || key.i64() > values_.size()) {
             // throw;

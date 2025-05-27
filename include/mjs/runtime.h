@@ -8,6 +8,7 @@
 #include <mjs/value.h>
 #include <mjs/shape.h>
 #include <mjs/gc_manager.h>
+#include <mjs/error.h>
 
 namespace mjs {
 

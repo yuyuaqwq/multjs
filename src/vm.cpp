@@ -26,7 +26,7 @@ void VM::ModuleInit(Value* module_def_value) {
 		return;
 	}
 
-	auto module_obj = new ModuleObject(context_, &module_def);
+	auto module_obj = ModuleObject::New(context_, &module_def);
 	*module_def_value = Value(module_obj);
 
 	for (auto& def : module_obj->module_def().export_var_def_table().export_var_defs()) {
@@ -76,7 +76,7 @@ void VM::Closure(const StackFrame& stack_frame, Value* func_def_val) {
 	auto& func_def = func_def_val->function_def();
 	assert(!func_def.closure_var_table().closure_var_defs().empty() || func_def.has_this() && func_def.is_normal());
 	
-	*func_def_val = Value(new FunctionObject(context_, &func_def));
+	*func_def_val = Value(FunctionObject::New(context_, &func_def));
 	auto* func_obj = &func_def_val->function();
 
 	auto& env = func_obj->closure_env();
@@ -150,10 +150,10 @@ bool VM::FunctionScheduling(StackFrame* stack_frame, uint32_t par_count) {
 		if (function_def->is_generator() || function_def->is_async()) {
 			GeneratorObject* generator;
 			if (function_def->is_generator()) {
-				generator = new GeneratorObject(context_, stack_frame->function_val());
+				generator = GeneratorObject::New(context_, stack_frame->function_val());
 			}
 			else {
-				generator = new AsyncObject(context_, stack_frame->function_val());
+				generator = AsyncObject::New(context_, stack_frame->function_val());
 			}
 
 			// 提前分配参数和局部变量栈空间

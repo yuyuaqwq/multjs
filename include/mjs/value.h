@@ -95,7 +95,8 @@ public:
 	explicit Value(Symbol* symbol);
 
 	explicit Value(Object* object);
-	explicit Value(FunctionObject* func);
+	explicit Value(ArrayObject* array);
+	explicit Value(FunctionObject* function);
 	explicit Value(GeneratorObject* generator);
 	explicit Value(PromiseObject* promise);
 	explicit Value(AsyncObject* async);
@@ -241,6 +242,8 @@ public:
 	Value ToString(Context* context) const;
 	Value ToBoolean() const;
 	Value ToNumber() const;
+	Value ToInt64() const;
+	Value ToUInt64() const;
 	const ModuleDef& ToModuleDef() const;
 	const FunctionDef& ToFunctionDef() const;
 

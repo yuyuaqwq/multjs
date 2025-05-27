@@ -13,11 +13,11 @@ ObjectClassDef::ObjectClassDef(Runtime* runtime)
 }
 
 Value ObjectClassDef::NewConstructor(Context* context, uint32_t par_count, const StackFrame& stack) {
-	return Value(new Object(context, ClassId::kObject));
+	return Value(Object::New(context));
 }
 
 Value ObjectClassDef::LiteralNew(Context* context, uint32_t par_count, const StackFrame& stack) {
-	auto obj = new Object(context, ClassId::kObject);
+	auto obj = Object::New(context);
 	for (int32_t i = 0; i < par_count; i += 2) {
 		auto key_const_index = stack.get(i).const_index();
 		assert(key_const_index != kConstIndexInvalid);

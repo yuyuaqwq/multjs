@@ -22,10 +22,12 @@ class Shape;
 class Object
 	: public noncopyable
 	, public intrusive_list<Object>::node {
-public:
+
+protected:
 	Object(Runtime* runtime, ClassId class_id);
 	Object(Context* context, ClassId class_id);
-	
+
+public:
 	virtual ~Object();
 
 	virtual void Reference();
@@ -70,6 +72,10 @@ public:
 
 	bool gc_mark() { return  tag_.gc_mark_; }
 	void set_gc_mark(bool flag) { tag_.gc_mark_ = flag; }
+
+	static Object* New(Runtime* runtime) {
+		return new Object(runtime, ClassId::kObject);
+	}
 
 	static Object* New(Context* context) {
 		return new Object(context, ClassId::kObject);

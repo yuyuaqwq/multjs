@@ -10,8 +10,8 @@ ClassDef::ClassDef(Runtime* runtime, ClassId id, std::string name)
 {
 	name_string_ = std::move(name);
 	name_ = runtime->const_pool().insert(Value(name_string_));
-	constructor_object_ = Value(new ConstructorObject(runtime, id_));
-	prototype_ = Value(new Object(runtime, ClassId::kObject));
+	constructor_object_ = Value(ConstructorObject::New(runtime, id_));
+	prototype_ = Value(Object::New(runtime));
 
 	auto prototype = prototype_;
 	constructor_object_.object().SetProperty(runtime, "prototype", std::move(prototype));

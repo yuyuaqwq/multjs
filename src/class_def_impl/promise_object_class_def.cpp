@@ -44,17 +44,17 @@ Value PromiseObjectClassDef::NewConstructor(Context* context, uint32_t par_count
 	if (par_count > 0) {
 		executor = stack.get(0);
 	}
-	return Value(new PromiseObject(context, std::move(executor)));
+	return Value(PromiseObject::New(context, std::move(executor)));
 }
 
 Value PromiseObjectClassDef::Resolve(Context* context, Value result) {
-	auto promise = new PromiseObject(context, Value());
+	auto promise = PromiseObject::New(context, Value());
 	promise->Resolve(context, result);
 	return Value(promise);
 }
 
 Value PromiseObjectClassDef::Reject(Context* context, Value reason) {
-	auto promise = new PromiseObject(context, Value());
+	auto promise = PromiseObject::New(context, Value());
 	promise->Reject(context, reason);
 	return Value(promise);
 }

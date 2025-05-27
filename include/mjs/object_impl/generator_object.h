@@ -10,9 +10,10 @@ namespace mjs {
 
 class Context;
 class GeneratorObject : public Object {
-public:
+protected:
     GeneratorObject(Context* context, const Value& function);
 
+public:
     ~GeneratorObject() override = default;
 
     void GCForEachChild(Context* context, intrusive_list<Object>* list, void(*callback)(Context* context, intrusive_list<Object>* list, const Value& child)) override;
@@ -38,6 +39,9 @@ public:
 
     void Next(Context* context);
 
+    static GeneratorObject* New(Context* context, const Value& function) {
+        return new GeneratorObject(context, function);
+    }
 
     auto& stack() { return stack_; }
 

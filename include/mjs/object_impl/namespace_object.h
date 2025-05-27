@@ -5,9 +5,14 @@
 namespace mjs {
 
 class NamespaceObject : public Object {
-public:
-    NamespaceObject(Context* context, size_t length)
+private:
+    NamespaceObject(Context* context)
         : Object(context, ClassId::kObject) {}
+
+public:
+	static NamespaceObject* New(Context* context) {
+		return new NamespaceObject(context);
+	}
 };
 
 } // namespace mjs

@@ -11,8 +11,10 @@
 namespace mjs {
 
 class FunctionObject : public Object {
-public:
+protected:
 	FunctionObject(Context* context, FunctionDef* function_def) noexcept;
+
+public:
 	~FunctionObject() = default;
 
 	void GCForEachChild(Context* context, intrusive_list<Object>* list, void(*callback)(Context* context, intrusive_list<Object>* list, const Value& child)) override {
@@ -29,6 +31,10 @@ public:
 	const auto& closure_env() const { return closure_env_; }
 	auto& closure_env() { return closure_env_; }
 	
+	static FunctionObject* New(Context* context, FunctionDef* function_def) {
+        return new FunctionObject(context, function_def);
+	}
+
 protected:
 	FunctionDef* function_def_;
 
