@@ -333,6 +333,9 @@ Value Value::Add(Context* context, const Value& rhs) const {
 		case ValueType::kInt64: {
 			return Value(f64() + double(rhs.i64()));
 		}
+		case ValueType::kUInt64: {
+			return Value(f64() + rhs.u64());
+		}
 		case ValueType::kStringView:
 		case ValueType::kString: {
 			return Value(String::Format("{}{}", f64(), rhs.string_view()));
@@ -348,9 +351,30 @@ Value Value::Add(Context* context, const Value& rhs) const {
 		case ValueType::kInt64: {
 			return Value(i64() + rhs.i64());
 		}
+		case ValueType::kUInt64: {
+			return Value(i64() + rhs.u64());
+		}
 		case ValueType::kStringView:
 		case ValueType::kString: {
 			return Value(String::Format("{}{}", i64(), rhs.string_view()));
+		}
+		}
+		break;
+	}
+	case ValueType::kUInt64: {
+		switch (rhs.type()) {
+		case ValueType::kFloat64: {
+			return Value(double(u64()) + rhs.f64());
+		}
+		case ValueType::kInt64: {
+			return Value(u64() + rhs.i64());
+		}
+		case ValueType::kUInt64: {
+			return Value(u64() + rhs.u64());
+		}
+		case ValueType::kStringView:
+		case ValueType::kString: {
+			return Value(String::Format("{}{}", u64(), rhs.string_view()));
 		}
 		}
 		break;
@@ -362,6 +386,9 @@ Value Value::Add(Context* context, const Value& rhs) const {
 			return Value(String::Format("{}{}", string_view(), rhs.f64()));
 		case ValueType::kInt64: {
 			return Value(String::Format("{}{}", string_view(), rhs.i64()));
+		}
+		case ValueType::kUInt64: {
+			return Value(String::Format("{}{}", string_view(), rhs.u64()));
 		}
 		case ValueType::kStringView:
 		case ValueType::kString: {

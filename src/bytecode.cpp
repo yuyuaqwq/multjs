@@ -198,12 +198,12 @@ void BytecodeTable::EmitVarLoad(VarIndex idx) {
 
 void BytecodeTable::EmitPropertyLoad(ConstIndex const_idx) {
     EmitOpcode(OpcodeType::kPropertyLoad);
-    EmitU32(const_idx);
+    EmitI32(const_idx);
 }
 
 void BytecodeTable::EmitPropertyStore(ConstIndex const_idx) {
     EmitOpcode(OpcodeType::kPropertyStore);
-    EmitU32(const_idx);
+    EmitI32(const_idx);
 }
 
 
