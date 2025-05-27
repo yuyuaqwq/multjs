@@ -246,7 +246,8 @@ bool VM::FunctionScheduling(StackFrame* stack_frame, uint32_t par_count) {
 		GeneratorRestoreContext(stack_frame, &async);
 		stack_frame->push(ret);
 		return true;
-	}case ValueType::kAsyncRejectResume: {
+	}
+	case ValueType::kAsyncRejectResume: {
 		// Async函数恢复执行，目前由await触发
 		auto& async = stack_frame->function_val().async();
 		auto ret = stack_frame->pop();
@@ -293,8 +294,8 @@ void VM::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 	const FunctionDef* func_def = nullptr;
 
 	if (!FunctionScheduling(stack_frame, param_count)) {
-		if (stack_frame->function_val().IsAsyncRejectResume() || stack_frame->function_val().IsAsyncResolveResume()) {
-			// await等待发生异常，注入异常
+		if (stack_frame->function_val().IsAsyncRejectResume()) {
+			// await等待的promise被拒绝，注入异常
 			goto inject_exception_;
 		}
 		goto exit_;
@@ -821,9 +822,11 @@ exit_:
 				line = debug_info->source_line;
 			}
 		}
-		pending_return_val = Value(String::Format("[func: {}, line:{}] {}", func, line, pending_return_val->ToString(context_).string_view())).SetException();
+		pending_return_val = Value(String::Format("\n\t[func:{}, line:{}] {}", func, line, pending_return_val->ToString(context_).string_view())).SetException();
 
-		if (stack_frame->function_val().IsAsyncObject()) {
+		if (stack_frame->function_val().IsAsyncObject()
+			|| stack_frame->function_val().IsAsyncResolveResume() 
+			|| stack_frame->function_val().IsAsyncRejectResume()) {
 			auto& async = stack_frame->function_val().async();
 			async.res_promise().promise().Reject(context_, *pending_return_val);
 			pending_return_val = async.res_promise();

@@ -41,7 +41,7 @@ Value Context::CompileModule(std::string module_name, std::string_view script) {
 		LineTable line_table;
 		line_table.Build(script);
 		auto&& [line, column] = line_table.PosToLineAndColumn(pos);
-		auto info = std::format("{}: [name:{}, line:{}, column:{}] {}", e.error_name(), module_name, line, column, e.what());
+		auto info = std::format("{}: [func:{}, line:{}, column:{}] {}", e.error_name(), module_name, line, column, e.what());
 		return Value(String::New(info)).SetException();
 	}
 	try {
