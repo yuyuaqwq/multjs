@@ -105,11 +105,11 @@ private:
 private:
 	std::unordered_map<Value, ConstIndex> map_;
 
-	size_t first_ = -1;
+	int64_t first_ = -1;
 	struct Node {
 		union {
 			Value* value_;
-			size_t next_;
+			int64_t next_;
 		};
 		uint32_t reference_count_ = 0;
 	};

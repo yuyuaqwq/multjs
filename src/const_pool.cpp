@@ -74,8 +74,9 @@ ConstIndex LocalConstPool::insert(Value&& value) {
 		pool_.emplace_back(Node{ .value_ = const_cast<Value*>(&res.first->first) });
 	}
 	else {
+		auto alloc = first_;
 		first_ = pool_[first_].next_;
-		pool_[first_] = Node{ .value_ = const_cast<Value*>(&res.first->first) };
+		pool_[alloc] = Node{ .value_ = const_cast<Value*>(&res.first->first) };
 	}
 	const_idx = -const_idx;
 	pool_.back().value_->set_const_index(const_idx);
