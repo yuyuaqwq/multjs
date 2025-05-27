@@ -1111,10 +1111,10 @@ std::vector<std::unique_ptr<Expression>> Parser::ParseExpressions(TokenType begi
 			if (!lexer_->PeekToken().is(TokenType::kSepComma)) {
 				break;
 			}
+			lexer_->NextToken();
 			if (allow_comma_end && lexer_->PeekToken().is(end)) {
 				break;
 			}
-			lexer_->NextToken();
 		} while (true);
 	}
 	lexer_->MatchToken(end);

@@ -15,9 +15,9 @@ ConstIndex GlobalConstPool::insert(Value&& value) {
 		return it->second;
 	}
 
-	if (value.IsString()) {
-		printf("[global_insert]: %s\n", value.string_view());
-	}
+	//if (value.IsString()) {
+	//	printf("[global_insert]: %s\n", value.string_view());
+	//}
 
 	// 自动将StringView提升为String
 	if (value.IsStringView()) {
@@ -59,8 +59,13 @@ ConstIndex LocalConstPool::insert(Value&& value) {
 		return it->second;
 	}
 
-	if (value.IsString()) {
-		printf("[local_insert]: %s\n", value.string_view());
+	//if (value.IsString()) {
+	//	printf("[local_insert]: %s\n", value.string_view());
+	//}
+
+	// 自动将StringView提升为String
+	if (value.IsStringView()) {
+		value = Value(String::New(value.string_view()));
 	}
 
 	auto const_idx = pool_.size();
