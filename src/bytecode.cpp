@@ -152,11 +152,11 @@ void BytecodeTable::EmitConstLoad(ConstIndex idx) {
         // 实际上不应该出现0
         EmitOpcode(OpcodeType::kCLoad_0 + idx);
     }
-	else if (idx <= -128 && idx <= 127) {
+	else if (idx >= -128 && idx <= 127) {
 		EmitOpcode(OpcodeType::kCLoad);
 		EmitI8(idx);
 	}
-	else if (idx <= -32768 && idx <= 32767) {
+	else if (idx >= -32768 && idx <= 32767) {
 		EmitOpcode(OpcodeType::kCLoadW);
 		EmitI16(idx);
 	}

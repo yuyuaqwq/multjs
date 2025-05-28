@@ -80,14 +80,14 @@ Value Context::EvalFromFile(std::string_view path) {
 }
 
 void Context::ReferenceConstValue(ConstIndex const_index) {
-	if (const_index < 0) {
-		local_const_pool_.ReferenceConst(const_index);
-	}
+	//if (const_index < 0) {
+	//	local_const_pool_.ReferenceConst(const_index);
+	//}
 }
 void Context::DereferenceConstValue(ConstIndex const_index) {
-	if (const_index < 0) {
-		local_const_pool_.DereferenceConst(const_index);
-	}
+	//if (const_index < 0) {
+	//	local_const_pool_.DereferenceConst(const_index);
+	//}
 }
 
 ConstIndex Context::FindConstOrInsertToLocal(const Value& value) {

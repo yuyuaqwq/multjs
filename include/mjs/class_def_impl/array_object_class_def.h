@@ -23,6 +23,11 @@ public:
 private:
 	ConstIndex length_const_index_;
 	ConstIndex of_const_index_;
+	ConstIndex push_const_index_;
+	ConstIndex pop_const_index_;
+	ConstIndex forEach_const_index_;
+	ConstIndex map_const_index_;
+	ConstIndex filter_const_index_;
 
 };
 
