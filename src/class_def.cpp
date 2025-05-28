@@ -5,11 +5,10 @@
 
 namespace mjs {
 
-ClassDef::ClassDef(Runtime* runtime, ClassId id, std::string name)
+ClassDef::ClassDef(Runtime* runtime, ClassId id, const char* name)
 	: id_(id)
 {
-	name_string_ = std::move(name);
-	name_ = runtime->const_pool().insert(Value(name_string_));
+	name_ = runtime->const_pool().insert(Value(name));
 	constructor_object_ = Value(ConstructorObject::New(runtime, id_));
 	prototype_ = Value(Object::New(runtime));
 

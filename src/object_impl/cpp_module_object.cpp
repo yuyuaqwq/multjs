@@ -7,7 +7,7 @@ namespace mjs {
 CppModuleObject::CppModuleObject(Runtime* runtime) :
 	Object(runtime, ClassId::kCppModuleObject) {}
 
-void CppModuleObject::AddExportMethod(Runtime* runtime, std::string_view name, CppFunction function) {
+void CppModuleObject::AddExportMethod(Runtime* runtime, const char* name, CppFunction function) {
 	SetProperty(runtime, name, Value(function));
 }
 

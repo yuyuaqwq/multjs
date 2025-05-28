@@ -51,7 +51,7 @@ class Runtime;
 class Object;
 class ClassDef : public noncopyable {
 public:
-	ClassDef(Runtime* runtime, ClassId id, std::string name);
+	ClassDef(Runtime* runtime, ClassId id, const char* name);
 
 	virtual ~ClassDef();
 

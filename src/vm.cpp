@@ -30,7 +30,7 @@ void VM::ModuleInit(Value* module_def_value) {
 	*module_def_value = Value(module_obj);
 
 	for (auto& def : module_obj->module_def().export_var_def_table().export_var_defs()) {
-		module_obj->SetProperty(context_, context_->FindConstOrInsertToGlobal(Value(def.first)), 
+		module_obj->SetProperty(context_, context_->FindConstOrInsertToGlobal(Value(String::New(def.first))), 
 			Value(&module_obj->module_env().export_vars()[def.second.export_var_index])
 		);
 	}

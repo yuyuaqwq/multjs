@@ -45,11 +45,6 @@ Value::Value(const char* string_u8) {
 	value_.string_view_ = string_u8;
 }
 
-Value::Value(std::string_view string_u8) {
-	tag_.type_ = ValueType::kStringView;
-	value_.string_view_ = string_u8.data();
-}
-
 Value::Value(String* str) {
 	tag_.type_ = ValueType::kString;
 	value_.string_ = str;

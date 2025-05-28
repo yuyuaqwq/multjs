@@ -9,10 +9,11 @@ namespace mjs {
 
 // 不会有循环引用问题，仅使用引用计数管理
 class String : public ReferenceCounter<String> {
-public:
+private:
 	String(size_t size) 
 		: size_(size) {}
 	
+public:
 	size_t hash() const {
 		return hash_;
 	}
@@ -56,10 +57,17 @@ public:
 		// Use placement new to construct the String object
 		new (s) String(size);
 		// Copy the string data
-		memcpy(s->data_, str.data(), size + 1);
+		memcpy(s->data_, str.data(), size);
+		s->data_[size] = '\0';  // Ensure null-termination
+
 		// Calculate the hash based on the actual string content
 		s->hash_ = std::hash<std::string_view>()(str);
 		return s;
+	}
+
+	template <typename Iterator>
+	static String* New(Iterator begin, Iterator end) {
+		return New(std::string_view(begin, end));
 	}
 
 private:

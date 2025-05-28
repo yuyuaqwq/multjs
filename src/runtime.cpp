@@ -65,7 +65,7 @@ Runtime::~Runtime() {
 	gc_manager_.GC(nullptr);
 }
 
-void Runtime::AddPropertyToGlobalThis(std::string_view property_key, Value&& value) {
+void Runtime::AddPropertyToGlobalThis(const char* property_key, Value&& value) {
     auto const_idx = const_pool_.insert(Value(property_key));
     global_this_.object().SetProperty(nullptr, const_idx, std::move(value));
 }

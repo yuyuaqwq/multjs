@@ -41,8 +41,8 @@ public:
 		}
 	}
 
-	void SetProperty(Runtime* runtime, std::string_view key, Value&& value);
-	bool GetProperty(Runtime* runtime, std::string_view key, Value* value);
+	void SetProperty(Runtime* runtime, const char* key, Value&& value);
+	bool GetProperty(Runtime* runtime, const char* key, Value* value);
 	virtual void SetProperty(Context* context, ConstIndex key, Value&& value);
 	virtual bool GetProperty(Context* context, ConstIndex key, Value* value);
 	virtual bool HasProperty(Context* context, ConstIndex key);

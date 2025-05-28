@@ -19,7 +19,7 @@ public:
 	Runtime(std::unique_ptr<ModuleManagerBase> module_manager);
 	~Runtime();
 
-	void AddPropertyToGlobalThis(std::string_view property_key, Value&& value);
+	void AddPropertyToGlobalThis(const char* property_key, Value&& value);
 
 	const auto& const_pool() const { return const_pool_; }
 	auto& const_pool() { return const_pool_; }

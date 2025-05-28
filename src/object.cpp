@@ -35,12 +35,12 @@ Object::~Object() {
 }
 
 
-void Object::SetProperty(Runtime* runtime, std::string_view key, Value&& value) {
+void Object::SetProperty(Runtime* runtime, const char* key, Value&& value) {
 	auto const_index = runtime->const_pool().insert(mjs::Value(key));
 	SetProperty(nullptr, const_index, std::move(value));
 }
 
-bool Object::GetProperty(Runtime* runtime, std::string_view key, Value* value) {
+bool Object::GetProperty(Runtime* runtime, const char* key, Value* value) {
 	auto const_index = runtime->const_pool().insert(mjs::Value(key));
 	return GetProperty(nullptr, const_index, value);
 }

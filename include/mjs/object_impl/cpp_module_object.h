@@ -9,7 +9,7 @@ protected:
 	CppModuleObject(Runtime* runtime);
 
 public:
-	void AddExportMethod(Runtime* runtime, std::string_view name, CppFunction function);
+	void AddExportMethod(Runtime* runtime, const char* name, CppFunction function);
 
 	static CppModuleObject* New(Runtime* runtime) {
 		return new CppModuleObject(runtime);

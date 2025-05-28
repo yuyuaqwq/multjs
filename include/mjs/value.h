@@ -90,7 +90,6 @@ public:
 	explicit Value(bool boolean);
 	explicit Value(double number);
 	explicit Value(const char* string_u8);
-	explicit Value(std::string_view string_u8);
 	explicit Value(String* str);
 	explicit Value(Symbol* symbol);
 

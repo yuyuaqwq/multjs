@@ -28,15 +28,12 @@ StringObjectClassDef::StringObjectClassDef(Runtime* runtime)
 			}
 		} else {
 			size_t pos = 0;
-			std::string token;
 			while ((pos = str.find(delimiter)) != std::string::npos) {
-				token = str.substr(0, pos);
-				array->Push(context, Value(String::New(token)));
+				array->Push(context, Value(String::New(str.begin(), str.begin() + pos)));
 				str.erase(0, pos + delimiter.length());
 			}
 			array->Push(context, Value(String::New(str)));
 		}
-		
 		return Value(array);
 	}));
 
@@ -60,7 +57,7 @@ StringObjectClassDef::StringObjectClassDef(Runtime* runtime)
 		}
 		
 		if (start > end) std::swap(start, end);
-		return Value(str.substr(start, end - start));
+		return Value(String::New(str.begin() + start, str.begin() + (end - start)));
 	}));
 
 	// IndexOf method
@@ -90,7 +87,7 @@ StringObjectClassDef::StringObjectClassDef(Runtime* runtime)
 		for (char c : str) {
 			result += std::tolower(c);
 		}
-		return Value(result);
+		return Value(String::New(result));
 	}));
 
 	// ToUpperCase method
@@ -102,7 +99,7 @@ StringObjectClassDef::StringObjectClassDef(Runtime* runtime)
 		for (char c : str) {
 			result += std::toupper(c);
 		}
-		return Value(result);
+		return Value(String::New(result));
 	}));
 
 	// Trim method
@@ -110,9 +107,9 @@ StringObjectClassDef::StringObjectClassDef(Runtime* runtime)
 	prototype_.object().SetProperty(nullptr, trim_index, Value([](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
 		std::string str = stack.this_val().ToString(context).string_view();
 		auto start = str.find_first_not_of(" \t\n\r\f\v");
-		if (start == std::string::npos) return Value(std::string());
+		if (start == std::string::npos) return Value("");
 		auto end = str.find_last_not_of(" \t\n\r\f\v");
-		return Value(str.substr(start, end - start + 1));
+		return Value(String::New(str.begin() + start, str.begin() + (end - start + 1)));
 	}));
 
 	// Replace method
@@ -125,9 +122,9 @@ StringObjectClassDef::StringObjectClassDef(Runtime* runtime)
 		std::string replaceStr = stack.get(1).ToString(context).string_view();
 		
 		size_t pos = str.find(searchStr);
-		if (pos == std::string::npos) return Value(str);
+		if (pos == std::string::npos) return Value(String::New(str));
 		
-		return Value(str.substr(0, pos) + replaceStr + str.substr(pos + searchStr.length()));
+		return Value(String::New(str.substr(0, pos) + replaceStr + str.substr(pos + searchStr.length())));
 	}));
 
 	// Length property
