@@ -58,6 +58,14 @@ public:
 
 	ClassId class_id() const { return static_cast<ClassId>(tag_.class_id_); }
 
+	ClassDef& GetClassDef(Runtime* runtime) const;
+
+	template <typename ClassDefT>
+	const ClassDefT& GetClassDef(Runtime* runtime) const {
+		return static_cast<ClassDefT&>(GetClassDef(runtime));
+	}
+
+
 	template <typename ObjectT>
 	const ObjectT& get() const {
 		return static_cast<ObjectT&>(*this);

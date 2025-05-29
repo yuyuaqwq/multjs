@@ -22,30 +22,4 @@ ClassDef::ClassDef(Runtime* runtime, ClassId id, const char* name)
 
 ClassDef::~ClassDef() {}
 
-void ClassDef::SetProperty(Context* context, Object* obj, ConstIndex key, Value&& val) {
-	//property_map_.set(&context->runtime(), key, std::move(val));
-}
-
-bool ClassDef::GetProperty(Context* context, Object* obj, ConstIndex key, Value* value) {
-	//auto iter = property_map_.find(key);
-	//if (iter != property_map_.end()) {
-	//	*value = iter->second;
-	//	return true;
-	//}
-	return false;
-}
-
-bool ClassDef::HasProperty(Context* context, Object* obj, ConstIndex key) {
-	//auto iter = property_map_.find(key);
-	//return iter != property_map_.end();
-	return false;
-}
-
-bool ClassDef::DelProperty(Context* context, Object* obj, ConstIndex key) {
-	//auto res = property_map_.erase(&context->runtime(), key);
-	//return res > 0;
-	return false;
-}
-
-
 } // namespace msj

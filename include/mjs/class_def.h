@@ -56,18 +56,13 @@ public:
 	virtual ~ClassDef();
 
 	// 如果允许通过new构造，重写该函数，如new ArrayObject()
-	virtual Value NewConstructor(Context* context, uint32_t par_count, const StackFrame& stack) {
+	virtual Value NewConstructor(Context* context, uint32_t par_count, const StackFrame& stack) const {
 		throw std::runtime_error(
 			"This constructor cannot be called with 'new'. "
 			"Either this is not a constructible function, "
 			"or you need to override NewConstructor() in the derived class."
 		);
 	}
-
-	virtual void SetProperty(Context* context, Object* obj, ConstIndex key, Value&& val);
-	virtual bool GetProperty(Context* context, Object* obj, ConstIndex key, Value* value);
-	virtual bool HasProperty(Context* context, Object* obj, ConstIndex key);
-	virtual bool DelProperty(Context* context, Object* obj, ConstIndex key);
 
 	ClassId id() const { return id_; }
 	const auto& name() const { return name_; }

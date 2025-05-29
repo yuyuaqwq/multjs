@@ -8,9 +8,7 @@ class ArrayObjectClassDef : public ClassDef {
 public:
 	ArrayObjectClassDef(Runtime* runtime);
 
-	Value NewConstructor(Context* context, uint32_t par_count, const StackFrame& stack) override;
-
-	bool GetProperty(Context* context, Object* obj, ConstIndex key, Value* value) override;
+	Value NewConstructor(Context* context, uint32_t par_count, const StackFrame& stack) const override;
 
 
 	static Value Of(Context* context, uint32_t par_count, const StackFrame& stack);
@@ -18,6 +16,7 @@ public:
 	static Value LiteralNew(Context* context, uint32_t par_count, const StackFrame& stack);
 
 
+	ConstIndex length_const_index() const { return length_const_index_; }
 	ConstIndex of_const_index() const { return of_const_index_; }
 
 private:

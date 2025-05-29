@@ -47,7 +47,7 @@ ArrayObjectClassDef::ArrayObjectClassDef(Runtime* runtime)
 		}
 		auto& arr = stack.this_val().array();
 		auto callback = stack.get(0);
-		if (!callback.IsFunctionObject()) {
+		if (!callback.IsFunctionObject() && !callback.IsFunctionDef()) {
 			return TypeError::Throw(context, "forEach callback must be a function");
 		}
 
@@ -69,8 +69,8 @@ ArrayObjectClassDef::ArrayObjectClassDef(Runtime* runtime)
 		}
 		auto& arr = stack.this_val().array();
 		auto callback = stack.get(0);
-		if (!callback.IsFunctionObject()) {
-			return TypeError::Throw(context, "map callback must be a function");
+		if (!callback.IsFunctionObject() && !callback.IsFunctionDef()) {
+			return TypeError::Throw(context, "forEach callback must be a function");
 		}
 
 		auto result = ArrayObject::New(context, arr.length());
@@ -112,16 +112,8 @@ ArrayObjectClassDef::ArrayObjectClassDef(Runtime* runtime)
 	}));
 }
 
-Value ArrayObjectClassDef::NewConstructor(Context* context, uint32_t par_count, const StackFrame& stack) {
+Value ArrayObjectClassDef::NewConstructor(Context* context, uint32_t par_count, const StackFrame& stack) const {
 	return Of(context, par_count, stack);
-}
-
-bool ArrayObjectClassDef::GetProperty(Context* context, Object* obj, ConstIndex key, Value* value) {
-	if (key == length_const_index_) {
-		*value = Value(obj->get<ArrayObject>().length());
-		return true;
-	}
-	return ClassDef::GetProperty(context, obj, key, value);
 }
 
 Value ArrayObjectClassDef::Of(Context* context, uint32_t par_count, const StackFrame& stack) {

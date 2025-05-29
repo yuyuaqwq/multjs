@@ -12,7 +12,7 @@ ObjectClassDef::ObjectClassDef(Runtime* runtime)
 	prototype_ = Value();
 }
 
-Value ObjectClassDef::NewConstructor(Context* context, uint32_t par_count, const StackFrame& stack) {
+Value ObjectClassDef::NewConstructor(Context* context, uint32_t par_count, const StackFrame& stack) const {
 	return Value(Object::New(context));
 }
 

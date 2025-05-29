@@ -1,6 +1,7 @@
 #pragma once
 
 #include <mjs/object.h>
+#include <mjs/class_def_impl/array_object_class_def.h>
 
 namespace mjs {
 
@@ -11,6 +12,14 @@ private:
         , values_(length) {}
 
 public:
+    bool GetProperty(Context* context, ConstIndex key, Value* value) override {
+        if (key == GetClassDef<ArrayObjectClassDef>(&context->runtime()).length_const_index()) {
+            *value = Value(length());
+            return true;
+        }
+        return Object::GetProperty(context, key, value);
+    }
+
     void SetComputedProperty(Context* context, const Value& key, Value&& value) override {
         if (key.i64() < 0 || key.i64() > values_.size()) {
             // throw;
