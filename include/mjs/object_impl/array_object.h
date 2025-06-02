@@ -21,15 +21,16 @@ public:
     }
 
     void SetComputedProperty(Context* context, const Value& key, Value&& value) override {
-        if (key.i64() < 0 || key.i64() > values_.size()) {
-            // throw;
+        if (!key.IsInt64() || key.i64() < 0 || key.i64() > values_.size()) {
+            return; // or throw an error
         }
         values_[key.i64()] = std::move(value);
     }
 
     bool GetComputedProperty(Context* context, const Value& key, Value* value) override {
-        if (key.i64() < 0 || key.i64() > values_.size()) {
-            // throw;
+        if (!key.IsInt64() || key.i64() < 0 || key.i64() > values_.size()) {
+            *value = Error::Throw(context, "Not a valid index.");
+            return false; // or throw an error
         }
         *value = values_[key.i64()];
         return true;
