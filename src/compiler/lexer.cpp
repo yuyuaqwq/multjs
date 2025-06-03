@@ -42,6 +42,10 @@ bool Lexer::TestChar(char c) {
 }
 
 void Lexer::SkipUselessStr() {
+    if (in_template_) {
+        return;
+    }
+
     char c = PeekChar();
     do {
         // 跳过空格和换行
