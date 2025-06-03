@@ -7,6 +7,10 @@ namespace mjs {
 
 class ArrayObject : public Object {
 private:
+    ArrayObject(Runtime* runtime, size_t length)
+        : Object(runtime, ClassId::kArrayObject)
+        , values_(length) {}
+
     ArrayObject(Context* context, size_t length)
         : Object(context, ClassId::kArrayObject)
         , values_(length) {}
@@ -40,6 +44,10 @@ public:
         values_.push_back(val);
     }
 
+    void Push(Runtime* runtime, Value val) {
+        values_.push_back(val);
+    }
+
     Value Pop(Context* context) {
         auto back = std::move(values_.back());
         values_.pop_back();
@@ -62,6 +70,15 @@ public:
 
     virtual ClassId class_id() const { return ClassId::kArrayObject; }
 
+
+    static ArrayObject* New(Runtime* runtime, std::initializer_list<Value> values) {
+        auto arr_obj = new ArrayObject(runtime, values.size());
+        size_t i = 0;
+        for (auto& value : values) {
+            arr_obj->operator[](i++) = value;
+        }
+        return arr_obj;
+    }
 
     static ArrayObject* New(Context* context, std::initializer_list<Value> values) {
         auto arr_obj = new ArrayObject(context, values.size());
