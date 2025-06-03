@@ -14,6 +14,8 @@
 
 namespace mjs {
 
+// 有效范围：0 ~ 65535
+// mjs保留：0 ~ 1024 
 enum class ValueType : uint32_t {
 	// 字面量
 	kUndefined = 0,
@@ -293,7 +295,7 @@ private:
 	union {
 		uint64_t full_ = 0;
 		struct {
-			ValueType type_ : 15;
+			ValueType type_ : 16;
 			uint32_t exception_ : 1;	// 是否是异常返回
 			ConstIndex const_index_;	// 非0则是来自常量池的value
 		};
