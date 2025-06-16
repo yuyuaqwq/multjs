@@ -42,6 +42,10 @@ bool Lexer::TestChar(char c) const {
 }
 
 void Lexer::SkipWhitespaceAndComments() {
+    if (in_template_) {
+        return;
+    }
+
     while (true) {
         // 跳过空白字符
         while (position_ < source_.size()) {
