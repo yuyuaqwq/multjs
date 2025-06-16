@@ -89,6 +89,12 @@ public:
     }
     SourcePos start() const { return start_; }
     SourcePos end() const { return end_; }
+    
+    /**
+     * @brief 克隆表达式
+     * @return 克隆的表达式指针
+     */
+    virtual Expression* clone() const = 0;
 
 private:
     ValueCategory value_category_ = ValueCategory::kRValue;
@@ -105,6 +111,10 @@ public:
     ExpressionType type() const noexcept override {
         return ExpressionType::kUndefined;
     }
+    
+    Expression* clone() const override {
+        return new UndefinedLiteral(start(), end());
+    }
 };
 
 class NullLiteral : public Expression {
@@ -114,6 +124,10 @@ public:
 
     ExpressionType type() const noexcept override {
         return ExpressionType::kNull;
+    }
+    
+    Expression* clone() const override {
+        return new NullLiteral(start(), end());
     }
 };
 
@@ -127,6 +141,10 @@ public:
     }
 
     bool value() const { return value_; }
+    
+    Expression* clone() const override {
+        return new BooleanLiteral(start(), end(), value_);
+    }
 
 private:
     bool value_;
@@ -134,7 +152,7 @@ private:
 
 class IntegerLiteral : public Expression {
 public:
-    IntegerLiteral(SourcePos start, SourcePos end, double value)
+    IntegerLiteral(SourcePos start, SourcePos end, int64_t value)
         : Expression(start, end), value_(value) {}
 
     ExpressionType type() const noexcept override {
@@ -142,6 +160,10 @@ public:
     }
 
     int64_t value() const { return value_; }
+    
+    Expression* clone() const override {
+        return new IntegerLiteral(start(), end(), value_);
+    }
 
 private:
     int64_t value_;
@@ -157,6 +179,10 @@ public:
     }
 
     double value() const { return value_; }
+    
+    Expression* clone() const override {
+        return new FloatLiteral(start(), end(), value_);
+    }
 
 private:
     double value_;
@@ -172,6 +198,10 @@ public:
     }
     
     const std::string& value() const { return value_; }
+    
+    Expression* clone() const override {
+        return new StringLiteral(start(), end(), std::string(value_));
+    }
 
 private:
     std::string value_;
@@ -185,6 +215,10 @@ public:
     ExpressionType type() const noexcept override {
         return ExpressionType::kThisExpression;
     }
+    
+    Expression* clone() const override {
+        return new ThisExpression(start(), end());
+    }
 };
 
 
@@ -197,8 +231,12 @@ public:
     ExpressionType type() const noexcept override {
         return ExpressionType::kTemplateElement;
     }
-
+    
     const std::string& value() const { return value_; }
+    
+    Expression* clone() const override {
+        return new TemplateElement(start(), end(), std::string(value_));
+    }
 
 private:
     std::string value_;
@@ -217,9 +255,16 @@ public:
         return ExpressionType::kTemplateLiteral;
     }
 
-    // const auto& quasis() const { return quasis_; }
-    const auto& expressions() const { return expressions_; }
-
+    // const std::vector<std::unique_ptr<TemplateElement>>& quasis() const { return quasis_; }
+    const std::vector<std::unique_ptr<Expression>>& expressions() const { return expressions_; }
+    
+    Expression* clone() const override {
+        std::vector<std::unique_ptr<Expression>> cloned_expressions;
+        for (const auto& expr : expressions_) {
+            cloned_expressions.push_back(std::unique_ptr<Expression>(expr->clone()));
+        }
+        return new TemplateLiteral(start(), end(), std::move(cloned_expressions));
+    }
 
 private:
     // std::vector<std::unique_ptr<TemplateElement>> quasis_;
@@ -239,6 +284,14 @@ public:
     }
 
     const std::vector<std::unique_ptr<Expression>>& elements() const { return elements_; }
+    
+    Expression* clone() const override {
+        std::vector<std::unique_ptr<Expression>> cloned_elements;
+        for (const auto& elem : elements_) {
+            cloned_elements.push_back(std::unique_ptr<Expression>(elem->clone()));
+        }
+        return new ArrayExpression(start(), end(), std::move(cloned_elements));
+    }
 
 private:
     std::vector<std::unique_ptr<Expression>> elements_;
@@ -261,6 +314,19 @@ public:
     }
 
     const std::vector<Property>& properties() const { return properties_; }
+    
+    Expression* clone() const override {
+        std::vector<Property> cloned_props;
+        for (const auto& prop : properties_) {
+            Property cloned_prop;
+            cloned_prop.key = prop.key;
+            cloned_prop.value = std::unique_ptr<Expression>(prop.value->clone());
+            cloned_prop.shorthand = prop.shorthand;
+            cloned_prop.computed = prop.computed;
+            cloned_props.push_back(std::move(cloned_prop));
+        }
+        return new ObjectExpression(start(), end(), std::move(cloned_props));
+    }
 
 private:
     std::vector<Property> properties_;
@@ -288,10 +354,18 @@ public:
     const std::unique_ptr<BlockStatement>& body() const { return body_; }
     bool is_generator() const { return is_generator_; }
     bool is_async() const { return is_async_; }
-
+    bool is_module() const { return is_module_; }
     bool is_export() const { return is_export_; }
     void set_is_export(bool is_export) { is_export_ = is_export; }
-
+    
+    Expression* clone() const override {
+        auto result = new FunctionExpression(start(), end(), id_, 
+            std::vector<std::string>(params_),
+            std::unique_ptr<BlockStatement>(static_cast<BlockStatement*>(body_->clone())),
+            is_generator_, is_async_, is_module_);
+        result->set_is_export(is_export_);
+        return result;
+    }
 
 private:
     std::string id_;
@@ -324,6 +398,13 @@ public:
     const std::vector<std::string>& params() const { return params_; }
     const std::unique_ptr<Statement>& body() const { return body_; }
     bool is_async() const { return is_async_; }
+    
+    Expression* clone() const override {
+        return new ArrowFunctionExpression(start(), end(),
+            std::vector<std::string>(params_),
+            std::unique_ptr<Statement>(body_->clone()),
+            is_async_);
+    }
 
 private:
     std::vector<std::string> params_;
@@ -355,12 +436,19 @@ public:
     bool is_method_call() const { return is_method_call_; }
     bool computed() const { return computed_; }
     bool optional() const { return optional_; }
+    
+    Expression* clone() const override {
+        return new MemberExpression(start(), end(),
+            std::unique_ptr<Expression>(object_->clone()),
+            std::unique_ptr<Expression>(property_->clone()),
+            is_method_call_, computed_, optional_);
+    }
 
 private:
     std::unique_ptr<Expression> object_;
     std::unique_ptr<Expression> property_;
-    bool is_method_call_;
     bool computed_;
+    bool is_method_call_;
     bool optional_;
 };
 
@@ -378,6 +466,16 @@ public:
 
     const std::unique_ptr<Expression>& callee() const { return callee_; }
     const std::vector<std::unique_ptr<Expression>>& arguments() const { return arguments_; }
+    
+    Expression* clone() const override {
+        std::vector<std::unique_ptr<Expression>> cloned_args;
+        for (const auto& arg : arguments_) {
+            cloned_args.push_back(std::unique_ptr<Expression>(arg->clone()));
+        }
+        return new CallExpression(start(), end(),
+            std::unique_ptr<Expression>(callee_->clone()),
+            std::move(cloned_args));
+    }
 
 private:
     std::unique_ptr<Expression> callee_;
@@ -398,6 +496,16 @@ public:
 
     const std::unique_ptr<Expression>& callee() const { return callee_; }
     const std::vector<std::unique_ptr<Expression>>& arguments() const { return arguments_; }
+    
+    Expression* clone() const override {
+        std::vector<std::unique_ptr<Expression>> cloned_args;
+        for (const auto& arg : arguments_) {
+            cloned_args.push_back(std::unique_ptr<Expression>(arg->clone()));
+        }
+        return new NewExpression(start(), end(),
+            std::unique_ptr<Expression>(callee_->clone()),
+            std::move(cloned_args));
+    }
 
 private:
     std::unique_ptr<Expression> callee_;
@@ -408,20 +516,53 @@ private:
 
 class UnaryExpression : public Expression {
 public:
+    /**
+     * @brief 构造一元表达式
+     * 
+     * @param start 表达式起始位置
+     * @param end 表达式结束位置
+     * @param op 运算符类型
+     * @param argument 操作数表达式
+     * @param is_prefix 是否为前缀运算符（true为前缀，false为后缀）
+     */
     UnaryExpression(SourcePos start, SourcePos end,
-                TokenType op, std::unique_ptr<Expression> argument)
-        : Expression(start, end), operator_(op), argument_(std::move(argument)) {}
+                TokenType op, std::unique_ptr<Expression> argument,
+                bool is_prefix = true)
+        : Expression(start, end), operator_(op), argument_(std::move(argument)),
+          is_prefix_(is_prefix) {}
 
     ExpressionType type() const noexcept override {
         return ExpressionType::kUnaryExpression;
     }
 
+    /**
+     * @brief 获取运算符类型
+     * @return 运算符类型
+     */
     TokenType op() const { return operator_; }
+    
+    /**
+     * @brief 获取操作数表达式
+     * @return 操作数表达式的常量引用
+     */
     const std::unique_ptr<Expression>& argument() const { return argument_; }
+    
+    /**
+     * @brief 判断是否为前缀运算符
+     * @return 如果是前缀运算符则返回true，否则返回false
+     */
+    bool is_prefix() const { return is_prefix_; }
+    
+    Expression* clone() const override {
+        return new UnaryExpression(start(), end(), operator_,
+            std::unique_ptr<Expression>(argument_->clone()),
+            is_prefix_);
+    }
 
 private:
-    TokenType operator_;
-    std::unique_ptr<Expression> argument_;
+    TokenType operator_;                   ///< 运算符类型
+    std::unique_ptr<Expression> argument_; ///< 操作数表达式
+    bool is_prefix_;                       ///< 是否为前缀运算符
 };
 
 class BinaryExpression : public Expression {
@@ -438,6 +579,12 @@ public:
     TokenType op() const { return operator_; }
     const std::unique_ptr<Expression>& left() const { return left_; }
     const std::unique_ptr<Expression>& right() const { return right_; }
+    
+    Expression* clone() const override {
+        return new BinaryExpression(start(), end(), operator_,
+            std::unique_ptr<Expression>(left_->clone()),
+            std::unique_ptr<Expression>(right_->clone()));
+    }
 
 private:
     TokenType operator_;
@@ -459,6 +606,12 @@ public:
     TokenType op() const { return operator_; }
     const std::unique_ptr<Expression>& left() const { return left_; }
     const std::unique_ptr<Expression>& right() const { return right_; }
+    
+    Expression* clone() const override {
+        return new AssignmentExpression(start(), end(), operator_,
+            std::unique_ptr<Expression>(left_->clone()),
+            std::unique_ptr<Expression>(right_->clone()));
+    }
 
 private:
     TokenType operator_;
@@ -482,6 +635,13 @@ public:
     const std::unique_ptr<Expression>& test() const { return test_; }
     const std::unique_ptr<Expression>& consequent() const { return consequent_; }
     const std::unique_ptr<Expression>& alternate() const { return alternate_; }
+    
+    Expression* clone() const override {
+        return new ConditionalExpression(start(), end(),
+            std::unique_ptr<Expression>(test_->clone()),
+            std::unique_ptr<Expression>(consequent_->clone()),
+            std::unique_ptr<Expression>(alternate_->clone()));
+    }
 
 private:
     std::unique_ptr<Expression> test_;
@@ -501,6 +661,11 @@ public:
     }
 
     const std::unique_ptr<Expression>& argument() const { return argument_; }
+    
+    Expression* clone() const override {
+        return new YieldExpression(start(), end(),
+            std::unique_ptr<Expression>(argument_->clone()));
+    }
 
 private:
     std::unique_ptr<Expression> argument_;
@@ -517,6 +682,11 @@ public:
     }
 
     const std::unique_ptr<Expression>& argument() const { return argument_; }
+    
+    Expression* clone() const override {
+        return new AwaitExpression(start(), end(),
+            std::unique_ptr<Expression>(argument_->clone()));
+    }
 
 private:
     std::unique_ptr<Expression> argument_;
@@ -533,6 +703,11 @@ public:
     }
 
     const std::unique_ptr<Expression>& source() const { return source_; }
+    
+    Expression* clone() const override {
+        return new ImportExpression(start(), end(),
+            std::unique_ptr<Expression>(source_->clone()));
+    }
 
 private:
     std::unique_ptr<Expression> source_;
@@ -551,6 +726,10 @@ public:
     }
 
     const std::string& name() const { return name_; }
+    
+    Expression* clone() const override {
+        return new Identifier(start(), end(), std::string(name_));
+    }
 
 private:
     std::string name_;

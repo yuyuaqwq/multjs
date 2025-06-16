@@ -79,6 +79,12 @@ public:
 
     SourcePos start() const { return start_; }
     SourcePos end() const { return end_; }
+    
+    /**
+     * @brief 克隆语句
+     * @return 克隆的语句指针
+     */
+    virtual Statement* clone() const = 0;
 
 private:
     SourcePos start_;
@@ -99,6 +105,10 @@ public:
 
     const std::string& source() const { return source_; }
     const std::string& name() const { return name_; }
+    
+    Statement* clone() const override {
+        return new ImportDeclaration(start(), end(), source_, name_);
+    }
 
 private:
     std::string source_;
@@ -114,6 +124,11 @@ public:
     StatementType type() const noexcept override { return StatementType::kExport; }
 
     const std::unique_ptr<Statement>& declaration() const { return declaration_; }
+    
+    Statement* clone() const override {
+        return new ExportDeclaration(start(), end(), 
+            std::unique_ptr<Statement>(declaration_->clone()));
+    }
 
 private:
     std::unique_ptr<Statement> declaration_;
@@ -140,6 +155,14 @@ public:
     TokenType kind() const { return kind_; }
     bool is_export() const { return is_export_; }
     void set_is_export(bool is_export) { is_export_ = is_export; }
+    
+    Statement* clone() const override {
+        auto result = new VariableDeclaration(start(), end(), name_, 
+            init_ ? std::unique_ptr<Expression>(static_cast<Expression*>(init_->clone())) : nullptr, 
+            kind_);
+        result->set_is_export(is_export_);
+        return result;
+    }
 
 private:
     std::string name_;
@@ -168,6 +191,13 @@ public:
     const std::unique_ptr<Expression>& test() const { return test_; }
     const std::unique_ptr<BlockStatement>& consequent() const { return consequent_; }
     const std::unique_ptr<Statement>& alternate() const { return alternate_; }
+    
+    Statement* clone() const override {
+        return new IfStatement(start(), end(), 
+            std::unique_ptr<Expression>(static_cast<Expression*>(test_->clone())),
+            std::unique_ptr<BlockStatement>(static_cast<BlockStatement*>(consequent_->clone())),
+            alternate_ ? std::unique_ptr<Statement>(alternate_->clone()) : nullptr);
+    }
 
 private:
     std::unique_ptr<Expression> test_;
@@ -188,6 +218,11 @@ public:
 
     const std::string& label() const { return label_; }
     const std::unique_ptr<Statement>& body() const { return body_; }
+    
+    Statement* clone() const override {
+        return new LabeledStatement(start(), end(), label_, 
+            std::unique_ptr<Statement>(body_->clone()));
+    }
 
 private:
     std::string label_;
@@ -214,6 +249,14 @@ public:
     const std::unique_ptr<Expression>& test() const { return test_; }
     const std::unique_ptr<Expression>& update() const { return update_; }
     const std::unique_ptr<BlockStatement>& body() const { return body_; }
+    
+    Statement* clone() const override {
+        return new ForStatement(start(), end(),
+            init_ ? std::unique_ptr<Statement>(init_->clone()) : nullptr,
+            test_ ? std::unique_ptr<Expression>(static_cast<Expression*>(test_->clone())) : nullptr,
+            update_ ? std::unique_ptr<Expression>(static_cast<Expression*>(update_->clone())) : nullptr,
+            std::unique_ptr<BlockStatement>(static_cast<BlockStatement*>(body_->clone())));
+    }
 
 private:
     std::unique_ptr<Statement> init_;
@@ -235,6 +278,12 @@ public:
 
     const std::unique_ptr<Expression>& test() const { return test_; }
     const std::unique_ptr<BlockStatement>& body() const { return body_; }
+    
+    Statement* clone() const override {
+        return new WhileStatement(start(), end(),
+            std::unique_ptr<Expression>(static_cast<Expression*>(test_->clone())),
+            std::unique_ptr<BlockStatement>(static_cast<BlockStatement*>(body_->clone())));
+    }
 
 private:
     std::unique_ptr<Expression> test_;
@@ -250,6 +299,10 @@ public:
     StatementType type() const noexcept override { return StatementType::kContinue; }
 
     const std::optional<std::string>& label() const { return label_; }
+    
+    Statement* clone() const override {
+        return new ContinueStatement(start(), end(), label_);
+    }
 
 private:
     std::optional<std::string> label_;
@@ -264,6 +317,10 @@ public:
     StatementType type() const noexcept override { return StatementType::kBreak; }
 
     const std::optional<std::string>& label() const { return label_; }
+    
+    Statement* clone() const override {
+        return new BreakStatement(start(), end(), label_);
+    }
 
 private:
     std::optional<std::string> label_;
@@ -279,6 +336,11 @@ public:
     StatementType type() const noexcept override { return StatementType::kReturn; }
 
     const std::unique_ptr<Expression>& argument() const { return argument_; }
+    
+    Statement* clone() const override {
+        return new ReturnStatement(start(), end(),
+            argument_ ? std::unique_ptr<Expression>(static_cast<Expression*>(argument_->clone())) : nullptr);
+    }
 
 private:
     std::unique_ptr<Expression> argument_;
@@ -297,6 +359,12 @@ public:
 
     const std::unique_ptr<Identifier>& param() const { return param_; }
     const std::unique_ptr<BlockStatement>& body() const { return body_; }
+    
+    Statement* clone() const override {
+        return new CatchClause(start(), end(),
+            param_ ? std::unique_ptr<Identifier>(static_cast<Identifier*>(param_->clone())) : nullptr,
+            std::unique_ptr<BlockStatement>(static_cast<BlockStatement*>(body_->clone())));
+    }
 
 private:
     std::unique_ptr<Identifier> param_;
@@ -312,6 +380,11 @@ public:
     StatementType type() const noexcept override { return StatementType::kFinally; }
 
     const std::unique_ptr<BlockStatement>& body() const { return body_; }
+    
+    Statement* clone() const override {
+        return new FinallyClause(start(), end(),
+            std::unique_ptr<BlockStatement>(static_cast<BlockStatement*>(body_->clone())));
+    }
 
 private:
     std::unique_ptr<BlockStatement> body_;
@@ -333,6 +406,13 @@ public:
     const std::unique_ptr<BlockStatement>& block() const { return block_; }
     const std::unique_ptr<CatchClause>& handler() const { return handler_; }
     const std::unique_ptr<FinallyClause>& finalizer() const { return finalizer_; }
+    
+    Statement* clone() const override {
+        return new TryStatement(start(), end(),
+            std::unique_ptr<BlockStatement>(static_cast<BlockStatement*>(block_->clone())),
+            handler_ ? std::unique_ptr<CatchClause>(static_cast<CatchClause*>(handler_->clone())) : nullptr,
+            finalizer_ ? std::unique_ptr<FinallyClause>(static_cast<FinallyClause*>(finalizer_->clone())) : nullptr);
+    }
 
 private:
     std::unique_ptr<BlockStatement> block_;
@@ -345,10 +425,15 @@ public:
     explicit ThrowStatement(SourcePos start, SourcePos end,
                           std::unique_ptr<Expression> argument)
         : Statement(start, end), argument_(std::move(argument)) {}
-    
+
     StatementType type() const noexcept override { return StatementType::kThrow; }
 
     const std::unique_ptr<Expression>& argument() const { return argument_; }
+    
+    Statement* clone() const override {
+        return new ThrowStatement(start(), end(),
+            std::unique_ptr<Expression>(static_cast<Expression*>(argument_->clone())));
+    }
 
 private:
     std::unique_ptr<Expression> argument_;
@@ -363,6 +448,11 @@ public:
     StatementType type() const noexcept override { return StatementType::kExpression; }
 
     const std::unique_ptr<Expression>& expression() const { return expression_; }
+    
+    Statement* clone() const override {
+        return new ExpressionStatement(start(), end(),
+            expression_ ? std::unique_ptr<Expression>(static_cast<Expression*>(expression_->clone())) : nullptr);
+    }
 
 private:
     std::unique_ptr<Expression> expression_;
@@ -376,6 +466,14 @@ public:
     StatementType type() const noexcept override { return StatementType::kBlock; }
 
     const std::vector<std::unique_ptr<Statement>>& statements() const { return statements_; }
+    
+    Statement* clone() const override {
+        std::vector<std::unique_ptr<Statement>> cloned_statements;
+        for (const auto& stmt : statements_) {
+            cloned_statements.push_back(std::unique_ptr<Statement>(stmt->clone()));
+        }
+        return new BlockStatement(start(), end(), std::move(cloned_statements));
+    }
 
 private:
     std::vector<std::unique_ptr<Statement>> statements_;
@@ -392,7 +490,11 @@ enum class PredefinedTypeKeyword {
 };
 
 class Type : public Statement {
-    using Statement::Statement;
+public:
+    Type(SourcePos start, SourcePos end)
+        : Statement(start, end) {}
+    
+    virtual Statement* clone() const override = 0;
 };
 
 class PredefinedType : public Type {
@@ -403,6 +505,10 @@ public:
     StatementType type() const noexcept override { return StatementType::kPredefinedType; }
 
     const PredefinedTypeKeyword& keyword() const { return keyword_; }
+    
+    Statement* clone() const override {
+        return new PredefinedType(start(), end(), keyword_);
+    }
 
 private:
     PredefinedTypeKeyword keyword_;
@@ -415,9 +521,14 @@ public:
 
     StatementType type() const noexcept override { return StatementType::kNamedType; }
 
+    const std::string& name() const { return name_; }
+    
+    Statement* clone() const override {
+        return new NamedType(start(), end(), std::string(name_));
+    }
+
 private:
     std::string name_;
-    std::vector<std::unique_ptr<Type>> upper_types_;
 };
 
 class LieralType : public Type {
@@ -426,6 +537,13 @@ public:
         : Type(start, end), value_(std::move(value)) {}
 
     StatementType type() const noexcept override { return StatementType::kLieralType; }
+
+    const std::unique_ptr<Expression>& value() const { return value_; }
+    
+    Statement* clone() const override {
+        return new LieralType(start(), end(), 
+            std::unique_ptr<Expression>(static_cast<Expression*>(value_->clone())));
+    }
 
 private:
     std::unique_ptr<Expression> value_;
@@ -437,6 +555,16 @@ public:
         : Type(start, end), types_(std::move(types)) {}
 
     StatementType type() const noexcept override { return StatementType::kUnionType; }
+
+    const std::vector<std::unique_ptr<Type>>& types() const { return types_; }
+    
+    Statement* clone() const override {
+        std::vector<std::unique_ptr<Type>> cloned_types;
+        for (const auto& type : types_) {
+            cloned_types.push_back(std::unique_ptr<Type>(static_cast<Type*>(type->clone())));
+        }
+        return new UnionType(start(), end(), std::move(cloned_types));
+    }
 
 private:
     std::vector<std::unique_ptr<Type>> types_;
@@ -456,6 +584,11 @@ public:
     StatementType type() const noexcept override { return StatementType::kTypeAnnotation; }
 
     const std::unique_ptr<Type>& type_p() const { return type_p_; }
+    
+    Statement* clone() const override {
+        return new TypeAnnotation(start(), end(), 
+            std::unique_ptr<Type>(static_cast<Type*>(type_p_->clone())));
+    }
 
 private:
     std::unique_ptr<Type> type_p_;
