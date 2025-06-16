@@ -4,6 +4,7 @@
 #include <string_view>
 #include <stdexcept>
 #include <optional>
+#include <stack>
 
 #include <mjs/noncopyable.h>
 #include <mjs/source.h>
@@ -29,6 +30,7 @@ public:
 		Token peek_token;
 		bool in_template;
 		bool in_template_interpolation;
+		std::stack<bool> template_stack;
 	};
 
 public:
@@ -82,7 +84,8 @@ public:
 			current_token_,
 			peek_token_,
 			in_template_,
-			in_template_interpolation_
+			in_template_interpolation_,
+			template_stack_
 		};
 	}
 
@@ -97,6 +100,7 @@ public:
 		peek_token_ = checkpoint.peek_token;
 		in_template_ = checkpoint.in_template;
 		in_template_interpolation_ = checkpoint.in_template_interpolation;
+		template_stack_ = checkpoint.template_stack;
 	}
 
 	/**
@@ -297,18 +301,18 @@ private:
 	 * @return 如果可以作为标识符的一部分则返回true，否则返回false
 	 */
 	static bool IsIdentifierPart(char c) {
-		return IsAlpha(c) || IsDigit(c) || c == '_';
+		return IsAlpha(c) || IsDigit(c) || c == '_' || c == '$';
 	}
 
 private:
-	std::string source_;           ///< 源代码
-	SourcePos position_ = 0;       ///< 当前位置
-	SourcePos peek_position_ = 0;  ///< 前瞻位置
-	Token current_token_;          ///< 当前标记
-	Token peek_token_;             ///< 前瞻标记
-
-	bool in_template_ = false;              ///< 是否在模板字符串中
+	std::string_view source_;       ///< 源代码
+	SourcePos position_ = 0;        ///< 当前位置
+	SourcePos peek_position_ = 0;   ///< 预览位置
+	Token current_token_;           ///< 当前标记
+	Token peek_token_;              ///< 预览标记
+	bool in_template_ = false;      ///< 是否在模板字符串中
 	bool in_template_interpolation_ = false; ///< 是否在模板字符串插值表达式中
+	std::stack<bool> template_stack_; ///< 模板字符串的嵌套栈，保存上一个模板字符串的in_template_interpolation_状态
 };
 
 } // namespace compiler

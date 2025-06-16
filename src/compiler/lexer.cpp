@@ -3,6 +3,7 @@
 #include <format>
 #include <cctype>
 #include <algorithm>
+#include <stack>
 
 #include <mjs/error.h>
 
@@ -42,7 +43,7 @@ bool Lexer::TestChar(char c) const {
 }
 
 void Lexer::SkipWhitespaceAndComments() {
-    if (in_template_) {
+    if (in_template_ && !in_template_interpolation_) {
         return;
     }
 
@@ -232,15 +233,33 @@ Token Lexer::ReadNextToken() {
 }
 
 Token Lexer::HandleBacktick(Token& token) {
-    in_template_ = !in_template_;
+    if (in_template_) {
+        // 如果已经在模板字符串中，检查是否在插值表达式中
+        if (in_template_interpolation_) {
+            // 这里理论上应该不需要栈，因为在插值表达式中，才允许嵌套模板字符串，否则就直接结束了
+
+            // 这是嵌套模板的开始
+            template_stack_.push(in_template_interpolation_);
+            in_template_interpolation_ = false;
+        } else {
+            // 这是当前模板的结束
+            if (!template_stack_.empty()) {
+                in_template_interpolation_ = template_stack_.top();
+                template_stack_.pop();
+            } else {
+                in_template_ = false;
+            }
+        }
+    } else {
+        // 进入模板字符串模式
+        in_template_ = true;
+    }
+    
     token.set_type(TokenType::kBacktick);
     return token;
 }
 
 Token Lexer::HandleTemplateInterpolation(Token& token) {
-    if (in_template_interpolation_) {
-        throw SyntaxError("Nested interpolation expressions are not allowed");
-    }
     SkipChar(1); // 跳过 '{'
     in_template_interpolation_ = true;
     token.set_type(TokenType::kTemplateInterpolationStart);
@@ -571,6 +590,8 @@ Token Lexer::HandleIdentifierOrKeyword(Token& token, char first_char) {
 std::string Lexer::ReadString(char quote_type, std::initializer_list<std::string_view> end_strings) {
     std::string value;
     
+    bool is_closed = false;
+
     while (position_ < source_.size()) {
         // 检查是否匹配结束字符串
         for (const auto& end_string : end_strings) {
@@ -716,6 +737,7 @@ std::string Lexer::ReadString(char quote_type, std::initializer_list<std::string
             }
         } else if (c == quote_type) {
             // 遇到匹配的引号，字符串结束
+            is_closed = true;
             break;
         } else if (c == '\0') {
             // 字符串未闭合
@@ -726,6 +748,10 @@ std::string Lexer::ReadString(char quote_type, std::initializer_list<std::string
         } else {
             value.push_back(c); // 普通字符
         }
+    }
+
+    if (!is_closed) {
+        throw SyntaxError("Unterminated string literal");
     }
     
     return value;

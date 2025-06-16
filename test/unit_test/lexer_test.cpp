@@ -312,17 +312,34 @@ TEST(LexerTest, ComplexTemplateStrings) {
     
     auto tokens = CollectAllTokens(lexer);
     
+    ASSERT_EQ(tokens.size(), 19);
+
     // 验证基本结构
     EXPECT_EQ(tokens[0].type(), TokenType::kBacktick);
     EXPECT_EQ(tokens[1].type(), TokenType::kTemplateElement);
     EXPECT_EQ(tokens[1].value(), "Line 1\nLine 2 ");
     EXPECT_EQ(tokens[2].type(), TokenType::kTemplateInterpolationStart);
-    // ... 1 + 2 ...
-    EXPECT_TRUE(tokens[6].is(TokenType::kTemplateInterpolationEnd));
+    EXPECT_EQ(tokens[3].type(), TokenType::kInteger);
+    EXPECT_EQ(tokens[3].value(), "1");
+    EXPECT_EQ(tokens[4].type(), TokenType::kOpAdd);
+    EXPECT_EQ(tokens[5].type(), TokenType::kInteger);
+    EXPECT_EQ(tokens[5].value(), "2");
+    EXPECT_EQ(tokens[6].type(), TokenType::kTemplateInterpolationEnd);
     EXPECT_EQ(tokens[7].type(), TokenType::kTemplateElement);
     EXPECT_EQ(tokens[7].value(), " Line 3 ");
     EXPECT_EQ(tokens[8].type(), TokenType::kTemplateInterpolationStart);
     EXPECT_EQ(tokens[9].type(), TokenType::kBacktick);
+    EXPECT_EQ(tokens[10].type(), TokenType::kTemplateElement);
+    EXPECT_EQ(tokens[10].value(), "Nested ");
+    EXPECT_EQ(tokens[11].type(), TokenType::kTemplateInterpolationStart);
+    EXPECT_EQ(tokens[12].type(), TokenType::kIdentifier);
+    EXPECT_EQ(tokens[12].value(), "value");
+    EXPECT_EQ(tokens[13].type(), TokenType::kTemplateInterpolationEnd);
+    EXPECT_EQ(tokens[14].type(), TokenType::kBacktick);
+    EXPECT_EQ(tokens[15].type(), TokenType::kTemplateInterpolationEnd);
+    EXPECT_EQ(tokens[16].type(), TokenType::kTemplateElement);
+    EXPECT_EQ(tokens[16].value(), " End");
+    EXPECT_EQ(tokens[17].type(), TokenType::kBacktick);
     // ... 嵌套模板 ...
 }
 
@@ -332,6 +349,8 @@ TEST(LexerTest, RegularExpressions) {
     
     auto tokens = CollectAllTokens(lexer);
     
+    ASSERT_EQ(tokens.size(), 11);
+
     EXPECT_EQ(tokens[0].type(), TokenType::kKwLet);
     EXPECT_EQ(tokens[1].type(), TokenType::kIdentifier);
     EXPECT_EQ(tokens[1].value(), "re");
@@ -339,13 +358,15 @@ TEST(LexerTest, RegularExpressions) {
     EXPECT_EQ(tokens[3].type(), TokenType::kRegExp);
     EXPECT_EQ(tokens[3].value(), "abc");
     EXPECT_EQ(tokens[3].regex_flags(), "g");
-    
-    EXPECT_EQ(tokens[7].type(), TokenType::kIdentifier);
-    EXPECT_EQ(tokens[7].value(), "re2");
-    EXPECT_EQ(tokens[8].type(), TokenType::kOpAssign);
-    EXPECT_EQ(tokens[9].type(), TokenType::kRegExp);
-    EXPECT_EQ(tokens[9].value(), "[a-z]+");
-    EXPECT_EQ(tokens[9].regex_flags(), "i");
+    EXPECT_EQ(tokens[4].type(), TokenType::kSepSemi);
+    EXPECT_EQ(tokens[5].type(), TokenType::kKwLet);
+    EXPECT_EQ(tokens[6].type(), TokenType::kIdentifier);
+    EXPECT_EQ(tokens[6].value(), "re2");
+    EXPECT_EQ(tokens[7].type(), TokenType::kOpAssign);
+    EXPECT_EQ(tokens[8].type(), TokenType::kRegExp);
+    EXPECT_EQ(tokens[8].value(), "[a-z]+");
+    EXPECT_EQ(tokens[8].regex_flags(), "i");
+    EXPECT_EQ(tokens[9].type(), TokenType::kSepSemi);
 }
 
 // 复杂正则表达式测试
