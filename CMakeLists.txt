@@ -6,6 +6,19 @@ set(CMAKE_CXX_STANDARD 20)
 set(MJS_LIB mjs)
 set(MJS_HEADER_DIR ./include)
 
+# 启用测试
+enable_testing()
+
+# 添加Google Test
+include(FetchContent)
+FetchContent_Declare(
+  googletest
+  URL https://github.com/google/googletest/archive/refs/tags/v1.13.0.zip
+)
+# 对于Windows: 防止覆盖父项目的编译器/链接器设置
+set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+FetchContent_MakeAvailable(googletest)
+
 if(WIN32)
     file(GLOB_RECURSE PRIVATE_HEADERS 
         ./src/*.h
@@ -70,6 +83,18 @@ endforeach()
 add_library(${MJS_LIB} STATIC ${SRC} ${PRIVATE_HEADERS} ${PUBLIC_HEADERS})
 target_include_directories(${MJS_LIB} PRIVATE ${MJS_HEADER_DIR})
 
+# 原始测试可执行文件
 add_executable(mjs_test test/test.cpp)
 target_include_directories(mjs_test PRIVATE ${MJS_HEADER_DIR})
 target_link_libraries(mjs_test PRIVATE ${MJS_LIB})
+
+# 添加单元测试可执行文件
+file(GLOB TEST_SRC
+    ./test/*_test.cpp)
+
+add_executable(unit_tests ${TEST_SRC})
+target_include_directories(unit_tests PRIVATE ${MJS_HEADER_DIR})
+target_link_libraries(unit_tests PRIVATE ${MJS_LIB} GTest::gtest_main)
+
+include(GoogleTest)
+gtest_discover_tests(unit_tests)

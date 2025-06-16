@@ -4,98 +4,119 @@ namespace mjs {
 namespace compiler {
 
 std::string Token::TypeToString(TokenType type) {
-	for (auto it : g_operators) {
-		if (it.second == type) {
-			return it.first;
+	// 首先在运算符映射表中查找
+	for (const auto& [op_str, op_type] : Token::operator_map()) {
+		if (op_type == type) {
+			return op_str;
 		}
 	}
-	for (auto it : g_keywords) {
-		if (it.second == type) {
-			return it.first;
+	
+	// 然后在关键字映射表中查找
+	for (const auto& [keyword_str, keyword_type] : Token::keyword_map()) {
+		if (keyword_type == type) {
+			return keyword_str;
 		}
 	}
-	if (type == TokenType::kNone) {
-		return "[none]";
-	}
-	else {
-		return "[unknown]";
+	
+	// 特殊处理
+	switch (type) {
+		case TokenType::kNone:
+			return "[none]";
+		default:
+			return "[unknown]";
 	}
 }
 
-std::unordered_map<std::string, TokenType> g_operators = {
-	{ ";", TokenType::kSepSemi },
-	{ ":", TokenType::kSepColon },
-	{ ",", TokenType::kSepComma },
-	{ ".", TokenType::kSepDot },
-	{ "(", TokenType::kSepLParen },
-	{ ")", TokenType::kSepRParen },
-	{ "[", TokenType::kSepLBrack },
-	{ "]", TokenType::kSepRBrack },
-	{ "{", TokenType::kSepLCurly },
-	{ "}", TokenType::kSepRCurly },
-	{ "+", TokenType::kOpAdd },
-	{ "++", TokenType::kOpInc },
-	{ "-", TokenType::kOpSub },
-	{ "--", TokenType::kOpDec },
-	{ "*", TokenType::kOpMul },
-	{ "**", TokenType::kOpPower },
-	{ "/", TokenType::kOpDiv },
-	{ "%", TokenType::kOpMod },
-	{ "!", TokenType::kOpNot },
-	{ "=", TokenType::kOpAssign },
-	{ "==", TokenType::kOpEq },
-	{ "===", TokenType::kOpStrictEq },
-	{ "!=", TokenType::kOpNe },
-	{ "!==", TokenType::kOpStrictNe },
-	{ "<", TokenType::kOpLt },
-	{ "<=", TokenType::kOpLe },
-	{ ">", TokenType::kOpGt },
-	{ ">=", TokenType::kOpGe },
-	// { "|", TokenType::kUnionType },
+std::unordered_map<std::string, TokenType> Token::operator_map() {
+	static std::unordered_map<std::string, TokenType> operator_map = {
+		{ ";", TokenType::kSepSemi },
+		{ ":", TokenType::kSepColon },
+		{ ",", TokenType::kSepComma },
+		{ ".", TokenType::kSepDot },
+		{ "(", TokenType::kSepLParen },
+		{ ")", TokenType::kSepRParen },
+		{ "[", TokenType::kSepLBrack },
+		{ "]", TokenType::kSepRBrack },
+		{ "{", TokenType::kSepLCurly },
+		{ "}", TokenType::kSepRCurly },
+		{ "+", TokenType::kOpAdd },
+		{ "++", TokenType::kOpInc },
+		{ "-", TokenType::kOpSub },
+		{ "--", TokenType::kOpDec },
+		{ "*", TokenType::kOpMul },
+		{ "**", TokenType::kOpPower },
+		{ "/", TokenType::kOpDiv },
+		{ "%", TokenType::kOpMod },
+		{ "!", TokenType::kOpNot },
+		{ "=", TokenType::kOpAssign },
+		{ "==", TokenType::kOpEq },
+		{ "===", TokenType::kOpStrictEq },
+		{ "!=", TokenType::kOpNe },
+		{ "!==", TokenType::kOpStrictNe },
+		{ "<", TokenType::kOpLt },
+		{ "<=", TokenType::kOpLe },
+		{ ">", TokenType::kOpGt },
+		{ ">=", TokenType::kOpGe },
+		{ "~", TokenType::kOpBitNot },
+		{ "&", TokenType::kOpBitAnd },
+		{ "|", TokenType::kOpBitOr },
+		{ "^", TokenType::kOpBitXor },
+		{ "<<", TokenType::kOpShiftLeft },
+		{ ">>", TokenType::kOpShiftRight },
+		{ ">>>", TokenType::kOpUnsignedShiftRight },
+		{ "&&", TokenType::kOpAnd },
+		{ "||", TokenType::kOpOr },
+		{ "??", TokenType::kOpNullishCoalescing },
+		{ "?.", TokenType::kOpOptionalChain },
+		{ "?", TokenType::kSepQuestion },
+		{ "=>", TokenType::kSepArrow },
+		{ "...", TokenType::kSepEllipsis },
+	};
+	return operator_map;
+}
 
-	{ "~", TokenType::kOpBitNot},
-	{ "&", TokenType::kOpBitAnd},
-	{ "|", TokenType::kOpBitOr },
-	{ "^", TokenType::kOpBitXor},
-	{ "<<", TokenType::kOpShiftLeft},
-	{ ">>", TokenType::kOpShiftRight},
-	{ ">>>", TokenType::kOpUnsignedShiftRight},
-};
-
-std::unordered_map<std::string, TokenType> g_keywords = {
-	{ "undefined", TokenType::kUndefined },
-	{ "true", TokenType::kTrue },
-	{ "false", TokenType::kFalse },
-	{ "null", TokenType::kNull },
-
-	{ "if", TokenType::kKwIf },
-	{ "else", TokenType::kKwElse },
-	{ "function", TokenType::kKwFunction },
-	{ "for", TokenType::kKwFor },
-	{ "while", TokenType::kKwWhile },
-	{ "continue", TokenType::kKwContinue },
-	{ "break", TokenType::kKwBreak },
-	{ "return", TokenType::kKwReturn },
-	{ "try", TokenType::kKwTry },
-	{ "catch", TokenType::kKwCatch },
-	{ "finally", TokenType::kKwFinally },
-	{ "throw", TokenType::kKwThrow },
-	// { "var", TokenType::kKwVar },
-	{ "let", TokenType::kKwLet },
-	{ "const", TokenType::kKwConst },
-	{ "yield", TokenType::kKwYield, },
-	{ "async", TokenType::kKwAsync },
-	{ "await", TokenType::kKwAwait },
-	{ "this", TokenType::kKwThis, },
-	{ "new", TokenType::kKwNew, },
-	
-	{ "default", TokenType::kKwDefault },
-
-	{ "import", TokenType::kKwImport },
-	{ "as", TokenType::kKwAs },
-	{ "from", TokenType::kKwFrom },
-	{ "export", TokenType::kKwExport },
-};
+std::unordered_map<std::string, TokenType> Token::keyword_map() {
+	static std::unordered_map<std::string, TokenType> keyword_map = {
+		{ "undefined", TokenType::kUndefined },
+		{ "true", TokenType::kTrue },
+		{ "false", TokenType::kFalse },
+		{ "null", TokenType::kNull },
+		{ "if", TokenType::kKwIf },
+		{ "else", TokenType::kKwElse },
+		{ "function", TokenType::kKwFunction },
+		{ "for", TokenType::kKwFor },
+		{ "while", TokenType::kKwWhile },
+		{ "continue", TokenType::kKwContinue },
+		{ "break", TokenType::kKwBreak },
+		{ "return", TokenType::kKwReturn },
+		{ "try", TokenType::kKwTry },
+		{ "catch", TokenType::kKwCatch },
+		{ "finally", TokenType::kKwFinally },
+		{ "throw", TokenType::kKwThrow },
+		{ "let", TokenType::kKwLet },
+		{ "const", TokenType::kKwConst },
+		{ "yield", TokenType::kKwYield },
+		{ "async", TokenType::kKwAsync },
+		{ "await", TokenType::kKwAwait },
+		{ "this", TokenType::kKwThis },
+		{ "new", TokenType::kKwNew },
+		{ "class", TokenType::kKwClass },
+		{ "delete", TokenType::kKwDelete },
+		{ "typeof", TokenType::kKwTypeof },
+		{ "instanceof", TokenType::kKwInstanceof },
+		{ "in", TokenType::kKwIn },
+		{ "void", TokenType::kKwVoid },
+		{ "with", TokenType::kKwWith },
+		{ "switch", TokenType::kKwSwitch },
+		{ "case", TokenType::kKwCase },
+		{ "default", TokenType::kKwDefault },
+		{ "import", TokenType::kKwImport },
+		{ "as", TokenType::kKwAs },
+		{ "from", TokenType::kKwFrom },
+		{ "export", TokenType::kKwExport },
+	};
+	return keyword_map;
+}
 
 } // namespace compiler
-} // namespace msj
+} // namespace mjs

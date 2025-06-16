@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <string_view>
 #include <unordered_map>
 
 #include <mjs/source.h>
@@ -8,26 +9,30 @@
 namespace mjs {
 namespace compiler {
 
+/**
+ * @enum TokenType
+ * @brief 词法标记的类型枚举
+ */
 enum class TokenType {
-    kNone = 0,      // 空token
+    kNone = 0,      // 空标记
 
-    kEof,          // 文件结束符
-    kUndefined,    // undefined
-    kNull,         // null
-    kFalse,        // false
-    kTrue,         // true
+    kEof,           // 文件结束符
+    kUndefined,     // undefined
+    kNull,          // null
+    kFalse,         // false
+    kTrue,          // true
     //kNan,          // Nan
     //kInfinity,     // Infinity
     //kNumber,       // 通用数字类型
-    kFloat,  // 浮点数
-    kInteger,  // 整数
-    kString,       // 字符串
-    kBacktick,     // `
-    kTemplateElement, 
+    kFloat,         // 浮点数
+    kInteger,       // 整数
+    kString,        // 字符串
+    kBacktick,      // `
+    kTemplateElement, // 模板字符串元素
     kTemplateInterpolationStart, // ${
-    kTemplateInterpolationEnd, // }
+    kTemplateInterpolationEnd,   // }
 
-    kIdentifier,   // [a-zA-Z_][a-zA-Z0-9_]*
+    kIdentifier,    // 标识符: [a-zA-Z_][a-zA-Z0-9_]*
 
     // 分隔符
     kSepSemi,         // ;
@@ -130,33 +135,92 @@ enum class TokenType {
     kUnionType = kOpBitOr,       // |
 };
 
-
+/**
+ * @class Token
+ * @brief 表示词法分析产生的标记
+ */
 class Token {
 public:
-	bool is(TokenType type) const noexcept {
+    /**
+     * @brief 检查标记类型是否匹配
+     * @param type 要检查的类型
+     * @return 如果类型匹配则返回true，否则返回false
+     */
+    [[nodiscard]] bool is(TokenType type) const noexcept {
         return type_ == type;
     }
 
-    SourcePos pos() const { return pos_; }
-    void set_pos(SourcePos pos) { pos_ = pos; }
+    /**
+     * @brief 获取标记在源代码中的位置
+     * @return 源代码位置
+     */
+    [[nodiscard]] SourcePos pos() const noexcept { 
+        return position_; 
+    }
+    
+    /**
+     * @brief 设置标记在源代码中的位置
+     * @param position 源代码位置
+     */
+    void set_pos(SourcePos position) { 
+        position_ = position; 
+    }
 
-	TokenType type() const { return type_; }
-	void set_type(TokenType type) { type_ = type; }
+    /**
+     * @brief 获取标记类型
+     * @return 标记类型
+     */
+    [[nodiscard]] TokenType type() const noexcept { 
+        return type_; 
+    }
+    
+    /**
+     * @brief 设置标记类型
+     * @param type 标记类型
+     */
+    void set_type(TokenType type) { 
+        type_ = type; 
+    }
 
-	std::string* mutable_value() { return &value_; }
-	const std::string& value() const { return value_; }
-	void set_value(std::string value) { value_ = std::move(value); }
+    /**
+     * @brief 获取可修改的标记值
+     * @return 指向标记值的指针
+     */
+    std::string* mutable_value() { 
+        return &value_; 
+    }
+    
+    /**
+     * @brief 获取标记值
+     * @return 标记值的常量引用
+     */
+    [[nodiscard]] const std::string& value() const noexcept { 
+        return value_; 
+    }
+    
+    /**
+     * @brief 设置标记值
+     * @param value 标记值
+     */
+    void set_value(std::string value) { 
+        value_ = std::move(value); 
+    }
 
+    /**
+     * @brief 将标记类型转换为字符串表示
+     * @param type 标记类型
+     * @return 标记类型的字符串表示
+     */
     static std::string TypeToString(TokenType type);
 
+    static std::unordered_map<std::string, TokenType> operator_map();
+    static std::unordered_map<std::string, TokenType> keyword_map();
+
 private:
-	SourcePos pos_ = 0;		// 位置
-	TokenType type_ = TokenType::kNone;		// token类型
-	std::string value_;	// 保存必要的信息
+    SourcePos position_ = 0;           ///< 标记在源代码中的位置
+    TokenType type_ = TokenType::kNone; ///< 标记类型
+    std::string value_;                ///< 标记值（如标识符名称、字符串内容等）
 };
 
-extern std::unordered_map<std::string, TokenType> g_operators;
-extern std::unordered_map<std::string, TokenType> g_keywords;
-
 } // namespace compiler
-} // namespace msj
+} // namespace mjs

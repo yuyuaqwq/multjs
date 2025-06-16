@@ -1,388 +1,404 @@
 #include "lexer.h"
 
 #include <format>
+#include <cctype>
+#include <algorithm>
 
 #include <mjs/error.h>
 
 namespace mjs {
 namespace compiler {
 
-Lexer::Lexer(const char* src)
-    : src_(src) {}
+Lexer::Lexer(std::string_view source)
+    : source_(source) {}
 
-Lexer::~Lexer() noexcept = default;
-
-// 获取下一字符
 char Lexer::NextChar() noexcept {
-    if (pos_ < src_.size()) {
-        return src_[pos_++];
+    if (position_ < source_.size()) {
+        return source_[position_++];
     }
     return 0;
 }
 
-char Lexer::PeekChar() noexcept {
-    if (pos_ < src_.size()) {
-        return src_[pos_];
+char Lexer::PeekChar() const noexcept {
+    if (position_ < source_.size()) {
+        return source_[position_];
     }
     return 0;
 }
 
-// 跳过指定字符数
 void Lexer::SkipChar(int count) noexcept {
-    pos_ += count;
+    position_ += count;
 }
 
-bool Lexer::TestStr(std::string_view str) {
-    return !src_.compare(pos_, str.size(), str);
+bool Lexer::TestString(std::string_view str) const {
+    if (position_ + str.size() > source_.size()) {
+        return false;
+    }
+    return source_.compare(position_, str.size(), str) == 0;
 }
 
-
-bool Lexer::TestChar(char c) {
-    return src_[pos_] == c;
+bool Lexer::TestChar(char c) const {
+    return position_ < source_.size() && source_[position_] == c;
 }
 
-void Lexer::SkipUselessStr() {
-    char c = PeekChar();
-    do {
-        // 跳过空格和换行
-        do {
-            if (c == ' ' || c == '\r' || c == '\t') {
-                NextChar();
-                continue;
-            }
-            else if (c == '\n') {
-                NextChar();
-            }
-            else {
+void Lexer::SkipWhitespaceAndComments() {
+    while (true) {
+        // 跳过空白字符
+        while (position_ < source_.size()) {
+            char c = source_[position_];
+            if (c == ' ' || c == '\t' || c == '\r') {
+                ++position_;
+            } else if (c == '\n') {
+                ++position_;
+            } else {
                 break;
             }
-        } while (c = PeekChar());
+        }
 
-        // 跳过注释
-        if (TestStr({ "//", 2 })) {
-            SkipChar(2);
-            while ((c = PeekChar()) && c != '\n') {
-                NextChar();
-            }
-        }
-        else if (TestStr({ "/*", 2 })) {
-            // 多行注释
-            SkipChar(2);
-            bool end = false;
-            while (c = PeekChar()) {
-                if (c == '\n') {
-                    NextChar();
-                }
-                else if (TestStr({ "*/", 2 })) {
-                    SkipChar(2);
-                    end = true;
-                    break;
-                }
-            }
-            if (!end) {
-                // 多行注释未闭合
-                throw SyntaxError("Unfinished multiline comments");
-            }
-        }
-        else {
+        // 检查是否到达源码结束
+        if (position_ >= source_.size()) {
             break;
         }
-    } while (true);
-}
 
-
-// 前瞻Token
-Token Lexer::PeekToken() {
-    // 如果没有前瞻过
-    if (peek_.is(TokenType::kNone)) {
-        auto save_pos = pos_;
-        peek_ = NextToken();
-        peek_pos_ = pos_;
-        pos_ = save_pos;
+        // 跳过注释
+        if (TestString("//")) {
+            // 单行注释
+            position_ += 2;
+            while (position_ < source_.size() && source_[position_] != '\n') {
+                ++position_;
+            }
+        } else if (TestString("/*")) {
+            // 多行注释
+            position_ += 2;
+            bool comment_closed = false;
+            
+            while (position_ < source_.size()) {
+                if (source_[position_] == '*' && position_ + 1 < source_.size() && source_[position_ + 1] == '/') {
+                    position_ += 2;
+                    comment_closed = true;
+                    break;
+                }
+                ++position_;
+            }
+            
+            if (!comment_closed) {
+                throw SyntaxError("Unclosed multiline comment");
+            }
+        } else {
+            // 既不是空白也不是注释，退出循环
+            break;
+        }
     }
-    return peek_;
 }
 
-// 前瞻自此往后第N个Token
+Token Lexer::PeekToken() {
+    if (peek_token_.is(TokenType::kNone)) {
+        SourcePos saved_position = position_;
+        peek_token_ = ReadNextToken();
+        peek_position_ = position_;
+        position_ = saved_position;
+    }
+    return peek_token_;
+}
+
 Token Lexer::PeekTokenN(uint32_t n) {
+    if (n == 0) {
+        throw std::invalid_argument("PeekTokenN: n must be greater than 0");
+    }
+    
     if (n == 1) {
         return PeekToken();
     }
-    auto checkpoint = CreateCheckpoint();
+    
+    Checkpoint checkpoint = CreateCheckpoint();
+    Token result;
+    
     for (uint32_t i = 0; i < n; ++i) {
-        if (i + 1 == n) {
-            auto token = ReadNextToken();
-            RewindToCheckpoint(checkpoint);
-            return token;
-        }
-        ReadNextToken();
+        result = ReadNextToken();
     }
-    throw std::invalid_argument("n error.");
+    
+    RewindToCheckpoint(checkpoint);
+    return result;
 }
 
-inline static bool IsDigit(char c) {
-    return c >= '0' && c <= '9';
-}
-inline static bool IsAlpha(char c) {
-    return c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z';
-}
-
-// 获取下一Token
 Token Lexer::NextToken() {
-    if (!peek_.is(TokenType::kNone)) {
-        // 如果有前瞻保存的token，返回前瞻的结果
-        Token token = std::move(peek_);
-        peek_.set_type(TokenType::kNone);
-        pos_ = peek_pos_;
+    if (!peek_token_.is(TokenType::kNone)) {
+        Token token = std::move(peek_token_);
+        peek_token_ = Token{};
+        position_ = peek_position_;
+        current_token_ = token;
         return token;
     }
-    cur_token_ = ReadNextToken();
-    return cur_token_;
+    
+    current_token_ = ReadNextToken();
+    return current_token_;
 }
 
-// 匹配下一Token
 Token Lexer::MatchToken(TokenType type) {
-    auto token = NextToken();
-    if (token.is(type)) {
-        return token;
+    Token token = NextToken();
+    if (!token.is(type)) {
+        throw SyntaxError("Cannot match token, expected token: '{}', actual token: '{}'.",
+                         Token::TypeToString(type), Token::TypeToString(token.type()));
     }
-    throw SyntaxError("cannot match token, expected token: '{}', actual token: '{}'.", Token::TypeToString(type), Token::TypeToString(token.type()));
+    return token;
 }
 
 Token Lexer::ReadNextToken() {
     Token token;
-    SkipUselessStr();
+    SkipWhitespaceAndComments();
 
-    token.set_pos(GetRawSourcePos());
-    char c = NextChar();
-
-    if (c == 0) {
+    token.set_pos(GetRawSourcePosition());
+    
+    // 检查是否到达源码结束
+    if (position_ >= source_.size()) {
         token.set_type(TokenType::kEof);
         return token;
     }
+    
+    char c = NextChar();
 
-    // TemplateString
+    // 处理模板字符串
     if (c == '`') {
         in_template_ = !in_template_;
         token.set_type(TokenType::kBacktick);
         return token;
     }
+    
     if (in_template_) {
         if (c == '$' && TestChar('{')) {
             if (in_template_interpolation_) {
-                throw SyntaxError("Nested interpolation expression.");
+                throw SyntaxError("Nested interpolation expressions are not allowed");
             }
-            SkipChar(1);
+            SkipChar(1); // 跳过 '{'
             in_template_interpolation_ = true;
             token.set_type(TokenType::kTemplateInterpolationStart);
             return token;
-        }
-        else if (in_template_interpolation_ && c == '}') {
+        } else if (in_template_interpolation_ && c == '}') {
             in_template_interpolation_ = false;
             token.set_type(TokenType::kTemplateInterpolationEnd);
             return token;
-        }
-        else if (!in_template_interpolation_) {
-            --pos_;
-            // 解析模板元素
+        } else if (!in_template_interpolation_) {
+            --position_; // 回退一个字符，以便正确读取模板元素
             token.set_type(TokenType::kTemplateElement);
             token.set_value(ReadString('\0', {"`", "${"}));
             return token;
         }
     }
 
-
-    // 根据符号返回对应类型的Token
-    // 目前没有一个字符找不到但是两个能找到的类型
-    auto c_str = std::string(1, c);
-    decltype(g_operators)::iterator op_it = g_operators.end();
-    do {
-        auto it = g_operators.find(c_str);
-        if (it == g_operators.end()) {
-            break;
+    // 处理运算符和分隔符
+    std::string op_str(1, c);
+    auto op_it = Token::operator_map().find(op_str);
+    
+    // 尝试匹配多字符运算符
+    if (op_it != Token::operator_map().end()) {
+        // 尝试匹配更长的运算符
+        std::string longer_op = op_str;
+        TokenType current_type = op_it->second;
+        
+        while (position_ < source_.size()) {
+            longer_op.push_back(source_[position_]);
+            auto longer_it = Token::operator_map().find(longer_op);
+            
+            if (longer_it != Token::operator_map().end()) {
+                current_type = longer_it->second;
+                ++position_;
+            } else {
+                longer_op.pop_back(); // 移除最后添加的字符
+                break;
+            }
         }
-        if (c_str.size() > 1) {
-            SkipChar(1);
-        }
-        auto next_c = PeekChar();
-        c_str = c_str + std::string(1, next_c);
-        op_it = it;
-
-    } while (true);
-    if (op_it != g_operators.end()) {
-        token.set_type(op_it->second);
+        
+        token.set_type(current_type);
         return token;
     }
 
-    // Number
-    if (c == 'N' && TestStr("aN")) {
+    // 处理数字字面量
+    if (c == 'N' && TestString("aN")) {
+        position_ += 2; // 跳过"aN"
         token.set_type(TokenType::kFloat);
         token.set_value("NaN");
         return token;
-    }
-    else if (c == 'I' && TestStr("nfinity")) {
+    } else if (c == 'I' && TestString("nfinity")) {
+        position_ += 7; // 跳过"nfinity"
         token.set_type(TokenType::kFloat);
         token.set_value("Infinity");
         return token;
-    }
-    else if (c == '0') {
+    } else if (c == '0') {
         token.set_type(TokenType::kInteger);
-        token.mutable_value()->push_back(c);
-        char next_char = PeekChar();
-        if (next_char == 'x' || next_char == 'X') {
-            // Hexadecimal
-            token.mutable_value()->push_back(NextChar());
-            while (std::isxdigit(c = NextChar())) {
-                token.mutable_value()->push_back(c);
-            }
-            SkipChar(-1);
-        }
-        else if (next_char == 'b' || next_char == 'B') {
-            // Binary
-            token.mutable_value()->push_back(NextChar());
-            while ((c = NextChar()) == '0' || c == '1') {
-                token.mutable_value()->push_back(c);
-            }
-            SkipChar(-1);
-        }
-        else if (next_char == 'o' || next_char == 'O') {
-            // Octal
-            token.mutable_value()->push_back(NextChar());
-            while ((c = NextChar()) >= '0' && c <= '7') {
-                token.mutable_value()->push_back(c);
-            }
-            SkipChar(-1);
-        }
-        else {
-            // Normal number starting with 0
-            while (IsDigit(c = NextChar())) {
-                token.mutable_value()->push_back(c);
-            }
-            SkipChar(-1);
-        }
-        return token;
-    }
-    else if (IsDigit(c)) {
-        // Float and integer parsing, including scientific notation
-        bool point = false, exp = false;
-        token.set_type(TokenType::kInteger);
-        token.mutable_value()->push_back(c);
-        while (c = NextChar()) {
-            if (c == '.' && !point && !exp) {
-                point = true;
-            }
-            else if ((c == 'e' || c == 'E') && !exp) {
-                exp = true;
-                point = true; // After 'e' no more decimal point allowed
-                token.mutable_value()->push_back(c);
-                char next_char = PeekChar();
-                if (next_char == '+' || next_char == '-') {
-                    token.mutable_value()->push_back(NextChar());
+        std::string value(1, c);
+        
+        if (position_ < source_.size()) {
+            char next_char = source_[position_];
+            
+            if (next_char == 'x' || next_char == 'X') {
+                // 十六进制
+                value.push_back(NextChar());
+                while (position_ < source_.size() && std::isxdigit(source_[position_])) {
+                    value.push_back(NextChar());
                 }
-                continue;
+            } else if (next_char == 'b' || next_char == 'B') {
+                // 二进制
+                value.push_back(NextChar());
+                while (position_ < source_.size() && (source_[position_] == '0' || source_[position_] == '1')) {
+                    value.push_back(NextChar());
+                }
+            } else if (next_char == 'o' || next_char == 'O') {
+                // 八进制
+                value.push_back(NextChar());
+                while (position_ < source_.size() && source_[position_] >= '0' && source_[position_] <= '7') {
+                    value.push_back(NextChar());
+                }
+            } else if (IsDigit(next_char)) {
+                // 普通数字（以0开头）
+                while (position_ < source_.size() && IsDigit(source_[position_])) {
+                    value.push_back(NextChar());
+                }
             }
-            else if (!IsDigit(c)) {
-                SkipChar(-1);
+        }
+        
+        token.set_value(std::move(value));
+        return token;
+    } else if (IsDigit(c)) {
+        // 浮点数和整数解析，包括科学计数法
+        bool has_decimal_point = false;
+        bool has_exponent = false;
+        token.set_type(TokenType::kInteger);
+        std::string value(1, c);
+        
+        while (position_ < source_.size()) {
+            char next_char = source_[position_];
+            
+            if (next_char == '.' && !has_decimal_point && !has_exponent) {
+                has_decimal_point = true;
+                token.set_type(TokenType::kFloat);
+                value.push_back(NextChar());
+            } else if ((next_char == 'e' || next_char == 'E') && !has_exponent) {
+                has_exponent = true;
+                token.set_type(TokenType::kFloat);
+                value.push_back(NextChar());
+                
+                // 处理指数部分的正负号
+                if (position_ < source_.size() && (source_[position_] == '+' || source_[position_] == '-')) {
+                    value.push_back(NextChar());
+                }
+            } else if (IsDigit(next_char)) {
+                value.push_back(NextChar());
+            } else {
                 break;
             }
-            token.mutable_value()->push_back(c);
         }
-        if (point == true || exp == true) {
-            token.set_type(TokenType::kFloat);
-        }
+        
+        token.set_value(std::move(value));
         return token;
     }
 
-    // String
+    // 处理字符串字面量
     if (c == '\'' || c == '\"') {
         token.set_value(ReadString(c));
         token.set_type(TokenType::kString);
         return token;
     }
 
-    // 标识符或关键字
+    // 处理标识符和关键字
     if (c == '_' || IsAlpha(c)) {
-        std::string ident;
-        ident.push_back(c);
-        while (true) {
-            char next_char = PeekChar();
-            if (next_char == '_' || IsAlpha(next_char) || IsDigit(next_char)) {
-                ident.push_back(NextChar());
-            }
-            else {
-                break;
-            }
+        std::string identifier(1, c);
+        
+        while (position_ < source_.size() && IsIdentifierPart(source_[position_])) {
+            identifier.push_back(NextChar());
         }
 
-        if (cur_token_.is(TokenType::kSepDot)) {
-            token.set_type(TokenType::kIdentifier);
-            token.set_value(ident);
-            return token;
-        }
-
-        // 是否是关键字
-        auto keyword_it = g_keywords.find(ident);
-        if (keyword_it != g_keywords.end()) {
+        // 检查是否是关键字
+        auto keyword_it = Token::keyword_map().find(identifier);
+        if (keyword_it != Token::keyword_map().end()) {
             token.set_type(keyword_it->second);
             return token;
         }
 
         token.set_type(TokenType::kIdentifier);
-        token.set_value(ident);
+        token.set_value(std::move(identifier));
         return token;
-        
     }
 
-    throw SyntaxError("cannot parse token: {}", c);
+    throw SyntaxError("Cannot parse character: '{}'", c);
 }
 
 std::string Lexer::ReadString(char quote_type, std::initializer_list<std::string_view> end_strings) {
-    size_t begin_pos = pos_; // 记录字符串开始位置
-    std::string str_value;
-    while (true) {
-        char c = NextChar();
-
-        bool end = false;
-        for (auto end_string : end_strings) {
-            if (end_string.empty()) continue;
-            if (c == end_string[0] && TestStr(end_string.data() + 1)) {
-                --pos_;
-                end = true;
-                break;
+    std::string value;
+    
+    while (position_ < source_.size()) {
+        // 检查是否匹配结束字符串
+        for (const auto& end_string : end_strings) {
+            if (!end_string.empty() && TestString(end_string)) {
+                return value;
             }
-            
         }
-        if (end) break;
-
+        
+        char c = NextChar();
+        
         if (c == '\\') {
             // 处理转义字符
-            char escapedChar = NextChar();
-            switch (escapedChar) {
-            case 'n': str_value.push_back('\n'); break;
-            case 't': str_value.push_back('\t'); break;
-            case 'r': str_value.push_back('\r'); break;
-            case '\\': str_value.push_back('\\'); break;
-            case '\"': str_value.push_back('\"'); break;
-            case '\'': str_value.push_back('\''); break;
-            case '\n': continue; // 换行续行
-            default:
-                throw SyntaxError("Invalid escape character");
+            if (position_ >= source_.size()) {
+                throw SyntaxError("Incomplete escape sequence in string");
             }
-        }
-        else if (c == quote_type) {
+            
+            char escaped_char = NextChar();
+            switch (escaped_char) {
+                case 'n': value.push_back('\n'); break;
+                case 't': value.push_back('\t'); break;
+                case 'r': value.push_back('\r'); break;
+                case '\\': value.push_back('\\'); break;
+                case '\"': value.push_back('\"'); break;
+                case '\'': value.push_back('\''); break;
+                case '`': value.push_back('`'); break;
+                case '\n': continue; // 行继续符，忽略
+                case 'u': {
+                    // Unicode 转义序列
+                    if (position_ + 4 > source_.size()) {
+                        throw SyntaxError("Incomplete Unicode escape sequence");
+                    }
+                    
+                    // 解析4位十六进制数字
+                    std::string hex_digits;
+                    for (int i = 0; i < 4; ++i) {
+                        char hex_char = NextChar();
+                        if (!std::isxdigit(hex_char)) {
+                            throw SyntaxError("Invalid hexadecimal digit in Unicode escape sequence");
+                        }
+                        hex_digits.push_back(hex_char);
+                    }
+                    
+                    // 将十六进制转换为Unicode码点
+                    char16_t code_point = static_cast<char16_t>(std::stoi(hex_digits, nullptr, 16));
+                    
+                    // 简单处理：将Unicode码点转换为UTF-8
+                    if (code_point <= 0x7F) {
+                        value.push_back(static_cast<char>(code_point));
+                    } else if (code_point <= 0x7FF) {
+                        value.push_back(static_cast<char>(0xC0 | (code_point >> 6)));
+                        value.push_back(static_cast<char>(0x80 | (code_point & 0x3F)));
+                    } else {
+                        value.push_back(static_cast<char>(0xE0 | (code_point >> 12)));
+                        value.push_back(static_cast<char>(0x80 | ((code_point >> 6) & 0x3F)));
+                        value.push_back(static_cast<char>(0x80 | (code_point & 0x3F)));
+                    }
+                    break;
+                }
+                default:
+                    throw SyntaxError("Invalid escape character: '{}'", escaped_char);
+            }
+        } else if (c == quote_type) {
             // 遇到匹配的引号，字符串结束
             break;
-        }
-        else if (c == '\0') {
+        } else if (c == '\0') {
             // 字符串未闭合
             throw SyntaxError("Unterminated string literal");
-        }
-        else {
-            str_value.push_back(c); // 普通字符
+        } else {
+            value.push_back(c); // 普通字符
         }
     }
-    return str_value;
+    
+    return value;
 }
 
 } // namespace compiler
-} // namespace msj
+} // namespace mjs
