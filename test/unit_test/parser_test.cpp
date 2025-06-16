@@ -2,10 +2,10 @@
 #include <memory>
 #include <string>
 
-#include "src/compiler/lexer.h"
-#include "src/compiler/parser.h"
-#include "src/compiler/expression.h"
-#include "src/compiler/statement.h"
+#include "../src/compiler/lexer.h"
+#include "../src/compiler/parser.h"
+#include "../src/compiler/expression.h"
+#include "../src/compiler/statement.h"
 
 namespace mjs {
 namespace compiler {
@@ -369,8 +369,3 @@ TEST_F(ParserTest, ParseMemberAndCallExpression) {
 } // namespace test
 } // namespace compiler
 } // namespace mjs
-
-int main(int argc, char** argv) {
-    ::testing::InitGoogleTest(&argc, argv);
-    return RUN_ALL_TESTS();
-} 

@@ -15,6 +15,11 @@
 namespace mjs {
 namespace compiler {
 
+// 前向声明测试类
+namespace test {
+class ParserTest;
+}
+
 /**
  * @class Parser
  * @brief 语法分析器，负责将词法标记序列转换为抽象语法树
@@ -46,6 +51,9 @@ public:
 	 * @return 导入声明列表的常量引用
 	 */
 	[[nodiscard]] const auto& import_declarations() const noexcept { return import_declarations_; }
+
+	// 声明友元类，使其可以访问私有成员
+	friend class test::ParserTest;
 
 private:
 	// 表达式解析方法

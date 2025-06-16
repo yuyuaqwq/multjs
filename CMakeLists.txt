@@ -90,7 +90,7 @@ target_link_libraries(mjs_test PRIVATE ${MJS_LIB})
 
 # 添加单元测试可执行文件
 file(GLOB TEST_SRC
-    ./test/*_test.cpp)
+    ./test/unit_test/*_test.cpp)
 
 add_executable(unit_tests ${TEST_SRC})
 target_include_directories(unit_tests PRIVATE ${MJS_HEADER_DIR})

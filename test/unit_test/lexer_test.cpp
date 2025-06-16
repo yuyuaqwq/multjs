@@ -77,6 +77,72 @@ TEST(LexerTest, NumberLiterals) {
     EXPECT_EQ(tokens[6].value(), "1.5e-5");
 }
 
+// 数字分隔符测试
+TEST(LexerTest, NumericSeparators) {
+    Lexer lexer("1_000_000 0xFF_FF 0b1010_1010 0o77_77 3.14_15 1e1_0");
+    
+    auto tokens = CollectAllTokens(lexer);
+    
+    ASSERT_EQ(tokens.size(), 7); // 6个数字 + EOF
+    
+    EXPECT_EQ(tokens[0].type(), TokenType::kInteger);
+    EXPECT_EQ(tokens[0].value(), "1000000");
+    
+    EXPECT_EQ(tokens[1].type(), TokenType::kInteger);
+    EXPECT_EQ(tokens[1].value(), "0xFFFF");
+    
+    EXPECT_EQ(tokens[2].type(), TokenType::kInteger);
+    EXPECT_EQ(tokens[2].value(), "0b10101010");
+    
+    EXPECT_EQ(tokens[3].type(), TokenType::kInteger);
+    EXPECT_EQ(tokens[3].value(), "0o7777");
+    
+    EXPECT_EQ(tokens[4].type(), TokenType::kFloat);
+    EXPECT_EQ(tokens[4].value(), "3.1415");
+    
+    EXPECT_EQ(tokens[5].type(), TokenType::kFloat);
+    EXPECT_EQ(tokens[5].value(), "1e10");
+}
+
+// BigInt 测试
+TEST(LexerTest, BigIntLiterals) {
+    Lexer lexer("123n 0xFFn 0b1010n 0o777n");
+    
+    auto tokens = CollectAllTokens(lexer);
+    
+    ASSERT_EQ(tokens.size(), 5); // 4个BigInt + EOF
+    
+    EXPECT_EQ(tokens[0].type(), TokenType::kBigInt);
+    EXPECT_EQ(tokens[0].value(), "123");
+    
+    EXPECT_EQ(tokens[1].type(), TokenType::kBigInt);
+    EXPECT_EQ(tokens[1].value(), "0xFF");
+    
+    EXPECT_EQ(tokens[2].type(), TokenType::kBigInt);
+    EXPECT_EQ(tokens[2].value(), "0b1010");
+    
+    EXPECT_EQ(tokens[3].type(), TokenType::kBigInt);
+    EXPECT_EQ(tokens[3].value(), "0o777");
+}
+
+// 特殊数值测试
+TEST(LexerTest, SpecialNumberLiterals) {
+    Lexer lexer("NaN Infinity 0");
+    
+    auto tokens = CollectAllTokens(lexer);
+    
+    ASSERT_EQ(tokens.size(), 4); // NaN + Infinity + 0 + EOF
+    
+    EXPECT_EQ(tokens[0].type(), TokenType::kIdentifier);
+    EXPECT_EQ(tokens[0].value(), "NaN");
+    
+    EXPECT_EQ(tokens[1].type(), TokenType::kIdentifier);
+    EXPECT_EQ(tokens[1].value(), "Infinity");
+    
+    EXPECT_EQ(tokens[2].type(), TokenType::kInteger);
+    EXPECT_EQ(tokens[2].value(), "0");
+}
+
 // 字符串字面量测试
 TEST(LexerTest, StringLiterals) {
     Lexer lexer("'hello' \"world\" \"escape\\nsequence\" 'quote\\''");
@@ -96,6 +162,19 @@ TEST(LexerTest, StringLiterals) {
     
     EXPECT_EQ(tokens[3].type(), TokenType::kString);
     EXPECT_EQ(tokens[3].value(), "quote'");
+}
+
+// Unicode 转义序列测试
+TEST(LexerTest, UnicodeEscapeSequences) {
+    Lexer lexer("'\\u{1F600}' \"\\u2764\" '\\u{1F4A9}\\u{1F4A5}'");
+    
+    auto tokens = CollectAllTokens(lexer);
+    
+    ASSERT_EQ(tokens.size(), 4); // 3个字符串 + EOF
+    
+    EXPECT_EQ(tokens[0].type(), TokenType::kString);
+    EXPECT_EQ(tokens[1].type(), TokenType::kString);
+    EXPECT_EQ(tokens[2].type(), TokenType::kString);
 }
 
 // 运算符和分隔符测试
@@ -140,13 +219,45 @@ TEST(LexerTest, OperatorsAndSeparators) {
     EXPECT_EQ(tokens[i++].type(), TokenType::kIdentifier); // p
 }
 
+// 更多运算符测试
+TEST(LexerTest, MoreOperators) {
+    Lexer lexer("a += b -= c *= d /= e %= f &= g |= h ^= i <<= j >>= k >>>= l");
+    
+    auto tokens = CollectAllTokens(lexer);
+    
+    int i = 0;
+    EXPECT_EQ(tokens[i++].type(), TokenType::kIdentifier); // a
+    EXPECT_EQ(tokens[i++].type(), TokenType::kOpAddAssign); // +=
+    EXPECT_EQ(tokens[i++].type(), TokenType::kIdentifier); // b
+    EXPECT_EQ(tokens[i++].type(), TokenType::kOpSubAssign); // -=
+    EXPECT_EQ(tokens[i++].type(), TokenType::kIdentifier); // c
+    EXPECT_EQ(tokens[i++].type(), TokenType::kOpMulAssign); // *=
+    EXPECT_EQ(tokens[i++].type(), TokenType::kIdentifier); // d
+    EXPECT_EQ(tokens[i++].type(), TokenType::kOpDivAssign); // /=
+    EXPECT_EQ(tokens[i++].type(), TokenType::kIdentifier); // e
+    EXPECT_EQ(tokens[i++].type(), TokenType::kOpModAssign); // %=
+    EXPECT_EQ(tokens[i++].type(), TokenType::kIdentifier); // f
+    EXPECT_EQ(tokens[i++].type(), TokenType::kOpBitAndAssign); // &=
+    EXPECT_EQ(tokens[i++].type(), TokenType::kIdentifier); // g
+    EXPECT_EQ(tokens[i++].type(), TokenType::kOpBitOrAssign); // |=
+    EXPECT_EQ(tokens[i++].type(), TokenType::kIdentifier); // h
+    EXPECT_EQ(tokens[i++].type(), TokenType::kOpBitXorAssign); // ^=
+    EXPECT_EQ(tokens[i++].type(), TokenType::kIdentifier); // i
+    EXPECT_EQ(tokens[i++].type(), TokenType::kOpShiftLeftAssign); // <<=
+    EXPECT_EQ(tokens[i++].type(), TokenType::kIdentifier); // j
+    EXPECT_EQ(tokens[i++].type(), TokenType::kOpShiftRightAssign); // >>=
+    EXPECT_EQ(tokens[i++].type(), TokenType::kIdentifier); // k
+    EXPECT_EQ(tokens[i++].type(), TokenType::kOpUnsignedShiftRightAssign); // >>>=
+    EXPECT_EQ(tokens[i++].type(), TokenType::kIdentifier); // l
+}
+
 // 注释测试
 TEST(LexerTest, Comments) {
     Lexer lexer("// 单行注释\nx = 1; /* 多行\n注释 */ y = 2;");
     
     auto tokens = CollectAllTokens(lexer);
     
-    ASSERT_EQ(tokens.size(), 8); // x = 1; y = 2; + EOF
+    ASSERT_EQ(tokens.size(), 9); // x = 1; y = 2; + EOF
     
     EXPECT_EQ(tokens[0].type(), TokenType::kIdentifier);
     EXPECT_EQ(tokens[0].value(), "x");
@@ -157,6 +268,22 @@ TEST(LexerTest, Comments) {
     EXPECT_EQ(tokens[4].value(), "y");
     EXPECT_EQ(tokens[5].type(), TokenType::kOpAssign);
     EXPECT_EQ(tokens[6].type(), TokenType::kInteger);
+    EXPECT_EQ(tokens[3].type(), TokenType::kSepSemi);
+}
+
+// 嵌套注释测试
+TEST(LexerTest, NestedComments) {
+    Lexer lexer("/* 外层注释 /* 嵌套注释 */ x = 1;");
+    
+    auto tokens = CollectAllTokens(lexer);
+    
+    ASSERT_EQ(tokens.size(), 5); // x = 1; + EOF
+    
+    EXPECT_EQ(tokens[0].type(), TokenType::kIdentifier);
+    EXPECT_EQ(tokens[0].value(), "x");
+    EXPECT_EQ(tokens[1].type(), TokenType::kOpAssign);
+    EXPECT_EQ(tokens[2].type(), TokenType::kInteger);
+    EXPECT_EQ(tokens[3].type(), TokenType::kSepSemi);
 }
 
 // 模板字符串测试
@@ -165,7 +292,7 @@ TEST(LexerTest, TemplateStrings) {
     
     auto tokens = CollectAllTokens(lexer);
     
-    ASSERT_EQ(tokens.size(), 6); // ` + template + ${ + name + } + ` + EOF
+    ASSERT_EQ(tokens.size(), 8); // ` + template + ${ + name + } + ! + ` + EOF
     
     EXPECT_EQ(tokens[0].type(), TokenType::kBacktick);
     EXPECT_EQ(tokens[1].type(), TokenType::kTemplateElement);
@@ -174,7 +301,62 @@ TEST(LexerTest, TemplateStrings) {
     EXPECT_EQ(tokens[3].type(), TokenType::kIdentifier);
     EXPECT_EQ(tokens[3].value(), "name");
     EXPECT_EQ(tokens[4].type(), TokenType::kTemplateInterpolationEnd);
-    EXPECT_EQ(tokens[5].type(), TokenType::kBacktick);
+    EXPECT_EQ(tokens[5].type(), TokenType::kTemplateElement);
+    EXPECT_EQ(tokens[5].value(), "!");
+    EXPECT_EQ(tokens[6].type(), TokenType::kBacktick);
+}
+
+// 复杂模板字符串测试
+TEST(LexerTest, ComplexTemplateStrings) {
+    Lexer lexer("`Line 1\nLine 2 ${1 + 2} Line 3 ${`Nested ${value}`} End`");
+    
+    auto tokens = CollectAllTokens(lexer);
+    
+    // 验证基本结构
+    EXPECT_EQ(tokens[0].type(), TokenType::kBacktick);
+    EXPECT_EQ(tokens[1].type(), TokenType::kTemplateElement);
+    EXPECT_EQ(tokens[1].value(), "Line 1\nLine 2 ");
+    EXPECT_EQ(tokens[2].type(), TokenType::kTemplateInterpolationStart);
+    // ... 1 + 2 ...
+    EXPECT_TRUE(tokens[6].is(TokenType::kTemplateInterpolationEnd));
+    EXPECT_EQ(tokens[7].type(), TokenType::kTemplateElement);
+    EXPECT_EQ(tokens[7].value(), " Line 3 ");
+    EXPECT_EQ(tokens[8].type(), TokenType::kTemplateInterpolationStart);
+    EXPECT_EQ(tokens[9].type(), TokenType::kBacktick);
+    // ... 嵌套模板 ...
+}
+
+// 正则表达式测试
+TEST(LexerTest, RegularExpressions) {
+    Lexer lexer("let re = /abc/g; let re2 = /[a-z]+/i;");
+    
+    auto tokens = CollectAllTokens(lexer);
+    
+    EXPECT_EQ(tokens[0].type(), TokenType::kKwLet);
+    EXPECT_EQ(tokens[1].type(), TokenType::kIdentifier);
+    EXPECT_EQ(tokens[1].value(), "re");
+    EXPECT_EQ(tokens[2].type(), TokenType::kOpAssign);
+    EXPECT_EQ(tokens[3].type(), TokenType::kRegExp);
+    EXPECT_EQ(tokens[3].value(), "abc");
+    EXPECT_EQ(tokens[3].regex_flags(), "g");
+    
+    EXPECT_EQ(tokens[7].type(), TokenType::kIdentifier);
+    EXPECT_EQ(tokens[7].value(), "re2");
+    EXPECT_EQ(tokens[8].type(), TokenType::kOpAssign);
+    EXPECT_EQ(tokens[9].type(), TokenType::kRegExp);
+    EXPECT_EQ(tokens[9].value(), "[a-z]+");
+    EXPECT_EQ(tokens[9].regex_flags(), "i");
+}
+
+// 复杂正则表达式测试
+TEST(LexerTest, ComplexRegularExpressions) {
+    Lexer lexer("let re = /a\\/b\\[c\\]/gim;");
+    
+    auto tokens = CollectAllTokens(lexer);
+    
+    EXPECT_EQ(tokens[3].type(), TokenType::kRegExp);
+    EXPECT_EQ(tokens[3].value(), "a\\/b\\[c\\]");
+    EXPECT_EQ(tokens[3].regex_flags(), "gim");
 }
 
 // 错误处理测试
@@ -194,6 +376,36 @@ TEST(LexerTest, ErrorHandling) {
     // 无效的转义序列
     EXPECT_THROW({
         Lexer lexer("'invalid escape \\z'");
+        CollectAllTokens(lexer);
+    }, SyntaxError);
+    
+    // 无效的数字格式
+    EXPECT_THROW({
+        Lexer lexer("0xZZ");
+        CollectAllTokens(lexer);
+    }, SyntaxError);
+    
+    // 无效的二进制数字
+    EXPECT_THROW({
+        Lexer lexer("0b102");
+        CollectAllTokens(lexer);
+    }, SyntaxError);
+    
+    // 无效的八进制数字
+    EXPECT_THROW({
+        Lexer lexer("0o789");
+        CollectAllTokens(lexer);
+    }, SyntaxError);
+    
+    // BigInt不能有小数点
+    EXPECT_THROW({
+        Lexer lexer("3.14n");
+        CollectAllTokens(lexer);
+    }, SyntaxError);
+    
+    // 无效的Unicode转义序列
+    EXPECT_THROW({
+        Lexer lexer("'\\u{FFFFFF}'"); // 超出范围的Unicode码点
         CollectAllTokens(lexer);
     }, SyntaxError);
 }

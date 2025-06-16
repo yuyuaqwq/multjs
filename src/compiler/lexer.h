@@ -77,12 +77,12 @@ public:
 	 */
 	Checkpoint CreateCheckpoint() const {
 		return Checkpoint{
-			.position = position_,
-			.peek_position = peek_position_,
-			.current_token = current_token_,
-			.peek_token = peek_token_,
-			.in_template = in_template_,
-			.in_template_interpolation = in_template_interpolation_,
+			position_,
+			peek_position_,
+			current_token_,
+			peek_token_,
+			in_template_,
+			in_template_interpolation_
 		};
 	}
 
@@ -161,12 +161,117 @@ private:
 	Token ReadNextToken();
 
 	/**
+	 * @brief 处理反引号字符
+	 * @param token 要填充的标记
+	 * @return 处理后的标记
+	 */
+	Token HandleBacktick(Token& token);
+
+	/**
+	 * @brief 处理模板字符串插值开始
+	 * @param token 要填充的标记
+	 * @return 处理后的标记
+	 */
+	Token HandleTemplateInterpolation(Token& token);
+
+	/**
+	 * @brief 处理模板字符串插值结束
+	 * @param token 要填充的标记
+	 * @return 处理后的标记
+	 */
+	Token HandleTemplateInterpolationEnd(Token& token);
+
+	/**
+	 * @brief 检查当前上下文是否可以开始正则表达式
+	 * @return 如果可以开始正则表达式则返回true，否则返回false
+	 */
+	bool CanStartRegExp() const;
+
+	/**
+	 * @brief 处理正则表达式字面量
+	 * @param token 要填充的标记
+	 * @return 处理后的标记
+	 */
+	Token HandleRegExp(Token& token);
+
+	/**
+	 * @brief 处理运算符
+	 * @param token 要填充的标记
+	 * @param op_str 运算符字符串
+	 * @param initial_type 初始标记类型
+	 * @return 处理后的标记
+	 */
+	Token HandleOperator(Token& token, const std::string& op_str, TokenType initial_type);
+
+	/**
+	 * @brief 处理以0开头的数字
+	 * @param token 要填充的标记
+	 * @return 处理后的标记
+	 */
+	Token HandleZeroPrefixedNumber(Token& token);
+
+	/**
+	 * @brief 处理十六进制数字
+	 * @param token 要填充的标记
+	 * @param value 已解析的值（包含前缀）
+	 * @return 处理后的标记
+	 */
+	Token HandleHexNumber(Token& token, std::string& value);
+
+	/**
+	 * @brief 处理二进制数字
+	 * @param token 要填充的标记
+	 * @param value 已解析的值（包含前缀）
+	 * @return 处理后的标记
+	 */
+	Token HandleBinaryNumber(Token& token, std::string& value);
+
+	/**
+	 * @brief 处理八进制数字
+	 * @param token 要填充的标记
+	 * @param value 已解析的值（包含前缀）
+	 * @return 处理后的标记
+	 */
+	Token HandleOctalNumber(Token& token, std::string& value);
+
+	/**
+	 * @brief 处理十进制数字
+	 * @param token 要填充的标记
+	 * @param value 已解析的值
+	 * @return 处理后的标记
+	 */
+	Token HandleDecimalNumber(Token& token, std::string& value);
+
+	/**
+	 * @brief 处理数字
+	 * @param token 要填充的标记
+	 * @param first_digit 第一个数字字符
+	 * @return 处理后的标记
+	 */
+	Token HandleNumber(Token& token, char first_digit);
+
+	/**
+	 * @brief 处理标识符或关键字
+	 * @param token 要填充的标记
+	 * @param first_char 第一个字符
+	 * @return 处理后的标记
+	 */
+	Token HandleIdentifierOrKeyword(Token& token, char first_char);
+
+	/**
 	 * @brief 读取字符串字面量
 	 * @param quote_type 引号类型（单引号或双引号，如果是模板字符串则为0）
 	 * @param end_strings 可选的结束字符串列表（用于模板字符串）
 	 * @return 解析后的字符串内容
 	 */
 	std::string ReadString(char quote_type, std::initializer_list<std::string_view> end_strings = {});
+
+	/**
+	 * @brief 将Unicode码点编码为UTF-8
+	 * @param code_point Unicode码点
+	 * @param output 输出字符串
+	 */
+	void EncodeUTF8(uint32_t code_point, std::string& output);
 
 	/**
 	 * @brief 判断字符是否为数字

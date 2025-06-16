@@ -218,24 +218,25 @@ std::unique_ptr<Expression> Parser::ParseAssignmentExpression() {
 	case TokenType::kOpBitOr:       // |=
 	case TokenType::kOpBitXor:      // ^=
 	case TokenType::kOpShiftLeft:   // <<=
-	case TokenType::kOpShiftRight:  // >>=
+	case TokenType::kOpShiftRight: {// >>=
 		// 确保是复合赋值运算符
-		if (op != TokenType::kOpAssign && 
+		if (op != TokenType::kOpAssign &&
 			!lexer_->PeekTokenN(2).is(TokenType::kOpAssign)) {
 			break;
 		}
-		
+
 		lexer_->NextToken(); // 消耗运算符
-		
+
 		// 如果是复合赋值，再消耗一个等号
 		if (op != TokenType::kOpAssign) {
 			lexer_->NextToken(); // 消耗 =
 		}
-		
+
 		auto end = lexer_->GetRawSourcePosition();
 		return std::make_unique<AssignmentExpression>(
 			start, end, op, std::move(exp), ParseAssignmentExpression()
 		);
+	}
 	default:
 		break;
 	}

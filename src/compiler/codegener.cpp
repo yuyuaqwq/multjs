@@ -45,7 +45,7 @@ Value CodeGener::Generate(std::string&& module_name, std::string_view source) {
 		GenerateStatement(decl.get());
 	}
 
-	for (auto& stat : parser_->src_statements()) {
+	for (auto& stat : parser_->statements()) {
 		GenerateStatement(stat.get());
 	}
 

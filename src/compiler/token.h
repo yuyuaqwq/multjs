@@ -26,7 +26,9 @@ enum class TokenType {
     //kNumber,       // 通用数字类型
     kFloat,         // 浮点数
     kInteger,       // 整数
+    kBigInt,        // BigInt (ES2020)
     kString,        // 字符串
+    kRegExp,        // 正则表达式
     kBacktick,      // `
     kTemplateElement, // 模板字符串元素
     kTemplateInterpolationStart, // ${
@@ -65,6 +67,20 @@ enum class TokenType {
     kOpPrefixDec,     // 前缀自减
     kOpSuffixInc,     // 后缀自增
     kOpSuffixDec,     // 后缀自减
+
+    // 复合赋值运算符
+    kOpAddAssign,     // +=
+    kOpSubAssign,     // -=
+    kOpMulAssign,     // *=
+    kOpDivAssign,     // /=
+    kOpModAssign,     // %=
+    kOpPowerAssign,   // **=
+    kOpBitAndAssign,  // &=
+    kOpBitOrAssign,   // |=
+    kOpBitXorAssign,  // ^=
+    kOpShiftLeftAssign,       // <<=
+    kOpShiftRightAssign,      // >>=
+    kOpUnsignedShiftRightAssign, // >>>=
 
     // 位运算符
     kOpBitNot,        // ~ 按位取反
@@ -207,19 +223,36 @@ public:
     }
 
     /**
+     * @brief 获取正则表达式标志
+     * @return 正则表达式标志的常量引用
+     */
+    [[nodiscard]] const std::string& regex_flags() const noexcept {
+        return regex_flags_;
+    }
+
+    /**
+     * @brief 设置正则表达式标志
+     * @param flags 正则表达式标志
+     */
+    void set_regex_flags(std::string flags) {
+        regex_flags_ = std::move(flags);
+    }
+
+    /**
      * @brief 将标记类型转换为字符串表示
      * @param type 标记类型
      * @return 标记类型的字符串表示
      */
     static std::string TypeToString(TokenType type);
 
-    static std::unordered_map<std::string, TokenType> operator_map();
-    static std::unordered_map<std::string, TokenType> keyword_map();
+    static const std::unordered_map<std::string, TokenType>& operator_map();
+    static const std::unordered_map<std::string, TokenType>& keyword_map();
 
 private:
     SourcePos position_ = 0;           ///< 标记在源代码中的位置
     TokenType type_ = TokenType::kNone; ///< 标记类型
     std::string value_;                ///< 标记值（如标识符名称、字符串内容等）
+    std::string regex_flags_;          ///< 正则表达式标志（如果是正则表达式标记）
 };
 
 } // namespace compiler

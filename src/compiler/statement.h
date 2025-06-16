@@ -92,6 +92,28 @@ private:
 };
 
 
+class BlockStatement : public Statement {
+public:
+    BlockStatement(SourcePos start, SourcePos end, std::vector<std::unique_ptr<Statement>>&& statements)
+        : Statement(start, end), statements_(std::move(statements)) {}
+
+    StatementType type() const noexcept override { return StatementType::kBlock; }
+
+    const std::vector<std::unique_ptr<Statement>>& statements() const { return statements_; }
+
+    Statement* clone() const override {
+        std::vector<std::unique_ptr<Statement>> cloned_statements;
+        for (const auto& stmt : statements_) {
+            cloned_statements.push_back(std::unique_ptr<Statement>(stmt->clone()));
+        }
+        return new BlockStatement(start(), end(), std::move(cloned_statements));
+    }
+
+private:
+    std::vector<std::unique_ptr<Statement>> statements_;
+};
+
+
 class ImportDeclaration : public Statement {
 public:
     ImportDeclaration(SourcePos start, SourcePos end,
@@ -457,28 +479,6 @@ public:
 private:
     std::unique_ptr<Expression> expression_;
 };
-
-class BlockStatement : public Statement {
-public:
-    BlockStatement(SourcePos start, SourcePos end, std::vector<std::unique_ptr<Statement>>&& statements)
-        : Statement(start, end), statements_(std::move(statements)) {}
-
-    StatementType type() const noexcept override { return StatementType::kBlock; }
-
-    const std::vector<std::unique_ptr<Statement>>& statements() const { return statements_; }
-    
-    Statement* clone() const override {
-        std::vector<std::unique_ptr<Statement>> cloned_statements;
-        for (const auto& stmt : statements_) {
-            cloned_statements.push_back(std::unique_ptr<Statement>(stmt->clone()));
-        }
-        return new BlockStatement(start(), end(), std::move(cloned_statements));
-    }
-
-private:
-    std::vector<std::unique_ptr<Statement>> statements_;
-};
-
 
 
 enum class PredefinedTypeKeyword {

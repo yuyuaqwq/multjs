@@ -22,12 +22,28 @@ std::string Token::TypeToString(TokenType type) {
 	switch (type) {
 		case TokenType::kNone:
 			return "[none]";
+		case TokenType::kEof:
+			return "[eof]";
+		case TokenType::kInteger:
+			return "[integer]";
+		case TokenType::kFloat:
+			return "[float]";
+		case TokenType::kBigInt:
+			return "[bigint]";
+		case TokenType::kString:
+			return "[string]";
+		case TokenType::kRegExp:
+			return "[regexp]";
+		case TokenType::kIdentifier:
+			return "[identifier]";
+		case TokenType::kTemplateElement:
+			return "[template_element]";
 		default:
 			return "[unknown]";
 	}
 }
 
-std::unordered_map<std::string, TokenType> Token::operator_map() {
+const std::unordered_map<std::string, TokenType>& Token::operator_map() {
 	static std::unordered_map<std::string, TokenType> operator_map = {
 		{ ";", TokenType::kSepSemi },
 		{ ":", TokenType::kSepColon },
@@ -71,11 +87,24 @@ std::unordered_map<std::string, TokenType> Token::operator_map() {
 		{ "?", TokenType::kSepQuestion },
 		{ "=>", TokenType::kSepArrow },
 		{ "...", TokenType::kSepEllipsis },
+		// 复合赋值运算符
+		{ "+=", TokenType::kOpAddAssign },
+		{ "-=", TokenType::kOpSubAssign },
+		{ "*=", TokenType::kOpMulAssign },
+		{ "/=", TokenType::kOpDivAssign },
+		{ "%=", TokenType::kOpModAssign },
+		{ "**=", TokenType::kOpPowerAssign },
+		{ "&=", TokenType::kOpBitAndAssign },
+		{ "|=", TokenType::kOpBitOrAssign },
+		{ "^=", TokenType::kOpBitXorAssign },
+		{ "<<=", TokenType::kOpShiftLeftAssign },
+		{ ">>=", TokenType::kOpShiftRightAssign },
+		{ ">>>=", TokenType::kOpUnsignedShiftRightAssign },
 	};
 	return operator_map;
 }
 
-std::unordered_map<std::string, TokenType> Token::keyword_map() {
+const std::unordered_map<std::string, TokenType>& Token::keyword_map() {
 	static std::unordered_map<std::string, TokenType> keyword_map = {
 		{ "undefined", TokenType::kUndefined },
 		{ "true", TokenType::kTrue },

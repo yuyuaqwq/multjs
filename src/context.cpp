@@ -37,7 +37,7 @@ Value Context::CompileModule(std::string module_name, std::string_view script) {
 		parser.ParseProgram();
 	}
 	catch (SyntaxError& e) {
-		auto pos = lexer.GetRawSourcePos();
+		auto pos = lexer.GetRawSourcePosition();
 		LineTable line_table;
 		line_table.Build(script);
 		auto&& [line, column] = line_table.PosToLineAndColumn(pos);
@@ -51,7 +51,7 @@ Value Context::CompileModule(std::string module_name, std::string_view script) {
 	catch (SyntaxError& e) {
 		std::string info;
 		if (codegener.cur_module_def()) {
-			auto pos = lexer.GetRawSourcePos();
+			auto pos = lexer.GetRawSourcePosition();
 			auto&& [line, column] = codegener.cur_module_def()->line_table().PosToLineAndColumn(pos);
 			info = std::format("{}: [name:{}, line:{}, column:{}] {}", e.error_name(), codegener.cur_module_def()->name(), line, column, e.what());
 		}
