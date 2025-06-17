@@ -167,9 +167,10 @@ void CodeGenerator::GenerateExpression(Expression* exp) {
         }
         break;
     }
-    case ExpressionType::kFunctionExpression:
+    case ExpressionType::kFunctionExpression: {
         GenerateFunctionExpression(&exp->as<FunctionExpression>());
         break;
+    }
     case ExpressionType::kArrowFunctionExpression: {
         GenerateArrowFunctionExpression(&exp->as<ArrowFunctionExpression>());
         break;
@@ -249,12 +250,74 @@ void CodeGenerator::GenerateExpression(Expression* exp) {
         case TokenType::kOpShiftRight:
             current_func_def_->bytecode_table().EmitOpcode(OpcodeType::kShr);
             break;
+        case TokenType::kOpUnsignedShiftRight:
+            current_func_def_->bytecode_table().EmitOpcode(OpcodeType::kUShr);
+            break;
+        case TokenType::kOpBitAnd:
+            current_func_def_->bytecode_table().EmitOpcode(OpcodeType::kBitAnd);
+            break;
+        case TokenType::kOpBitOr:
+            current_func_def_->bytecode_table().EmitOpcode(OpcodeType::kBitOr);
+            break;
+        case TokenType::kOpBitXor:
+            current_func_def_->bytecode_table().EmitOpcode(OpcodeType::kBitXor);
+            break;
         default:
             throw std::runtime_error("Unsupported binary operator");
         }
         break;
     }
-    // 其他表达式类型的处理...
+    case ExpressionType::kNewExpression: {
+        auto& new_exp = exp->as<NewExpression>();
+        GenerateParamList(new_exp.arguments());
+
+        //if (new_exp.callee()->is(ExpressionType::kIdentifier)) {
+        //	auto class_def = runtime_->class_def_table().find(new_exp.callee()->as<Identifier>().name());
+        //	// todo:先不考虑js里定义的类
+        //	if (class_def) {
+        //		auto const_idx = AllocConst(Value(ValueType::kNewConstructor, class_def));
+        //		cur_func_def_->byte_code().EmitConstLoad(const_idx);
+        //	}
+        //}
+        //else {
+        GenerateExpression(new_exp.callee().get());
+        //}
+
+        current_func_def_->bytecode_table().EmitOpcode(OpcodeType::kNew);
+        break;
+    }
+    case ExpressionType::kCallExpression: {
+        auto& call_exp = exp->as<CallExpression>();
+
+        //if (func_call_exp->par_list.size() < const_table_[]->function_def()->par_count) {
+        //	throw std::runtime_error("Wrong number of parameters passed during function call");
+        //}
+
+        GenerateParamList(call_exp.arguments());
+        GenerateExpression(call_exp.callee().get());
+
+        // 将this置于栈顶
+        if (call_exp.callee()->is(ExpressionType::kMemberExpression)) {
+            current_func_def_->bytecode_table().EmitOpcode(OpcodeType::kSwap);
+        }
+        else {
+            current_func_def_->bytecode_table().EmitOpcode(OpcodeType::kUndefined);
+        }
+
+        current_func_def_->bytecode_table().EmitOpcode(OpcodeType::kFunctionCall);
+        break;
+    }
+    case ExpressionType::kYieldExpression: {
+        GenerateExpression(exp->as<YieldExpression>().argument().get());
+        current_func_def_->bytecode_table().EmitOpcode(OpcodeType::kYield);
+        break;
+    }
+    case ExpressionType::kImportExpression: {
+        auto& import_exp = exp->as<ImportExpression>();
+        GenerateExpression(import_exp.source().get());
+        current_func_def_->bytecode_table().EmitOpcode(OpcodeType::kGetModuleAsync);
+        break;
+    }
     default:
         throw std::runtime_error("Unsupported expression type");
     }

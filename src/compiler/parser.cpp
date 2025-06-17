@@ -1398,8 +1398,15 @@ std::unique_ptr<ExpressionStatement> Parser::ParseExpressionStatement() {
 	// 解析表达式
 	auto expression = ParseExpression();
 	
-	// 分号
-	lexer_->MatchToken(TokenType::kSepSemi);
+	if (expression->is(compiler::ExpressionType::kFunctionExpression)) {
+		if (lexer_->PeekToken().is(TokenType::kSepSemi)) {
+			lexer_->NextToken();
+		}
+	}
+	else {
+		// 分号
+		lexer_->MatchToken(TokenType::kSepSemi);
+	}
 	
 	auto end = lexer_->GetRawSourcePosition();
 	return std::make_unique<ExpressionStatement>(start, end, std::move(expression));

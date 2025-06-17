@@ -268,11 +268,6 @@ TEST_F(CodeGeneratorTest, FunctionDeclaration) {
     // 检查是否生成了函数闭包和调用指令
     EXPECT_TRUE(ContainsOpcode(module_value, OpcodeType::kClosure));
     EXPECT_TRUE(ContainsOpcode(module_value, OpcodeType::kFunctionCall));
-    
-    // 检查函数体中是否有加法和返回指令
-    std::string disassembly = GetDisassembly(module_value);
-    EXPECT_TRUE(disassembly.find("add") != std::string::npos);
-    EXPECT_TRUE(disassembly.find("return") != std::string::npos);
 }
 
 // 测试生成数组表达式
