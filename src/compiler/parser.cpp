@@ -691,14 +691,6 @@ std::unique_ptr<Expression> Parser::ParseMemberOrCallExpression(
 	
 	// 处理成员访问 obj.prop 或可选链 obj?.prop
 	if (token.is(TokenType::kSepDot) || token.is(TokenType::kOpOptionalChain)) {
-		bool optional = token.is(TokenType::kOpOptionalChain);
-		lexer_->NextToken(); // 消耗. 或 ?.
-		
-		// 成员名称必须是标识符
-		if (!lexer_->PeekToken().is(TokenType::kIdentifier)) {
-			throw SyntaxError("Expected identifier after '.' or '?.'");
-		}
-		
 		// 创建成员表达式
 		left = ParseMemberExpression(std::move(left));
 		

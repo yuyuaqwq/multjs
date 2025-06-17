@@ -55,8 +55,6 @@ void Lexer::SkipWhitespaceAndComments() {
                 ++position_;
             } else if (c == '\n') {
                 ++position_;
-            } else if (c == '\u2028' || c == '\u2029') {  // 行分隔符和段落分隔符
-                ++position_;
             } else {
                 break;
             }
@@ -74,7 +72,7 @@ void Lexer::SkipWhitespaceAndComments() {
             while (position_ < source_.size()) {
                 char c = source_[position_];
                 ++position_;
-                if (c == '\n' || c == '\r' || c == '\u2028' || c == '\u2029') {
+                if (c == '\n' || c == '\r') {
                     break;  // 确保跳过行终止符
                 }
             }
