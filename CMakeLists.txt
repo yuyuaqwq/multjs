@@ -83,16 +83,18 @@ endforeach()
 add_library(${MJS_LIB} STATIC ${SRC} ${PRIVATE_HEADERS} ${PUBLIC_HEADERS})
 target_include_directories(${MJS_LIB} PRIVATE ${MJS_HEADER_DIR})
 
-# 原始测试可执行文件
-add_executable(mjs_test test/test.cpp)
-target_include_directories(mjs_test PRIVATE ${MJS_HEADER_DIR})
-target_link_libraries(mjs_test PRIVATE ${MJS_LIB})
+# 集成测试
+file(GLOB INTEGRATION_TEST_SRC
+    ./tests/integration/test.cpp)
+add_executable(integration_tests ${INTEGRATION_TEST_SRC})
+target_include_directories(integration_tests PRIVATE ${MJS_HEADER_DIR})
+target_link_libraries(integration_tests PRIVATE ${MJS_LIB})
 
-# 添加单元测试可执行文件
-file(GLOB TEST_SRC
-    ./test/unit_test/*_test.cpp)
+# 单元测试
+file(GLOB UNIT_TEST_SRC
+    ./tests/unit/*_test.cpp)
 
-add_executable(unit_tests ${TEST_SRC})
+add_executable(unit_tests ${UNIT_TEST_SRC})
 target_include_directories(unit_tests PRIVATE ${MJS_HEADER_DIR})
 target_link_libraries(unit_tests PRIVATE ${MJS_LIB} GTest::gtest_main)
 
