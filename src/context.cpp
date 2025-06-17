@@ -9,7 +9,7 @@
 
 #include "compiler/lexer.h"
 #include "compiler/parser.h"
-#include "compiler/codegener.h"
+#include "compiler/code_generator.h"
 
 namespace mjs {
 	
@@ -30,7 +30,7 @@ Context::~Context() {
 Value Context::CompileModule(std::string module_name, std::string_view script) {
 	auto lexer = compiler::Lexer(script.data());
 	auto parser = compiler::Parser(&lexer);
-	auto codegener = compiler::CodeGener(this, &parser);
+	auto code_generator = compiler::CodeGenerator(this, &parser);
 	// todo: 未来转为Error对象
 
 	try {
@@ -45,15 +45,15 @@ Value Context::CompileModule(std::string module_name, std::string_view script) {
 		return Value(String::New(info)).SetException();
 	}
 	try {
-		auto module_def = codegener.Generate(std::move(module_name), script);
+		auto module_def = code_generator.Generate(std::move(module_name), script);
 		return module_def;
 	}
 	catch (SyntaxError& e) {
 		std::string info;
-		if (codegener.cur_module_def()) {
+		if (code_generator.GetCurrentModuleDef()) {
 			auto pos = lexer.GetRawSourcePosition();
-			auto&& [line, column] = codegener.cur_module_def()->line_table().PosToLineAndColumn(pos);
-			info = std::format("{}: [name:{}, line:{}, column:{}] {}", e.error_name(), codegener.cur_module_def()->name(), line, column, e.what());
+			auto&& [line, column] = code_generator.GetCurrentModuleDef()->line_table().PosToLineAndColumn(pos);
+			info = std::format("{}: [name:{}, line:{}, column:{}] {}", e.error_name(), code_generator.GetCurrentModuleDef()->name(), line, column, e.what());
 		}
 		return Value(String::New(info)).SetException();
 	}

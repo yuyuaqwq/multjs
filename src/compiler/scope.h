@@ -80,7 +80,7 @@ public:
 		return res.first->second;
 	}
 
-	const VarInfo* FindVar(const std::string& var_name) {
+	const VarInfo* FindVar(const std::string& var_name) const {
 		auto it = var_table_.find(var_name);
 		if (it == var_table_.end()) {
 			return nullptr;
