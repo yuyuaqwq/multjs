@@ -115,7 +115,7 @@ enum class OpcodeType : uint8_t {
 	// 0xf0 ~ 0xff 保留
 };
 
-struct InstrInfo {
+struct OpcodeInfo {
 	std::string str;
 	std::vector<char> par_size_list;
 };
@@ -124,7 +124,5 @@ using Pc = uint32_t;
 using PcOffset = uint16_t;
 
 constexpr Pc kInvalidPc = 0xffffffff;
-
-extern std::unordered_map<OpcodeType, InstrInfo> g_instr_symbol;
 
 } // namespace mjs

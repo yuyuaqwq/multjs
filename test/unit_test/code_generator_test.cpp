@@ -71,8 +71,8 @@ protected:
             pc++;
             
             // 获取指令信息
-            auto it = BytecodeTable::opcode_type_map().find(current_opcode);
-            if (it != BytecodeTable::opcode_type_map().end()) {
+            auto it = g_instr_symbol.find(current_opcode);
+            if (it != g_instr_symbol.end()) {
                 for (char par_size : it->second.par_size_list) {
                     pc += par_size;
                 }
@@ -107,8 +107,8 @@ protected:
             pc++;
             
             // 获取指令信息
-            auto it = BytecodeTable::opcode_type_map().find(current_opcode);
-            if (it != BytecodeTable::opcode_type_map().end()) {
+            auto it = g_instr_symbol.find(current_opcode);
+            if (it != g_instr_symbol.end()) {
                 for (char par_size : it->second.par_size_list) {
                     pc += par_size;
                 }
@@ -140,8 +140,8 @@ protected:
             pc++;
             
             // 获取指令信息
-            auto it = BytecodeTable::opcode_type_map().find(current_opcode);
-            if (it != BytecodeTable::opcode_type_map().end()) {
+            auto it = g_instr_symbol.find(current_opcode);
+            if (it != g_instr_symbol.end()) {
                 for (char par_size : it->second.par_size_list) {
                     pc += par_size;
                 }

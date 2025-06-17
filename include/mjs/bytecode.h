@@ -75,6 +75,8 @@ public:
 	void EmitI32(int32_t val);
 	void EmitU32(uint32_t val);
 
+	static const std::unordered_map<OpcodeType, OpcodeInfo>& opcode_type_map();
+
 private:
 	uint8_t* GetPtr(Pc pc);
 	const uint8_t* GetPtr(Pc pc) const;
@@ -82,7 +84,5 @@ private:
 private:
 	std::vector<uint8_t> bytes_;
 };
-
-extern std::unordered_map<OpcodeType, InstrInfo> g_instr_symbol;
 
 } // namespace mjs

@@ -6,93 +6,95 @@
 
 namespace mjs {
 
-std::unordered_map<OpcodeType, InstrInfo> g_instr_symbol{
-    // {OpcodeType::kStop, {"stop", {}}},
+const std::unordered_map<OpcodeType, OpcodeInfo>& BytecodeTable::opcode_type_map() {
+    static std::unordered_map<OpcodeType, OpcodeInfo> opcode_type_map {
+        // {OpcodeType::kStop, {"stop", {}}},
 
-    {OpcodeType::kCLoad_0, {"cload_0", {}}},
-    {OpcodeType::kCLoad_1, {"cload_1", {}}},
-    {OpcodeType::kCLoad_2, {"cload_2", {}}},
-    {OpcodeType::kCLoad_3, {"cload_3", {}}},
-    {OpcodeType::kCLoad_4, {"cload_4", {}}},
-    {OpcodeType::kCLoad_5, {"cload_5", {}}},
+        {OpcodeType::kCLoad_0, {"cload_0", {}}},
+        {OpcodeType::kCLoad_1, {"cload_1", {}}},
+        {OpcodeType::kCLoad_2, {"cload_2", {}}},
+        {OpcodeType::kCLoad_3, {"cload_3", {}}},
+        {OpcodeType::kCLoad_4, {"cload_4", {}}},
+        {OpcodeType::kCLoad_5, {"cload_5", {}}},
 
-    {OpcodeType::kCLoad, {"cload", {1}}},
-    {OpcodeType::kCLoadW, {"cload_w", {2}}},
-    {OpcodeType::kCLoadD, {"cload_d", {4}}},
-    
+        {OpcodeType::kCLoad, {"cload", {1}}},
+        {OpcodeType::kCLoadW, {"cload_w", {2}}},
+        {OpcodeType::kCLoadD, {"cload_d", {4}}},
 
-    {OpcodeType::kVLoad, {"vload", {1}}},
-    {OpcodeType::kVLoad_0, {"vload_0", {}}},
-    {OpcodeType::kVLoad_1, {"vload_1", {}}},
-    {OpcodeType::kVLoad_2, {"vload_2", {}}},
-    {OpcodeType::kVLoad_3, {"vload_3", {}}},
 
-    {OpcodeType::kVStore, {"vstore", {1}}},
-    {OpcodeType::kVStore_0, {"vstore_0", {}}},
-    {OpcodeType::kVStore_1, {"vstore_1", {}}},
-    {OpcodeType::kVStore_2, {"vstore_2", {}}},
-    {OpcodeType::kVStore_3, {"vstore_3", {}}},
+        {OpcodeType::kVLoad, {"vload", {1}}},
+        {OpcodeType::kVLoad_0, {"vload_0", {}}},
+        {OpcodeType::kVLoad_1, {"vload_1", {}}},
+        {OpcodeType::kVLoad_2, {"vload_2", {}}},
+        {OpcodeType::kVLoad_3, {"vload_3", {}}},
 
-    {OpcodeType::kPropertyLoad, {"property_load", {4}}},
-    {OpcodeType::kPropertyStore, {"property_store", {4}}},
+        {OpcodeType::kVStore, {"vstore", {1}}},
+        {OpcodeType::kVStore_0, {"vstore_0", {}}},
+        {OpcodeType::kVStore_1, {"vstore_1", {}}},
+        {OpcodeType::kVStore_2, {"vstore_2", {}}},
+        {OpcodeType::kVStore_3, {"vstore_3", {}}},
 
-    {OpcodeType::kIndexedLoad, {"indexed_load", {}}},
-    {OpcodeType::kIndexedStore, {"indexed_store", {}}},
-    
+        {OpcodeType::kPropertyLoad, {"property_load", {4}}},
+        {OpcodeType::kPropertyStore, {"property_store", {4}}},
 
-    {OpcodeType::kPop, {"pop", {}}},
-    {OpcodeType::kDump, {"dump", {}}},
-    {OpcodeType::kSwap, {"swap", {}}},
-    {OpcodeType::kUndefined, {"undefined", {}}},
+        {OpcodeType::kIndexedLoad, {"indexed_load", {}}},
+        {OpcodeType::kIndexedStore, {"indexed_store", {}}},
 
-    {OpcodeType::kAdd, {"add", {}}},
-    {OpcodeType::kInc, {"inc", {}}},
-    {OpcodeType::kSub, {"sub", {}}},
-    {OpcodeType::kMul, {"mul", {}}},
-    {OpcodeType::kDiv, {"div", {}}},
 
-    {OpcodeType::kShl, {"shl", {}}},
-    {OpcodeType::kShr, {"shr", {}}},
+        {OpcodeType::kPop, {"pop", {}}},
+        {OpcodeType::kDump, {"dump", {}}},
+        {OpcodeType::kSwap, {"swap", {}}},
+        {OpcodeType::kUndefined, {"undefined", {}}},
 
-    {OpcodeType::kNeg, {"neg", {}}},
+        {OpcodeType::kAdd, {"add", {}}},
+        {OpcodeType::kInc, {"inc", {}}},
+        {OpcodeType::kSub, {"sub", {}}},
+        {OpcodeType::kMul, {"mul", {}}},
+        {OpcodeType::kDiv, {"div", {}}},
 
-    {OpcodeType::kEq, {"eq", {}}},
-    {OpcodeType::kNe, {"ne", {}}},
-    {OpcodeType::kLt, {"lt", {}}},
-    {OpcodeType::kGe, {"ge", {}}},
-    {OpcodeType::kGt, {"gt", {}}},
-    {OpcodeType::kLe, {"le", {}}},
+        {OpcodeType::kShl, {"shl", {}}},
+        {OpcodeType::kShr, {"shr", {}}},
 
-    {OpcodeType::kIfEq, {"ifeq", {2}}},
+        {OpcodeType::kNeg, {"neg", {}}},
 
-    {OpcodeType::kGoto, {"goto", {2}}},
+        {OpcodeType::kEq, {"eq", {}}},
+        {OpcodeType::kNe, {"ne", {}}},
+        {OpcodeType::kLt, {"lt", {}}},
+        {OpcodeType::kGe, {"ge", {}}},
+        {OpcodeType::kGt, {"gt", {}}},
+        {OpcodeType::kLe, {"le", {}}},
 
-    {OpcodeType::kReturn, {"return", {}}},
+        {OpcodeType::kIfEq, {"ifeq", {2}}},
 
-    {OpcodeType::kFunctionCall, {"function_call", {}}},
-    {OpcodeType::kGetThis, {"get_this", {}}},
-    {OpcodeType::kGetOuterThis, {"get_outer_this", {}}},
+        {OpcodeType::kGoto, {"goto", {2}}},
 
-    {OpcodeType::kYield, {"yield", {}}},
-    {OpcodeType::kGeneratorReturn, {"generator_return", {}}},
-    {OpcodeType::kAwait, {"await", {}}},
-    {OpcodeType::kAsyncReturn, {"async_return", {}}},
+        {OpcodeType::kReturn, {"return", {}}},
 
-    {OpcodeType::kNew, {"new", {}}},
+        {OpcodeType::kFunctionCall, {"function_call", {}}},
+        {OpcodeType::kGetThis, {"get_this", {}}},
+        {OpcodeType::kGetOuterThis, {"get_outer_this", {}}},
 
-    {OpcodeType::kTryBegin, {"try_begin", {}}},
-    {OpcodeType::kThrow, {"throw", {}}},
-    {OpcodeType::kTryEnd, {"try_end", {}}},
-    {OpcodeType::kFinallyReturn, {"finally_return", {}}},
-    {OpcodeType::kFinallyGoto, {"finally_goto", {2}}},
+        {OpcodeType::kYield, {"yield", {}}},
+        {OpcodeType::kGeneratorReturn, {"generator_return", {}}},
+        {OpcodeType::kAwait, {"await", {}}},
+        {OpcodeType::kAsyncReturn, {"async_return", {}}},
 
-    {OpcodeType::kGetModule, {"get_module", {}}},
-    {OpcodeType::kGetModuleAsync, {"get_module_async", {}}},
-    {OpcodeType::kClosure, {"closure", {4}}},
+        {OpcodeType::kNew, {"new", {}}},
 
-    {OpcodeType::kGetGlobal, {"get_global", {4}}},
-    
-};
+        {OpcodeType::kTryBegin, {"try_begin", {}}},
+        {OpcodeType::kThrow, {"throw", {}}},
+        {OpcodeType::kTryEnd, {"try_end", {}}},
+        {OpcodeType::kFinallyReturn, {"finally_return", {}}},
+        {OpcodeType::kFinallyGoto, {"finally_goto", {2}}},
+
+        {OpcodeType::kGetModule, {"get_module", {}}},
+        {OpcodeType::kGetModuleAsync, {"get_module_async", {}}},
+        {OpcodeType::kClosure, {"closure", {4}}},
+
+        {OpcodeType::kGetGlobal, {"get_global", {4}}},
+    };
+    return opcode_type_map;
+}
 
 
 uint8_t* BytecodeTable::GetPtr(Pc pc) {
@@ -249,7 +251,7 @@ std::string BytecodeTable::Disassembly(Context* context, Pc& pc, OpcodeType& opc
     char buf[16] = { 0 };
     sprintf_s(buf, "%04d\t", pc);
     opcode = GetOpcode(pc++);
-    const auto& info = g_instr_symbol.find(opcode);
+    const auto& info = opcode_type_map().find(opcode);
     str += buf + info->second.str + "\t";
     auto last_par = 0;
     for (const auto& par_size : info->second.par_size_list) {
