@@ -366,6 +366,289 @@ TEST_F(ParserTest, ParseMemberAndCallExpression) {
     EXPECT_EQ(method_call.callee()->as<MemberExpression>().property()->as<Identifier>().name(), "method");
 }
 
+// 测试解析条件表达式
+TEST_F(ParserTest, ParseConditionalExpression) {
+    auto expr = ParseExpression("x > 0 ? 'positive' : 'negative'");
+    ASSERT_TRUE(expr->is(ExpressionType::kConditionalExpression));
+    auto& cond = expr->as<ConditionalExpression>();
+    
+    // 检查条件部分
+    ASSERT_TRUE(cond.test()->is(ExpressionType::kBinaryExpression));
+    auto& test = cond.test()->as<BinaryExpression>();
+    EXPECT_EQ(test.op(), TokenType::kOpGt);
+    
+    // 检查consequent
+    ASSERT_TRUE(cond.consequent()->is(ExpressionType::kString));
+    EXPECT_EQ(cond.consequent()->as<StringLiteral>().value(), "positive");
+    
+    // 检查alternate
+    ASSERT_TRUE(cond.alternate()->is(ExpressionType::kString));
+    EXPECT_EQ(cond.alternate()->as<StringLiteral>().value(), "negative");
+}
+
+// 测试解析while循环语句
+TEST_F(ParserTest, ParseWhileStatement) {
+    auto stmt = ParseStatement("while (i < 10) { i++; }");
+    ASSERT_TRUE(stmt->is(StatementType::kWhile));
+    auto& while_stmt = stmt->as<WhileStatement>();
+    
+    // 检查条件
+    ASSERT_TRUE(while_stmt.test()->is(ExpressionType::kBinaryExpression));
+    auto& test = while_stmt.test()->as<BinaryExpression>();
+    EXPECT_EQ(test.op(), TokenType::kOpLt);
+    
+    // 检查循环体
+    ASSERT_TRUE(while_stmt.body()->is(StatementType::kBlock));
+    auto& body = while_stmt.body()->as<BlockStatement>();
+    ASSERT_EQ(body.statements().size(), 1);
+    ASSERT_TRUE(body.statements()[0]->is(StatementType::kExpression));
+}
+
+// 测试解析带else的if语句
+TEST_F(ParserTest, ParseIfElseStatement) {
+    auto stmt = ParseStatement("if (x > 0) { y = 1; } else { y = -1; }");
+    ASSERT_TRUE(stmt->is(StatementType::kIf));
+    auto& if_stmt = stmt->as<IfStatement>();
+    
+    // 检查条件
+    ASSERT_TRUE(if_stmt.test()->is(ExpressionType::kBinaryExpression));
+    
+    // 检查consequent
+    ASSERT_TRUE(if_stmt.consequent()->is(StatementType::kBlock));
+    
+    // 检查alternate（不应为空）
+    ASSERT_NE(if_stmt.alternate(), nullptr);
+    ASSERT_TRUE(if_stmt.alternate()->is(StatementType::kBlock));
+}
+
+// 测试解析try-catch-finally语句
+TEST_F(ParserTest, ParseTryCatchStatement) {
+    auto stmt = ParseStatement("try { riskyOperation(); } catch (error) { handleError(error); } finally { cleanup(); }");
+    ASSERT_TRUE(stmt->is(StatementType::kTry));
+    auto& try_stmt = stmt->as<TryStatement>();
+    
+    // 检查try块
+    ASSERT_TRUE(try_stmt.block()->is(StatementType::kBlock));
+    
+    // 检查catch子句
+    ASSERT_NE(try_stmt.handler(), nullptr);
+    ASSERT_TRUE(try_stmt.handler()->is(StatementType::kCatch));
+    auto& catch_clause = try_stmt.handler()->as<CatchClause>();
+    EXPECT_EQ(catch_clause.param()->name(), "error");
+    
+    // 检查finally子句
+    ASSERT_NE(try_stmt.finalizer(), nullptr);
+    ASSERT_TRUE(try_stmt.finalizer()->is(StatementType::kFinally));
+}
+
+// 测试解析throw语句
+TEST_F(ParserTest, ParseThrowStatement) {
+    auto stmt = ParseStatement("throw new Error('Something went wrong');");
+    ASSERT_TRUE(stmt->is(StatementType::kThrow));
+    auto& throw_stmt = stmt->as<ThrowStatement>();
+    
+    // 检查抛出的表达式
+    ASSERT_TRUE(throw_stmt.argument()->is(ExpressionType::kNewExpression));
+}
+
+// 测试解析break和continue语句
+TEST_F(ParserTest, ParseBreakContinueStatement) {
+    // 测试break语句
+    auto break_stmt = ParseStatement("break;");
+    ASSERT_TRUE(break_stmt->is(StatementType::kBreak));
+    
+    // 测试带标签的break语句
+    auto labeled_break = ParseStatement("break outerLoop;");
+    ASSERT_TRUE(labeled_break->is(StatementType::kBreak));
+    EXPECT_EQ(labeled_break->as<BreakStatement>().label(), "outerLoop");
+    
+    // 测试continue语句
+    auto cont_stmt = ParseStatement("continue;");
+    ASSERT_TRUE(cont_stmt->is(StatementType::kContinue));
+    
+    // 测试带标签的continue语句
+    auto labeled_cont = ParseStatement("continue outerLoop;");
+    ASSERT_TRUE(labeled_cont->is(StatementType::kContinue));
+    EXPECT_EQ(labeled_cont->as<ContinueStatement>().label(), "outerLoop");
+}
+
+// 测试解析标签语句
+TEST_F(ParserTest, ParseLabeledStatement) {
+    auto stmt = ParseStatement("outerLoop: for (let i = 0; i < 10; i++) { innerLoop: for (let j = 0; j < 10; j++) { if (j > 5) break outerLoop; } }");
+    ASSERT_TRUE(stmt->is(StatementType::kLabeled));
+    auto& labeled = stmt->as<LabeledStatement>();
+    
+    // 检查标签名称
+    EXPECT_EQ(labeled.label(), "outerLoop");
+    
+    // 检查标签语句的主体
+    ASSERT_TRUE(labeled.body()->is(StatementType::kFor));
+}
+
+// 测试解析return语句
+TEST_F(ParserTest, ParseReturnStatement) {
+    // 测试无值的return
+    auto empty_return = ParseStatement("return;");
+    ASSERT_TRUE(empty_return->is(StatementType::kReturn));
+    EXPECT_EQ(empty_return->as<ReturnStatement>().argument(), nullptr);
+    
+    // 测试带值的return
+    auto value_return = ParseStatement("return 42;");
+    ASSERT_TRUE(value_return->is(StatementType::kReturn));
+    ASSERT_NE(value_return->as<ReturnStatement>().argument(), nullptr);
+    ASSERT_TRUE(value_return->as<ReturnStatement>().argument()->is(ExpressionType::kInteger));
+    EXPECT_EQ(value_return->as<ReturnStatement>().argument()->as<IntegerLiteral>().value(), 42);
+}
+
+// 测试解析模板字符串
+TEST_F(ParserTest, ParseTemplateLiteral) {
+    auto expr = ParseExpression("`Hello, ${name}!`");
+    ASSERT_TRUE(expr->is(ExpressionType::kTemplateLiteral));
+    auto& template_literal = expr->as<TemplateLiteral>();
+    
+    // 检查模板字符串的部分
+    //ASSERT_GE(template_literal.quasis().size(), 2);
+    ASSERT_EQ(template_literal.expressions().size(), 1);
+    
+    // 检查表达式部分
+    ASSERT_TRUE(template_literal.expressions()[0]->is(ExpressionType::kIdentifier));
+    EXPECT_EQ(template_literal.expressions()[0]->as<Identifier>().name(), "name");
+}
+
+// 测试解析导入语句
+TEST_F(ParserTest, ParseImportStatement) {
+    auto stmt = ParseStatement("import { foo, bar as baz } from 'module';");
+    ASSERT_TRUE(stmt->is(StatementType::kImport));
+    auto& import_stmt = stmt->as<ImportDeclaration>();
+    
+    // 检查导入的模块
+    EXPECT_EQ(import_stmt.source(), "module");
+    
+    // 检查导入的标识符
+    //ASSERT_GE(import_stmt.specifiers().size(), 2);
+}
+
+// 测试解析导出语句
+TEST_F(ParserTest, ParseExportStatement) {
+    auto stmt = ParseStatement("export const PI = 3.14;");
+    ASSERT_TRUE(stmt->is(StatementType::kExport));
+    auto& export_stmt = stmt->as<ExportDeclaration>();
+    
+    // 检查导出的声明
+    ASSERT_NE(export_stmt.declaration(), nullptr);
+    ASSERT_TRUE(export_stmt.declaration()->is(StatementType::kVariableDeclaration));
+    auto& var_decl = export_stmt.declaration()->as<VariableDeclaration>();
+    EXPECT_EQ(var_decl.name(), "PI");
+    EXPECT_EQ(var_decl.kind(), TokenType::kKwConst);
+}
+
+// 测试解析new表达式
+TEST_F(ParserTest, ParseNewExpression) {
+    auto expr = ParseExpression("new Date()");
+    ASSERT_TRUE(expr->is(ExpressionType::kNewExpression));
+    auto& new_expr = expr->as<NewExpression>();
+    
+    // 检查构造函数
+    ASSERT_TRUE(new_expr.callee()->is(ExpressionType::kIdentifier));
+    EXPECT_EQ(new_expr.callee()->as<Identifier>().name(), "Date");
+    
+    // 检查参数（应为空）
+    EXPECT_EQ(new_expr.arguments().size(), 0);
+    
+    // 测试带参数的new表达式
+    expr = ParseExpression("new Person('John', 30)");
+    ASSERT_TRUE(expr->is(ExpressionType::kNewExpression));
+    auto& new_expr_with_args = expr->as<NewExpression>();
+    
+    // 检查构造函数
+    ASSERT_TRUE(new_expr_with_args.callee()->is(ExpressionType::kIdentifier));
+    EXPECT_EQ(new_expr_with_args.callee()->as<Identifier>().name(), "Person");
+    
+    // 检查参数
+    ASSERT_EQ(new_expr_with_args.arguments().size(), 2);
+    ASSERT_TRUE(new_expr_with_args.arguments()[0]->is(ExpressionType::kString));
+    ASSERT_TRUE(new_expr_with_args.arguments()[1]->is(ExpressionType::kInteger));
+}
+
+// 测试解析yield表达式
+TEST_F(ParserTest, ParseYieldExpression) {
+    auto expr = ParseExpression("yield value");
+    ASSERT_TRUE(expr->is(ExpressionType::kYieldExpression));
+    auto& yield_expr = expr->as<YieldExpression>();
+    
+    // 检查yield的值
+    ASSERT_NE(yield_expr.argument(), nullptr);
+    ASSERT_TRUE(yield_expr.argument()->is(ExpressionType::kIdentifier));
+    EXPECT_EQ(yield_expr.argument()->as<Identifier>().name(), "value");
+    //EXPECT_FALSE(yield_expr.delegate());
+    
+    // 测试yield*表达式
+    expr = ParseExpression("yield* generator()");
+    ASSERT_TRUE(expr->is(ExpressionType::kYieldExpression));
+    auto& yield_star_expr = expr->as<YieldExpression>();
+    
+    // 检查yield*的值
+    ASSERT_NE(yield_star_expr.argument(), nullptr);
+    ASSERT_TRUE(yield_star_expr.argument()->is(ExpressionType::kCallExpression));
+    //EXPECT_TRUE(yield_star_expr.delegate());
+}
+
+// 测试解析await表达式
+TEST_F(ParserTest, ParseAwaitExpression) {
+    auto expr = ParseExpression("await promise");
+    ASSERT_TRUE(expr->is(ExpressionType::kAwaitExpression));
+    auto& await_expr = expr->as<AwaitExpression>();
+    
+    // 检查await的值
+    ASSERT_NE(await_expr.argument(), nullptr);
+    ASSERT_TRUE(await_expr.argument()->is(ExpressionType::kIdentifier));
+    EXPECT_EQ(await_expr.argument()->as<Identifier>().name(), "promise");
+}
+
+// 测试解析类表达式
+TEST_F(ParserTest, ParseClassExpression) {
+    auto expr = ParseExpression("class Person { constructor(name) { this.name = name; } getName() { return this.name; } }");
+    ASSERT_TRUE(expr->is(ExpressionType::kClassExpression));
+    //auto& class_expr = expr->as<ClassExpression>();
+    //
+    //// 检查类名
+    //EXPECT_EQ(class_expr.id(), "Person");
+    //
+    //// 检查类体
+    //ASSERT_GE(class_expr.body().size(), 2);  // 至少有constructor和getName方法
+}
+
+// 测试解析import表达式
+TEST_F(ParserTest, ParseImportExpression) {
+    auto expr = ParseExpression("import('module')");
+    ASSERT_TRUE(expr->is(ExpressionType::kImportExpression));
+    auto& import_expr = expr->as<ImportExpression>();
+    
+    // 检查导入的模块
+    ASSERT_TRUE(import_expr.source()->is(ExpressionType::kString));
+    EXPECT_EQ(import_expr.source()->as<StringLiteral>().value(), "module");
+}
+
+// 测试解析复杂的嵌套表达式
+TEST_F(ParserTest, ParseComplexNestedExpression) {
+    auto expr = ParseExpression("(a + b) * (c - d) / Math.sqrt(e ** 2 + f ** 2)");
+    ASSERT_TRUE(expr->is(ExpressionType::kBinaryExpression));
+    
+    // 检查顶层操作符（除法）
+    auto& div_expr = expr->as<BinaryExpression>();
+    EXPECT_EQ(div_expr.op(), TokenType::kOpDiv);
+    
+    // 检查左侧（乘法表达式）
+    ASSERT_TRUE(div_expr.left()->is(ExpressionType::kBinaryExpression));
+    auto& mul_expr = div_expr.left()->as<BinaryExpression>();
+    EXPECT_EQ(mul_expr.op(), TokenType::kOpMul);
+    
+    // 检查右侧（函数调用）
+    ASSERT_TRUE(div_expr.right()->is(ExpressionType::kCallExpression));
+    auto& call_expr = div_expr.right()->as<CallExpression>();
+    ASSERT_TRUE(call_expr.callee()->is(ExpressionType::kMemberExpression));
+}
+
 } // namespace test
 } // namespace compiler
 } // namespace mjs

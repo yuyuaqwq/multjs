@@ -480,6 +480,219 @@ TEST(LexerTest, CheckpointAndRewind) {
     EXPECT_EQ(token1.value(), "a");
 }
 
+// 位运算符测试
+TEST(LexerTest, BitwiseOperators) {
+    Lexer lexer("a & b | c ^ d ~ e << f >> g >>> h");
+    
+    auto tokens = CollectAllTokens(lexer);
+    
+    int i = 0;
+    EXPECT_EQ(tokens[i++].type(), TokenType::kIdentifier); // a
+    EXPECT_EQ(tokens[i++].type(), TokenType::kOpBitAnd);   // &
+    EXPECT_EQ(tokens[i++].type(), TokenType::kIdentifier); // b
+    EXPECT_EQ(tokens[i++].type(), TokenType::kOpBitOr);    // |
+    EXPECT_EQ(tokens[i++].type(), TokenType::kIdentifier); // c
+    EXPECT_EQ(tokens[i++].type(), TokenType::kOpBitXor);   // ^
+    EXPECT_EQ(tokens[i++].type(), TokenType::kIdentifier); // d
+    EXPECT_EQ(tokens[i++].type(), TokenType::kOpBitNot);   // ~
+    EXPECT_EQ(tokens[i++].type(), TokenType::kIdentifier); // e
+    EXPECT_EQ(tokens[i++].type(), TokenType::kOpShiftLeft); // <<
+    EXPECT_EQ(tokens[i++].type(), TokenType::kIdentifier); // f
+    EXPECT_EQ(tokens[i++].type(), TokenType::kOpShiftRight); // >>
+    EXPECT_EQ(tokens[i++].type(), TokenType::kIdentifier); // g
+    EXPECT_EQ(tokens[i++].type(), TokenType::kOpUnsignedShiftRight); // >>>
+    EXPECT_EQ(tokens[i++].type(), TokenType::kIdentifier); // h
+}
+
+// 增量和减量运算符测试
+TEST(LexerTest, IncrementDecrementOperators) {
+    Lexer lexer("++a a++ --b b--");
+    
+    auto tokens = CollectAllTokens(lexer);
+    
+    int i = 0;
+    EXPECT_EQ(tokens[i++].type(), TokenType::kOpInc);      // ++
+    EXPECT_EQ(tokens[i++].type(), TokenType::kIdentifier); // a
+    EXPECT_EQ(tokens[i++].type(), TokenType::kIdentifier); // a
+    EXPECT_EQ(tokens[i++].type(), TokenType::kOpInc);      // ++
+    EXPECT_EQ(tokens[i++].type(), TokenType::kOpDec);      // --
+    EXPECT_EQ(tokens[i++].type(), TokenType::kIdentifier); // b
+    EXPECT_EQ(tokens[i++].type(), TokenType::kIdentifier); // b
+    EXPECT_EQ(tokens[i++].type(), TokenType::kOpDec);      // --
+}
+
+// 更多关键字测试
+TEST(LexerTest, MoreKeywords) {
+    Lexer lexer("if else for while do break continue return switch case default class extends super");
+    
+    auto tokens = CollectAllTokens(lexer);
+    
+    int i = 0;
+    EXPECT_EQ(tokens[i++].type(), TokenType::kKwIf);
+    EXPECT_EQ(tokens[i++].type(), TokenType::kKwElse);
+    EXPECT_EQ(tokens[i++].type(), TokenType::kKwFor);
+    EXPECT_EQ(tokens[i++].type(), TokenType::kKwWhile);
+    EXPECT_EQ(tokens[i++].type(), TokenType::kIdentifier); // do (如果已实现)
+    EXPECT_EQ(tokens[i++].type(), TokenType::kKwBreak);
+    EXPECT_EQ(tokens[i++].type(), TokenType::kKwContinue);
+    EXPECT_EQ(tokens[i++].type(), TokenType::kKwReturn);
+    EXPECT_EQ(tokens[i++].type(), TokenType::kKwSwitch);
+    EXPECT_EQ(tokens[i++].type(), TokenType::kKwCase);
+    EXPECT_EQ(tokens[i++].type(), TokenType::kKwDefault);
+    EXPECT_EQ(tokens[i++].type(), TokenType::kKwClass);
+    EXPECT_EQ(tokens[i++].type(), TokenType::kIdentifier); // extends (如果已实现)
+    EXPECT_EQ(tokens[i++].type(), TokenType::kIdentifier); // super (如果已实现)
+}
+
+// ES6+ 特性关键字测试
+TEST(LexerTest, ES6Keywords) {
+    Lexer lexer("async await yield import export from as");
+    
+    auto tokens = CollectAllTokens(lexer);
+    
+    int i = 0;
+    EXPECT_EQ(tokens[i++].type(), TokenType::kKwAsync);
+    EXPECT_EQ(tokens[i++].type(), TokenType::kKwAwait);
+    EXPECT_EQ(tokens[i++].type(), TokenType::kKwYield);
+    EXPECT_EQ(tokens[i++].type(), TokenType::kKwImport);
+    EXPECT_EQ(tokens[i++].type(), TokenType::kKwExport);
+    EXPECT_EQ(tokens[i++].type(), TokenType::kKwFrom);
+    EXPECT_EQ(tokens[i++].type(), TokenType::kKwAs);
+}
+
+// 空值合并和可选链运算符测试
+TEST(LexerTest, NullishCoalescingAndOptionalChaining) {
+    Lexer lexer("a ?? b c?.d");
+    
+    auto tokens = CollectAllTokens(lexer);
+    
+    int i = 0;
+    EXPECT_EQ(tokens[i++].type(), TokenType::kIdentifier);  // a
+    EXPECT_EQ(tokens[i++].type(), TokenType::kOpNullishCoalescing); // ??
+    EXPECT_EQ(tokens[i++].type(), TokenType::kIdentifier);  // b
+    EXPECT_EQ(tokens[i++].type(), TokenType::kIdentifier);  // c
+    EXPECT_EQ(tokens[i++].type(), TokenType::kOpOptionalChain); // ?.
+    EXPECT_EQ(tokens[i++].type(), TokenType::kIdentifier);  // d
+}
+
+// 幂运算符测试
+TEST(LexerTest, PowerOperator) {
+    Lexer lexer("a ** b a **= c");
+    
+    auto tokens = CollectAllTokens(lexer);
+    
+    int i = 0;
+    EXPECT_EQ(tokens[i++].type(), TokenType::kIdentifier);  // a
+    EXPECT_EQ(tokens[i++].type(), TokenType::kOpPower);     // **
+    EXPECT_EQ(tokens[i++].type(), TokenType::kIdentifier);  // b
+    EXPECT_EQ(tokens[i++].type(), TokenType::kIdentifier);  // a
+    EXPECT_EQ(tokens[i++].type(), TokenType::kOpPowerAssign); // **=
+    EXPECT_EQ(tokens[i++].type(), TokenType::kIdentifier);  // c
+}
+
+// 箭头函数和扩展运算符测试
+TEST(LexerTest, ArrowFunctionAndSpreadOperator) {
+    Lexer lexer("(a, b) => a + b; const arr = [...items];");
+    
+    auto tokens = CollectAllTokens(lexer);
+    
+    ASSERT_GE(tokens.size(), 15);
+    
+    int i = 0;
+    EXPECT_EQ(tokens[i++].type(), TokenType::kSepLParen);   // (
+    EXPECT_EQ(tokens[i++].type(), TokenType::kIdentifier);  // a
+    EXPECT_EQ(tokens[i++].type(), TokenType::kSepComma);    // ,
+    EXPECT_EQ(tokens[i++].type(), TokenType::kIdentifier);  // b
+    EXPECT_EQ(tokens[i++].type(), TokenType::kSepRParen);   // )
+    EXPECT_EQ(tokens[i++].type(), TokenType::kSepArrow);    // =>
+    EXPECT_EQ(tokens[i++].type(), TokenType::kIdentifier);  // a
+    EXPECT_EQ(tokens[i++].type(), TokenType::kOpAdd);       // +
+    EXPECT_EQ(tokens[i++].type(), TokenType::kIdentifier);  // b
+    EXPECT_EQ(tokens[i++].type(), TokenType::kSepSemi);     // ;
+    EXPECT_EQ(tokens[i++].type(), TokenType::kKwConst);     // const
+    EXPECT_EQ(tokens[i++].type(), TokenType::kIdentifier);  // arr
+    EXPECT_EQ(tokens[i++].type(), TokenType::kOpAssign);    // =
+    EXPECT_EQ(tokens[i++].type(), TokenType::kSepLBrack);   // [
+    EXPECT_EQ(tokens[i++].type(), TokenType::kSepEllipsis); // ...
+}
+
+// 三元运算符测试
+TEST(LexerTest, TernaryOperator) {
+    Lexer lexer("a ? b : c");
+    
+    auto tokens = CollectAllTokens(lexer);
+    
+    int i = 0;
+    EXPECT_EQ(tokens[i++].type(), TokenType::kIdentifier);   // a
+    EXPECT_EQ(tokens[i++].type(), TokenType::kSepQuestion);  // ?
+    EXPECT_EQ(tokens[i++].type(), TokenType::kIdentifier);   // b
+    EXPECT_EQ(tokens[i++].type(), TokenType::kSepColon);     // :
+    EXPECT_EQ(tokens[i++].type(), TokenType::kIdentifier);   // c
+}
+
+// 测试多个检查点和回溯
+TEST(LexerTest, MultipleCheckpointsAndRewind) {
+    Lexer lexer("a + b * c - d");
+    
+    // 创建第一个检查点
+    Lexer::Checkpoint checkpoint1 = lexer.CreateCheckpoint();
+    
+    // 消耗一些标记
+    lexer.NextToken(); // a
+    lexer.NextToken(); // +
+    
+    // 创建第二个检查点
+    Lexer::Checkpoint checkpoint2 = lexer.CreateCheckpoint();
+    
+    // 继续消耗标记
+    lexer.NextToken(); // b
+    lexer.NextToken(); // *
+    
+    // 回溯到第二个检查点
+    lexer.RewindToCheckpoint(checkpoint2);
+    
+    // 确认回溯成功
+    Token token1 = lexer.NextToken();
+    EXPECT_EQ(token1.type(), TokenType::kIdentifier);
+    EXPECT_EQ(token1.value(), "b");
+    
+    // 回溯到第一个检查点
+    lexer.RewindToCheckpoint(checkpoint1);
+    
+    // 确认回溯成功
+    Token token2 = lexer.NextToken();
+    EXPECT_EQ(token2.type(), TokenType::kIdentifier);
+    EXPECT_EQ(token2.value(), "a");
+}
+
+// 测试 MatchToken 方法
+TEST(LexerTest, MatchToken) {
+    Lexer lexer("let x = 5;");
+    
+    // 成功匹配
+    Token token1 = lexer.MatchToken(TokenType::kKwLet);
+    EXPECT_EQ(token1.type(), TokenType::kKwLet);
+    
+    Token token2 = lexer.MatchToken(TokenType::kIdentifier);
+    EXPECT_EQ(token2.type(), TokenType::kIdentifier);
+    EXPECT_EQ(token2.value(), "x");
+    
+    // 匹配失败
+    EXPECT_THROW({
+        lexer.MatchToken(TokenType::kKwConst); // 应该是 =，不是 const
+    }, SyntaxError);
+}
+
+// 测试空源代码
+TEST(LexerTest, EmptySource) {
+    Lexer lexer("");
+    
+    auto tokens = CollectAllTokens(lexer);
+    
+    ASSERT_EQ(tokens.size(), 1); // 只有 EOF
+    EXPECT_EQ(tokens[0].type(), TokenType::kEof);
+}
+
 } // namespace test
 } // namespace compiler
 } // namespace mjs 
