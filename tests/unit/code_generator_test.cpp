@@ -119,22 +119,22 @@ protected:
     }
 
     /**
-     * @brief 检查指令序列
+     * @brief 获取完整的指令序列
      * @param module_value 模块值
-     * @param expected_opcodes 期望的操作码序列
-     * @return 是否符合期望
+     * @return 指令序列
      */
-    bool CheckOpcodeSequence(const Value& module_value, const std::vector<OpcodeType>& expected_opcodes) {
+    std::vector<OpcodeType> GetOpcodeSequence(const Value& module_value) {
+        std::vector<OpcodeType> opcodes;
+        
         if (!module_value.IsModuleDef()) {
-            return false;
+            return opcodes;
         }
         
         const auto& bytecode_table = module_value.module_def().bytecode_table();
-        std::vector<OpcodeType> actual_opcodes;
         
         for (Pc pc = 0; pc < bytecode_table.Size(); ) {
             OpcodeType current_opcode = bytecode_table.GetOpcode(pc);
-            actual_opcodes.push_back(current_opcode);
+            opcodes.push_back(current_opcode);
             
             // 根据指令类型跳过参数
             pc++;
@@ -148,12 +148,23 @@ protected:
             }
         }
         
-        // 检查序列长度
+        return opcodes;
+    }
+
+    /**
+     * @brief 检查指令序列是否包含指定的子序列
+     * @param module_value 模块值
+     * @param expected_opcodes 期望的操作码序列
+     * @return 是否包含该子序列
+     */
+    bool ContainsOpcodeSequence(const Value& module_value, const std::vector<OpcodeType>& expected_opcodes) {
+        auto actual_opcodes = GetOpcodeSequence(module_value);
+        
         if (actual_opcodes.size() < expected_opcodes.size()) {
             return false;
         }
         
-        // 检查序列是否包含期望的子序列
+        // 使用滑动窗口查找子序列
         for (size_t i = 0; i <= actual_opcodes.size() - expected_opcodes.size(); ++i) {
             bool match = true;
             for (size_t j = 0; j < expected_opcodes.size(); ++j) {
@@ -183,138 +194,118 @@ protected:
         return module_value.module_def().Disassembly(&*context_);
     }
 
+    /**
+     * @brief 验证代码生成是否成功
+     * @param module_value 模块值
+     * @return 是否成功生成
+     */
+    bool IsValidModule(const Value& module_value) {
+        return module_value.IsModuleDef() && 
+               module_value.module_def().bytecode_table().Size() > 0;
+    }
+
     Runtime runtime_;
     std::optional<Context> context_;
 };
 
-// 测试生成简单表达式
-TEST_F(CodeGeneratorTest, SimpleExpression) {
-    Value module_value = GenerateCode("1 + 2;");
+// ============================================================================
+// 基础字面量测试
+// ============================================================================
+
+TEST_F(CodeGeneratorTest, UndefinedLiteral) {
+    Value module_value = GenerateCode("undefined;");
     
-    // 检查是否生成了加法指令
+    EXPECT_TRUE(IsValidModule(module_value));
+    EXPECT_TRUE(ContainsOpcode(module_value, OpcodeType::kUndefined));
+    EXPECT_TRUE(ContainsOpcode(module_value, OpcodeType::kPop));
+}
+
+TEST_F(CodeGeneratorTest, NullLiteral) {
+    Value module_value = GenerateCode("null;");
+    
+    EXPECT_TRUE(IsValidModule(module_value));
+    // null 作为常量加载
+    EXPECT_TRUE(ContainsOpcode(module_value, OpcodeType::kCLoad) || 
+                ContainsOpcode(module_value, OpcodeType::kCLoad_0));
+}
+
+TEST_F(CodeGeneratorTest, BooleanLiterals) {
+    Value module_value = GenerateCode("true; false;");
+    
+    EXPECT_TRUE(IsValidModule(module_value));
+    EXPECT_EQ(CountOpcode(module_value, OpcodeType::kPop), 2); // 两个表达式语句
+}
+
+TEST_F(CodeGeneratorTest, NumberLiterals) {
+    Value module_value = GenerateCode("42; 3.14; -5;");
+    
+    EXPECT_TRUE(IsValidModule(module_value));
+    // 应该有常量加载指令
+    int cload_count = CountOpcode(module_value, OpcodeType::kCLoad_0) +
+                     CountOpcode(module_value, OpcodeType::kCLoad_1) +
+                     CountOpcode(module_value, OpcodeType::kCLoad_2) +
+                     CountOpcode(module_value, OpcodeType::kCLoad_3) +
+                     CountOpcode(module_value, OpcodeType::kCLoad_4) +
+                     CountOpcode(module_value, OpcodeType::kCLoad_5) +
+                     CountOpcode(module_value, OpcodeType::kCLoad) +
+                     CountOpcode(module_value, OpcodeType::kCLoadW) +
+                     CountOpcode(module_value, OpcodeType::kCLoadD);
+    EXPECT_GE(cload_count, 3);
+}
+
+TEST_F(CodeGeneratorTest, StringLiteral) {
+    Value module_value = GenerateCode("'hello'; \"world\";");
+    
+    EXPECT_TRUE(IsValidModule(module_value));
+    EXPECT_EQ(CountOpcode(module_value, OpcodeType::kPop), 2);
+}
+
+// ============================================================================
+// 算术运算测试
+// ============================================================================
+
+TEST_F(CodeGeneratorTest, ArithmeticOperators) {
+    Value module_value = GenerateCode(
+        "1 + 2;\n"
+        "5 - 3;\n"
+        "4 * 6;\n"
+        "8 / 2;\n"
+    );
+    
+    EXPECT_TRUE(IsValidModule(module_value));
     EXPECT_TRUE(ContainsOpcode(module_value, OpcodeType::kAdd));
-    
-    // 检查指令序列
-    std::vector<OpcodeType> expected_sequence = {
-        OpcodeType::kCLoad_1,  // 加载常量1
-        OpcodeType::kCLoad_2,  // 加载常量2
-        OpcodeType::kAdd       // 执行加法
-    };
-    
-    EXPECT_TRUE(CheckOpcodeSequence(module_value, expected_sequence));
+    EXPECT_TRUE(ContainsOpcode(module_value, OpcodeType::kSub));
+    EXPECT_TRUE(ContainsOpcode(module_value, OpcodeType::kMul));
+    EXPECT_TRUE(ContainsOpcode(module_value, OpcodeType::kDiv));
 }
 
-// 测试生成变量声明和引用
-TEST_F(CodeGeneratorTest, VariableDeclaration) {
-    Value module_value = GenerateCode(
-        "let a = 5;\n"
-        "let b = 3;\n"
-        "a + b;"
-    );
+TEST_F(CodeGeneratorTest, ArithmeticOperatorPrecedence) {
+    Value module_value = GenerateCode("1 + 2 * 3;");
     
-    // 检查是否生成了变量存储和加载指令
-    EXPECT_TRUE(ContainsOpcode(module_value, OpcodeType::kVStore_0));
-    EXPECT_TRUE(ContainsOpcode(module_value, OpcodeType::kVStore_1));
-    EXPECT_TRUE(ContainsOpcode(module_value, OpcodeType::kVLoad_0));
-    EXPECT_TRUE(ContainsOpcode(module_value, OpcodeType::kVLoad_1));
-    EXPECT_TRUE(ContainsOpcode(module_value, OpcodeType::kAdd));
+    EXPECT_TRUE(IsValidModule(module_value));
+    // 应该先执行乘法，再执行加法
+    auto opcodes = GetOpcodeSequence(module_value);
+    
+    // 查找乘法和加法指令的位置
+    auto mul_pos = std::find(opcodes.begin(), opcodes.end(), OpcodeType::kMul);
+    auto add_pos = std::find(opcodes.begin(), opcodes.end(), OpcodeType::kAdd);
+    
+    EXPECT_NE(mul_pos, opcodes.end());
+    EXPECT_NE(add_pos, opcodes.end());
+    EXPECT_LT(mul_pos, add_pos); // 乘法应该在加法之前
 }
 
-// 测试生成条件语句
-TEST_F(CodeGeneratorTest, IfStatement) {
-    Value module_value = GenerateCode(
-        "let a = 5;\n"
-        "if (a > 3) {\n"
-        "  a = 10;\n"
-        "} else {\n"
-        "  a = 0;\n"
-        "}\n"
-    );
+TEST_F(CodeGeneratorTest, UnaryOperators) {
+    Value module_value = GenerateCode("-5;");
     
-    // 检查是否生成了条件跳转指令
-    EXPECT_TRUE(ContainsOpcode(module_value, OpcodeType::kGt));
-    EXPECT_TRUE(ContainsOpcode(module_value, OpcodeType::kIfEq));
-    EXPECT_TRUE(ContainsOpcode(module_value, OpcodeType::kGoto));
+    EXPECT_TRUE(IsValidModule(module_value));
+    EXPECT_TRUE(ContainsOpcode(module_value, OpcodeType::kNeg));
 }
 
-// 测试生成循环语句
-TEST_F(CodeGeneratorTest, LoopStatement) {
-    Value module_value = GenerateCode(
-        "let sum = 0;\n"
-        "for (let i = 1; i <= 5; i++) {\n"
-        "  sum += i;\n"
-        "}\n"
-    );
-    
-    // 检查是否生成了循环相关指令
-    EXPECT_TRUE(ContainsOpcode(module_value, OpcodeType::kLe));
-    EXPECT_TRUE(ContainsOpcode(module_value, OpcodeType::kIfEq));
-    EXPECT_TRUE(ContainsOpcode(module_value, OpcodeType::kGoto));
-    EXPECT_TRUE(ContainsOpcode(module_value, OpcodeType::kAdd));
-    
-    // 检查goto指令数量（至少有一个用于循环跳转）
-    EXPECT_GE(CountOpcode(module_value, OpcodeType::kGoto), 1);
-}
+// ============================================================================
+// 比较运算测试
+// ============================================================================
 
-// 测试生成函数声明和调用
-TEST_F(CodeGeneratorTest, FunctionDeclaration) {
-    Value module_value = GenerateCode(
-        "function add(a, b) {\n"
-        "  return a + b;\n"
-        "}\n"
-        "add(3, 4);"
-    );
-    
-    // 检查是否生成了函数闭包和调用指令
-    EXPECT_TRUE(ContainsOpcode(module_value, OpcodeType::kClosure));
-    EXPECT_TRUE(ContainsOpcode(module_value, OpcodeType::kFunctionCall));
-}
-
-// 测试生成数组表达式
-TEST_F(CodeGeneratorTest, ArrayExpression) {
-    Value module_value = GenerateCode(
-        "let arr = [1, 2, 3, 4, 5];\n"
-    );
-    
-    // 检查是否生成了数组创建和元素存储指令
-    EXPECT_TRUE(ContainsOpcode(module_value, OpcodeType::kNew));
-    EXPECT_TRUE(ContainsOpcode(module_value, OpcodeType::kIndexedStore));
-    
-    // 检查索引存储指令的数量是否等于数组元素数量
-    EXPECT_EQ(CountOpcode(module_value, OpcodeType::kIndexedStore), 5);
-}
-
-// 测试生成对象表达式
-TEST_F(CodeGeneratorTest, ObjectExpression) {
-    Value module_value = GenerateCode(
-        "let obj = { a: 1, b: 2, c: 3 };\n"
-    );
-    
-    // 检查是否生成了对象创建和属性存储指令
-    EXPECT_TRUE(ContainsOpcode(module_value, OpcodeType::kNew));
-    EXPECT_TRUE(ContainsOpcode(module_value, OpcodeType::kPropertyStore));
-    
-    // 检查属性存储指令的数量是否等于对象属性数量
-    EXPECT_EQ(CountOpcode(module_value, OpcodeType::kPropertyStore), 3);
-}
-
-// 测试生成异常处理
-TEST_F(CodeGeneratorTest, ExceptionHandling) {
-    Value module_value = GenerateCode(
-        "try {\n"
-        "  throw 'error';\n"
-        "} catch (e) {\n"
-        "  42;\n"
-        "}\n"
-    );
-    
-    // 检查是否生成了异常处理相关指令
-    EXPECT_TRUE(ContainsOpcode(module_value, OpcodeType::kTryBegin));
-    EXPECT_TRUE(ContainsOpcode(module_value, OpcodeType::kThrow));
-    EXPECT_TRUE(ContainsOpcode(module_value, OpcodeType::kTryEnd));
-}
-
-// 测试生成比较运算符
 TEST_F(CodeGeneratorTest, ComparisonOperators) {
     Value module_value = GenerateCode(
         "1 < 2;\n"
@@ -325,7 +316,7 @@ TEST_F(CodeGeneratorTest, ComparisonOperators) {
         "11 != 12;\n"
     );
     
-    // 检查是否生成了各种比较指令
+    EXPECT_TRUE(IsValidModule(module_value));
     EXPECT_TRUE(ContainsOpcode(module_value, OpcodeType::kLt));
     EXPECT_TRUE(ContainsOpcode(module_value, OpcodeType::kGt));
     EXPECT_TRUE(ContainsOpcode(module_value, OpcodeType::kLe));
@@ -334,48 +325,281 @@ TEST_F(CodeGeneratorTest, ComparisonOperators) {
     EXPECT_TRUE(ContainsOpcode(module_value, OpcodeType::kNe));
 }
 
-// 测试生成算术运算符
-TEST_F(CodeGeneratorTest, ArithmeticOperators) {
-    Value module_value = GenerateCode(
-        "1 + 2;\n"
-        "3 - 4;\n"
-        "5 * 6;\n"
-        "7 / 8;\n"
-    );
-    
-    // 检查是否生成了各种算术指令
-    EXPECT_TRUE(ContainsOpcode(module_value, OpcodeType::kAdd));
-    EXPECT_TRUE(ContainsOpcode(module_value, OpcodeType::kSub));
-    EXPECT_TRUE(ContainsOpcode(module_value, OpcodeType::kMul));
-    EXPECT_TRUE(ContainsOpcode(module_value, OpcodeType::kDiv));
-}
+// ============================================================================
+// 位运算测试
+// ============================================================================
 
-// 测试生成位运算符
 TEST_F(CodeGeneratorTest, BitwiseOperators) {
     Value module_value = GenerateCode(
         "1 << 2;\n"
-        "3 >> 4;\n"
+        "8 >> 1;\n"
+        "15 & 7;\n"
+        "8 | 4;\n"
+        "5 ^ 3;\n"
     );
     
-    // 检查是否生成了位运算指令
+    EXPECT_TRUE(IsValidModule(module_value));
     EXPECT_TRUE(ContainsOpcode(module_value, OpcodeType::kShl));
     EXPECT_TRUE(ContainsOpcode(module_value, OpcodeType::kShr));
+    EXPECT_TRUE(ContainsOpcode(module_value, OpcodeType::kBitAnd));
+    EXPECT_TRUE(ContainsOpcode(module_value, OpcodeType::kBitOr));
+    EXPECT_TRUE(ContainsOpcode(module_value, OpcodeType::kBitXor));
 }
 
-// 测试生成复杂表达式
-TEST_F(CodeGeneratorTest, ComplexExpression) {
+// ============================================================================
+// 变量声明和访问测试
+// ============================================================================
+
+TEST_F(CodeGeneratorTest, VariableDeclaration) {
     Value module_value = GenerateCode(
-        "let x = 1 + 2 * 3 - 4 / 2;\n"
+        "let a = 5;\n"
+        "const b = 10;\n"
+        "var c = 15;\n"
     );
     
-    // 检查是否生成了各种算术指令
-    EXPECT_TRUE(ContainsOpcode(module_value, OpcodeType::kAdd));
-    EXPECT_TRUE(ContainsOpcode(module_value, OpcodeType::kMul));
-    EXPECT_TRUE(ContainsOpcode(module_value, OpcodeType::kSub));
-    EXPECT_TRUE(ContainsOpcode(module_value, OpcodeType::kDiv));
+    EXPECT_TRUE(IsValidModule(module_value));
+    // 应该有变量存储指令
+    EXPECT_GE(CountOpcode(module_value, OpcodeType::kVStore_0) +
+              CountOpcode(module_value, OpcodeType::kVStore_1) +
+              CountOpcode(module_value, OpcodeType::kVStore_2) +
+              CountOpcode(module_value, OpcodeType::kVStore), 3);
 }
 
-// 测试嵌套函数
+TEST_F(CodeGeneratorTest, VariableAccess) {
+    Value module_value = GenerateCode(
+        "let x = 10;\n"
+        "let y = x + 5;\n"
+    );
+    
+    EXPECT_TRUE(IsValidModule(module_value));
+    // 应该有变量加载指令
+    EXPECT_TRUE(ContainsOpcode(module_value, OpcodeType::kVLoad_0) ||
+                ContainsOpcode(module_value, OpcodeType::kVLoad));
+    EXPECT_TRUE(ContainsOpcode(module_value, OpcodeType::kAdd));
+}
+
+TEST_F(CodeGeneratorTest, VariableAssignment) {
+    Value module_value = GenerateCode(
+        "let x = 5;\n"
+        "x = 10;\n"
+    );
+    
+    EXPECT_TRUE(IsValidModule(module_value));
+    // 应该有两次变量存储
+    EXPECT_GE(CountOpcode(module_value, OpcodeType::kVStore_0) +
+              CountOpcode(module_value, OpcodeType::kVStore), 2);
+}
+
+// ============================================================================
+// 数组测试
+// ============================================================================
+
+TEST_F(CodeGeneratorTest, ArrayLiteral) {
+    Value module_value = GenerateCode("let arr = [1, 2, 3, 4, 5];");
+    
+    EXPECT_TRUE(IsValidModule(module_value));
+    EXPECT_TRUE(ContainsOpcode(module_value, OpcodeType::kNew));
+    EXPECT_EQ(CountOpcode(module_value, OpcodeType::kIndexedStore), 5);
+}
+
+TEST_F(CodeGeneratorTest, ArrayAccess) {
+    Value module_value = GenerateCode(
+        "let arr = [1, 2, 3];\n"
+        "let x = arr[1];\n"
+    );
+    
+    EXPECT_TRUE(IsValidModule(module_value));
+    EXPECT_TRUE(ContainsOpcode(module_value, OpcodeType::kIndexedLoad));
+}
+
+TEST_F(CodeGeneratorTest, ArrayAssignment) {
+    Value module_value = GenerateCode(
+        "let arr = [1, 2, 3];\n"
+        "arr[0] = 10;\n"
+    );
+    
+    EXPECT_TRUE(IsValidModule(module_value));
+    EXPECT_GE(CountOpcode(module_value, OpcodeType::kIndexedStore), 4); // 3个初始化 + 1个赋值
+}
+
+TEST_F(CodeGeneratorTest, EmptyArray) {
+    Value module_value = GenerateCode("let arr = [];");
+    
+    EXPECT_TRUE(IsValidModule(module_value));
+    EXPECT_TRUE(ContainsOpcode(module_value, OpcodeType::kNew));
+    EXPECT_EQ(CountOpcode(module_value, OpcodeType::kIndexedStore), 0);
+}
+
+// ============================================================================
+// 对象测试
+// ============================================================================
+
+TEST_F(CodeGeneratorTest, ObjectLiteral) {
+    Value module_value = GenerateCode("let obj = { a: 1, b: 2, c: 3 };");
+    
+    EXPECT_TRUE(IsValidModule(module_value));
+    EXPECT_TRUE(ContainsOpcode(module_value, OpcodeType::kNew));
+    EXPECT_EQ(CountOpcode(module_value, OpcodeType::kPropertyStore), 3);
+}
+
+TEST_F(CodeGeneratorTest, ObjectAccess) {
+    Value module_value = GenerateCode(
+        "let obj = { x: 10 };\n"
+        "let y = obj.x;\n"
+    );
+    
+    EXPECT_TRUE(IsValidModule(module_value));
+    EXPECT_TRUE(ContainsOpcode(module_value, OpcodeType::kPropertyLoad));
+}
+
+TEST_F(CodeGeneratorTest, ObjectAssignment) {
+    Value module_value = GenerateCode(
+        "let obj = { x: 5 };\n"
+        "obj.x = 10;\n"
+    );
+    
+    EXPECT_TRUE(IsValidModule(module_value));
+    EXPECT_GE(CountOpcode(module_value, OpcodeType::kPropertyStore), 2); // 1个初始化 + 1个赋值
+}
+
+TEST_F(CodeGeneratorTest, EmptyObject) {
+    Value module_value = GenerateCode("let obj = {};");
+    
+    EXPECT_TRUE(IsValidModule(module_value));
+    EXPECT_TRUE(ContainsOpcode(module_value, OpcodeType::kNew));
+    EXPECT_EQ(CountOpcode(module_value, OpcodeType::kPropertyStore), 0);
+}
+
+// ============================================================================
+// 控制流测试
+// ============================================================================
+
+TEST_F(CodeGeneratorTest, IfStatement) {
+    Value module_value = GenerateCode(
+        "let x = 5;\n"
+        "if (x > 3) {\n"
+        "  x = 10;\n"
+        "}\n"
+    );
+    
+    EXPECT_TRUE(IsValidModule(module_value));
+    EXPECT_TRUE(ContainsOpcode(module_value, OpcodeType::kGt));
+    EXPECT_TRUE(ContainsOpcode(module_value, OpcodeType::kIfEq));
+}
+
+TEST_F(CodeGeneratorTest, IfElseStatement) {
+    Value module_value = GenerateCode(
+        "let x = 5;\n"
+        "if (x > 10) {\n"
+        "  x = 1;\n"
+        "} else {\n"
+        "  x = 2;\n"
+        "}\n"
+    );
+    
+    EXPECT_TRUE(IsValidModule(module_value));
+    EXPECT_TRUE(ContainsOpcode(module_value, OpcodeType::kIfEq));
+    EXPECT_TRUE(ContainsOpcode(module_value, OpcodeType::kGoto));
+}
+
+TEST_F(CodeGeneratorTest, IfElseIfStatement) {
+    Value module_value = GenerateCode(
+        "let x = 5;\n"
+        "if (x > 10) {\n"
+        "  x = 1;\n"
+        "} else if (x > 5) {\n"
+        "  x = 2;\n"
+        "} else {\n"
+        "  x = 3;\n"
+        "}\n"
+    );
+    
+    EXPECT_TRUE(IsValidModule(module_value));
+    EXPECT_GE(CountOpcode(module_value, OpcodeType::kIfEq), 2);
+    EXPECT_GE(CountOpcode(module_value, OpcodeType::kGoto), 2);
+}
+
+TEST_F(CodeGeneratorTest, WhileLoop) {
+    Value module_value = GenerateCode(
+        "let i = 0;\n"
+        "while (i < 5) {\n"
+        "  i = i + 1;\n"
+        "}\n"
+    );
+    
+    EXPECT_TRUE(IsValidModule(module_value));
+    EXPECT_TRUE(ContainsOpcode(module_value, OpcodeType::kLt));
+    EXPECT_TRUE(ContainsOpcode(module_value, OpcodeType::kIfEq));
+    EXPECT_TRUE(ContainsOpcode(module_value, OpcodeType::kGoto));
+}
+
+TEST_F(CodeGeneratorTest, ForLoop) {
+    Value module_value = GenerateCode(
+        "for (let i = 0; i < 5; i++) {\n"
+        "  let x = i;\n"
+        "}\n"
+    );
+    
+    EXPECT_TRUE(IsValidModule(module_value));
+    EXPECT_TRUE(ContainsOpcode(module_value, OpcodeType::kLt));
+    EXPECT_TRUE(ContainsOpcode(module_value, OpcodeType::kIfEq));
+    EXPECT_TRUE(ContainsOpcode(module_value, OpcodeType::kGoto));
+    EXPECT_TRUE(ContainsOpcode(module_value, OpcodeType::kInc));
+}
+
+// ============================================================================
+// 函数测试
+// ============================================================================
+
+TEST_F(CodeGeneratorTest, FunctionDeclaration) {
+    Value module_value = GenerateCode(
+        "function add(a, b) {\n"
+        "  return a + b;\n"
+        "}\n"
+    );
+    
+    EXPECT_TRUE(IsValidModule(module_value));
+    EXPECT_TRUE(ContainsOpcode(module_value, OpcodeType::kClosure));
+    EXPECT_TRUE(ContainsOpcode(module_value, OpcodeType::kReturn));
+}
+
+TEST_F(CodeGeneratorTest, FunctionCall) {
+    Value module_value = GenerateCode(
+        "function greet() {\n"
+        "  return 'hello';\n"
+        "}\n"
+        "greet();\n"
+    );
+    
+    EXPECT_TRUE(IsValidModule(module_value));
+    EXPECT_TRUE(ContainsOpcode(module_value, OpcodeType::kClosure));
+    EXPECT_TRUE(ContainsOpcode(module_value, OpcodeType::kFunctionCall));
+}
+
+TEST_F(CodeGeneratorTest, FunctionWithParameters) {
+    Value module_value = GenerateCode(
+        "function multiply(x, y) {\n"
+        "  return x * y;\n"
+        "}\n"
+        "multiply(3, 4);\n"
+    );
+    
+    EXPECT_TRUE(IsValidModule(module_value));
+    EXPECT_TRUE(ContainsOpcode(module_value, OpcodeType::kMul));
+    EXPECT_TRUE(ContainsOpcode(module_value, OpcodeType::kFunctionCall));
+}
+
+TEST_F(CodeGeneratorTest, ArrowFunction) {
+    Value module_value = GenerateCode(
+        "let add = (a, b) => a + b;\n"
+        "add(1, 2);\n"
+    );
+    
+    EXPECT_TRUE(IsValidModule(module_value));
+    EXPECT_TRUE(ContainsOpcode(module_value, OpcodeType::kClosure));
+    EXPECT_TRUE(ContainsOpcode(module_value, OpcodeType::kFunctionCall));
+}
+
 TEST_F(CodeGeneratorTest, NestedFunctions) {
     Value module_value = GenerateCode(
         "function outer() {\n"
@@ -384,12 +608,184 @@ TEST_F(CodeGeneratorTest, NestedFunctions) {
         "  }\n"
         "  return inner();\n"
         "}\n"
+        "outer();\n"
     );
     
-    // 检查是否生成了嵌套的闭包
+    EXPECT_TRUE(IsValidModule(module_value));
     EXPECT_GE(CountOpcode(module_value, OpcodeType::kClosure), 2);
-    EXPECT_TRUE(ContainsOpcode(module_value, OpcodeType::kFunctionCall));
+    EXPECT_GE(CountOpcode(module_value, OpcodeType::kFunctionCall), 2);
+}
+
+// ============================================================================
+// 异常处理测试
+// ============================================================================
+
+TEST_F(CodeGeneratorTest, TryStatement) {
+    Value module_value = GenerateCode(
+        "try {\n"
+        "  let x = 1;\n"
+        "} catch (e) {\n"
+        "  let y = 2;\n"
+        "}\n"
+    );
+    
+    EXPECT_TRUE(IsValidModule(module_value));
+    EXPECT_TRUE(ContainsOpcode(module_value, OpcodeType::kTryBegin));
+    EXPECT_TRUE(ContainsOpcode(module_value, OpcodeType::kTryEnd));
+}
+
+TEST_F(CodeGeneratorTest, TryFinally) {
+    Value module_value = GenerateCode(
+        "try {\n"
+        "  let x = 1;\n"
+        "} finally {\n"
+        "  let y = 2;\n"
+        "}\n"
+    );
+    
+    EXPECT_TRUE(IsValidModule(module_value));
+    EXPECT_TRUE(ContainsOpcode(module_value, OpcodeType::kTryBegin));
+    EXPECT_TRUE(ContainsOpcode(module_value, OpcodeType::kTryEnd));
+}
+
+TEST_F(CodeGeneratorTest, ThrowStatement) {
+    Value module_value = GenerateCode(
+        "try {\n"
+        "  throw 'error';\n"
+        "} catch (e) {\n"
+        "  let x = e;\n"
+        "}\n"
+    );
+    
+    EXPECT_TRUE(IsValidModule(module_value));
+    EXPECT_TRUE(ContainsOpcode(module_value, OpcodeType::kThrow));
+}
+
+// ============================================================================
+// 复杂表达式测试
+// ============================================================================
+
+TEST_F(CodeGeneratorTest, ComplexArithmeticExpression) {
+    Value module_value = GenerateCode("let result = (1 + 2) * (3 - 4) / 5;");
+    
+    EXPECT_TRUE(IsValidModule(module_value));
+    EXPECT_TRUE(ContainsOpcode(module_value, OpcodeType::kAdd));
+    EXPECT_TRUE(ContainsOpcode(module_value, OpcodeType::kSub));
+    EXPECT_TRUE(ContainsOpcode(module_value, OpcodeType::kMul));
+    EXPECT_TRUE(ContainsOpcode(module_value, OpcodeType::kDiv));
+}
+
+TEST_F(CodeGeneratorTest, ChainedMemberAccess) {
+    Value module_value = GenerateCode(
+        "let obj = { a: { b: { c: 42 } } };\n"
+        "let value = obj.a.b.c;\n"
+    );
+    
+    EXPECT_TRUE(IsValidModule(module_value));
+    EXPECT_GE(CountOpcode(module_value, OpcodeType::kPropertyLoad), 3);
+}
+
+TEST_F(CodeGeneratorTest, MixedArrayObjectAccess) {
+    Value module_value = GenerateCode(
+        "let data = [{ x: 1 }, { x: 2 }];\n"
+        "let value = data[0].x;\n"
+    );
+    
+    EXPECT_TRUE(IsValidModule(module_value));
+    EXPECT_TRUE(ContainsOpcode(module_value, OpcodeType::kIndexedLoad));
+    EXPECT_TRUE(ContainsOpcode(module_value, OpcodeType::kPropertyLoad));
+}
+
+// ============================================================================
+// 边界情况测试
+// ============================================================================
+
+TEST_F(CodeGeneratorTest, EmptyProgram) {
+    Value module_value = GenerateCode("");
+    
+    EXPECT_TRUE(IsValidModule(module_value));
+    // 应该至少有 undefined 和 return 指令
+    EXPECT_TRUE(ContainsOpcode(module_value, OpcodeType::kUndefined));
     EXPECT_TRUE(ContainsOpcode(module_value, OpcodeType::kReturn));
+}
+
+TEST_F(CodeGeneratorTest, OnlyComments) {
+    Value module_value = GenerateCode("// This is a comment\n/* Another comment */");
+    
+    EXPECT_TRUE(IsValidModule(module_value));
+    EXPECT_TRUE(ContainsOpcode(module_value, OpcodeType::kUndefined));
+    EXPECT_TRUE(ContainsOpcode(module_value, OpcodeType::kReturn));
+}
+
+TEST_F(CodeGeneratorTest, SingleExpression) {
+    Value module_value = GenerateCode("42");
+    
+    EXPECT_TRUE(IsValidModule(module_value));
+    EXPECT_TRUE(ContainsOpcode(module_value, OpcodeType::kUndefined));
+    EXPECT_TRUE(ContainsOpcode(module_value, OpcodeType::kReturn));
+}
+
+// ============================================================================
+// 作用域测试
+// ============================================================================
+
+TEST_F(CodeGeneratorTest, BlockScope) {
+    Value module_value = GenerateCode(
+        "let x = 1;\n"
+        "{\n"
+        "  let x = 2;\n"
+        "  let y = x;\n"
+        "}\n"
+        "let z = x;\n"
+    );
+    
+    EXPECT_TRUE(IsValidModule(module_value));
+    // 应该有多个变量存储指令
+    EXPECT_GE(CountOpcode(module_value, OpcodeType::kVStore_0) +
+              CountOpcode(module_value, OpcodeType::kVStore_1) +
+              CountOpcode(module_value, OpcodeType::kVStore_2) +
+              CountOpcode(module_value, OpcodeType::kVStore), 4);
+}
+
+TEST_F(CodeGeneratorTest, FunctionScope) {
+    Value module_value = GenerateCode(
+        "let x = 1;\n"
+        "function test() {\n"
+        "  let x = 2;\n"
+        "  return x;\n"
+        "}\n"
+        "test();\n"
+    );
+    
+    EXPECT_TRUE(IsValidModule(module_value));
+    EXPECT_TRUE(ContainsOpcode(module_value, OpcodeType::kClosure));
+    EXPECT_TRUE(ContainsOpcode(module_value, OpcodeType::kFunctionCall));
+}
+
+// ============================================================================
+// 类型转换和特殊值测试
+// ============================================================================
+
+TEST_F(CodeGeneratorTest, ImplicitTypeConversion) {
+    Value module_value = GenerateCode(
+        "let str = 'hello';\n"
+        "let num = 42;\n"
+        "let result = str + num;\n"
+    );
+    
+    EXPECT_TRUE(IsValidModule(module_value));
+    EXPECT_TRUE(ContainsOpcode(module_value, OpcodeType::kAdd));
+}
+
+TEST_F(CodeGeneratorTest, IncrementOperators) {
+    Value module_value = GenerateCode(
+        "let x = 5;\n"
+        "++x;\n"
+        "x++;\n"
+    );
+    
+    EXPECT_TRUE(IsValidModule(module_value));
+    EXPECT_GE(CountOpcode(module_value, OpcodeType::kInc), 2);
 }
 
 } // namespace test

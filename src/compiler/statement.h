@@ -49,7 +49,7 @@ enum class StatementType {
     kTypeAnnotation,
     kPredefinedType,
     kNamedType,
-    kLieralType,
+    kLiteralType,
     kUnionType,
     kFunctionType,
 };
@@ -531,17 +531,17 @@ private:
     std::string name_;
 };
 
-class LieralType : public Type {
+class LiteralType : public Type {
 public:
-    LieralType(SourcePos start, SourcePos end, std::unique_ptr<Expression>&& value)
+    LiteralType(SourcePos start, SourcePos end, std::unique_ptr<Expression>&& value)
         : Type(start, end), value_(std::move(value)) {}
 
-    StatementType type() const noexcept override { return StatementType::kLieralType; }
+    StatementType type() const noexcept override { return StatementType::kLiteralType; }
 
     const std::unique_ptr<Expression>& value() const { return value_; }
     
     Statement* clone() const override {
-        return new LieralType(start(), end(), 
+        return new LiteralType(start(), end(), 
             std::unique_ptr<Expression>(static_cast<Expression*>(value_->clone())));
     }
 
