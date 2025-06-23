@@ -37,22 +37,22 @@ protected:
     }
 
     // 辅助函数：创建简单的函数定义
-    std::unique_ptr<FunctionDef> CreateSimpleFunction(const std::string& name, uint32_t par_count = 0) {
-        auto module_def = std::make_unique<ModuleDef>(name + "_module");
-        auto func_def = std::make_unique<FunctionDef>(module_def.get(), name, par_count);
+    Value CreateSimpleFunction(const std::string& name, uint32_t par_count = 0) {
+        auto module_def = new ModuleDef(runtime_.get(), name + "_module", "", par_count);
+        auto func_def = new FunctionDef(module_def, name, par_count);
         func_def->set_is_normal();
-        return func_def;
+        return Value(func_def);
     }
 
     // 辅助函数：创建带字节码的函数定义
-    std::unique_ptr<FunctionDef> CreateFunctionWithBytecode(const std::string& name, 
+    Value CreateFunctionWithBytecode(const std::string& name,
                                                            const std::vector<uint8_t>& bytecode) {
         auto func_def = CreateSimpleFunction(name);
-        auto& table = func_def->bytecode_table();
+        auto& table = func_def.function_def().bytecode_table();
         for (uint8_t byte : bytecode) {
             table.EmitU8(byte);
         }
-        return func_def;
+        return Value(func_def);
     }
 
     // 辅助函数：添加常量到常量池
@@ -80,19 +80,18 @@ TEST_F(VMTest, BasicInstructionExecution_ConstantLoad) {
     ConstIndex const_idx = AddConstant(Value(42.0));
     
     // 生成字节码：CLoad 常量索引, Return
-    auto& table = func_def->bytecode_table();
+    auto& table = func_def.function_def().bytecode_table();
     table.EmitU8(static_cast<uint8_t>(OpcodeType::kCLoad));
     table.EmitU8(static_cast<uint8_t>(const_idx));
     table.EmitU8(static_cast<uint8_t>(OpcodeType::kReturn));
     
     // 创建栈帧并执行
     StackFrame stack_frame(&runtime_->stack());
-    Value func_val(func_def.get());
     Value this_val;
-    
-    Value result = vm_->CallFunction(&stack_frame, func_val, this_val, 
-                                   std::vector<Value>{}.begin(), 
-                                   std::vector<Value>{}.end());
+    auto args = std::vector<Value>();
+    Value result = vm_->CallFunction(&stack_frame, func_def, this_val, 
+        args.begin(),
+        args.end());
     
     EXPECT_TRUE(result.IsNumber());
     EXPECT_DOUBLE_EQ(result.f64(), 42.0);
@@ -101,23 +100,22 @@ TEST_F(VMTest, BasicInstructionExecution_ConstantLoad) {
 // 测试变量操作指令
 TEST_F(VMTest, VariableOperations) {
     auto func_def = CreateSimpleFunction("test_variables", 1); // 1个参数
-    func_def->var_def_table().AddVar("param");
-    func_def->var_def_table().AddVar("local");
+    func_def.function_def().var_def_table().AddVar("param");
+    func_def.function_def().var_def_table().AddVar("local");
     
     // 生成字节码：VLoad_0 (加载参数), VStore_1 (存储到本地变量), VLoad_1, Return
-    auto& table = func_def->bytecode_table();
+    auto& table = func_def.function_def().bytecode_table();
     table.EmitU8(static_cast<uint8_t>(OpcodeType::kVLoad_0));  // 加载参数0
     table.EmitU8(static_cast<uint8_t>(OpcodeType::kVStore_1)); // 存储到变量1
     table.EmitU8(static_cast<uint8_t>(OpcodeType::kVLoad_1));  // 加载变量1
     table.EmitU8(static_cast<uint8_t>(OpcodeType::kReturn));
     
     StackFrame stack_frame(&runtime_->stack());
-    Value func_val(func_def.get());
     Value this_val;
-    std::vector<Value> args = {Value(123.0)};
-    
-    Value result = vm_->CallFunction(&stack_frame, func_val, this_val, 
-                                   args.begin(), args.end());
+    auto args = std::vector<Value>{Value(123.0)};
+    Value result = vm_->CallFunction(&stack_frame, func_def, this_val,
+        args.begin(),
+        args.end());
     
     EXPECT_TRUE(result.IsNumber());
     EXPECT_DOUBLE_EQ(result.f64(), 123.0);
@@ -132,7 +130,7 @@ TEST_F(VMTest, ArithmeticOperations) {
     ConstIndex const2 = AddConstant(Value(5.0));
     
     // 生成字节码：CLoad 10, CLoad 5, Add, Return
-    auto& table = func_def->bytecode_table();
+    auto& table = func_def.function_def().bytecode_table();
     table.EmitU8(static_cast<uint8_t>(OpcodeType::kCLoad));
     table.EmitU8(static_cast<uint8_t>(const1));
     table.EmitU8(static_cast<uint8_t>(OpcodeType::kCLoad));
@@ -141,12 +139,11 @@ TEST_F(VMTest, ArithmeticOperations) {
     table.EmitU8(static_cast<uint8_t>(OpcodeType::kReturn));
     
     StackFrame stack_frame(&runtime_->stack());
-    Value func_val(func_def.get());
     Value this_val;
-    
-    Value result = vm_->CallFunction(&stack_frame, func_val, this_val, 
-                                   std::vector<Value>{}.begin(), 
-                                   std::vector<Value>{}.end());
+    auto args = std::vector<Value>();
+    Value result = vm_->CallFunction(&stack_frame, func_def, this_val,
+        args.begin(),
+        args.end());
     
     EXPECT_TRUE(result.IsNumber());
     EXPECT_DOUBLE_EQ(result.f64(), 15.0);
@@ -160,7 +157,7 @@ TEST_F(VMTest, MultipleArithmeticOperations) {
     ConstIndex const2 = AddConstant(Value(4.0));
     
     // 生成字节码：CLoad 20, CLoad 4, Sub, CLoad 4, Mul, Return (结果应该是 (20-4)*4 = 64)
-    auto& table = func_def->bytecode_table();
+    auto& table = func_def.function_def().bytecode_table();
     table.EmitU8(static_cast<uint8_t>(OpcodeType::kCLoad));
     table.EmitU8(static_cast<uint8_t>(const1));
     table.EmitU8(static_cast<uint8_t>(OpcodeType::kCLoad));
@@ -172,12 +169,11 @@ TEST_F(VMTest, MultipleArithmeticOperations) {
     table.EmitU8(static_cast<uint8_t>(OpcodeType::kReturn));
     
     StackFrame stack_frame(&runtime_->stack());
-    Value func_val(func_def.get());
     Value this_val;
-    
-    Value result = vm_->CallFunction(&stack_frame, func_val, this_val, 
-                                   std::vector<Value>{}.begin(), 
-                                   std::vector<Value>{}.end());
+    auto args = std::vector<Value>();
+    Value result = vm_->CallFunction(&stack_frame, func_def, this_val,
+        args.begin(),
+        args.end());
     
     EXPECT_TRUE(result.IsNumber());
     EXPECT_DOUBLE_EQ(result.f64(), 64.0);
@@ -191,7 +187,7 @@ TEST_F(VMTest, StackOperations) {
     ConstIndex const2 = AddConstant(Value(2.0));
     
     // 生成字节码：CLoad 1, CLoad 2, Swap, Pop, Return (结果应该是1)
-    auto& table = func_def->bytecode_table();
+    auto& table = func_def.function_def().bytecode_table();
     table.EmitU8(static_cast<uint8_t>(OpcodeType::kCLoad));
     table.EmitU8(static_cast<uint8_t>(const1));
     table.EmitU8(static_cast<uint8_t>(OpcodeType::kCLoad));
@@ -201,12 +197,11 @@ TEST_F(VMTest, StackOperations) {
     table.EmitU8(static_cast<uint8_t>(OpcodeType::kReturn));
     
     StackFrame stack_frame(&runtime_->stack());
-    Value func_val(func_def.get());
     Value this_val;
-    
-    Value result = vm_->CallFunction(&stack_frame, func_val, this_val, 
-                                   std::vector<Value>{}.begin(), 
-                                   std::vector<Value>{}.end());
+    auto args = std::vector<Value>();
+    Value result = vm_->CallFunction(&stack_frame, func_def, this_val,
+        args.begin(),
+        args.end());
     
     EXPECT_TRUE(result.IsNumber());
     EXPECT_DOUBLE_EQ(result.f64(), 1.0);
@@ -220,7 +215,7 @@ TEST_F(VMTest, ComparisonOperations) {
     ConstIndex const2 = AddConstant(Value(5.0));
     
     // 生成字节码：CLoad 10, CLoad 5, Gt, Return (10 > 5 应该是true)
-    auto& table = func_def->bytecode_table();
+    auto& table = func_def.function_def().bytecode_table();
     table.EmitU8(static_cast<uint8_t>(OpcodeType::kCLoad));
     table.EmitU8(static_cast<uint8_t>(const1));
     table.EmitU8(static_cast<uint8_t>(OpcodeType::kCLoad));
@@ -229,12 +224,11 @@ TEST_F(VMTest, ComparisonOperations) {
     table.EmitU8(static_cast<uint8_t>(OpcodeType::kReturn));
     
     StackFrame stack_frame(&runtime_->stack());
-    Value func_val(func_def.get());
     Value this_val;
-    
-    Value result = vm_->CallFunction(&stack_frame, func_val, this_val, 
-                                   std::vector<Value>{}.begin(), 
-                                   std::vector<Value>{}.end());
+    auto args = std::vector<Value>();
+    Value result = vm_->CallFunction(&stack_frame, func_def, this_val,
+        args.begin(),
+        args.end());
     
     EXPECT_TRUE(result.IsBoolean());
     EXPECT_TRUE(result.boolean());
@@ -255,7 +249,7 @@ TEST_F(VMTest, ConditionalJump) {
     // Goto +2
     // CLoad 100
     // Return
-    auto& table = func_def->bytecode_table();
+    auto& table = func_def.function_def().bytecode_table();
     table.EmitU8(static_cast<uint8_t>(OpcodeType::kCLoad));
     table.EmitU8(static_cast<uint8_t>(const_true));
     table.EmitU8(static_cast<uint8_t>(OpcodeType::kIfEq));
@@ -269,12 +263,11 @@ TEST_F(VMTest, ConditionalJump) {
     table.EmitU8(static_cast<uint8_t>(OpcodeType::kReturn));
     
     StackFrame stack_frame(&runtime_->stack());
-    Value func_val(func_def.get());
     Value this_val;
-    
-    Value result = vm_->CallFunction(&stack_frame, func_val, this_val, 
-                                   std::vector<Value>{}.begin(), 
-                                   std::vector<Value>{}.end());
+    auto args = std::vector<Value>();
+    Value result = vm_->CallFunction(&stack_frame, func_def, this_val,
+        args.begin(),
+        args.end());
     
     EXPECT_TRUE(result.IsNumber());
     EXPECT_DOUBLE_EQ(result.f64(), 100.0);
@@ -284,39 +277,35 @@ TEST_F(VMTest, ConditionalJump) {
 TEST_F(VMTest, FunctionCall) {
     // 创建被调用的函数
     auto called_func = CreateSimpleFunction("called_function", 1);
-    called_func->var_def_table().AddVar("param");
+    called_func.function_def().var_def_table().AddVar("param");
     
     // 被调用函数的字节码：VLoad_0, Inc, Return
-    auto& called_table = called_func->bytecode_table();
+    auto& called_table = called_func.function_def().bytecode_table();
     called_table.EmitU8(static_cast<uint8_t>(OpcodeType::kVLoad_0));
     called_table.EmitU8(static_cast<uint8_t>(OpcodeType::kInc));
     called_table.EmitU8(static_cast<uint8_t>(OpcodeType::kReturn));
     
     // 将被调用函数添加到常量池
-    ConstIndex func_const = AddConstant(Value(called_func.get()));
+    ConstIndex func_const = AddConstant(called_func);
     ConstIndex arg_const = AddConstant(Value(10.0));
     
     // 创建主函数
     auto main_func = CreateSimpleFunction("main_function");
-    auto& main_table = main_func->bytecode_table();
+    auto& main_table = main_func.function_def().bytecode_table();
     
     // 主函数字节码：CLoad func, Undefined (this), CLoad 10, FunctionCall 1, Return
-    main_table.EmitU8(static_cast<uint8_t>(OpcodeType::kCLoad));
-    main_table.EmitU8(static_cast<uint8_t>(func_const));
-    main_table.EmitU8(static_cast<uint8_t>(OpcodeType::kUndefined));
-    main_table.EmitU8(static_cast<uint8_t>(OpcodeType::kCLoad));
-    main_table.EmitU8(static_cast<uint8_t>(arg_const));
-    main_table.EmitU8(static_cast<uint8_t>(OpcodeType::kFunctionCall));
-    main_table.EmitU8(1); // 参数个数
-    main_table.EmitU8(static_cast<uint8_t>(OpcodeType::kReturn));
+    main_table.EmitConstLoad(func_const);
+    main_table.EmitOpcode(OpcodeType::kUndefined);
+    main_table.EmitConstLoad(arg_const);
+    main_table.EmitOpcode(OpcodeType::kFunctionCall);
+    main_table.EmitOpcode(OpcodeType::kReturn);
     
     StackFrame stack_frame(&runtime_->stack());
-    Value func_val(main_func.get());
     Value this_val;
-    
-    Value result = vm_->CallFunction(&stack_frame, func_val, this_val, 
-                                   std::vector<Value>{}.begin(), 
-                                   std::vector<Value>{}.end());
+    auto args = std::vector<Value>();
+    Value result = vm_->CallFunction(&stack_frame, main_func, this_val,
+        args.begin(),
+        args.end());
     
     EXPECT_TRUE(result.IsNumber());
     EXPECT_DOUBLE_EQ(result.f64(), 11.0); // 10 + 1
@@ -330,18 +319,17 @@ TEST_F(VMTest, ExceptionHandling) {
     ConstIndex error_const = AddConstant(Error::Throw(context_.get(), "Test error"));
     
     // 生成字节码：CLoad error, Throw
-    auto& table = func_def->bytecode_table();
+    auto& table = func_def.function_def().bytecode_table();
     table.EmitU8(static_cast<uint8_t>(OpcodeType::kCLoad));
     table.EmitU8(static_cast<uint8_t>(error_const));
     table.EmitU8(static_cast<uint8_t>(OpcodeType::kThrow));
     
     StackFrame stack_frame(&runtime_->stack());
-    Value func_val(func_def.get());
     Value this_val;
-    
-    Value result = vm_->CallFunction(&stack_frame, func_val, this_val, 
-                                   std::vector<Value>{}.begin(), 
-                                   std::vector<Value>{}.end());
+    auto args = std::vector<Value>();
+    Value result = vm_->CallFunction(&stack_frame, func_def, this_val,
+        args.begin(),
+        args.end());
     
     EXPECT_TRUE(result.IsException());
 }
@@ -355,8 +343,8 @@ TEST_F(VMTest, TryCatchException) {
     ConstIndex caught_const = AddConstant(Value(99.0));
     
     // 添加异常处理表项
-    func_def->var_def_table().AddVar("error_var");
-    func_def->exception_table().AddEntry(2, 4, 5, 8, 0); // try: 2-4, catch: 5-8, error_var: 0
+    func_def.function_def().var_def_table().AddVar("error_var");
+    //func_def.function_def().exception_table().AddEntry(2, 4, 5, 8, 0); // try: 2-4, catch: 5-8, error_var: 0
     
     // 生成字节码：
     // 0: TryBegin
@@ -366,7 +354,7 @@ TEST_F(VMTest, TryCatchException) {
     // 4: TryEnd
     // 5: CLoad 99 (catch块)
     // 6: Return
-    auto& table = func_def->bytecode_table();
+    auto& table = func_def.function_def().bytecode_table();
     table.EmitU8(static_cast<uint8_t>(OpcodeType::kTryBegin));      // 0
     table.EmitU8(static_cast<uint8_t>(OpcodeType::kCLoad));         // 1
     table.EmitU8(static_cast<uint8_t>(error_const));
@@ -379,12 +367,11 @@ TEST_F(VMTest, TryCatchException) {
     table.EmitU8(static_cast<uint8_t>(OpcodeType::kReturn));        // 9
     
     StackFrame stack_frame(&runtime_->stack());
-    Value func_val(func_def.get());
     Value this_val;
-    
-    Value result = vm_->CallFunction(&stack_frame, func_val, this_val, 
-                                   std::vector<Value>{}.begin(), 
-                                   std::vector<Value>{}.end());
+    auto args = std::vector<Value>();
+    Value result = vm_->CallFunction(&stack_frame, func_def, this_val,
+        args.begin(),
+        args.end());
     
     EXPECT_TRUE(result.IsNumber());
     EXPECT_DOUBLE_EQ(result.f64(), 99.0); // 应该执行catch块
@@ -393,13 +380,13 @@ TEST_F(VMTest, TryCatchException) {
 // 测试生成器函数
 TEST_F(VMTest, GeneratorFunction) {
     auto func_def = CreateSimpleFunction("test_generator");
-    func_def->set_is_generator();
+    func_def.function_def().set_is_generator();
     
     ConstIndex const1 = AddConstant(Value(1.0));
     ConstIndex const2 = AddConstant(Value(2.0));
     
     // 生成字节码：CLoad 1, Yield, CLoad 2, GeneratorReturn
-    auto& table = func_def->bytecode_table();
+    auto& table = func_def.function_def().bytecode_table();
     table.EmitU8(static_cast<uint8_t>(OpcodeType::kCLoad));
     table.EmitU8(static_cast<uint8_t>(const1));
     table.EmitU8(static_cast<uint8_t>(OpcodeType::kYield));
@@ -408,13 +395,12 @@ TEST_F(VMTest, GeneratorFunction) {
     table.EmitU8(static_cast<uint8_t>(OpcodeType::kGeneratorReturn));
     
     StackFrame stack_frame(&runtime_->stack());
-    Value func_val(func_def.get());
     Value this_val;
-    
     // 调用生成器函数应该返回生成器对象
-    Value result = vm_->CallFunction(&stack_frame, func_val, this_val, 
-                                   std::vector<Value>{}.begin(), 
-                                   std::vector<Value>{}.end());
+    auto args = std::vector<Value>();
+    Value result = vm_->CallFunction(&stack_frame, func_def, this_val,
+        args.begin(),
+        args.end());
     
     EXPECT_TRUE(result.IsGeneratorObject());
     
@@ -425,31 +411,31 @@ TEST_F(VMTest, GeneratorFunction) {
 // 测试异步函数
 TEST_F(VMTest, AsyncFunction) {
     auto func_def = CreateSimpleFunction("test_async");
-    func_def->set_is_async();
+    func_def.function_def().set_is_async();
     
     ConstIndex const_val = AddConstant(Value(42.0));
     
     // 生成字节码：CLoad 42, AsyncReturn
-    auto& table = func_def->bytecode_table();
+    auto& table = func_def.function_def().bytecode_table();
     table.EmitU8(static_cast<uint8_t>(OpcodeType::kCLoad));
     table.EmitU8(static_cast<uint8_t>(const_val));
     table.EmitU8(static_cast<uint8_t>(OpcodeType::kAsyncReturn));
     
     StackFrame stack_frame(&runtime_->stack());
-    Value func_val(func_def.get());
-    Value this_val;
     
+    Value this_val;
     // 调用异步函数应该返回Promise对象
-    Value result = vm_->CallFunction(&stack_frame, func_val, this_val, 
-                                   std::vector<Value>{}.begin(), 
-                                   std::vector<Value>{}.end());
+    auto args = std::vector<Value>();
+    Value result = vm_->CallFunction(&stack_frame, func_def, this_val,
+        args.begin(),
+        args.end());
     
     EXPECT_TRUE(result.IsPromiseObject());
 }
 
 // 测试模块初始化
 TEST_F(VMTest, ModuleInitialization) {
-    auto module_def = std::make_unique<ModuleDef>("test_module");
+    auto module_def = std::make_unique<ModuleDef>(runtime_.get(), "test_module", "", 0);
     
     // 添加导出变量
     module_def->export_var_def_table().AddExportVar("exportedVar", 0);
@@ -477,8 +463,7 @@ TEST_F(VMTest, CppFunctionCall) {
     Value func_val(cpp_func);
     Value this_val;
     std::vector<Value> args = {Value(21.0)};
-    
-    Value result = vm_->CallFunction(&stack_frame, func_val, this_val, 
+    Value result = vm_->CallFunction(&stack_frame, func_val, this_val,
                                    args.begin(), args.end());
     
     EXPECT_TRUE(result.IsNumber());
@@ -488,22 +473,20 @@ TEST_F(VMTest, CppFunctionCall) {
 // 测试参数数量验证
 TEST_F(VMTest, ParameterCountValidation) {
     auto func_def = CreateSimpleFunction("test_param_count", 2); // 需要2个参数
-    func_def->var_def_table().AddVar("param1");
-    func_def->var_def_table().AddVar("param2");
+    func_def.function_def().var_def_table().AddVar("param1");
+    func_def.function_def().var_def_table().AddVar("param2");
     
     // 简单返回第一个参数
-    auto& table = func_def->bytecode_table();
+    auto& table = func_def.function_def().bytecode_table();
     table.EmitU8(static_cast<uint8_t>(OpcodeType::kVLoad_0));
     table.EmitU8(static_cast<uint8_t>(OpcodeType::kReturn));
     
     StackFrame stack_frame(&runtime_->stack());
-    Value func_val(func_def.get());
-    Value this_val;
     
+    Value this_val;
     // 传递少于需要的参数应该报错
     std::vector<Value> args = {Value(10.0)}; // 只传1个参数，需要2个
-    
-    Value result = vm_->CallFunction(&stack_frame, func_val, this_val, 
+    Value result = vm_->CallFunction(&stack_frame, func_def, this_val, 
                                    args.begin(), args.end());
     
     EXPECT_TRUE(result.IsException());
@@ -512,20 +495,20 @@ TEST_F(VMTest, ParameterCountValidation) {
 // 测试闭包变量
 TEST_F(VMTest, ClosureVariables) {
     auto outer_func = CreateSimpleFunction("outer_function");
-    outer_func->var_def_table().AddVar("outer_var");
+    outer_func.function_def().var_def_table().AddVar("outer_var");
     
     auto inner_func = CreateSimpleFunction("inner_function");
-    inner_func->var_def_table().AddVar("inner_var");
+    inner_func.function_def().var_def_table().AddVar("inner_var");
     
     // 设置闭包变量表
-    inner_func->closure_var_table().AddClosureVar("outer_var", 0, 0);
-    inner_func->set_has_this(true);
+    //inner_func->closure_var_table().AddClosureVar("outer_var", 0, 0);
+    //inner_func->set_has_this(true);
     
-    ConstIndex inner_func_const = AddConstant(Value(inner_func.get()));
+    ConstIndex inner_func_const = AddConstant(inner_func);
     ConstIndex const_val = AddConstant(Value(100.0));
     
     // 外部函数字节码：CLoad 100, VStore_0, CLoad inner_func, Closure, Return
-    auto& outer_table = outer_func->bytecode_table();
+    auto& outer_table = outer_func.function_def().bytecode_table();
     outer_table.EmitU8(static_cast<uint8_t>(OpcodeType::kCLoad));
     outer_table.EmitU8(static_cast<uint8_t>(const_val));
     outer_table.EmitU8(static_cast<uint8_t>(OpcodeType::kVStore_0));
@@ -536,12 +519,11 @@ TEST_F(VMTest, ClosureVariables) {
     outer_table.EmitU8(static_cast<uint8_t>(OpcodeType::kReturn));
     
     StackFrame stack_frame(&runtime_->stack());
-    Value func_val(outer_func.get());
     Value this_val;
-    
-    Value result = vm_->CallFunction(&stack_frame, func_val, this_val, 
-                                   std::vector<Value>{}.begin(), 
-                                   std::vector<Value>{}.end());
+    auto args = std::vector<Value>();
+    Value result = vm_->CallFunction(&stack_frame, outer_func, this_val,
+        args.begin(),
+        args.end());
     
     EXPECT_TRUE(result.IsFunctionObject());
 }
@@ -554,7 +536,7 @@ TEST_F(VMTest, BitwiseOperations) {
     ConstIndex const2 = AddConstant(Value(7.0));  // 0111 in binary
     
     // 生成字节码：CLoad 15, CLoad 7, BitAnd, Return (应该得到7)
-    auto& table = func_def->bytecode_table();
+    auto& table = func_def.function_def().bytecode_table();
     table.EmitU8(static_cast<uint8_t>(OpcodeType::kCLoad));
     table.EmitU8(static_cast<uint8_t>(const1));
     table.EmitU8(static_cast<uint8_t>(OpcodeType::kCLoad));
@@ -563,12 +545,12 @@ TEST_F(VMTest, BitwiseOperations) {
     table.EmitU8(static_cast<uint8_t>(OpcodeType::kReturn));
     
     StackFrame stack_frame(&runtime_->stack());
-    Value func_val(func_def.get());
-    Value this_val;
     
-    Value result = vm_->CallFunction(&stack_frame, func_val, this_val, 
-                                   std::vector<Value>{}.begin(), 
-                                   std::vector<Value>{}.end());
+    Value this_val;
+    auto args = std::vector<Value>();
+    Value result = vm_->CallFunction(&stack_frame, func_def, this_val,
+        args.begin(),
+        args.end());
     
     EXPECT_TRUE(result.IsNumber());
     EXPECT_DOUBLE_EQ(result.f64(), 7.0);
@@ -582,7 +564,7 @@ TEST_F(VMTest, BitwiseOrOperation) {
     ConstIndex const2 = AddConstant(Value(3.0));  // 0011 in binary
     
     // 生成字节码：CLoad 12, CLoad 3, BitOr, Return (应该得到15: 1111)
-    auto& table = func_def->bytecode_table();
+    auto& table = func_def.function_def().bytecode_table();
     table.EmitU8(static_cast<uint8_t>(OpcodeType::kCLoad));
     table.EmitU8(static_cast<uint8_t>(const1));
     table.EmitU8(static_cast<uint8_t>(OpcodeType::kCLoad));
@@ -591,12 +573,12 @@ TEST_F(VMTest, BitwiseOrOperation) {
     table.EmitU8(static_cast<uint8_t>(OpcodeType::kReturn));
     
     StackFrame stack_frame(&runtime_->stack());
-    Value func_val(func_def.get());
-    Value this_val;
     
-    Value result = vm_->CallFunction(&stack_frame, func_val, this_val, 
-                                   std::vector<Value>{}.begin(), 
-                                   std::vector<Value>{}.end());
+    Value this_val;
+    auto args = std::vector<Value>();
+    Value result = vm_->CallFunction(&stack_frame, func_def, this_val,
+        args.begin(),
+        args.end());
     
     EXPECT_TRUE(result.IsNumber());
     EXPECT_DOUBLE_EQ(result.f64(), 15.0);
@@ -610,7 +592,7 @@ TEST_F(VMTest, BitwiseXorOperation) {
     ConstIndex const2 = AddConstant(Value(10.0)); // 1010 in binary
     
     // 生成字节码：CLoad 12, CLoad 10, BitXor, Return (应该得到6: 0110)
-    auto& table = func_def->bytecode_table();
+    auto& table = func_def.function_def().bytecode_table();
     table.EmitU8(static_cast<uint8_t>(OpcodeType::kCLoad));
     table.EmitU8(static_cast<uint8_t>(const1));
     table.EmitU8(static_cast<uint8_t>(OpcodeType::kCLoad));
@@ -619,12 +601,12 @@ TEST_F(VMTest, BitwiseXorOperation) {
     table.EmitU8(static_cast<uint8_t>(OpcodeType::kReturn));
     
     StackFrame stack_frame(&runtime_->stack());
-    Value func_val(func_def.get());
-    Value this_val;
     
-    Value result = vm_->CallFunction(&stack_frame, func_val, this_val, 
-                                   std::vector<Value>{}.begin(), 
-                                   std::vector<Value>{}.end());
+    Value this_val;
+    auto args = std::vector<Value>();
+    Value result = vm_->CallFunction(&stack_frame, func_def, this_val,
+        args.begin(),
+        args.end());
     
     EXPECT_TRUE(result.IsNumber());
     EXPECT_DOUBLE_EQ(result.f64(), 6.0);
@@ -637,19 +619,19 @@ TEST_F(VMTest, BitwiseNotOperation) {
     ConstIndex const1 = AddConstant(Value(5.0)); // 0101 in binary
     
     // 生成字节码：CLoad 5, BitNot, Return
-    auto& table = func_def->bytecode_table();
+    auto& table = func_def.function_def().bytecode_table();
     table.EmitU8(static_cast<uint8_t>(OpcodeType::kCLoad));
     table.EmitU8(static_cast<uint8_t>(const1));
     table.EmitU8(static_cast<uint8_t>(OpcodeType::kBitNot));
     table.EmitU8(static_cast<uint8_t>(OpcodeType::kReturn));
     
     StackFrame stack_frame(&runtime_->stack());
-    Value func_val(func_def.get());
-    Value this_val;
     
-    Value result = vm_->CallFunction(&stack_frame, func_val, this_val, 
-                                   std::vector<Value>{}.begin(), 
-                                   std::vector<Value>{}.end());
+    Value this_val;
+    auto args = std::vector<Value>();
+    Value result = vm_->CallFunction(&stack_frame, func_def, this_val,
+        args.begin(),
+        args.end());
     
     EXPECT_TRUE(result.IsNumber());
     // 位取反的结果取决于具体实现，这里主要测试指令能正常执行
@@ -663,7 +645,7 @@ TEST_F(VMTest, ShiftOperations) {
     ConstIndex const2 = AddConstant(Value(2.0));
     
     // 生成字节码：CLoad 8, CLoad 2, Shl, Return (8 << 2 = 32)
-    auto& table = func_def->bytecode_table();
+    auto& table = func_def.function_def().bytecode_table();
     table.EmitU8(static_cast<uint8_t>(OpcodeType::kCLoad));
     table.EmitU8(static_cast<uint8_t>(const1));
     table.EmitU8(static_cast<uint8_t>(OpcodeType::kCLoad));
@@ -672,12 +654,12 @@ TEST_F(VMTest, ShiftOperations) {
     table.EmitU8(static_cast<uint8_t>(OpcodeType::kReturn));
     
     StackFrame stack_frame(&runtime_->stack());
-    Value func_val(func_def.get());
-    Value this_val;
     
-    Value result = vm_->CallFunction(&stack_frame, func_val, this_val, 
-                                   std::vector<Value>{}.begin(), 
-                                   std::vector<Value>{}.end());
+    Value this_val;
+    auto args = std::vector<Value>();
+    Value result = vm_->CallFunction(&stack_frame, func_def, this_val,
+        args.begin(),
+        args.end());
     
     EXPECT_TRUE(result.IsNumber());
     EXPECT_DOUBLE_EQ(result.f64(), 32.0);
@@ -691,7 +673,7 @@ TEST_F(VMTest, RightShiftOperation) {
     ConstIndex const2 = AddConstant(Value(2.0));
     
     // 生成字节码：CLoad 32, CLoad 2, Shr, Return (32 >> 2 = 8)
-    auto& table = func_def->bytecode_table();
+    auto& table = func_def.function_def().bytecode_table();
     table.EmitU8(static_cast<uint8_t>(OpcodeType::kCLoad));
     table.EmitU8(static_cast<uint8_t>(const1));
     table.EmitU8(static_cast<uint8_t>(OpcodeType::kCLoad));
@@ -700,12 +682,12 @@ TEST_F(VMTest, RightShiftOperation) {
     table.EmitU8(static_cast<uint8_t>(OpcodeType::kReturn));
     
     StackFrame stack_frame(&runtime_->stack());
-    Value func_val(func_def.get());
-    Value this_val;
     
-    Value result = vm_->CallFunction(&stack_frame, func_val, this_val, 
-                                   std::vector<Value>{}.begin(), 
-                                   std::vector<Value>{}.end());
+    Value this_val;
+    auto args = std::vector<Value>();
+    Value result = vm_->CallFunction(&stack_frame, func_def, this_val,
+        args.begin(),
+        args.end());
     
     EXPECT_TRUE(result.IsNumber());
     EXPECT_DOUBLE_EQ(result.f64(), 8.0);
@@ -719,7 +701,7 @@ TEST_F(VMTest, UnsignedRightShiftOperation) {
     ConstIndex const2 = AddConstant(Value(2.0));
     
     // 生成字节码：CLoad 32, CLoad 2, UShr, Return
-    auto& table = func_def->bytecode_table();
+    auto& table = func_def.function_def().bytecode_table();
     table.EmitU8(static_cast<uint8_t>(OpcodeType::kCLoad));
     table.EmitU8(static_cast<uint8_t>(const1));
     table.EmitU8(static_cast<uint8_t>(OpcodeType::kCLoad));
@@ -728,12 +710,12 @@ TEST_F(VMTest, UnsignedRightShiftOperation) {
     table.EmitU8(static_cast<uint8_t>(OpcodeType::kReturn));
     
     StackFrame stack_frame(&runtime_->stack());
-    Value func_val(func_def.get());
-    Value this_val;
     
-    Value result = vm_->CallFunction(&stack_frame, func_val, this_val, 
-                                   std::vector<Value>{}.begin(), 
-                                   std::vector<Value>{}.end());
+    Value this_val;
+    auto args = std::vector<Value>();
+    Value result = vm_->CallFunction(&stack_frame, func_def, this_val,
+        args.begin(),
+        args.end());
     
     EXPECT_TRUE(result.IsNumber());
     EXPECT_DOUBLE_EQ(result.f64(), 8.0);
@@ -746,19 +728,19 @@ TEST_F(VMTest, StringConversion) {
     ConstIndex const_num = AddConstant(Value(42.0));
     
     // 生成字节码：CLoad 42, ToString, Return
-    auto& table = func_def->bytecode_table();
+    auto& table = func_def.function_def().bytecode_table();
     table.EmitU8(static_cast<uint8_t>(OpcodeType::kCLoad));
     table.EmitU8(static_cast<uint8_t>(const_num));
     table.EmitU8(static_cast<uint8_t>(OpcodeType::kToString));
     table.EmitU8(static_cast<uint8_t>(OpcodeType::kReturn));
     
     StackFrame stack_frame(&runtime_->stack());
-    Value func_val(func_def.get());
-    Value this_val;
     
-    Value result = vm_->CallFunction(&stack_frame, func_val, this_val, 
-                                   std::vector<Value>{}.begin(), 
-                                   std::vector<Value>{}.end());
+    Value this_val;
+    auto args = std::vector<Value>();
+    Value result = vm_->CallFunction(&stack_frame, func_def, this_val,
+        args.begin(),
+        args.end());
     
     EXPECT_TRUE(result.IsString());
     EXPECT_EQ(std::string(result.string_view()), "42");
@@ -769,17 +751,17 @@ TEST_F(VMTest, UndefinedValue) {
     auto func_def = CreateSimpleFunction("test_undefined");
     
     // 生成字节码：Undefined, Return
-    auto& table = func_def->bytecode_table();
+    auto& table = func_def.function_def().bytecode_table();
     table.EmitU8(static_cast<uint8_t>(OpcodeType::kUndefined));
     table.EmitU8(static_cast<uint8_t>(OpcodeType::kReturn));
     
     StackFrame stack_frame(&runtime_->stack());
-    Value func_val(func_def.get());
-    Value this_val;
     
-    Value result = vm_->CallFunction(&stack_frame, func_val, this_val, 
-                                   std::vector<Value>{}.begin(), 
-                                   std::vector<Value>{}.end());
+    Value this_val;
+    auto args = std::vector<Value>();
+    Value result = vm_->CallFunction(&stack_frame, func_def, this_val,
+        args.begin(),
+        args.end());
     
     EXPECT_TRUE(result.IsUndefined());
 }
@@ -787,14 +769,14 @@ TEST_F(VMTest, UndefinedValue) {
 // 测试复杂的控制流
 TEST_F(VMTest, ComplexControlFlow) {
     auto func_def = CreateSimpleFunction("test_complex_flow", 1);
-    func_def->var_def_table().AddVar("param");
+    func_def.function_def().var_def_table().AddVar("param");
     
     ConstIndex const_zero = AddConstant(Value(0.0));
     ConstIndex const_pos = AddConstant(Value(1.0));
     ConstIndex const_neg = AddConstant(Value(-1.0));
     
     // 生成字节码实现：if (param > 0) return 1; else if (param < 0) return -1; else return 0;
-    auto& table = func_def->bytecode_table();
+    auto& table = func_def.function_def().bytecode_table();
     
     // VLoad_0, CLoad 0, Gt
     table.EmitU8(static_cast<uint8_t>(OpcodeType::kVLoad_0));
@@ -833,13 +815,13 @@ TEST_F(VMTest, ComplexControlFlow) {
     table.EmitU8(static_cast<uint8_t>(OpcodeType::kReturn));
     
     StackFrame stack_frame(&runtime_->stack());
-    Value func_val(func_def.get());
+    
     Value this_val;
     
     // 测试正数
     {
         std::vector<Value> args = {Value(5.0)};
-        Value result = vm_->CallFunction(&stack_frame, func_val, this_val, 
+        Value result = vm_->CallFunction(&stack_frame, func_def, this_val, 
                                        args.begin(), args.end());
         EXPECT_TRUE(result.IsNumber());
         EXPECT_DOUBLE_EQ(result.f64(), 1.0);
@@ -848,7 +830,7 @@ TEST_F(VMTest, ComplexControlFlow) {
     // 测试负数
     {
         std::vector<Value> args = {Value(-3.0)};
-        Value result = vm_->CallFunction(&stack_frame, func_val, this_val, 
+        Value result = vm_->CallFunction(&stack_frame, func_def, this_val, 
                                        args.begin(), args.end());
         EXPECT_TRUE(result.IsNumber());
         EXPECT_DOUBLE_EQ(result.f64(), -1.0);
@@ -857,7 +839,7 @@ TEST_F(VMTest, ComplexControlFlow) {
     // 测试零
     {
         std::vector<Value> args = {Value(0.0)};
-        Value result = vm_->CallFunction(&stack_frame, func_val, this_val, 
+        Value result = vm_->CallFunction(&stack_frame, func_def, this_val, 
                                        args.begin(), args.end());
         EXPECT_TRUE(result.IsNumber());
         EXPECT_DOUBLE_EQ(result.f64(), 0.0);
@@ -871,18 +853,18 @@ TEST_F(VMTest, StringOperations) {
     ConstIndex str_const = AddConstant(Value("Hello"));
     
     // 生成字节码：CLoad "Hello", Return
-    auto& table = func_def->bytecode_table();
+    auto& table = func_def.function_def().bytecode_table();
     table.EmitU8(static_cast<uint8_t>(OpcodeType::kCLoad));
     table.EmitU8(static_cast<uint8_t>(str_const));
     table.EmitU8(static_cast<uint8_t>(OpcodeType::kReturn));
     
     StackFrame stack_frame(&runtime_->stack());
-    Value func_val(func_def.get());
-    Value this_val;
     
-    Value result = vm_->CallFunction(&stack_frame, func_val, this_val, 
-                                   std::vector<Value>{}.begin(), 
-                                   std::vector<Value>{}.end());
+    Value this_val;
+    auto args = std::vector<Value>();
+    Value result = vm_->CallFunction(&stack_frame, func_def, this_val,
+        args.begin(),
+        args.end());
     
     EXPECT_TRUE(result.IsString());
     EXPECT_EQ(std::string(result.string_view()), "Hello");
@@ -896,7 +878,7 @@ TEST_F(VMTest, BooleanOperations) {
     ConstIndex false_const = AddConstant(Value(false));
     
     // 生成字节码：CLoad true, CLoad false, Eq, Return (true == false 应该是false)
-    auto& table = func_def->bytecode_table();
+    auto& table = func_def.function_def().bytecode_table();
     table.EmitU8(static_cast<uint8_t>(OpcodeType::kCLoad));
     table.EmitU8(static_cast<uint8_t>(true_const));
     table.EmitU8(static_cast<uint8_t>(OpcodeType::kCLoad));
@@ -905,10 +887,10 @@ TEST_F(VMTest, BooleanOperations) {
     table.EmitU8(static_cast<uint8_t>(OpcodeType::kReturn));
     
     StackFrame stack_frame(&runtime_->stack());
-    Value func_val(func_def.get());
+    
     Value this_val;
     
-    Value result = vm_->CallFunction(&stack_frame, func_val, this_val, 
+    Value result = vm_->CallFunction(&stack_frame, func_def, this_val, 
                                    std::vector<Value>{}.begin(), 
                                    std::vector<Value>{}.end());
     
@@ -923,19 +905,19 @@ TEST_F(VMTest, IncrementOperation) {
     ConstIndex const_val = AddConstant(Value(5.0));
     
     // 生成字节码：CLoad 5, Inc, Return
-    auto& table = func_def->bytecode_table();
+    auto& table = func_def.function_def().bytecode_table();
     table.EmitU8(static_cast<uint8_t>(OpcodeType::kCLoad));
     table.EmitU8(static_cast<uint8_t>(const_val));
     table.EmitU8(static_cast<uint8_t>(OpcodeType::kInc));
     table.EmitU8(static_cast<uint8_t>(OpcodeType::kReturn));
     
     StackFrame stack_frame(&runtime_->stack());
-    Value func_val(func_def.get());
-    Value this_val;
     
-    Value result = vm_->CallFunction(&stack_frame, func_val, this_val, 
-                                   std::vector<Value>{}.begin(), 
-                                   std::vector<Value>{}.end());
+    Value this_val;
+    auto args = std::vector<Value>();
+    Value result = vm_->CallFunction(&stack_frame, func_def, this_val,
+        args.begin(),
+        args.end());
     
     EXPECT_TRUE(result.IsNumber());
     EXPECT_DOUBLE_EQ(result.f64(), 6.0);
@@ -949,7 +931,7 @@ TEST_F(VMTest, DivisionOperation) {
     ConstIndex const2 = AddConstant(Value(4.0));
     
     // 生成字节码：CLoad 20, CLoad 4, Div, Return
-    auto& table = func_def->bytecode_table();
+    auto& table = func_def.function_def().bytecode_table();
     table.EmitU8(static_cast<uint8_t>(OpcodeType::kCLoad));
     table.EmitU8(static_cast<uint8_t>(const1));
     table.EmitU8(static_cast<uint8_t>(OpcodeType::kCLoad));
@@ -958,12 +940,12 @@ TEST_F(VMTest, DivisionOperation) {
     table.EmitU8(static_cast<uint8_t>(OpcodeType::kReturn));
     
     StackFrame stack_frame(&runtime_->stack());
-    Value func_val(func_def.get());
-    Value this_val;
     
-    Value result = vm_->CallFunction(&stack_frame, func_val, this_val, 
-                                   std::vector<Value>{}.begin(), 
-                                   std::vector<Value>{}.end());
+    Value this_val;
+    auto args = std::vector<Value>();
+    Value result = vm_->CallFunction(&stack_frame, func_def, this_val,
+        args.begin(),
+        args.end());
     
     EXPECT_TRUE(result.IsNumber());
     EXPECT_DOUBLE_EQ(result.f64(), 5.0);
@@ -976,19 +958,19 @@ TEST_F(VMTest, NegationOperation) {
     ConstIndex const_val = AddConstant(Value(42.0));
     
     // 生成字节码：CLoad 42, Neg, Return
-    auto& table = func_def->bytecode_table();
+    auto& table = func_def.function_def().bytecode_table();
     table.EmitU8(static_cast<uint8_t>(OpcodeType::kCLoad));
     table.EmitU8(static_cast<uint8_t>(const_val));
     table.EmitU8(static_cast<uint8_t>(OpcodeType::kNeg));
     table.EmitU8(static_cast<uint8_t>(OpcodeType::kReturn));
     
     StackFrame stack_frame(&runtime_->stack());
-    Value func_val(func_def.get());
-    Value this_val;
     
-    Value result = vm_->CallFunction(&stack_frame, func_val, this_val, 
-                                   std::vector<Value>{}.begin(), 
-                                   std::vector<Value>{}.end());
+    Value this_val;
+    auto args = std::vector<Value>();
+    Value result = vm_->CallFunction(&stack_frame, func_def, this_val,
+        args.begin(),
+        args.end());
     
     EXPECT_TRUE(result.IsNumber());
     EXPECT_DOUBLE_EQ(result.f64(), -42.0);
@@ -1002,7 +984,7 @@ TEST_F(VMTest, NotEqualComparison) {
     ConstIndex const2 = AddConstant(Value(10.0));
     
     // 生成字节码：CLoad 5, CLoad 10, Ne, Return (5 != 10 应该是true)
-    auto& table = func_def->bytecode_table();
+    auto& table = func_def.function_def().bytecode_table();
     table.EmitU8(static_cast<uint8_t>(OpcodeType::kCLoad));
     table.EmitU8(static_cast<uint8_t>(const1));
     table.EmitU8(static_cast<uint8_t>(OpcodeType::kCLoad));
@@ -1011,12 +993,12 @@ TEST_F(VMTest, NotEqualComparison) {
     table.EmitU8(static_cast<uint8_t>(OpcodeType::kReturn));
     
     StackFrame stack_frame(&runtime_->stack());
-    Value func_val(func_def.get());
-    Value this_val;
     
-    Value result = vm_->CallFunction(&stack_frame, func_val, this_val, 
-                                   std::vector<Value>{}.begin(), 
-                                   std::vector<Value>{}.end());
+    Value this_val;
+    auto args = std::vector<Value>();
+    Value result = vm_->CallFunction(&stack_frame, func_def, this_val,
+        args.begin(),
+        args.end());
     
     EXPECT_TRUE(result.IsBoolean());
     EXPECT_TRUE(result.boolean());
@@ -1030,7 +1012,7 @@ TEST_F(VMTest, LessEqualComparison) {
     ConstIndex const2 = AddConstant(Value(5.0));
     
     // 生成字节码：CLoad 5, CLoad 5, Le, Return (5 <= 5 应该是true)
-    auto& table = func_def->bytecode_table();
+    auto& table = func_def.function_def().bytecode_table();
     table.EmitU8(static_cast<uint8_t>(OpcodeType::kCLoad));
     table.EmitU8(static_cast<uint8_t>(const1));
     table.EmitU8(static_cast<uint8_t>(OpcodeType::kCLoad));
@@ -1039,12 +1021,12 @@ TEST_F(VMTest, LessEqualComparison) {
     table.EmitU8(static_cast<uint8_t>(OpcodeType::kReturn));
     
     StackFrame stack_frame(&runtime_->stack());
-    Value func_val(func_def.get());
-    Value this_val;
     
-    Value result = vm_->CallFunction(&stack_frame, func_val, this_val, 
-                                   std::vector<Value>{}.begin(), 
-                                   std::vector<Value>{}.end());
+    Value this_val;
+    auto args = std::vector<Value>();
+    Value result = vm_->CallFunction(&stack_frame, func_def, this_val,
+        args.begin(),
+        args.end());
     
     EXPECT_TRUE(result.IsBoolean());
     EXPECT_TRUE(result.boolean());
@@ -1058,7 +1040,7 @@ TEST_F(VMTest, GreaterEqualComparison) {
     ConstIndex const2 = AddConstant(Value(5.0));
     
     // 生成字节码：CLoad 10, CLoad 5, Ge, Return (10 >= 5 应该是true)
-    auto& table = func_def->bytecode_table();
+    auto& table = func_def.function_def().bytecode_table();
     table.EmitU8(static_cast<uint8_t>(OpcodeType::kCLoad));
     table.EmitU8(static_cast<uint8_t>(const1));
     table.EmitU8(static_cast<uint8_t>(OpcodeType::kCLoad));
@@ -1067,12 +1049,12 @@ TEST_F(VMTest, GreaterEqualComparison) {
     table.EmitU8(static_cast<uint8_t>(OpcodeType::kReturn));
     
     StackFrame stack_frame(&runtime_->stack());
-    Value func_val(func_def.get());
-    Value this_val;
     
-    Value result = vm_->CallFunction(&stack_frame, func_val, this_val, 
-                                   std::vector<Value>{}.begin(), 
-                                   std::vector<Value>{}.end());
+    Value this_val;
+    auto args = std::vector<Value>();
+    Value result = vm_->CallFunction(&stack_frame, func_def, this_val,
+        args.begin(),
+        args.end());
     
     EXPECT_TRUE(result.IsBoolean());
     EXPECT_TRUE(result.boolean());
@@ -1086,7 +1068,7 @@ TEST_F(VMTest, LessThanComparison) {
     ConstIndex const2 = AddConstant(Value(7.0));
     
     // 生成字节码：CLoad 3, CLoad 7, Lt, Return (3 < 7 应该是true)
-    auto& table = func_def->bytecode_table();
+    auto& table = func_def.function_def().bytecode_table();
     table.EmitU8(static_cast<uint8_t>(OpcodeType::kCLoad));
     table.EmitU8(static_cast<uint8_t>(const1));
     table.EmitU8(static_cast<uint8_t>(OpcodeType::kCLoad));
@@ -1095,12 +1077,12 @@ TEST_F(VMTest, LessThanComparison) {
     table.EmitU8(static_cast<uint8_t>(OpcodeType::kReturn));
     
     StackFrame stack_frame(&runtime_->stack());
-    Value func_val(func_def.get());
-    Value this_val;
     
-    Value result = vm_->CallFunction(&stack_frame, func_val, this_val, 
-                                   std::vector<Value>{}.begin(), 
-                                   std::vector<Value>{}.end());
+    Value this_val;
+    auto args = std::vector<Value>();
+    Value result = vm_->CallFunction(&stack_frame, func_def, this_val,
+        args.begin(),
+        args.end());
     
     EXPECT_TRUE(result.IsBoolean());
     EXPECT_TRUE(result.boolean());
@@ -1113,7 +1095,7 @@ TEST_F(VMTest, DumpInstruction) {
     ConstIndex const_val = AddConstant(Value(99.0));
     
     // 生成字节码：CLoad 99, Dump, Add, Return (99 + 99 = 198)
-    auto& table = func_def->bytecode_table();
+    auto& table = func_def.function_def().bytecode_table();
     table.EmitU8(static_cast<uint8_t>(OpcodeType::kCLoad));
     table.EmitU8(static_cast<uint8_t>(const_val));
     table.EmitU8(static_cast<uint8_t>(OpcodeType::kDump));
@@ -1121,12 +1103,12 @@ TEST_F(VMTest, DumpInstruction) {
     table.EmitU8(static_cast<uint8_t>(OpcodeType::kReturn));
     
     StackFrame stack_frame(&runtime_->stack());
-    Value func_val(func_def.get());
-    Value this_val;
     
-    Value result = vm_->CallFunction(&stack_frame, func_val, this_val, 
-                                   std::vector<Value>{}.begin(), 
-                                   std::vector<Value>{}.end());
+    Value this_val;
+    auto args = std::vector<Value>();
+    Value result = vm_->CallFunction(&stack_frame, func_def, this_val,
+        args.begin(),
+        args.end());
     
     EXPECT_TRUE(result.IsNumber());
     EXPECT_DOUBLE_EQ(result.f64(), 198.0);
@@ -1141,19 +1123,19 @@ TEST_F(VMTest, ConstantLoadVariants) {
     ConstIndex const1 = AddConstant(Value(20.0));
     
     // 假设const0 = 0, const1 = 1，生成字节码：CLoad_0, CLoad_1, Add, Return
-    auto& table = func_def->bytecode_table();
+    auto& table = func_def.function_def().bytecode_table();
     table.EmitU8(static_cast<uint8_t>(OpcodeType::kCLoad_0));
     table.EmitU8(static_cast<uint8_t>(OpcodeType::kCLoad_1));
     table.EmitU8(static_cast<uint8_t>(OpcodeType::kAdd));
     table.EmitU8(static_cast<uint8_t>(OpcodeType::kReturn));
     
     StackFrame stack_frame(&runtime_->stack());
-    Value func_val(func_def.get());
-    Value this_val;
     
-    Value result = vm_->CallFunction(&stack_frame, func_val, this_val, 
-                                   std::vector<Value>{}.begin(), 
-                                   std::vector<Value>{}.end());
+    Value this_val;
+    auto args = std::vector<Value>();
+    Value result = vm_->CallFunction(&stack_frame, func_def, this_val,
+        args.begin(),
+        args.end());
     
     EXPECT_TRUE(result.IsNumber());
     // 结果取决于常量池中索引0和1的实际值
@@ -1162,13 +1144,13 @@ TEST_F(VMTest, ConstantLoadVariants) {
 // 测试变量加载的不同变体
 TEST_F(VMTest, VariableLoadVariants) {
     auto func_def = CreateSimpleFunction("test_var_variants", 4);
-    func_def->var_def_table().AddVar("param0");
-    func_def->var_def_table().AddVar("param1");
-    func_def->var_def_table().AddVar("param2");
-    func_def->var_def_table().AddVar("param3");
+    func_def.function_def().var_def_table().AddVar("param0");
+    func_def.function_def().var_def_table().AddVar("param1");
+    func_def.function_def().var_def_table().AddVar("param2");
+    func_def.function_def().var_def_table().AddVar("param3");
     
     // 生成字节码：VLoad_0, VLoad_1, VLoad_2, VLoad_3, Add, Add, Add, Return
-    auto& table = func_def->bytecode_table();
+    auto& table = func_def.function_def().bytecode_table();
     table.EmitU8(static_cast<uint8_t>(OpcodeType::kVLoad_0));
     table.EmitU8(static_cast<uint8_t>(OpcodeType::kVLoad_1));
     table.EmitU8(static_cast<uint8_t>(OpcodeType::kAdd));
@@ -1179,11 +1161,9 @@ TEST_F(VMTest, VariableLoadVariants) {
     table.EmitU8(static_cast<uint8_t>(OpcodeType::kReturn));
     
     StackFrame stack_frame(&runtime_->stack());
-    Value func_val(func_def.get());
     Value this_val;
     std::vector<Value> args = {Value(1.0), Value(2.0), Value(3.0), Value(4.0)};
-    
-    Value result = vm_->CallFunction(&stack_frame, func_val, this_val, 
+    Value result = vm_->CallFunction(&stack_frame, func_def, this_val, 
                                    args.begin(), args.end());
     
     EXPECT_TRUE(result.IsNumber());
@@ -1193,14 +1173,14 @@ TEST_F(VMTest, VariableLoadVariants) {
 // 测试变量存储的不同变体
 TEST_F(VMTest, VariableStoreVariants) {
     auto func_def = CreateSimpleFunction("test_var_store_variants", 1);
-    func_def->var_def_table().AddVar("param");
-    func_def->var_def_table().AddVar("local0");
-    func_def->var_def_table().AddVar("local1");
-    func_def->var_def_table().AddVar("local2");
-    func_def->var_def_table().AddVar("local3");
+    func_def.function_def().var_def_table().AddVar("param");
+    func_def.function_def().var_def_table().AddVar("local0");
+    func_def.function_def().var_def_table().AddVar("local1");
+    func_def.function_def().var_def_table().AddVar("local2");
+    func_def.function_def().var_def_table().AddVar("local3");
     
     // 生成字节码：VLoad_0, VStore_1, VStore_2, VStore_3, VLoad_1, VLoad_2, Add, VLoad_3, Add, Return
-    auto& table = func_def->bytecode_table();
+    auto& table = func_def.function_def().bytecode_table();
     table.EmitU8(static_cast<uint8_t>(OpcodeType::kVLoad_0));  // 加载参数
     table.EmitU8(static_cast<uint8_t>(OpcodeType::kDump));     // 复制
     table.EmitU8(static_cast<uint8_t>(OpcodeType::kVStore_1)); // 存储到local0
@@ -1215,11 +1195,9 @@ TEST_F(VMTest, VariableStoreVariants) {
     table.EmitU8(static_cast<uint8_t>(OpcodeType::kReturn));
     
     StackFrame stack_frame(&runtime_->stack());
-    Value func_val(func_def.get());
     Value this_val;
     std::vector<Value> args = {Value(5.0)};
-    
-    Value result = vm_->CallFunction(&stack_frame, func_val, this_val, 
+    Value result = vm_->CallFunction(&stack_frame, func_def, this_val, 
                                    args.begin(), args.end());
     
     EXPECT_TRUE(result.IsNumber());
@@ -1236,7 +1214,7 @@ TEST_F(VMTest, ComplexStackOperations) {
     
     // 生成字节码：CLoad 1, CLoad 2, CLoad 3, Swap, Pop, Add, Return
     // 栈变化：[1] -> [1,2] -> [1,2,3] -> [1,3,2] -> [1,3] -> [4]
-    auto& table = func_def->bytecode_table();
+    auto& table = func_def.function_def().bytecode_table();
     table.EmitU8(static_cast<uint8_t>(OpcodeType::kCLoad));
     table.EmitU8(static_cast<uint8_t>(const1));
     table.EmitU8(static_cast<uint8_t>(OpcodeType::kCLoad));
@@ -1249,12 +1227,11 @@ TEST_F(VMTest, ComplexStackOperations) {
     table.EmitU8(static_cast<uint8_t>(OpcodeType::kReturn));
     
     StackFrame stack_frame(&runtime_->stack());
-    Value func_val(func_def.get());
     Value this_val;
-    
-    Value result = vm_->CallFunction(&stack_frame, func_val, this_val, 
-                                   std::vector<Value>{}.begin(), 
-                                   std::vector<Value>{}.end());
+    auto args = std::vector<Value>();
+    Value result = vm_->CallFunction(&stack_frame, func_def, this_val,
+        args.begin(),
+        args.end());
     
     EXPECT_TRUE(result.IsNumber());
     EXPECT_DOUBLE_EQ(result.f64(), 4.0); // 1 + 3 = 4
@@ -1263,12 +1240,12 @@ TEST_F(VMTest, ComplexStackOperations) {
 // 测试多个参数的函数调用
 TEST_F(VMTest, MultiParameterFunctionCall) {
     auto func_def = CreateSimpleFunction("test_multi_param", 3);
-    func_def->var_def_table().AddVar("param0");
-    func_def->var_def_table().AddVar("param1");
-    func_def->var_def_table().AddVar("param2");
+    func_def.function_def().var_def_table().AddVar("param0");
+    func_def.function_def().var_def_table().AddVar("param1");
+    func_def.function_def().var_def_table().AddVar("param2");
     
     // 生成字节码：VLoad_0, VLoad_1, Mul, VLoad_2, Add, Return (param0 * param1 + param2)
-    auto& table = func_def->bytecode_table();
+    auto& table = func_def.function_def().bytecode_table();
     table.EmitU8(static_cast<uint8_t>(OpcodeType::kVLoad_0));
     table.EmitU8(static_cast<uint8_t>(OpcodeType::kVLoad_1));
     table.EmitU8(static_cast<uint8_t>(OpcodeType::kMul));
@@ -1277,11 +1254,9 @@ TEST_F(VMTest, MultiParameterFunctionCall) {
     table.EmitU8(static_cast<uint8_t>(OpcodeType::kReturn));
     
     StackFrame stack_frame(&runtime_->stack());
-    Value func_val(func_def.get());
     Value this_val;
     std::vector<Value> args = {Value(3.0), Value(4.0), Value(5.0)};
-    
-    Value result = vm_->CallFunction(&stack_frame, func_val, this_val, 
+    Value result = vm_->CallFunction(&stack_frame, func_def, this_val, 
                                    args.begin(), args.end());
     
     EXPECT_TRUE(result.IsNumber());
@@ -1291,23 +1266,21 @@ TEST_F(VMTest, MultiParameterFunctionCall) {
 // 测试参数过多的情况
 TEST_F(VMTest, ExcessParameterHandling) {
     auto func_def = CreateSimpleFunction("test_excess_params", 2);
-    func_def->var_def_table().AddVar("param0");
-    func_def->var_def_table().AddVar("param1");
+    func_def.function_def().var_def_table().AddVar("param0");
+    func_def.function_def().var_def_table().AddVar("param1");
     
     // 生成字节码：VLoad_0, VLoad_1, Add, Return
-    auto& table = func_def->bytecode_table();
+    auto& table = func_def.function_def().bytecode_table();
     table.EmitU8(static_cast<uint8_t>(OpcodeType::kVLoad_0));
     table.EmitU8(static_cast<uint8_t>(OpcodeType::kVLoad_1));
     table.EmitU8(static_cast<uint8_t>(OpcodeType::kAdd));
     table.EmitU8(static_cast<uint8_t>(OpcodeType::kReturn));
     
     StackFrame stack_frame(&runtime_->stack());
-    Value func_val(func_def.get());
     Value this_val;
     // 传递3个参数，但函数只需要2个
     std::vector<Value> args = {Value(10.0), Value(20.0), Value(30.0)};
-    
-    Value result = vm_->CallFunction(&stack_frame, func_val, this_val, 
+    Value result = vm_->CallFunction(&stack_frame, func_def, this_val, 
                                    args.begin(), args.end());
     
     EXPECT_TRUE(result.IsNumber());
@@ -1316,13 +1289,13 @@ TEST_F(VMTest, ExcessParameterHandling) {
 
 // 测试模块导出变量绑定
 TEST_F(VMTest, ModuleExportVariableBinding) {
-    auto module_def = std::make_unique<ModuleDef>("test_export_module");
+    auto module_def = new ModuleDef(runtime_.get(), "test_export_module", "", 0);
     
     // 添加导出变量
     module_def->export_var_def_table().AddExportVar("exportedValue", 0);
     
     // 创建模块函数
-    auto func_def = std::make_unique<FunctionDef>(module_def.get(), "module_func", 0);
+    auto func_def = new FunctionDef(module_def, "module_func", 0);
     func_def->set_is_module();
     func_def->var_def_table().AddVar("exportedValue");
     
@@ -1336,19 +1309,18 @@ TEST_F(VMTest, ModuleExportVariableBinding) {
     table.EmitU8(static_cast<uint8_t>(OpcodeType::kVLoad_0));
     table.EmitU8(static_cast<uint8_t>(OpcodeType::kReturn));
     
-    Value module_val(module_def.get());
+    Value module_val(module_def);
     vm_->ModuleInit(&module_val);
     
     EXPECT_TRUE(module_val.IsModuleObject());
     
     // 执行模块函数
     StackFrame stack_frame(&runtime_->stack());
-    Value func_val(func_def.get());
     Value this_val;
-    
-    Value result = vm_->CallFunction(&stack_frame, func_val, this_val, 
-                                   std::vector<Value>{}.begin(), 
-                                   std::vector<Value>{}.end());
+    auto args = std::vector<Value>();
+    Value result = vm_->CallFunction(&stack_frame, Value(func_def), this_val,
+        args.begin(),
+        args.end());
     
     EXPECT_TRUE(result.IsNumber());
     EXPECT_DOUBLE_EQ(result.f64(), 123.0);
@@ -1362,7 +1334,7 @@ TEST_F(VMTest, ExceptionInArithmetic) {
     ConstIndex const_ten = AddConstant(Value(10.0));
     
     // 生成字节码：CLoad 10, CLoad 0, Div, Return (除零可能产生异常或特殊值)
-    auto& table = func_def->bytecode_table();
+    auto& table = func_def.function_def().bytecode_table();
     table.EmitU8(static_cast<uint8_t>(OpcodeType::kCLoad));
     table.EmitU8(static_cast<uint8_t>(const_ten));
     table.EmitU8(static_cast<uint8_t>(OpcodeType::kCLoad));
@@ -1371,12 +1343,11 @@ TEST_F(VMTest, ExceptionInArithmetic) {
     table.EmitU8(static_cast<uint8_t>(OpcodeType::kReturn));
     
     StackFrame stack_frame(&runtime_->stack());
-    Value func_val(func_def.get());
     Value this_val;
-    
-    Value result = vm_->CallFunction(&stack_frame, func_val, this_val, 
-                                   std::vector<Value>{}.begin(), 
-                                   std::vector<Value>{}.end());
+    auto args = std::vector<Value>();
+    Value result = vm_->CallFunction(&stack_frame, Value(func_def), this_val,
+        args.begin(),
+        args.end());
     
     // 结果可能是Infinity、异常或其他特殊值，主要测试VM不会崩溃
     EXPECT_TRUE(result.IsNumber() || result.IsException());
