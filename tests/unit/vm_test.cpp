@@ -81,9 +81,8 @@ TEST_F(VMTest, BasicInstructionExecution_ConstantLoad) {
     
     // 生成字节码：CLoad 常量索引, Return
     auto& table = func_def.function_def().bytecode_table();
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kCLoad));
-    table.EmitU8(static_cast<uint8_t>(const_idx));
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kReturn));
+    table.EmitConstLoad(const_idx);
+    table.EmitOpcode(OpcodeType::kReturn);
     
     // 创建栈帧并执行
     StackFrame stack_frame(&runtime_->stack());
@@ -105,10 +104,10 @@ TEST_F(VMTest, VariableOperations) {
     
     // 生成字节码：VLoad_0 (加载参数), VStore_1 (存储到本地变量), VLoad_1, Return
     auto& table = func_def.function_def().bytecode_table();
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kVLoad_0));  // 加载参数0
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kVStore_1)); // 存储到变量1
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kVLoad_1));  // 加载变量1
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kReturn));
+    table.EmitOpcode(OpcodeType::kVLoad_0);  // 加载参数0
+    table.EmitOpcode(OpcodeType::kVStore_1); // 存储到变量1
+    table.EmitOpcode(OpcodeType::kVLoad_1);  // 加载变量1
+    table.EmitOpcode(OpcodeType::kReturn);
     
     StackFrame stack_frame(&runtime_->stack());
     Value this_val;
@@ -131,12 +130,10 @@ TEST_F(VMTest, ArithmeticOperations) {
     
     // 生成字节码：CLoad 10, CLoad 5, Add, Return
     auto& table = func_def.function_def().bytecode_table();
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kCLoad));
-    table.EmitU8(static_cast<uint8_t>(const1));
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kCLoad));
-    table.EmitU8(static_cast<uint8_t>(const2));
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kAdd));
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kReturn));
+    table.EmitConstLoad(const1);
+    table.EmitConstLoad(const2);
+    table.EmitOpcode(OpcodeType::kAdd);
+    table.EmitOpcode(OpcodeType::kReturn);
     
     StackFrame stack_frame(&runtime_->stack());
     Value this_val;
@@ -158,15 +155,12 @@ TEST_F(VMTest, MultipleArithmeticOperations) {
     
     // 生成字节码：CLoad 20, CLoad 4, Sub, CLoad 4, Mul, Return (结果应该是 (20-4)*4 = 64)
     auto& table = func_def.function_def().bytecode_table();
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kCLoad));
-    table.EmitU8(static_cast<uint8_t>(const1));
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kCLoad));
-    table.EmitU8(static_cast<uint8_t>(const2));
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kSub));
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kCLoad));
-    table.EmitU8(static_cast<uint8_t>(const2));
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kMul));
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kReturn));
+    table.EmitConstLoad(const1);
+    table.EmitConstLoad(const2);
+    table.EmitOpcode(OpcodeType::kSub);
+    table.EmitConstLoad(const2);
+    table.EmitOpcode(OpcodeType::kMul);
+    table.EmitOpcode(OpcodeType::kReturn);
     
     StackFrame stack_frame(&runtime_->stack());
     Value this_val;
@@ -188,13 +182,11 @@ TEST_F(VMTest, StackOperations) {
     
     // 生成字节码：CLoad 1, CLoad 2, Swap, Pop, Return (结果应该是1)
     auto& table = func_def.function_def().bytecode_table();
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kCLoad));
-    table.EmitU8(static_cast<uint8_t>(const1));
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kCLoad));
-    table.EmitU8(static_cast<uint8_t>(const2));
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kSwap));
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kPop));
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kReturn));
+    table.EmitConstLoad(const1);
+    table.EmitConstLoad(const2);
+    table.EmitOpcode(OpcodeType::kSwap);
+    table.EmitOpcode(OpcodeType::kPop);
+    table.EmitOpcode(OpcodeType::kReturn);
     
     StackFrame stack_frame(&runtime_->stack());
     Value this_val;
@@ -216,12 +208,10 @@ TEST_F(VMTest, ComparisonOperations) {
     
     // 生成字节码：CLoad 10, CLoad 5, Gt, Return (10 > 5 应该是true)
     auto& table = func_def.function_def().bytecode_table();
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kCLoad));
-    table.EmitU8(static_cast<uint8_t>(const1));
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kCLoad));
-    table.EmitU8(static_cast<uint8_t>(const2));
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kGt));
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kReturn));
+    table.EmitConstLoad(const1);
+    table.EmitConstLoad(const2);
+    table.EmitOpcode(OpcodeType::kGt);
+    table.EmitOpcode(OpcodeType::kReturn);
     
     StackFrame stack_frame(&runtime_->stack());
     Value this_val;
@@ -250,17 +240,14 @@ TEST_F(VMTest, ConditionalJump) {
     // CLoad 100
     // Return
     auto& table = func_def.function_def().bytecode_table();
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kCLoad));
-    table.EmitU8(static_cast<uint8_t>(const_true));
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kIfEq));
+    table.EmitConstLoad(const_true);
+    table.EmitOpcode(OpcodeType::kIfEq);
     table.EmitU16(4); // 跳转偏移
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kCLoad));
-    table.EmitU8(static_cast<uint8_t>(const2));
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kGoto));
+    table.EmitConstLoad(const2);
+    table.EmitOpcode(OpcodeType::kGoto);
     table.EmitU16(2); // 跳转偏移
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kCLoad));
-    table.EmitU8(static_cast<uint8_t>(const1));
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kReturn));
+    table.EmitConstLoad(const1);
+    table.EmitOpcode(OpcodeType::kReturn);
     
     StackFrame stack_frame(&runtime_->stack());
     Value this_val;
@@ -281,9 +268,9 @@ TEST_F(VMTest, FunctionCall) {
     
     // 被调用函数的字节码：VLoad_0, Inc, Return
     auto& called_table = called_func.function_def().bytecode_table();
-    called_table.EmitU8(static_cast<uint8_t>(OpcodeType::kVLoad_0));
-    called_table.EmitU8(static_cast<uint8_t>(OpcodeType::kInc));
-    called_table.EmitU8(static_cast<uint8_t>(OpcodeType::kReturn));
+    called_table.EmitOpcode(OpcodeType::kVLoad_0);
+    called_table.EmitOpcode(OpcodeType::kInc);
+    called_table.EmitOpcode(OpcodeType::kReturn);
     
     // 将被调用函数添加到常量池
     ConstIndex func_const = AddConstant(called_func);
@@ -320,9 +307,8 @@ TEST_F(VMTest, ExceptionHandling) {
     
     // 生成字节码：CLoad error, Throw
     auto& table = func_def.function_def().bytecode_table();
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kCLoad));
-    table.EmitU8(static_cast<uint8_t>(error_const));
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kThrow));
+    table.EmitConstLoad(error_const);
+    table.EmitOpcode(OpcodeType::kThrow);
     
     StackFrame stack_frame(&runtime_->stack());
     Value this_val;
@@ -355,16 +341,13 @@ TEST_F(VMTest, TryCatchException) {
     // 5: CLoad 99 (catch块)
     // 6: Return
     auto& table = func_def.function_def().bytecode_table();
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kTryBegin));      // 0
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kCLoad));         // 1
-    table.EmitU8(static_cast<uint8_t>(error_const));
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kThrow));         // 3
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kCLoad));         // 4
-    table.EmitU8(static_cast<uint8_t>(success_const));
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kTryEnd));        // 6
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kCLoad));         // 7 (catch开始)
-    table.EmitU8(static_cast<uint8_t>(caught_const));
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kReturn));        // 9
+    table.EmitOpcode(OpcodeType::kTryBegin);      // 0
+    table.EmitConstLoad(error_const);             // 1
+    table.EmitOpcode(OpcodeType::kThrow);         // 3
+    table.EmitConstLoad(success_const);           // 4
+    table.EmitOpcode(OpcodeType::kTryEnd);        // 6
+    table.EmitConstLoad(caught_const);            // 7 (catch开始)
+    table.EmitOpcode(OpcodeType::kReturn);        // 9
     
     StackFrame stack_frame(&runtime_->stack());
     Value this_val;
@@ -387,12 +370,10 @@ TEST_F(VMTest, GeneratorFunction) {
     
     // 生成字节码：CLoad 1, Yield, CLoad 2, GeneratorReturn
     auto& table = func_def.function_def().bytecode_table();
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kCLoad));
-    table.EmitU8(static_cast<uint8_t>(const1));
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kYield));
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kCLoad));
-    table.EmitU8(static_cast<uint8_t>(const2));
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kGeneratorReturn));
+    table.EmitConstLoad(const1);
+    table.EmitOpcode(OpcodeType::kYield);
+    table.EmitConstLoad(const2);
+    table.EmitOpcode(OpcodeType::kGeneratorReturn);
     
     StackFrame stack_frame(&runtime_->stack());
     Value this_val;
@@ -417,9 +398,8 @@ TEST_F(VMTest, AsyncFunction) {
     
     // 生成字节码：CLoad 42, AsyncReturn
     auto& table = func_def.function_def().bytecode_table();
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kCLoad));
-    table.EmitU8(static_cast<uint8_t>(const_val));
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kAsyncReturn));
+    table.EmitConstLoad(const_val);
+    table.EmitOpcode(OpcodeType::kAsyncReturn);
     
     StackFrame stack_frame(&runtime_->stack());
     
@@ -478,8 +458,8 @@ TEST_F(VMTest, ParameterCountValidation) {
     
     // 简单返回第一个参数
     auto& table = func_def.function_def().bytecode_table();
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kVLoad_0));
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kReturn));
+    table.EmitOpcode(OpcodeType::kVLoad_0);
+    table.EmitOpcode(OpcodeType::kReturn);
     
     StackFrame stack_frame(&runtime_->stack());
     
@@ -509,14 +489,11 @@ TEST_F(VMTest, ClosureVariables) {
     
     // 外部函数字节码：CLoad 100, VStore_0, CLoad inner_func, Closure, Return
     auto& outer_table = outer_func.function_def().bytecode_table();
-    outer_table.EmitU8(static_cast<uint8_t>(OpcodeType::kCLoad));
-    outer_table.EmitU8(static_cast<uint8_t>(const_val));
-    outer_table.EmitU8(static_cast<uint8_t>(OpcodeType::kVStore_0));
-    outer_table.EmitU32(static_cast<uint32_t>(OpcodeType::kCLoad));
-    outer_table.EmitU32(static_cast<uint32_t>(inner_func_const));
-    outer_table.EmitU8(static_cast<uint8_t>(OpcodeType::kClosure));
-    outer_table.EmitU32(static_cast<uint32_t>(inner_func_const));
-    outer_table.EmitU8(static_cast<uint8_t>(OpcodeType::kReturn));
+    outer_table.EmitConstLoad(const_val);
+    outer_table.EmitOpcode(OpcodeType::kVStore_0);
+    outer_table.EmitConstLoad(inner_func_const);
+    outer_table.EmitClosure(inner_func_const);
+    outer_table.EmitOpcode(OpcodeType::kReturn);
     
     StackFrame stack_frame(&runtime_->stack());
     Value this_val;
@@ -537,12 +514,10 @@ TEST_F(VMTest, BitwiseOperations) {
     
     // 生成字节码：CLoad 15, CLoad 7, BitAnd, Return (应该得到7)
     auto& table = func_def.function_def().bytecode_table();
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kCLoad));
-    table.EmitU8(static_cast<uint8_t>(const1));
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kCLoad));
-    table.EmitU8(static_cast<uint8_t>(const2));
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kBitAnd));
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kReturn));
+    table.EmitConstLoad(const1);
+    table.EmitConstLoad(const2);
+    table.EmitOpcode(OpcodeType::kBitAnd);
+    table.EmitOpcode(OpcodeType::kReturn);
     
     StackFrame stack_frame(&runtime_->stack());
     
@@ -565,12 +540,10 @@ TEST_F(VMTest, BitwiseOrOperation) {
     
     // 生成字节码：CLoad 12, CLoad 3, BitOr, Return (应该得到15: 1111)
     auto& table = func_def.function_def().bytecode_table();
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kCLoad));
-    table.EmitU8(static_cast<uint8_t>(const1));
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kCLoad));
-    table.EmitU8(static_cast<uint8_t>(const2));
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kBitOr));
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kReturn));
+    table.EmitConstLoad(const1);
+    table.EmitConstLoad(const2);
+    table.EmitOpcode(OpcodeType::kBitOr);
+    table.EmitOpcode(OpcodeType::kReturn);
     
     StackFrame stack_frame(&runtime_->stack());
     
@@ -593,12 +566,10 @@ TEST_F(VMTest, BitwiseXorOperation) {
     
     // 生成字节码：CLoad 12, CLoad 10, BitXor, Return (应该得到6: 0110)
     auto& table = func_def.function_def().bytecode_table();
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kCLoad));
-    table.EmitU8(static_cast<uint8_t>(const1));
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kCLoad));
-    table.EmitU8(static_cast<uint8_t>(const2));
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kBitXor));
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kReturn));
+    table.EmitConstLoad(const1);
+    table.EmitConstLoad(const2);
+    table.EmitOpcode(OpcodeType::kBitXor);
+    table.EmitOpcode(OpcodeType::kReturn);
     
     StackFrame stack_frame(&runtime_->stack());
     
@@ -620,10 +591,9 @@ TEST_F(VMTest, BitwiseNotOperation) {
     
     // 生成字节码：CLoad 5, BitNot, Return
     auto& table = func_def.function_def().bytecode_table();
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kCLoad));
-    table.EmitU8(static_cast<uint8_t>(const1));
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kBitNot));
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kReturn));
+    table.EmitConstLoad(const1);
+    table.EmitOpcode(OpcodeType::kBitNot);
+    table.EmitOpcode(OpcodeType::kReturn);
     
     StackFrame stack_frame(&runtime_->stack());
     
@@ -646,12 +616,10 @@ TEST_F(VMTest, ShiftOperations) {
     
     // 生成字节码：CLoad 8, CLoad 2, Shl, Return (8 << 2 = 32)
     auto& table = func_def.function_def().bytecode_table();
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kCLoad));
-    table.EmitU8(static_cast<uint8_t>(const1));
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kCLoad));
-    table.EmitU8(static_cast<uint8_t>(const2));
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kShl));
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kReturn));
+    table.EmitConstLoad(const1);
+    table.EmitConstLoad(const2);
+    table.EmitOpcode(OpcodeType::kShl);
+    table.EmitOpcode(OpcodeType::kReturn);
     
     StackFrame stack_frame(&runtime_->stack());
     
@@ -674,12 +642,10 @@ TEST_F(VMTest, RightShiftOperation) {
     
     // 生成字节码：CLoad 32, CLoad 2, Shr, Return (32 >> 2 = 8)
     auto& table = func_def.function_def().bytecode_table();
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kCLoad));
-    table.EmitU8(static_cast<uint8_t>(const1));
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kCLoad));
-    table.EmitU8(static_cast<uint8_t>(const2));
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kShr));
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kReturn));
+    table.EmitConstLoad(const1);
+    table.EmitConstLoad(const2);
+    table.EmitOpcode(OpcodeType::kShr);
+    table.EmitOpcode(OpcodeType::kReturn);
     
     StackFrame stack_frame(&runtime_->stack());
     
@@ -702,12 +668,10 @@ TEST_F(VMTest, UnsignedRightShiftOperation) {
     
     // 生成字节码：CLoad 32, CLoad 2, UShr, Return
     auto& table = func_def.function_def().bytecode_table();
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kCLoad));
-    table.EmitU8(static_cast<uint8_t>(const1));
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kCLoad));
-    table.EmitU8(static_cast<uint8_t>(const2));
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kUShr));
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kReturn));
+    table.EmitConstLoad(const1);
+    table.EmitConstLoad(const2);
+    table.EmitOpcode(OpcodeType::kUShr);
+    table.EmitOpcode(OpcodeType::kReturn);
     
     StackFrame stack_frame(&runtime_->stack());
     
@@ -729,10 +693,9 @@ TEST_F(VMTest, StringConversion) {
     
     // 生成字节码：CLoad 42, ToString, Return
     auto& table = func_def.function_def().bytecode_table();
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kCLoad));
-    table.EmitU8(static_cast<uint8_t>(const_num));
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kToString));
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kReturn));
+    table.EmitConstLoad(const_num);
+    table.EmitOpcode(OpcodeType::kToString);
+    table.EmitOpcode(OpcodeType::kReturn);
     
     StackFrame stack_frame(&runtime_->stack());
     
@@ -752,8 +715,8 @@ TEST_F(VMTest, UndefinedValue) {
     
     // 生成字节码：Undefined, Return
     auto& table = func_def.function_def().bytecode_table();
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kUndefined));
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kReturn));
+    table.EmitOpcode(OpcodeType::kUndefined);
+    table.EmitOpcode(OpcodeType::kReturn);
     
     StackFrame stack_frame(&runtime_->stack());
     
@@ -779,40 +742,34 @@ TEST_F(VMTest, ComplexControlFlow) {
     auto& table = func_def.function_def().bytecode_table();
     
     // VLoad_0, CLoad 0, Gt
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kVLoad_0));
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kCLoad));
-    table.EmitU8(static_cast<uint8_t>(const_zero));
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kGt));
+    table.EmitOpcode(OpcodeType::kVLoad_0);
+    table.EmitConstLoad(const_zero);
+    table.EmitOpcode(OpcodeType::kGt);
     
     // IfEq +4 (如果>0跳转到返回1)
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kIfEq));
+    table.EmitOpcode(OpcodeType::kIfEq);
     table.EmitU16(4);
     
     // VLoad_0, CLoad 0, Lt
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kVLoad_0));
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kCLoad));
-    table.EmitU8(static_cast<uint8_t>(const_zero));
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kLt));
+    table.EmitOpcode(OpcodeType::kVLoad_0);
+    table.EmitConstLoad(const_zero);
+    table.EmitOpcode(OpcodeType::kLt);
     
     // IfEq +4 (如果<0跳转到返回-1)
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kIfEq));
+    table.EmitOpcode(OpcodeType::kIfEq);
     table.EmitU16(4);
     
     // 返回0
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kCLoad));
-    table.EmitU8(static_cast<uint8_t>(const_zero));
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kReturn));
+    table.EmitConstLoad(const_zero);
+    table.EmitOpcode(OpcodeType::kReturn);
     
     // 返回-1
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kCLoad));
-    table.EmitU8(static_cast<uint8_t>(const_neg));
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kReturn));
+    table.EmitConstLoad(const_neg);
+    table.EmitOpcode(OpcodeType::kReturn);
     
     // 返回1
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kCLoad));
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kCLoad));
-    table.EmitU8(static_cast<uint8_t>(const_pos));
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kReturn));
+    table.EmitConstLoad(const_pos);
+    table.EmitOpcode(OpcodeType::kReturn);
     
     StackFrame stack_frame(&runtime_->stack());
     
@@ -854,9 +811,8 @@ TEST_F(VMTest, StringOperations) {
     
     // 生成字节码：CLoad "Hello", Return
     auto& table = func_def.function_def().bytecode_table();
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kCLoad));
-    table.EmitU8(static_cast<uint8_t>(str_const));
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kReturn));
+    table.EmitConstLoad(str_const);
+    table.EmitOpcode(OpcodeType::kReturn);
     
     StackFrame stack_frame(&runtime_->stack());
     
@@ -879,12 +835,10 @@ TEST_F(VMTest, BooleanOperations) {
     
     // 生成字节码：CLoad true, CLoad false, Eq, Return (true == false 应该是false)
     auto& table = func_def.function_def().bytecode_table();
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kCLoad));
-    table.EmitU8(static_cast<uint8_t>(true_const));
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kCLoad));
-    table.EmitU8(static_cast<uint8_t>(false_const));
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kEq));
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kReturn));
+    table.EmitConstLoad(true_const);
+    table.EmitConstLoad(false_const);
+    table.EmitOpcode(OpcodeType::kEq);
+    table.EmitOpcode(OpcodeType::kReturn);
     
     StackFrame stack_frame(&runtime_->stack());
     
@@ -906,10 +860,9 @@ TEST_F(VMTest, IncrementOperation) {
     
     // 生成字节码：CLoad 5, Inc, Return
     auto& table = func_def.function_def().bytecode_table();
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kCLoad));
-    table.EmitU8(static_cast<uint8_t>(const_val));
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kInc));
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kReturn));
+    table.EmitConstLoad(const_val);
+    table.EmitOpcode(OpcodeType::kInc);
+    table.EmitOpcode(OpcodeType::kReturn);
     
     StackFrame stack_frame(&runtime_->stack());
     
@@ -932,12 +885,10 @@ TEST_F(VMTest, DivisionOperation) {
     
     // 生成字节码：CLoad 20, CLoad 4, Div, Return
     auto& table = func_def.function_def().bytecode_table();
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kCLoad));
-    table.EmitU8(static_cast<uint8_t>(const1));
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kCLoad));
-    table.EmitU8(static_cast<uint8_t>(const2));
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kDiv));
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kReturn));
+    table.EmitConstLoad(const1);
+    table.EmitConstLoad(const2);
+    table.EmitOpcode(OpcodeType::kDiv);
+    table.EmitOpcode(OpcodeType::kReturn);
     
     StackFrame stack_frame(&runtime_->stack());
     
@@ -959,10 +910,9 @@ TEST_F(VMTest, NegationOperation) {
     
     // 生成字节码：CLoad 42, Neg, Return
     auto& table = func_def.function_def().bytecode_table();
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kCLoad));
-    table.EmitU8(static_cast<uint8_t>(const_val));
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kNeg));
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kReturn));
+    table.EmitConstLoad(const_val);
+    table.EmitOpcode(OpcodeType::kNeg);
+    table.EmitOpcode(OpcodeType::kReturn);
     
     StackFrame stack_frame(&runtime_->stack());
     
@@ -985,12 +935,10 @@ TEST_F(VMTest, NotEqualComparison) {
     
     // 生成字节码：CLoad 5, CLoad 10, Ne, Return (5 != 10 应该是true)
     auto& table = func_def.function_def().bytecode_table();
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kCLoad));
-    table.EmitU8(static_cast<uint8_t>(const1));
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kCLoad));
-    table.EmitU8(static_cast<uint8_t>(const2));
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kNe));
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kReturn));
+    table.EmitConstLoad(const1);
+    table.EmitConstLoad(const2);
+    table.EmitOpcode(OpcodeType::kNe);
+    table.EmitOpcode(OpcodeType::kReturn);
     
     StackFrame stack_frame(&runtime_->stack());
     
@@ -1013,12 +961,10 @@ TEST_F(VMTest, LessEqualComparison) {
     
     // 生成字节码：CLoad 5, CLoad 5, Le, Return (5 <= 5 应该是true)
     auto& table = func_def.function_def().bytecode_table();
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kCLoad));
-    table.EmitU8(static_cast<uint8_t>(const1));
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kCLoad));
-    table.EmitU8(static_cast<uint8_t>(const2));
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kLe));
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kReturn));
+    table.EmitConstLoad(const1);
+    table.EmitConstLoad(const2);
+    table.EmitOpcode(OpcodeType::kLe);
+    table.EmitOpcode(OpcodeType::kReturn);
     
     StackFrame stack_frame(&runtime_->stack());
     
@@ -1041,12 +987,10 @@ TEST_F(VMTest, GreaterEqualComparison) {
     
     // 生成字节码：CLoad 10, CLoad 5, Ge, Return (10 >= 5 应该是true)
     auto& table = func_def.function_def().bytecode_table();
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kCLoad));
-    table.EmitU8(static_cast<uint8_t>(const1));
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kCLoad));
-    table.EmitU8(static_cast<uint8_t>(const2));
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kGe));
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kReturn));
+    table.EmitConstLoad(const1);
+    table.EmitConstLoad(const2);
+    table.EmitOpcode(OpcodeType::kGe);
+    table.EmitOpcode(OpcodeType::kReturn);
     
     StackFrame stack_frame(&runtime_->stack());
     
@@ -1069,12 +1013,10 @@ TEST_F(VMTest, LessThanComparison) {
     
     // 生成字节码：CLoad 3, CLoad 7, Lt, Return (3 < 7 应该是true)
     auto& table = func_def.function_def().bytecode_table();
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kCLoad));
-    table.EmitU8(static_cast<uint8_t>(const1));
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kCLoad));
-    table.EmitU8(static_cast<uint8_t>(const2));
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kLt));
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kReturn));
+    table.EmitConstLoad(const1);
+    table.EmitConstLoad(const2);
+    table.EmitOpcode(OpcodeType::kLt);
+    table.EmitOpcode(OpcodeType::kReturn);
     
     StackFrame stack_frame(&runtime_->stack());
     
@@ -1096,11 +1038,10 @@ TEST_F(VMTest, DumpInstruction) {
     
     // 生成字节码：CLoad 99, Dump, Add, Return (99 + 99 = 198)
     auto& table = func_def.function_def().bytecode_table();
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kCLoad));
-    table.EmitU8(static_cast<uint8_t>(const_val));
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kDump));
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kAdd));
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kReturn));
+    table.EmitConstLoad(const_val);
+    table.EmitOpcode(OpcodeType::kDump);
+    table.EmitOpcode(OpcodeType::kAdd);
+    table.EmitOpcode(OpcodeType::kReturn);
     
     StackFrame stack_frame(&runtime_->stack());
     
@@ -1124,10 +1065,10 @@ TEST_F(VMTest, ConstantLoadVariants) {
     
     // 假设const0 = 0, const1 = 1，生成字节码：CLoad_0, CLoad_1, Add, Return
     auto& table = func_def.function_def().bytecode_table();
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kCLoad_0));
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kCLoad_1));
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kAdd));
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kReturn));
+    table.EmitOpcode(OpcodeType::kCLoad_0);
+    table.EmitOpcode(OpcodeType::kCLoad_1);
+    table.EmitOpcode(OpcodeType::kAdd);
+    table.EmitOpcode(OpcodeType::kReturn);
     
     StackFrame stack_frame(&runtime_->stack());
     
@@ -1149,16 +1090,16 @@ TEST_F(VMTest, VariableLoadVariants) {
     func_def.function_def().var_def_table().AddVar("param2");
     func_def.function_def().var_def_table().AddVar("param3");
     
-    // 生成字节码：VLoad_0, VLoad_1, VLoad_2, VLoad_3, Add, Add, Add, Return
+    // 生成字节码：VLoad_0, VLoad_1, Add, VLoad_2, Add, VLoad_3, Add, Return
     auto& table = func_def.function_def().bytecode_table();
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kVLoad_0));
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kVLoad_1));
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kAdd));
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kVLoad_2));
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kAdd));
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kVLoad_3));
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kAdd));
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kReturn));
+    table.EmitOpcode(OpcodeType::kVLoad_0);
+    table.EmitOpcode(OpcodeType::kVLoad_1);
+    table.EmitOpcode(OpcodeType::kAdd);
+    table.EmitOpcode(OpcodeType::kVLoad_2);
+    table.EmitOpcode(OpcodeType::kAdd);
+    table.EmitOpcode(OpcodeType::kVLoad_3);
+    table.EmitOpcode(OpcodeType::kAdd);
+    table.EmitOpcode(OpcodeType::kReturn);
     
     StackFrame stack_frame(&runtime_->stack());
     Value this_val;
@@ -1181,18 +1122,18 @@ TEST_F(VMTest, VariableStoreVariants) {
     
     // 生成字节码：VLoad_0, VStore_1, VStore_2, VStore_3, VLoad_1, VLoad_2, Add, VLoad_3, Add, Return
     auto& table = func_def.function_def().bytecode_table();
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kVLoad_0));  // 加载参数
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kDump));     // 复制
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kVStore_1)); // 存储到local0
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kDump));     // 复制
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kVStore_2)); // 存储到local1
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kVStore_3)); // 存储到local2
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kVLoad_1));  // 加载local0
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kVLoad_2));  // 加载local1
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kAdd));
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kVLoad_3));  // 加载local2
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kAdd));
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kReturn));
+    table.EmitOpcode(OpcodeType::kVLoad_0);  // 加载参数
+    table.EmitOpcode(OpcodeType::kDump);     // 复制
+    table.EmitOpcode(OpcodeType::kVStore_1); // 存储到local0
+    table.EmitOpcode(OpcodeType::kDump);     // 复制
+    table.EmitOpcode(OpcodeType::kVStore_2); // 存储到local1
+    table.EmitOpcode(OpcodeType::kVStore_3); // 存储到local2
+    table.EmitOpcode(OpcodeType::kVLoad_1);  // 加载local0
+    table.EmitOpcode(OpcodeType::kVLoad_2);  // 加载local1
+    table.EmitOpcode(OpcodeType::kAdd);
+    table.EmitOpcode(OpcodeType::kVLoad_3);  // 加载local2
+    table.EmitOpcode(OpcodeType::kAdd);
+    table.EmitOpcode(OpcodeType::kReturn);
     
     StackFrame stack_frame(&runtime_->stack());
     Value this_val;
@@ -1215,16 +1156,13 @@ TEST_F(VMTest, ComplexStackOperations) {
     // 生成字节码：CLoad 1, CLoad 2, CLoad 3, Swap, Pop, Add, Return
     // 栈变化：[1] -> [1,2] -> [1,2,3] -> [1,3,2] -> [1,3] -> [4]
     auto& table = func_def.function_def().bytecode_table();
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kCLoad));
-    table.EmitU8(static_cast<uint8_t>(const1));
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kCLoad));
-    table.EmitU8(static_cast<uint8_t>(const2));
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kCLoad));
-    table.EmitU8(static_cast<uint8_t>(const3));
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kSwap));
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kPop));
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kAdd));
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kReturn));
+    table.EmitConstLoad(const1);
+    table.EmitConstLoad(const2);
+    table.EmitConstLoad(const3);
+    table.EmitOpcode(OpcodeType::kSwap);
+    table.EmitOpcode(OpcodeType::kPop);
+    table.EmitOpcode(OpcodeType::kAdd);
+    table.EmitOpcode(OpcodeType::kReturn);
     
     StackFrame stack_frame(&runtime_->stack());
     Value this_val;
@@ -1246,12 +1184,12 @@ TEST_F(VMTest, MultiParameterFunctionCall) {
     
     // 生成字节码：VLoad_0, VLoad_1, Mul, VLoad_2, Add, Return (param0 * param1 + param2)
     auto& table = func_def.function_def().bytecode_table();
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kVLoad_0));
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kVLoad_1));
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kMul));
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kVLoad_2));
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kAdd));
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kReturn));
+    table.EmitOpcode(OpcodeType::kVLoad_0);
+    table.EmitOpcode(OpcodeType::kVLoad_1);
+    table.EmitOpcode(OpcodeType::kMul);
+    table.EmitOpcode(OpcodeType::kVLoad_2);
+    table.EmitOpcode(OpcodeType::kAdd);
+    table.EmitOpcode(OpcodeType::kReturn);
     
     StackFrame stack_frame(&runtime_->stack());
     Value this_val;
@@ -1271,10 +1209,10 @@ TEST_F(VMTest, ExcessParameterHandling) {
     
     // 生成字节码：VLoad_0, VLoad_1, Add, Return
     auto& table = func_def.function_def().bytecode_table();
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kVLoad_0));
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kVLoad_1));
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kAdd));
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kReturn));
+    table.EmitOpcode(OpcodeType::kVLoad_0);
+    table.EmitOpcode(OpcodeType::kVLoad_1);
+    table.EmitOpcode(OpcodeType::kAdd);
+    table.EmitOpcode(OpcodeType::kReturn);
     
     StackFrame stack_frame(&runtime_->stack());
     Value this_val;
@@ -1303,11 +1241,10 @@ TEST_F(VMTest, ModuleExportVariableBinding) {
     
     // 生成字节码：CLoad 123, VStore_0, VLoad_0, Return
     auto& table = func_def->bytecode_table();
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kCLoad));
-    table.EmitU8(static_cast<uint8_t>(const_val));
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kVStore_0));
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kVLoad_0));
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kReturn));
+    table.EmitConstLoad(const_val);
+    table.EmitOpcode(OpcodeType::kVStore_0);
+    table.EmitOpcode(OpcodeType::kVLoad_0);
+    table.EmitOpcode(OpcodeType::kReturn);
     
     Value module_val(module_def);
     vm_->ModuleInit(&module_val);
@@ -1335,12 +1272,10 @@ TEST_F(VMTest, ExceptionInArithmetic) {
     
     // 生成字节码：CLoad 10, CLoad 0, Div, Return (除零可能产生异常或特殊值)
     auto& table = func_def.function_def().bytecode_table();
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kCLoad));
-    table.EmitU8(static_cast<uint8_t>(const_ten));
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kCLoad));
-    table.EmitU8(static_cast<uint8_t>(const_zero));
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kDiv));
-    table.EmitU8(static_cast<uint8_t>(OpcodeType::kReturn));
+    table.EmitConstLoad(const_ten);
+    table.EmitConstLoad(const_zero);
+    table.EmitOpcode(OpcodeType::kDiv);
+    table.EmitOpcode(OpcodeType::kReturn);
     
     StackFrame stack_frame(&runtime_->stack());
     Value this_val;
