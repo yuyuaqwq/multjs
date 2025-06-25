@@ -492,7 +492,8 @@ TEST_F(VMTest, ClosureVariables) {
     outer_table.EmitConstLoad(const_val);
     outer_table.EmitOpcode(OpcodeType::kVStore_0);
     outer_table.EmitConstLoad(inner_func_const);
-    outer_table.EmitClosure(inner_func_const);
+    outer_table.EmitOpcode(OpcodeType::kClosure);
+    outer_table.EmitU32(inner_func_const);
     outer_table.EmitOpcode(OpcodeType::kReturn);
     
     StackFrame stack_frame(&runtime_->stack());

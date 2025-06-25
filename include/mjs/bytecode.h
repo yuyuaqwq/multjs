@@ -36,8 +36,6 @@ public:
 
 	void EmitConstLoad(ConstIndex idx);
 
-	void EmitClosure(ConstIndex idx);
-
 	void EmitVarStore(VarIndex idx);
 	void EmitVarLoad(VarIndex idx);
 

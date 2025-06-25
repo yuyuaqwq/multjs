@@ -168,10 +168,6 @@ void BytecodeTable::EmitConstLoad(ConstIndex idx) {
 	}
 }
 
-void BytecodeTable::EmitClosure(ConstIndex idx) {
-    EmitOpcode(OpcodeType::kClosure);
-    EmitI32(idx);
-}
 
 void BytecodeTable::EmitVarStore(VarIndex idx) {
     if (idx >= 0 && idx <= 3) {

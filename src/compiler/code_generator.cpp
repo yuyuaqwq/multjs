@@ -17,14 +17,7 @@ namespace compiler {
 
 CodeGenerator::CodeGenerator(Context* context, Parser* parser)
     : context_(context)
-    , parser_(parser) {
-    if (!context) {
-        throw std::invalid_argument("Context cannot be null");
-    }
-    if (!parser) {
-        throw std::invalid_argument("Parser cannot be null");
-    }
-}
+    , parser_(parser) {}
 
 void CodeGenerator::AddCppFunction(const std::string& func_name, CppFunction func) {
     auto& var_info = AllocateVar(func_name, VarFlags::kConst);
@@ -69,10 +62,6 @@ Value CodeGenerator::Generate(std::string&& module_name, std::string_view source
 }
 
 void CodeGenerator::GenerateExpression(Expression* exp) {
-    if (!exp) {
-        throw std::invalid_argument("Expression cannot be null");
-    }
-
     switch (exp->type()) {
     case ExpressionType::kUndefined:
     case ExpressionType::kNull:
@@ -96,18 +85,28 @@ void CodeGenerator::GenerateExpression(Expression* exp) {
     case ExpressionType::kIdentifier: {
         auto& ident_exp = exp->as<Identifier>();
 
-        // 尝试查找到对应的变量索引
-        const auto* var_info = GetVarInfoByExpression(exp);
-        if (var_info) {
-            // 从变量中获取
-            current_func_def_->bytecode_table().EmitVarLoad(var_info->var_idx);
-        }
-        else {
-            // 尝试从全局对象获取
-            auto const_idx = AllocateConst(Value(String::New(ident_exp.name())));
-            current_func_def_->bytecode_table().EmitOpcode(OpcodeType::kGetGlobal);
-            current_func_def_->bytecode_table().EmitI32(const_idx);
-        }
+        //auto class_def = runtime_->class_def_table().find(ident_exp.name());
+        //// 先不考虑js里定义的类
+        //if (class_def) {
+        //	auto const_idx = AllocConst(Value(class_def));
+        //	current_func_def_->byte_code().EmitConstLoad(const_idx);
+        //}
+        //else {
+
+            // 尝试查找到对应的变量索引
+            const auto* var_info = GetVarInfoByExpression(exp);
+            if (var_info) {
+                // 从变量中获取
+                current_func_def_->bytecode_table().EmitVarLoad(var_info->var_idx);
+            }
+            else {
+                // 尝试从全局对象获取
+                auto const_idx = AllocateConst(Value(String::New(ident_exp.name())));
+                current_func_def_->bytecode_table().EmitOpcode(OpcodeType::kGetGlobal);
+                current_func_def_->bytecode_table().EmitI32(const_idx);
+            }
+
+        // }
         break;
     }
     case ExpressionType::kThisExpression: {
@@ -190,9 +189,6 @@ void CodeGenerator::GenerateExpression(Expression* exp) {
         case TokenType::kOpSub:
             current_func_def_->bytecode_table().EmitOpcode(OpcodeType::kNeg);
             break;
-        case TokenType::kKwAwait:
-            current_func_def_->bytecode_table().EmitOpcode(OpcodeType::kAwait);
-            break;
         case TokenType::kOpPrefixInc:
             current_func_def_->bytecode_table().EmitOpcode(OpcodeType::kInc);
             GenerateLValueStore(unary_exp.argument().get());
@@ -208,12 +204,25 @@ void CodeGenerator::GenerateExpression(Expression* exp) {
         }
         break;
     }
+    case ExpressionType::kAssignmentExpression: {
+        // 赋值表达式
+        auto& assign_exp = exp->as<AssignmentExpression>();
+
+        // 右值表达式先入栈
+        GenerateExpression(assign_exp.right().get());
+
+        auto lvalue_exp = assign_exp.left().get();
+        GenerateLValueStore(lvalue_exp);
+
+        return;
+    }
     case ExpressionType::kBinaryExpression: {
         auto& binary_exp = exp->as<BinaryExpression>();
 
-        // 生成左操作数
+        // 其他二元运算
+
+        // 左右表达式的值入栈
         GenerateExpression(binary_exp.left().get());
-        // 生成右操作数
         GenerateExpression(binary_exp.right().get());
 
         // 生成运算指令
@@ -248,6 +257,8 @@ void CodeGenerator::GenerateExpression(Expression* exp) {
         case TokenType::kOpGe:
             current_func_def_->bytecode_table().EmitOpcode(OpcodeType::kGe);
             break;
+        case TokenType::kSepComma:
+            break;
         case TokenType::kOpShiftLeft:
             current_func_def_->bytecode_table().EmitOpcode(OpcodeType::kShl);
             break;
@@ -280,7 +291,7 @@ void CodeGenerator::GenerateExpression(Expression* exp) {
         //	// todo:先不考虑js里定义的类
         //	if (class_def) {
         //		auto const_idx = AllocConst(Value(ValueType::kNewConstructor, class_def));
-        //		cur_func_def_->byte_code().EmitConstLoad(const_idx);
+        //		current_func_def_->byte_code().EmitConstLoad(const_idx);
         //	}
         //}
         //else {
@@ -311,6 +322,10 @@ void CodeGenerator::GenerateExpression(Expression* exp) {
         current_func_def_->bytecode_table().EmitOpcode(OpcodeType::kFunctionCall);
         break;
     }
+    case ExpressionType::kAwaitExpression:
+        GenerateExpression(exp->as<AwaitExpression>().argument().get());
+        current_func_def_->bytecode_table().EmitOpcode(OpcodeType::kAwait);
+        break;
     case ExpressionType::kYieldExpression: {
         GenerateExpression(exp->as<YieldExpression>().argument().get());
         current_func_def_->bytecode_table().EmitOpcode(OpcodeType::kYield);
@@ -328,311 +343,151 @@ void CodeGenerator::GenerateExpression(Expression* exp) {
 }
 
 void CodeGenerator::GenerateArrayExpression(ArrayExpression* array_exp) {
-    if (!array_exp) {
-        throw std::invalid_argument("Array expression cannot be null");
-    }
+    GenerateParamList(array_exp->elements());
 
-    // 创建数组对象
-    ClassId array_class_id = ClassId::kArrayObject;
-    
-    auto const_idx = AllocateConst(Value(static_cast<int32_t>(array_class_id)));
-    current_func_def_->bytecode_table().EmitConstLoad(const_idx);
-    current_func_def_->bytecode_table().EmitOpcode(OpcodeType::kNew);
-    
-    // 添加元素
-    for (size_t i = 0; i < array_exp->elements().size(); ++i) {
-        // 复制数组对象
-        current_func_def_->bytecode_table().EmitOpcode(OpcodeType::kDump);
-        
-        // 生成索引
-        auto index_const_idx = AllocateConst(Value(static_cast<int64_t>(i)));
-        current_func_def_->bytecode_table().EmitConstLoad(index_const_idx);
-        
-        // 生成值
-        GenerateExpression(array_exp->elements()[i].get());
-        
-        // 存储值
-        current_func_def_->bytecode_table().EmitIndexedStore();
-        current_func_def_->bytecode_table().EmitOpcode(OpcodeType::kPop);
-    }
+    auto literal_new = AllocateConst(Value(ArrayObjectClassDef::LiteralNew));
+    current_func_def_->bytecode_table().EmitConstLoad(literal_new);
+    current_func_def_->bytecode_table().EmitOpcode(OpcodeType::kUndefined);
+    current_func_def_->bytecode_table().EmitOpcode(OpcodeType::kFunctionCall);
 }
 
 void CodeGenerator::GenerateObjectExpression(ObjectExpression* obj_exp) {
-    if (!obj_exp) {
-        throw std::invalid_argument("Object expression cannot be null");
+    for (auto& prop : obj_exp->properties()) {
+        // 将key和value入栈
+        auto key_const_index = AllocateConst(Value(String::New(prop.key)));
+        current_func_def_->bytecode_table().EmitConstLoad(key_const_index);
+        GenerateExpression(prop.value.get());
     }
-
-    // 创建对象
-    ClassId object_class_id = ClassId::kObject;
-    
-    auto const_idx = AllocateConst(Value(static_cast<int32_t>(object_class_id)));
+    auto const_idx = AllocateConst(Value(obj_exp->properties().size() * 2));
     current_func_def_->bytecode_table().EmitConstLoad(const_idx);
-    current_func_def_->bytecode_table().EmitOpcode(OpcodeType::kNew);
-    
-    // 添加属性
-    for (const auto& prop : obj_exp->properties()) {
-        // 复制对象
-        current_func_def_->bytecode_table().EmitOpcode(OpcodeType::kDump);
-        
-        // 生成属性名
-        auto key_const_idx = AllocateConst(Value(String::New(prop.key)));
-        current_func_def_->bytecode_table().EmitConstLoad(key_const_idx);
-        
-        // 生成属性值
-        if (prop.shorthand) {
-            // 简写属性，使用属性名作为变量名
-            const auto* var_info = FindVarInfoByName(prop.key);
-            if (var_info) {
-                current_func_def_->bytecode_table().EmitVarLoad(var_info->var_idx);
-            }
-            else {
-                auto name_const_idx = AllocateConst(Value(String::New(prop.key)));
-                current_func_def_->bytecode_table().EmitOpcode(OpcodeType::kGetGlobal);
-                current_func_def_->bytecode_table().EmitI32(name_const_idx);
-            }
-        }
-        else if (prop.computed) {
-            // 计算属性
-            GenerateExpression(prop.value.get());
-        }
-        else {
-            // 普通属性
-            GenerateExpression(prop.value.get());
-        }
-        
-        // 存储属性
-        current_func_def_->bytecode_table().EmitPropertyStore(key_const_idx);
-        current_func_def_->bytecode_table().EmitOpcode(OpcodeType::kPop);
-    }
-}
 
-void CodeGenerator::EnterScope(FunctionDef* sub_func, ScopeType type) {
-    FunctionDef* func_def = sub_func ? sub_func : current_func_def_;
-    scopes_.emplace_back(func_def, type);
-}
-
-void CodeGenerator::ExitScope() {
-    if (scopes_.empty()) {
-        throw std::runtime_error("Cannot exit from empty scope stack");
-    }
-    scopes_.pop_back();
-}
-
-ConstIndex CodeGenerator::AllocateConst(Value&& value) {
-    return context_->FindConstOrInsertToGlobal(std::move(value));
-}
-
-const Value& CodeGenerator::GetConstValueByIndex(ConstIndex idx) const {
-    return context_->GetConstValue(idx);
-}
-
-const VarInfo& CodeGenerator::AllocateVar(const std::string& name, VarFlags flags) {
-    if (scopes_.empty()) {
-        throw std::runtime_error("Cannot allocate variable outside of scope");
-    }
-    return scopes_.back().AllocVar(name, flags);
-}
-
-const VarInfo* CodeGenerator::FindVarInfoByName(const std::string& name) const {
-    // 从内向外查找变量
-    for (auto it = scopes_.rbegin(); it != scopes_.rend(); ++it) {
-        // 由于Scope::FindVar不是const方法，我们需要使用非const方式访问
-        // 这是一个临时解决方案，最好是修改Scope::FindVar为const方法
-        auto var_info = it->FindVar(name);
-        if (var_info) {
-            return var_info;
-        }
-        
-        // 如果是函数作用域，则停止查找
-        if (it->type() == ScopeType::kFunction || it->type() == ScopeType::kArrowFunction) {
-            break;
-        }
-    }
-    return nullptr;
-}
-
-bool CodeGenerator::IsInTypeScope(std::initializer_list<ScopeType> types, std::initializer_list<ScopeType> end_types) const {
-    for (auto it = scopes_.rbegin(); it != scopes_.rend(); ++it) {
-        for (auto type : types) {
-            if (it->type() == type) {
-                return true;
-            }
-        }
-        
-        for (auto end_type : end_types) {
-            if (it->type() == end_type) {
-                return false;
-            }
-        }
-    }
-    return false;
-}
-
-const VarInfo* CodeGenerator::GetVarInfoByExpression(Expression* exp) const {
-    if (exp->type() != ExpressionType::kIdentifier) {
-        return nullptr;
-    }
-    
-    auto& ident_exp = exp->as<Identifier>();
-    return FindVarInfoByName(ident_exp.name());
-}
-
-Value CodeGenerator::MakeConstValue(Expression* exp) const {
-    switch (exp->type()) {
-    case ExpressionType::kUndefined:
-        return Value();
-    case ExpressionType::kNull:
-        return Value(nullptr);
-    case ExpressionType::kBoolean:
-        return Value(exp->as<BooleanLiteral>().value());
-    case ExpressionType::kInteger:
-        return Value(exp->as<IntegerLiteral>().value());
-    case ExpressionType::kFloat:
-        return Value(exp->as<FloatLiteral>().value());
-    case ExpressionType::kString:
-        return Value(String::New(exp->as<StringLiteral>().value()));
-    case ExpressionType::kTemplateElement:
-        return Value(String::New(exp->as<TemplateElement>().value()));
-    default:
-        throw std::runtime_error("Cannot make constant value from this expression type");
-    }
-}
-
-void CodeGenerator::RepairEntries(const std::vector<RepairEntry>& entries, Pc end_pc, Pc reloop_pc) {
-    for (auto& entry : entries) {
-        switch (entry.type) {
-        case RepairEntry::Type::kBreak:
-            current_func_def_->bytecode_table().RepairPc(entry.repair_pc, end_pc);
-            break;
-        case RepairEntry::Type::kContinue:
-            current_func_def_->bytecode_table().RepairPc(entry.repair_pc, reloop_pc);
-            break;
-        }
-    }
-}
-
-void CodeGenerator::GenerateFunctionExpression(FunctionExpression* exp) {
-    if (!exp) {
-        throw std::invalid_argument("Function expression cannot be null");
-    }
-
-    // 创建函数定义
-    auto func_def = new FunctionDef(current_module_def_, exp->id(), exp->start());
-    
-    // 设置函数属性
-    if (exp->is_generator()) {
-        func_def->set_is_generator();
-    }
-    if (exp->is_async()) {
-        func_def->set_is_async();
-    }
-    if (exp->is_module()) {
-        func_def->set_is_module();
-    }
-    
-    // 保存当前函数定义
-    auto old_func_def = current_func_def_;
-    current_func_def_ = func_def;
-    
-    // 进入函数作用域
-    EnterScope(func_def, ScopeType::kFunction);
-    
-    // 添加参数
-    for (const auto& param : exp->params()) {
-        AllocateVar(param);
-    }
-    
-    // 生成函数体
-    GenerateFunctionBody(exp->body().get());
-    
-    // 退出函数作用域
-    ExitScope();
-    
-    // 恢复当前函数定义
-    current_func_def_ = old_func_def;
-    
-    // 将函数定义添加到常量池
-    auto const_idx = AllocateConst(Value(func_def));
-    
-    // 生成闭包指令
-    current_func_def_->bytecode_table().EmitClosure(const_idx);
-}
-
-void CodeGenerator::GenerateArrowFunctionExpression(ArrowFunctionExpression* exp) {
-    if (!exp) {
-        throw std::invalid_argument("Arrow function expression cannot be null");
-    }
-
-    // 创建函数定义
-    auto func_def = new FunctionDef(current_module_def_, "", exp->start());
-    
-    // 设置函数属性
-    if (exp->is_async()) {
-        func_def->set_is_async();
-    }
-    func_def->set_is_arrow();
-    
-    // 保存当前函数定义
-    auto old_func_def = current_func_def_;
-    current_func_def_ = func_def;
-    
-    // 进入函数作用域
-    EnterScope(func_def, ScopeType::kArrowFunction);
-    
-    // 添加参数
-    for (const auto& param : exp->params()) {
-        AllocateVar(param);
-    }
-    
-    // 生成函数体
-    if (exp->body()->type() == StatementType::kBlock) {
-        GenerateFunctionBody(exp->body().get());
-    } else {
-        // 箭头函数表达式体
-        GenerateExpression(&exp->body()->as<ExpressionStatement>().expression()->as<Expression>());
-        current_func_def_->bytecode_table().EmitOpcode(OpcodeType::kReturn);
-    }
-    
-    // 退出函数作用域
-    ExitScope();
-    
-    // 恢复当前函数定义
-    current_func_def_ = old_func_def;
-    
-    // 将函数定义添加到常量池
-    auto const_idx = AllocateConst(Value(func_def));
-    
-    // 生成闭包指令
-    current_func_def_->bytecode_table().EmitClosure(const_idx);
+    auto literal_new = AllocateConst(Value(ObjectClassDef::LiteralNew));
+    current_func_def_->bytecode_table().EmitConstLoad(literal_new);
+    current_func_def_->bytecode_table().EmitOpcode(OpcodeType::kUndefined);
+    current_func_def_->bytecode_table().EmitOpcode(OpcodeType::kFunctionCall);
 }
 
 void CodeGenerator::GenerateFunctionBody(Statement* statement) {
-    if (!statement) {
-        throw std::invalid_argument("Function body statement cannot be null");
-    }
-    
-    if (statement->type() == StatementType::kBlock) {
+    if (statement->is(StatementType::kBlock)) {
         auto& block = statement->as<BlockStatement>();
-        
-        // 生成块语句
-        for (auto& stat : block.statements()) {
+        for (size_t i = 0; i < block.statements().size(); i++) {
+            auto& stat = block.statements()[i];
             GenerateStatement(stat.get());
+            if (i != block.statements().size() - 1) {
+                continue;
+            }
+            if (!stat->is(StatementType::kReturn)) {
+                // 补全末尾的return
+                current_func_def_->bytecode_table().EmitOpcode(OpcodeType::kUndefined);
+                current_func_def_->bytecode_table().EmitReturn(current_func_def_);
+            }
         }
-    } else {
-        // 单个语句作为函数体
-        GenerateStatement(statement);
+    }
+    else {
+        // 表达式体
+        GenerateExpression(statement->as<ExpressionStatement>().expression().get());
+        current_func_def_->bytecode_table().EmitReturn(current_func_def_);
+    }
+}
+
+
+void CodeGenerator::GenerateFunctionExpression(FunctionExpression* exp) {
+    // 创建函数定义
+    auto func_def = new FunctionDef(current_module_def_, exp->id(), exp->params().size());
+    // 将函数定义添加到常量池
+    auto const_idx = AllocateConst(Value(func_def));
+
+    // 设置函数属性
+    func_def->set_is_normal();
+    if (exp->is_generator()) {
+        func_def->set_is_generator();
+    }
+    else if (exp->is_async()) {
+        func_def->set_is_async();
     }
     
-    // 确保函数有返回值
-    current_func_def_->bytecode_table().EmitOpcode(OpcodeType::kUndefined);
-    current_func_def_->bytecode_table().EmitOpcode(OpcodeType::kReturn);
+    auto load_pc = current_func_def_->bytecode_table().Size();
+    // 可能需要修复，统一用U32了
+    current_func_def_->bytecode_table().EmitOpcode(OpcodeType::kCLoadD);
+    current_func_def_->bytecode_table().EmitU32(const_idx);
+
+    if (!exp->id().empty()) {
+        // 非匿名函数分配变量来装，这里其实有个没考虑的地方
+        // 如果外层还有一层赋值，那么该函数的名字应该只在函数内作用域有效
+        auto& var_info = AllocateVar(exp->id(), VarFlags::kConst);
+        current_func_def_->bytecode_table().EmitVarStore(var_info.var_idx);
+
+        if (exp->is_export()) {
+            static_cast<ModuleDef*>(current_func_def_)->export_var_def_table().AddExportVar(exp->id(), var_info.var_idx);
+        }
+    }
+
+    // 保存环境，以生成新指令流
+    auto savefunc = current_func_def_;
+
+    // 切换环境
+    EnterScope(func_def, ScopeType::kFunction);
+    current_func_def_ = func_def;
+
+    // 参数正序分配
+    for (size_t i = 0; i < current_func_def_->par_count(); ++i) {
+        AllocateVar(exp->params()[i]);
+    }
+
+    GenerateFunctionBody(exp->body().get());
+
+    bool need_repair = !current_func_def_->closure_var_table().closure_var_defs().empty();
+
+    // 恢复环境
+    ExitScope();
+    current_func_def_->debug_table().Sort();
+    current_func_def_ = savefunc;
+
+    if (need_repair) {
+        current_func_def_->bytecode_table().RepairOpcode(load_pc, OpcodeType::kClosure);
+    }
+}
+
+void CodeGenerator::GenerateArrowFunctionExpression(ArrowFunctionExpression* exp) {
+    auto func_def = new FunctionDef(current_module_def_, "<anonymous_function>", exp->params().size());
+    auto const_idx = AllocateConst(Value(func_def));
+
+    func_def->set_is_arrow();
+    if (exp->is_async()) {
+        func_def->set_is_async();
+    }
+
+    auto load_pc = current_func_def_->bytecode_table().Size();
+    current_func_def_->bytecode_table().EmitOpcode(OpcodeType::kCLoadD);
+    current_func_def_->bytecode_table().EmitU32(const_idx);
+
+    // 保存环境，以生成新指令流
+    auto savefunc = current_func_def_;
+
+    // 切换环境
+    EnterScope(func_def, ScopeType::kArrowFunction);
+    current_func_def_ = func_def;
+
+    // 参数正序分配
+    for (auto& param : exp->params()) {
+        AllocateVar(param);
+    }
+
+    GenerateFunctionBody(exp->body().get());
+
+    bool need_repair = current_func_def_->has_this() || !current_func_def_->closure_var_table().closure_var_defs().empty();
+
+    // 恢复环境
+    current_func_def_->debug_table().Sort();
+    current_func_def_ = savefunc;
+    ExitScope();
+
+    if (need_repair) {
+        current_func_def_->bytecode_table().RepairOpcode(load_pc, OpcodeType::kClosure);
+    }
 }
 
 void CodeGenerator::GenerateLValueStore(Expression* lvalue_exp) {
-    if (!lvalue_exp) {
-        throw std::invalid_argument("LValue expression cannot be null");
-    }
-    
     if (lvalue_exp->value_category() != ValueCategory::kLValue) {
         throw std::runtime_error("Expression is not an lvalue");
     }
@@ -641,42 +496,29 @@ void CodeGenerator::GenerateLValueStore(Expression* lvalue_exp) {
     case ExpressionType::kIdentifier: {
         auto& ident_exp = lvalue_exp->as<Identifier>();
         const auto* var_info = FindVarInfoByName(ident_exp.name());
-        
-        if (var_info) {
-            // 检查是否为常量
-            if ((var_info->flags & VarFlags::kConst) == VarFlags::kConst) {
-                throw std::runtime_error("Cannot assign to const variable");
-            }
-            
-            // 存储到变量
-            current_func_def_->bytecode_table().EmitVarStore(var_info->var_idx);
-        } else {
-            // 存储到全局变量
-            auto const_idx = AllocateConst(Value(String::New(ident_exp.name())));
-            // 使用适当的全局变量设置操作码
-            current_func_def_->bytecode_table().EmitOpcode(OpcodeType::kPropertyStore);
-            current_func_def_->bytecode_table().EmitI32(const_idx);
+        assert(var_info);
+        if ((var_info->flags & VarFlags::kConst) == VarFlags::kConst) {
+            throw SyntaxError("Cannot change const var.");
         }
+        current_func_def_->bytecode_table().EmitVarStore(var_info->var_idx);
         break;
     }
     case ExpressionType::kMemberExpression: {
         auto& mem_exp = lvalue_exp->as<MemberExpression>();
         
-        // 获取对象
+        // 设置对象的属性
+        // 如：obj.a.b = 100;
+        // 先入栈obj.a这个对象
         GenerateExpression(mem_exp.object().get());
         
         if (mem_exp.computed()) {
             // 计算属性
             GenerateExpression(mem_exp.property().get());
-            
-            // 存储值
             current_func_def_->bytecode_table().EmitIndexedStore();
         } else {
             // 普通属性
             auto& prop_exp = mem_exp.property()->as<Identifier>();
             auto const_idx = AllocateConst(Value(String::New(prop_exp.name())));
-            
-            // 存储值
             current_func_def_->bytecode_table().EmitPropertyStore(const_idx);
         }
         break;
@@ -687,16 +529,14 @@ void CodeGenerator::GenerateLValueStore(Expression* lvalue_exp) {
 }
 
 void CodeGenerator::GenerateStatement(Statement* stat) {
-    if (!stat) {
-        throw std::invalid_argument("Statement cannot be null");
-    }
+    auto start_pc = current_func_def_->bytecode_table().Size();
 
     switch (stat->type()) {
-    case StatementType::kExpression:
-        GenerateExpressionStatement(&stat->as<ExpressionStatement>());
-        break;
     case StatementType::kBlock:
         GenerateBlock(&stat->as<BlockStatement>());
+        break;
+    case StatementType::kExpression:
+        GenerateExpressionStatement(&stat->as<ExpressionStatement>());
         break;
     case StatementType::kVariableDeclaration:
         GenerateVariableDeclaration(&stat->as<VariableDeclaration>());
@@ -737,46 +577,51 @@ void CodeGenerator::GenerateStatement(Statement* stat) {
     default:
         throw std::runtime_error("Unsupported statement type");
     }
+
+    switch (stat->type()) {
+    case StatementType::kBlock:
+    case StatementType::kExport:
+        break;
+    default: {
+        auto end_pc = current_func_def_->bytecode_table().Size();
+        auto&& [line, column] = current_module_def_->line_table().PosToLineAndColumn(stat->start());
+        current_func_def_->debug_table().AddEntry(start_pc, end_pc, stat->start(), stat->end(), line);
+    }
+    }
 }
 
 void CodeGenerator::GenerateExpressionStatement(ExpressionStatement* stat) {
-    if (!stat) {
-        throw std::invalid_argument("Expression statement cannot be null");
-    }
-
-    // 生成表达式
-    GenerateExpression(stat->expression().get());
-    
-    // 弹出表达式的值
+    auto exp = stat->expression().get();
+    assert(exp);
+    // 抛弃纯表达式语句的最终结果
+    GenerateExpression(exp);
     current_func_def_->bytecode_table().EmitOpcode(OpcodeType::kPop);
 }
 
-void CodeGenerator::GenerateBlock(BlockStatement* block, bool entry_scope, ScopeType type) {
-    if (!block) {
-        throw std::invalid_argument("Block statement cannot be null");
+void CodeGenerator::GenerateImportDeclaration(ImportDeclaration* stat) {
+    auto source_const_idx = AllocateConst(Value(String::New(stat->source())));
+
+    current_func_def_->bytecode_table().EmitConstLoad(source_const_idx);
+    current_func_def_->bytecode_table().EmitOpcode(OpcodeType::kGetModule);
+
+    auto name_const_idx = AllocateConst(Value(String::New(stat->name())));
+
+    // 模块对象保存到变量
+    auto& var_info = AllocateVar(stat->name(), VarFlags::kConst);
+    current_func_def_->bytecode_table().EmitVarStore(var_info.var_idx);
+    current_func_def_->bytecode_table().EmitOpcode(OpcodeType::kPop);
+}
+
+void CodeGenerator::GenerateExportDeclaration(ExportDeclaration* stat) {
+    if (!current_func_def_->is_module()) {
+        throw SyntaxError("Only modules can export.");
     }
 
-    // 进入作用域
-    if (entry_scope) {
-        EnterScope(nullptr, type);
-    }
-    
-    // 生成块中的语句
-    for (auto& stat : block->statements()) {
-        GenerateStatement(stat.get());
-    }
-    
-    // 退出作用域
-    if (entry_scope) {
-        ExitScope();
-    }
+    auto& decl = stat->declaration();
+    GenerateStatement(decl.get());
 }
 
 void CodeGenerator::GenerateVariableDeclaration(VariableDeclaration* stat) {
-    if (!stat) {
-        throw std::invalid_argument("Variable declaration cannot be null");
-    }
-
     // 确定变量标志
     VarFlags flags = VarFlags::kNone;
     if (stat->kind() == TokenType::kKwConst) {
@@ -806,50 +651,318 @@ void CodeGenerator::GenerateVariableDeclaration(VariableDeclaration* stat) {
 }
 
 void CodeGenerator::GenerateIfStatement(IfStatement* stat) {
-    if (!stat) {
-        throw std::invalid_argument("If statement cannot be null");
+    // 表达式结果压栈
+    GenerateExpression(stat->test().get());
+
+    // 条件为false时，跳转到if块之后的地址
+    auto if_pc = current_func_def_->bytecode_table().Size();
+    GenerateIfEq(stat->test().get());
+
+    GenerateBlock(stat->consequent().get());
+
+
+    if (stat->alternate()) {
+        // 跳过当前余下所有else if / else的指令
+        auto end_pc = current_func_def_->bytecode_table().Size();
+
+        current_func_def_->bytecode_table().EmitOpcode(OpcodeType::kGoto);
+        current_func_def_->bytecode_table().EmitPcOffset(0);
+
+        // 修复条件为false时，跳转到if块之后的地址
+        current_func_def_->bytecode_table().RepairPc(if_pc, current_func_def_->bytecode_table().Size());
+
+        if (stat->alternate()->is(StatementType::kIf)) {
+            GenerateIfStatement(&stat->alternate()->as<IfStatement>());
+        }
+        else {
+            assert(stat->alternate()->is(StatementType::kBlock));
+            GenerateBlock(&stat->alternate()->as<BlockStatement>());
+        }
+
+        current_func_def_->bytecode_table().RepairPc(end_pc, current_func_def_->bytecode_table().Size());
+    }
+    else {
+        // 修复条件为false时，跳转到if块之后的地址
+        current_func_def_->bytecode_table().RepairPc(if_pc, current_func_def_->bytecode_table().Size());
+    }
+}
+
+void CodeGenerator::GenerateLabeledStatement(LabeledStatement* stat) {
+    auto res = label_map_.emplace(stat->label(), LabelInfo());
+    if (!res.second) {
+        throw SyntaxError("Duplicate label.");
     }
 
-    // 生成条件表达式
-    GenerateExpression(stat->test().get());
-    
-    // 生成条件跳转指令
-    current_func_def_->bytecode_table().EmitOpcode(OpcodeType::kIfEq);
-    auto else_jump_pc = current_func_def_->bytecode_table().Size();
-    current_func_def_->bytecode_table().EmitPcOffset(0); // 占位，后面修复
-    
-    // 生成 if 块
-    GenerateBlock(stat->consequent().get(), true, ScopeType::kIf);
-    
-    // 生成跳转指令，跳过 else 块
+    auto save_label_reloop_pc_ = current_label_reloop_pc_;
+    current_label_reloop_pc_ = kInvalidPc;
+
+    GenerateStatement(stat->body().get());
+
+    RepairEntries(res.first->second.entries, current_func_def_->bytecode_table().Size(), *current_label_reloop_pc_);
+
+    label_map_.erase(res.first);
+
+    current_label_reloop_pc_ = save_label_reloop_pc_;
+}
+
+void CodeGenerator::GenerateForStatement(ForStatement* stat) {
+    auto save_loop_repair_entrys = current_loop_repair_entries_;
+
+    std::vector<RepairEntry> loop_repair_entrys;
+    current_loop_repair_entries_ = &loop_repair_entrys;
+
+    EnterScope(nullptr, ScopeType::kFor);
+
+    // init
+    GenerateStatement(stat->init().get());
+
+    auto start_pc = current_func_def_->bytecode_table().Size();
+
+    // 表达式结果压栈
+    if (stat->test()) {
+        GenerateExpression(stat->test().get());
+    }
+
+    // 等待修复
+    loop_repair_entrys.emplace_back(RepairEntry{
+        .type = RepairEntry::Type::kBreak,
+        .repair_pc = current_func_def_->bytecode_table().Size(),
+        });
+    // 提前写入跳转的指令
+    GenerateIfEq(stat->test().get());
+
+    bool need_set_label = current_label_reloop_pc_ && current_label_reloop_pc_ == kInvalidPc;
+    current_label_reloop_pc_ = std::nullopt;
+
+    GenerateBlock(stat->body().get(), false);
+
+    // 记录重新循环的pc
+    auto reloop_pc = current_func_def_->bytecode_table().Size();
+    if (need_set_label) {
+        current_label_reloop_pc_ = reloop_pc;
+    }
+
+    if (stat->update()) {
+        GenerateExpression(stat->update().get());
+    }
+
+    ExitScope();
+
+    // 重新回去看是否需要循环
     current_func_def_->bytecode_table().EmitOpcode(OpcodeType::kGoto);
-    auto end_jump_pc = current_func_def_->bytecode_table().Size();
-    current_func_def_->bytecode_table().EmitPcOffset(0); // 占位，后面修复
-    
-    // 修复 else 跳转地址
-    auto else_pc = current_func_def_->bytecode_table().Size();
-    current_func_def_->bytecode_table().RepairPc(else_jump_pc, else_pc);
-    
-    // 生成 else 块
-    if (stat->alternate()) {
-        if (stat->alternate()->type() == StatementType::kIf) {
-            // else if
-            GenerateStatement(stat->alternate().get());
-        } else {
-            // else
-            GenerateBlock(
-                stat->alternate()->type() == StatementType::kBlock 
-                    ? &stat->alternate()->as<BlockStatement>() 
-                    : nullptr,
-                true, 
-                ScopeType::kElse
-            );
+    current_func_def_->bytecode_table().EmitPcOffset(0);
+    current_func_def_->bytecode_table().RepairPc(current_func_def_->bytecode_table().Size() - 3, start_pc);
+
+    RepairEntries(loop_repair_entrys, current_func_def_->bytecode_table().Size(), reloop_pc);
+
+    current_loop_repair_entries_ = save_loop_repair_entrys;
+}
+
+void CodeGenerator::GenerateWhileStatement(WhileStatement* stat) {
+    auto save_loop_repair_entrys = current_loop_repair_entries_;
+
+    std::vector<RepairEntry> loop_repair_entrys;
+    current_loop_repair_entries_ = &loop_repair_entrys;
+
+    // 记录重新循环的pc
+    auto reloop_pc = current_func_def_->bytecode_table().Size();
+    if (current_label_reloop_pc_ && current_label_reloop_pc_ == kInvalidPc) {
+        current_label_reloop_pc_ = reloop_pc;
+    }
+
+    // 表达式结果压栈
+    GenerateExpression(stat->test().get());
+
+    // 等待修复
+    loop_repair_entrys.emplace_back(RepairEntry{
+        .type = RepairEntry::Type::kBreak,
+        .repair_pc = current_func_def_->bytecode_table().Size(),
+        });
+    // 提前写入跳转的指令
+    GenerateIfEq(stat->test().get());
+
+    GenerateBlock(stat->body().get(), true, ScopeType::kWhile);
+
+    // 重新回去看是否需要循环
+    current_func_def_->bytecode_table().EmitOpcode(OpcodeType::kGoto);
+    current_func_def_->bytecode_table().EmitPcOffset(0);
+    current_func_def_->bytecode_table().RepairPc(current_func_def_->bytecode_table().Size() - 3, reloop_pc);
+
+    RepairEntries(loop_repair_entrys, current_func_def_->bytecode_table().Size(), reloop_pc);
+
+    current_loop_repair_entries_ = save_loop_repair_entrys;
+}
+
+void CodeGenerator::GenerateContinueStatement(ContinueStatement* stat) {
+    if (current_loop_repair_entries_ == nullptr) {
+        throw SyntaxError("Cannot use break in acyclic scope");
+    }
+
+    if (stat->label()) {
+        auto iter = label_map_.find(*stat->label());
+        if (iter == label_map_.end()) {
+            throw SyntaxError("Label does not exist.");
         }
+        iter->second.entries.emplace_back(RepairEntry{
+            .type = RepairEntry::Type::kContinue,
+            .repair_pc = current_func_def_->bytecode_table().Size(),
+            });
+    }
+    else {
+        current_loop_repair_entries_->emplace_back(RepairEntry{
+            .type = RepairEntry::Type::kContinue,
+            .repair_pc = current_func_def_->bytecode_table().Size(),
+            });
+    }
+
+    // 跳到当前循环的末尾pc，等待修复
+    if (IsInTypeScope({ ScopeType::kTryFinally,ScopeType::kCatchFinally, ScopeType::kFinally }, { ScopeType::kWhile, ScopeType::kFunction, ScopeType::kArrowFunction })) {
+        current_func_def_->bytecode_table().EmitOpcode(OpcodeType::kFinallyGoto);
+    }
+    else {
+        current_func_def_->bytecode_table().EmitOpcode(OpcodeType::kGoto);
+    }
+    current_func_def_->bytecode_table().EmitPcOffset(0);
+}
+
+void CodeGenerator::GenerateBreakStatement(BreakStatement* stat) {
+    if (current_loop_repair_entries_ == nullptr) {
+        throw SyntaxError("Cannot use break in acyclic scope.");
+    }
+
+    if (stat->label()) {
+        auto iter = label_map_.find(*stat->label());
+        if (iter == label_map_.end()) {
+            throw SyntaxError("Label does not exist.");
+        }
+        iter->second.entries.emplace_back(RepairEntry{
+            .type = RepairEntry::Type::kBreak,
+            .repair_pc = current_func_def_->bytecode_table().Size(),
+            });
+    }
+    else {
+        current_loop_repair_entries_->emplace_back(RepairEntry{
+            .type = RepairEntry::Type::kBreak,
+            .repair_pc = current_func_def_->bytecode_table().Size(),
+            });
+    }
+
+    // 无法提前得知结束pc，保存待修复pc，等待修复
+    if (IsInTypeScope({ ScopeType::kTryFinally,ScopeType::kCatchFinally, ScopeType::kFinally }, { ScopeType::kWhile, ScopeType::kFunction, ScopeType::kArrowFunction })) {
+        current_func_def_->bytecode_table().EmitOpcode(OpcodeType::kFinallyGoto);
+    }
+    else {
+        current_func_def_->bytecode_table().EmitOpcode(OpcodeType::kGoto);
+    }
+    current_func_def_->bytecode_table().EmitPcOffset(0);
+}
+
+void CodeGenerator::GenerateReturnStatement(ReturnStatement* stat) {
+    // 生成返回值
+    if (stat->argument()) {
+        GenerateExpression(stat->argument().get());
+    } else {
+        // 无返回值，返回 undefined
+        current_func_def_->bytecode_table().EmitOpcode(OpcodeType::kUndefined);
     }
     
-    // 修复 end 跳转地址
-    auto end_pc = current_func_def_->bytecode_table().Size();
-    current_func_def_->bytecode_table().RepairPc(end_jump_pc, end_pc);
+    if (IsInTypeScope({ ScopeType::kTryFinally,ScopeType::kCatchFinally, ScopeType::kFinally }, { ScopeType::kFunction })) {
+        current_func_def_->bytecode_table().EmitOpcode(OpcodeType::kFinallyReturn);
+    }
+    else {
+        current_func_def_->bytecode_table().EmitReturn(current_func_def_);
+    }
+}
+
+void CodeGenerator::GenerateTryStatement(TryStatement* stat) {
+    auto has_finally = bool(stat->finalizer());
+
+    auto try_start_pc = current_func_def_->bytecode_table().Size();
+
+    current_func_def_->bytecode_table().EmitOpcode(OpcodeType::kTryBegin);
+
+    GenerateBlock(stat->block().get(), true, has_finally ? ScopeType::kTryFinally : ScopeType::kTry);
+
+    auto try_end_pc = current_func_def_->bytecode_table().Size();
+
+    // 这里需要生成跳向finally的指令
+    auto repair_end_pc = try_end_pc;
+    current_func_def_->bytecode_table().EmitOpcode(OpcodeType::kGoto);
+    current_func_def_->bytecode_table().EmitPcOffset(0);
+
+    auto catch_start_pc = kInvalidPc;
+    auto catch_end_pc = kInvalidPc;
+    auto catch_err_var_idx = kVarInvaildIndex;
+
+    if (stat->handler()) {
+        catch_start_pc = current_func_def_->bytecode_table().Size();
+        EnterScope(nullptr, has_finally ? ScopeType::kCatchFinally : ScopeType::kCatch);
+
+        // 加载error参数到变量
+        catch_err_var_idx = AllocateVar(stat->handler()->param()->name()).var_idx;
+
+        GenerateBlock(stat->handler()->body().get(), false);
+
+        ExitScope();
+        catch_end_pc = current_func_def_->bytecode_table().Size();
+    }
+    else {
+        catch_end_pc = try_end_pc;
+    }
+
+    // 修复pc
+    current_func_def_->bytecode_table().RepairPc(repair_end_pc, current_func_def_->bytecode_table().Size());
+
+    // finally是必定会执行的
+    auto finally_start_pc = kInvalidPc;
+    auto finally_end_pc = kInvalidPc;
+    if (stat->finalizer()) {
+        finally_start_pc = current_func_def_->bytecode_table().Size();
+        GenerateBlock(stat->finalizer()->body().get(), true, ScopeType::kFinally);
+        finally_end_pc = current_func_def_->bytecode_table().Size();
+    }
+
+    current_func_def_->bytecode_table().EmitOpcode(OpcodeType::kTryEnd);
+
+    if (!stat->handler() && !stat->finalizer()) {
+        throw SyntaxError("There cannot be a statement with only try.");
+    }
+
+    // 添加到异常表
+    auto& exception_table = current_func_def_->exception_table();
+    auto exception_idx = exception_table.AddEntry({});
+    auto& entry = exception_table.GetEntry(exception_idx);
+    entry.try_start_pc = try_start_pc;
+    entry.try_end_pc = try_end_pc;
+    entry.catch_start_pc = catch_start_pc;
+    entry.catch_end_pc = catch_end_pc;
+    entry.catch_err_var_idx = catch_err_var_idx;
+    entry.finally_start_pc = finally_start_pc;
+    entry.finally_end_pc = finally_end_pc;
+}
+
+void CodeGenerator::GenerateThrowStatement(ThrowStatement* stat) {
+    GenerateExpression(stat->argument().get());
+    current_func_def_->bytecode_table().EmitOpcode(OpcodeType::kThrow);
+}
+
+void CodeGenerator::GenerateBlock(BlockStatement* block, bool entry_scope, ScopeType type) {
+    if (entry_scope) {
+        EnterScope(nullptr, type);
+    }
+
+    for (auto& stat : block->statements()) {
+        GenerateStatement(stat.get());
+    }
+
+    if (entry_scope) {
+        ExitScope();
+    }
+}
+
+void CodeGenerator::GenerateIfEq(Expression* exp) {
+    GenerateExpression(exp);
+    current_func_def_->bytecode_table().EmitOpcode(OpcodeType::kIfEq);
 }
 
 void CodeGenerator::GenerateParamList(const std::vector<std::unique_ptr<Expression>>& param_list) {
@@ -862,420 +975,129 @@ void CodeGenerator::GenerateParamList(const std::vector<std::unique_ptr<Expressi
     current_func_def_->bytecode_table().EmitConstLoad(const_idx);
 }
 
-void CodeGenerator::GenerateLabeledStatement(LabeledStatement* stat) {
-    if (!stat) {
-        throw std::invalid_argument("Labeled statement cannot be null");
-    }
-
-    // 保存当前标签信息
-    auto& label_info = label_map_[stat->label()];
-    
-    // 生成标签语句
-    if (stat->body()->type() == StatementType::kWhile || stat->body()->type() == StatementType::kFor) {
-        // 循环语句
-        GenerateStatement(stat->body().get());
-    } else {
-        // 非循环语句
-        GenerateStatement(stat->body().get());
-        
-        // 修复跳转指令
-        auto end_pc = current_func_def_->bytecode_table().Size();
-        RepairEntries(label_info.entries, end_pc, 0);
-        
-        // 清空标签信息
-        label_info.entries.clear();
-    }
+void CodeGenerator::EnterScope(FunctionDef* sub_func, ScopeType type) {
+    FunctionDef* func_def = sub_func ? sub_func : current_func_def_;
+    scopes_.emplace_back(func_def, type);
 }
 
-void CodeGenerator::GenerateForStatement(ForStatement* stat) {
-    if (!stat) {
-        throw std::invalid_argument("For statement cannot be null");
-    }
+void CodeGenerator::ExitScope() {
+    scopes_.pop_back();
+}
 
-    // 进入循环作用域
-    EnterScope(nullptr, ScopeType::kFor);
-    
-    // 初始化语句
-    if (stat->init()) {
-        GenerateStatement(stat->init().get());
-    }
-    
-    // 循环开始位置
-    auto loop_start_pc = current_func_def_->bytecode_table().Size();
-    
-    // 条件表达式
-    if (stat->test()) {
-        GenerateExpression(stat->test().get());
-        
-        // 条件跳转，如果条件为假，跳出循环
-        current_func_def_->bytecode_table().EmitOpcode(OpcodeType::kIfEq);
-        auto loop_end_jump_pc = current_func_def_->bytecode_table().Size();
-        current_func_def_->bytecode_table().EmitPcOffset(0); // 占位，后面修复
-        
-        // 循环体
-        std::vector<RepairEntry> repair_entrys;
-        auto old_repair_entrys = current_loop_repair_entries_;
-        current_loop_repair_entries_ = &repair_entrys;
-        
-        GenerateBlock(stat->body().get(), true, ScopeType::kNone);
-        
-        // 更新语句位置
-        auto update_pc = current_func_def_->bytecode_table().Size();
-        
-        // 更新语句
-        if (stat->update()) {
-            GenerateExpression(stat->update().get());
-            current_func_def_->bytecode_table().EmitOpcode(OpcodeType::kPop);
+ConstIndex CodeGenerator::AllocateConst(Value&& value) {
+    return context_->FindConstOrInsertToGlobal(std::move(value));
+}
+
+const Value& CodeGenerator::GetConstValueByIndex(ConstIndex idx) const {
+    return context_->GetConstValue(idx);
+}
+
+const VarInfo& CodeGenerator::AllocateVar(const std::string& name, VarFlags flags) {
+    return scopes_.back().AllocVar(name, flags);
+}
+
+const VarInfo* CodeGenerator::FindVarInfoByName(const std::string& name) {
+    const VarInfo* find_var_info = nullptr;
+    // 就近找变量
+    for (ptrdiff_t i = scopes_.size() - 1; i >= 0; --i) {
+        // 由于Scope::FindVar不是const方法，我们需要使用非const方式访问
+        // 这是一个临时解决方案，最好是修改Scope::FindVar为const方法
+        auto var_info = scopes_[i].FindVar(name);
+        if (!var_info) {
+            // 当前作用域找不到变量，向上层作用域找
+            continue;
         }
-        
-        // 跳回循环开始
-        current_func_def_->bytecode_table().EmitOpcode(OpcodeType::kGoto);
-        current_func_def_->bytecode_table().EmitPcOffset(loop_start_pc - current_func_def_->bytecode_table().Size() - 2);
-        
-        // 循环结束位置
-        auto loop_end_pc = current_func_def_->bytecode_table().Size();
-        
-        // 修复跳转指令
-        current_func_def_->bytecode_table().RepairPc(loop_end_jump_pc, loop_end_pc);
-        
-        // 修复 break 和 continue 语句
-        RepairEntries(repair_entrys, loop_end_pc, update_pc);
-        
-        // 恢复上一层循环的修复条目
-        current_loop_repair_entries_ = old_repair_entrys;
-    } else {
-        // 无条件循环
-        
-        // 循环体
-        std::vector<RepairEntry> repair_entrys;
-        auto old_repair_entrys = current_loop_repair_entries_;
-        current_loop_repair_entries_ = &repair_entrys;
-        
-        GenerateBlock(stat->body().get(), true, ScopeType::kNone);
-        
-        // 更新语句位置
-        auto update_pc = current_func_def_->bytecode_table().Size();
-        
-        // 更新语句
-        if (stat->update()) {
-            GenerateExpression(stat->update().get());
-            current_func_def_->bytecode_table().EmitOpcode(OpcodeType::kPop);
+
+        auto var_idx = var_info->var_idx;
+        if (scopes_[i].function_def() == current_func_def_) {
+            find_var_info = var_info;
         }
-        
-        // 跳回循环开始
-        current_func_def_->bytecode_table().EmitOpcode(OpcodeType::kGoto);
-        current_func_def_->bytecode_table().EmitPcOffset(loop_start_pc - current_func_def_->bytecode_table().Size() - 2);
-        
-        // 循环结束位置（实际上不会执行到这里，除非有 break）
-        auto loop_end_pc = current_func_def_->bytecode_table().Size();
-        
-        // 修复 break 和 continue 语句
-        RepairEntries(repair_entrys, loop_end_pc, update_pc);
-        
-        // 恢复上一层循环的修复条目
-        current_loop_repair_entries_ = old_repair_entrys;
-    }
-    
-    // 退出循环作用域
-    ExitScope();
-}
+        else {
+            // 在上层函数作用域找到了，构建捕获链
+            auto scope_func = scopes_[i].function_def();
 
-void CodeGenerator::GenerateWhileStatement(WhileStatement* stat) {
-    if (!stat) {
-        throw std::invalid_argument("While statement cannot be null");
-    }
+            // 途径的每一级作用域，都需要构建
+            for (size_t j = i + 1; j < scopes_.size(); ++j) {
+                if (scope_func == scopes_[j].function_def()) {
+                    continue;
+                }
+                scope_func = scopes_[j].function_def();
 
-    // 进入循环作用域
-    EnterScope(nullptr, ScopeType::kWhile);
-    
-    // 循环开始位置
-    auto loop_start_pc = current_func_def_->bytecode_table().Size();
-    
-    // 条件表达式
-    GenerateExpression(stat->test().get());
-    
-    // 条件跳转，如果条件为假，跳出循环
-    current_func_def_->bytecode_table().EmitOpcode(OpcodeType::kIfEq);
-    auto loop_end_jump_pc = current_func_def_->bytecode_table().Size();
-    current_func_def_->bytecode_table().EmitPcOffset(0); // 占位，后面修复
-    
-    // 循环体
-    std::vector<RepairEntry> repair_entrys;
-    auto old_repair_entrys = current_loop_repair_entries_;
-    current_loop_repair_entries_ = &repair_entrys;
-    
-    GenerateBlock(stat->body().get(), true, ScopeType::kNone);
-    
-    // 跳回循环开始
-    current_func_def_->bytecode_table().EmitOpcode(OpcodeType::kGoto);
-    current_func_def_->bytecode_table().EmitPcOffset(loop_start_pc - current_func_def_->bytecode_table().Size() - 2);
-    
-    // 循环结束位置
-    auto loop_end_pc = current_func_def_->bytecode_table().Size();
-    
-    // 修复跳转指令
-    current_func_def_->bytecode_table().RepairPc(loop_end_jump_pc, loop_end_pc);
-    
-    // 修复 break 和 continue 语句
-    RepairEntries(repair_entrys, loop_end_pc, loop_start_pc);
-    
-    // 恢复上一层循环的修复条目
-    current_loop_repair_entries_ = old_repair_entrys;
-    
-    // 退出循环作用域
-    ExitScope();
-}
-
-void CodeGenerator::GenerateContinueStatement(ContinueStatement* stat) {
-    if (!stat) {
-        throw std::invalid_argument("Continue statement cannot be null");
-    }
-
-    if (stat->label()) {
-        // 带标签的 continue
-        auto it = label_map_.find(*stat->label());
-        if (it == label_map_.end()) {
-            throw std::runtime_error("Label not found: " + *stat->label());
+                // 为Value(&closure_var)分配变量
+                find_var_info = &scopes_[j].AllocVar(name, var_info->flags);
+                scope_func->closure_var_table().AddClosureVar(find_var_info->var_idx, var_idx);
+                var_idx = find_var_info->var_idx;
+            }
         }
-        
-        // 生成跳转指令
-        current_func_def_->bytecode_table().EmitOpcode(OpcodeType::kGoto);
-        auto continue_pc = current_func_def_->bytecode_table().Size();
-        current_func_def_->bytecode_table().EmitPcOffset(0); // 占位，后面修复
-        
-        // 添加到标签的修复条目
-        RepairEntry entry;
-        entry.type = RepairEntry::Type::kContinue;
-        entry.repair_pc = continue_pc;
-        it->second.entries.push_back(entry);
-    } else {
-        // 普通 continue
-        if (!current_loop_repair_entries_) {
-            throw std::runtime_error("Continue statement outside of loop");
+        break;
+    }
+    return find_var_info;
+}
+
+bool CodeGenerator::IsInTypeScope(std::initializer_list<ScopeType> types, std::initializer_list<ScopeType> end_types) const {
+    for (auto it = scopes_.rbegin(); it != scopes_.rend(); ++it) {
+        for (auto type : types) {
+            if (it->type() == type) {
+                return true;
+            }
         }
-        
-        // 生成跳转指令
-        current_func_def_->bytecode_table().EmitOpcode(OpcodeType::kGoto);
-        auto continue_pc = current_func_def_->bytecode_table().Size();
-        current_func_def_->bytecode_table().EmitPcOffset(0); // 占位，后面修复
-        
-        // 添加到循环的修复条目
-        RepairEntry entry;
-        entry.type = RepairEntry::Type::kContinue;
-        entry.repair_pc = continue_pc;
-        current_loop_repair_entries_->push_back(entry);
-    }
-}
 
-void CodeGenerator::GenerateBreakStatement(BreakStatement* stat) {
-    if (!stat) {
-        throw std::invalid_argument("Break statement cannot be null");
-    }
-
-    if (stat->label()) {
-        // 带标签的 break
-        auto it = label_map_.find(*stat->label());
-        if (it == label_map_.end()) {
-            throw std::runtime_error("Label not found: " + *stat->label());
-        }
-        
-        // 生成跳转指令
-        current_func_def_->bytecode_table().EmitOpcode(OpcodeType::kGoto);
-        auto break_pc = current_func_def_->bytecode_table().Size();
-        current_func_def_->bytecode_table().EmitPcOffset(0); // 占位，后面修复
-        
-        // 添加到标签的修复条目
-        RepairEntry entry;
-        entry.type = RepairEntry::Type::kBreak;
-        entry.repair_pc = break_pc;
-        it->second.entries.push_back(entry);
-    } else {
-        // 普通 break
-        if (!current_loop_repair_entries_) {
-            throw std::runtime_error("Break statement outside of loop");
-        }
-        
-        // 生成跳转指令
-        current_func_def_->bytecode_table().EmitOpcode(OpcodeType::kGoto);
-        auto break_pc = current_func_def_->bytecode_table().Size();
-        current_func_def_->bytecode_table().EmitPcOffset(0); // 占位，后面修复
-        
-        // 添加到循环的修复条目
-        RepairEntry entry;
-        entry.type = RepairEntry::Type::kBreak;
-        entry.repair_pc = break_pc;
-        current_loop_repair_entries_->push_back(entry);
-    }
-}
-
-void CodeGenerator::GenerateReturnStatement(ReturnStatement* stat) {
-    if (!stat) {
-        throw std::invalid_argument("Return statement cannot be null");
-    }
-
-    // 生成返回值
-    if (stat->argument()) {
-        GenerateExpression(stat->argument().get());
-    } else {
-        // 无返回值，返回 undefined
-        current_func_def_->bytecode_table().EmitOpcode(OpcodeType::kUndefined);
-    }
-    
-    // 如果有 finally 块，需要特殊处理
-    if (has_finally_) {
-        current_func_def_->bytecode_table().EmitOpcode(OpcodeType::kFinallyReturn);
-    } else {
-        // 生成返回指令
-        current_func_def_->bytecode_table().EmitOpcode(OpcodeType::kReturn);
-    }
-}
-
-void CodeGenerator::GenerateTryStatement(TryStatement* stat) {
-    if (!stat) {
-        throw std::invalid_argument("Try statement cannot be null");
-    }
-
-    // 生成 try 开始指令
-    current_func_def_->bytecode_table().EmitOpcode(OpcodeType::kTryBegin);
-    auto try_begin_pc = current_func_def_->bytecode_table().Size();
-    current_func_def_->bytecode_table().EmitPcOffset(0); // 占位，后面修复
-    
-    // 记录是否有 finally 块
-    bool old_has_finally = has_finally_;
-    has_finally_ = stat->finalizer() != nullptr;
-    
-    // 生成 try 块
-    GenerateBlock(stat->block().get(), true, ScopeType::kTry);
-    
-    // 生成 try 结束指令
-    current_func_def_->bytecode_table().EmitOpcode(OpcodeType::kTryEnd);
-    
-    // 跳过 catch 和 finally 块
-    current_func_def_->bytecode_table().EmitOpcode(OpcodeType::kGoto);
-    auto try_end_jump_pc = current_func_def_->bytecode_table().Size();
-    current_func_def_->bytecode_table().EmitPcOffset(0); // 占位，后面修复
-    
-    // 修复 try 开始指令
-    auto catch_pc = current_func_def_->bytecode_table().Size();
-    current_func_def_->bytecode_table().RepairPc(try_begin_pc, catch_pc);
-    
-    // 生成 catch 块
-    if (stat->handler()) {
-        auto& handler = stat->handler();
-        
-        // 进入 catch 作用域
-        EnterScope(nullptr, has_finally_ ? ScopeType::kCatchFinally : ScopeType::kCatch);
-        
-        // 分配异常变量
-        if (handler->param()) {
-            auto& var_info = AllocateVar(handler->param()->name());
-            current_func_def_->bytecode_table().EmitVarStore(var_info.var_idx);
-        } else {
-            // 弹出异常值
-            current_func_def_->bytecode_table().EmitOpcode(OpcodeType::kPop);
-        }
-        
-        // 生成 catch 块
-        GenerateBlock(handler->body().get(), false);
-        
-        // 退出 catch 作用域
-        ExitScope();
-    }
-    
-    // 生成 finally 块
-    if (stat->finalizer()) {
-        auto finally_pc = current_func_def_->bytecode_table().Size();
-        
-        // 进入 finally 作用域
-        EnterScope(nullptr, ScopeType::kFinally);
-        
-        // 生成 finally 块
-        GenerateBlock(stat->finalizer()->body().get(), false);
-        
-        // 生成 finally 结束指令
-        current_func_def_->bytecode_table().EmitOpcode(OpcodeType::kFinallyGoto);
-        current_func_def_->bytecode_table().EmitPcOffset(0); // 跳转到下一条指令
-        
-        // 退出 finally 作用域
-        ExitScope();
-    }
-    
-    // 修复 try 结束跳转指令
-    auto end_pc = current_func_def_->bytecode_table().Size();
-    current_func_def_->bytecode_table().RepairPc(try_end_jump_pc, end_pc);
-    
-    // 恢复 finally 标志
-    has_finally_ = old_has_finally;
-}
-
-void CodeGenerator::GenerateThrowStatement(ThrowStatement* stat) {
-    if (!stat) {
-        throw std::invalid_argument("Throw statement cannot be null");
-    }
-
-    // 生成异常值
-    GenerateExpression(stat->argument().get());
-    
-    // 生成抛出指令
-    current_func_def_->bytecode_table().EmitOpcode(OpcodeType::kThrow);
-}
-
-void CodeGenerator::GenerateImportDeclaration(ImportDeclaration* stat) {
-    if (!stat) {
-        throw std::invalid_argument("Import declaration cannot be null");
-    }
-
-    // 生成模块名称常量
-    auto source_const_idx = AllocateConst(Value(String::New(stat->source())));
-    
-    // 生成导入指令
-    current_func_def_->bytecode_table().EmitConstLoad(source_const_idx);
-    current_func_def_->bytecode_table().EmitOpcode(OpcodeType::kGetModule);
-    
-    // 生成变量名称常量
-    auto name_const_idx = AllocateConst(Value(String::New(stat->name())));
-    
-    // 分配变量
-    auto& var_info = AllocateVar(stat->name(), VarFlags::kConst);
-    
-    // 存储到变量
-    current_func_def_->bytecode_table().EmitVarStore(var_info.var_idx);
-    current_func_def_->bytecode_table().EmitOpcode(OpcodeType::kPop);
-}
-
-void CodeGenerator::GenerateExportDeclaration(ExportDeclaration* stat) {
-    if (!stat) {
-        throw std::invalid_argument("Export declaration cannot be null");
-    }
-
-    // 获取导出声明
-    auto& decl = stat->declaration();
-    
-    // 设置导出标志
-    if (decl->type() == StatementType::kVariableDeclaration) {
-        decl->as<VariableDeclaration>().set_is_export(true);
-    } else if (decl->type() == StatementType::kExpression) {
-        auto& exp_stat = decl->as<ExpressionStatement>();
-        if (exp_stat.expression()->type() == ExpressionType::kFunctionExpression) {
-            exp_stat.expression()->as<FunctionExpression>().set_is_export(true);
+        for (auto end_type : end_types) {
+            if (it->type() == end_type) {
+                return false;
+            }
         }
     }
-    
-    // 生成声明
-    GenerateStatement(decl.get());
+    return false;
 }
 
-void CodeGenerator::GenerateIfEq(Expression* exp) {
-    if (!exp) {
-        throw std::invalid_argument("Expression cannot be null");
+const VarInfo* CodeGenerator::GetVarInfoByExpression(Expression* exp) {
+    assert(exp->is(ExpressionType::kIdentifier));
+    auto& ident_exp = exp->as<Identifier>();
+    return FindVarInfoByName(ident_exp.name());
+}
+
+Value CodeGenerator::MakeConstValue(Expression* exp) const {
+    switch (exp->type()) {
+    case ExpressionType::kUndefined:
+        return Value();
+    case ExpressionType::kNull:
+        return Value(nullptr);
+    case ExpressionType::kBoolean:
+        return Value(exp->as<BooleanLiteral>().value());
+    case ExpressionType::kInteger:
+        return Value(exp->as<IntegerLiteral>().value());
+    case ExpressionType::kFloat:
+        return Value(exp->as<FloatLiteral>().value());
+    case ExpressionType::kString:
+        return Value(String::New(exp->as<StringLiteral>().value()));
+    case ExpressionType::kTemplateElement:
+        return Value(String::New(exp->as<TemplateElement>().value()));
+    default:
+        throw SyntaxError("Unable to generate expression for value");
     }
-
-    // 生成表达式
-    GenerateExpression(exp);
-    
-    // 生成条件跳转指令
-    current_func_def_->bytecode_table().EmitOpcode(OpcodeType::kIfEq);
 }
+
+void CodeGenerator::RepairEntries(const std::vector<RepairEntry>& entries, Pc end_pc, Pc reloop_pc) {
+    for (auto& repair_info : entries) {
+        switch (repair_info.type) {
+        case RepairEntry::Type::kBreak: {
+            current_func_def_->bytecode_table().RepairPc(repair_info.repair_pc, end_pc);
+            break;
+        }
+        case RepairEntry::Type::kContinue: {
+            assert(reloop_pc != kInvalidPc);
+            current_func_def_->bytecode_table().RepairPc(repair_info.repair_pc, reloop_pc);
+            break;
+        }
+        default:
+            throw SyntaxError("Incorrect type.");
+            break;
+        }
+    }
+}
+
+
 
 } // namespace compiler
 } // namespace mjs 

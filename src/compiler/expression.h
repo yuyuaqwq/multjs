@@ -366,7 +366,7 @@ private:
 
 class MemberExpression : public Expression {
 public:
-    MemberExpression(SourcePos start,  SourcePos end,
+    MemberExpression(SourcePos start, SourcePos end,
                 std::unique_ptr<Expression> object,
                 std::unique_ptr<Expression> property,
                 bool is_method_call, bool computed, bool optional)

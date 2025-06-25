@@ -501,45 +501,39 @@ std::unique_ptr<Expression> Parser::ParseUnaryExpression() {
 	
 	// 处理前缀一元运算符
 	switch (token.type()) {
+	case TokenType::kKwAwait: {    // await
+		lexer_->NextToken();
+		auto argument = ParseUnaryExpression();
+		auto end = lexer_->GetRawSourcePosition();
+		return std::make_unique<AwaitExpression>(start, end, std::move(argument));
+	}
 	case TokenType::kOpAdd:      // +
 	case TokenType::kOpSub:      // -
 	case TokenType::kOpNot:      // !
 	case TokenType::kOpBitNot:   // ~
 	case TokenType::kKwTypeof:   // typeof
 	case TokenType::kKwVoid:     // void
-	case TokenType::kKwDelete:   // delete
-	case TokenType::kKwAwait:    // await
-		{
-			auto op = lexer_->NextToken().type();
-			auto argument = ParseUnaryExpression();
-			auto end = lexer_->GetRawSourcePosition();
-			
-			// 特殊处理await表达式
-			if (op == TokenType::kKwAwait) {
-				return std::make_unique<AwaitExpression>(start, end, std::move(argument));
-			}
-			
-			return std::make_unique<UnaryExpression>(
-				start, end, op, std::move(argument), true
-			);
-		}
-	
+	case TokenType::kKwDelete: {  // delete
+		lexer_->NextToken();
+		auto argument = ParseUnaryExpression();
+		auto end = lexer_->GetRawSourcePosition();
+		return std::make_unique<UnaryExpression>(start, end, token.type(), std::move(argument));
+	}
 	case TokenType::kOpInc:      // ++
-	case TokenType::kOpDec:      // --
-		{
-			auto op = lexer_->NextToken().type();
-			auto argument = ParseUnaryExpression();
-			auto end = lexer_->GetRawSourcePosition();
+	case TokenType::kOpDec: {     // --
+		lexer_->NextToken();
+		auto argument = ParseUnaryExpression();
+
+		auto end = lexer_->GetRawSourcePosition();
 			
-			// 使用特殊的前缀自增/自减标记
-			TokenType prefix_op = (op == TokenType::kOpInc) ? 
-				TokenType::kOpPrefixInc : TokenType::kOpPrefixDec;
+		// 使用特殊的前缀自增/自减标记
+		TokenType prefix_op = (token.type() == TokenType::kOpInc) ?
+			TokenType::kOpPrefixInc : TokenType::kOpPrefixDec;
 				
-			return std::make_unique<UnaryExpression>(
-				start, end, prefix_op, std::move(argument), true
-			);
-		}
-	
+		return std::make_unique<UnaryExpression>(
+			start, end, prefix_op, std::move(argument), true
+		);
+	}
 	default:
 		// 如果不是一元运算符，则解析后缀表达式
 		return ParsePostfixExpression();
@@ -775,6 +769,7 @@ std::unique_ptr<MemberExpression> Parser::ParseMemberExpression(std::unique_ptr<
 		// 计算属性：object[property]
 		property = ParseExpression();
 		lexer_->MatchToken(TokenType::kSepRBrack);
+		computed = true;
 
 	} else {
 		throw SyntaxError("Expected '.' or '[' in member expression");

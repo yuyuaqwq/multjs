@@ -274,7 +274,7 @@ private:
      * @param name 变量名
      * @return 变量信息，如果未找到则返回nullptr
      */
-    const VarInfo* FindVarInfoByName(const std::string& name) const;
+    const VarInfo* FindVarInfoByName(const std::string& name);
     
     /**
      * @brief 检查是否在指定类型的作用域中
@@ -289,7 +289,7 @@ private:
      * @param exp 表达式
      * @return 变量信息，如果未找到则返回nullptr
      */
-    const VarInfo* GetVarInfoByExpression(Expression* exp) const;
+    const VarInfo* GetVarInfoByExpression(Expression* exp);
 
     /**
      * @brief 创建常量值
@@ -328,8 +328,6 @@ private:
     
     std::unordered_map<std::string, LabelInfo> label_map_; ///< 标签映射
     std::optional<Pc> current_label_reloop_pc_;     ///< 当前标签重新循环PC
-
-    bool has_finally_ = false;                      ///< 当前作用域是否关联finally块
 };
 
 } // namespace compiler
