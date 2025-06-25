@@ -1029,6 +1029,10 @@ Value Value::ToString(Context* context) const {
 		return Value(String::Format("{}", i64()));
 	case ValueType::kUInt64:
 		return Value(String::Format("{}", u64()));
+	case ValueType::kModuleDef:
+		return Value(String::Format("module_def:{}", module_def().name()));
+	case ValueType::kModuleObject:
+		return Value(String::Format("module_object:{}", module().module_def().name()));
 	case ValueType::kFunctionDef:
 		return Value(String::Format("function_def:{}", function_def().name()));
 	case ValueType::kCppFunction:

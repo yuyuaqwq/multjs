@@ -29,7 +29,9 @@ Parser::Parser(Lexer* lexer)
 
 void Parser::ParseProgram() {
 	while (!lexer_->PeekToken().is(TokenType::kEof)) {
-		statements_.emplace_back(ParseStatement());
+		auto statement = ParseStatement();
+		if (!statement) continue;
+		statements_.emplace_back(std::move(statement));
 	}
 }
 
@@ -758,7 +760,9 @@ std::unique_ptr<MemberExpression> Parser::ParseMemberExpression(std::unique_ptr<
 	auto start = object->start();
 	auto token = lexer_->NextToken(); // 消耗. 或 [ 或 ?.
 	bool optional = token.is(TokenType::kOpOptionalChain);
-	
+	bool computed = false;
+	std::unique_ptr<Expression> property;
+
 	if (token.is(TokenType::kSepDot) || optional) {
 		// 点访问：object.property
 		if (!lexer_->PeekToken().is(TokenType::kIdentifier)) {
@@ -766,26 +770,26 @@ std::unique_ptr<MemberExpression> Parser::ParseMemberExpression(std::unique_ptr<
 		}
 		
 		// 解析属性名（标识符）
-		auto property = ParseIdentifier();
-		auto end = lexer_->GetRawSourcePosition();
-		
-		return std::make_unique<MemberExpression>(
-			start, end, std::move(object), std::move(property), 
-			false, false, optional
-		);
+		property = ParseIdentifier();
 	} else if (token.is(TokenType::kSepLBrack)) {
 		// 计算属性：object[property]
-		auto property = ParseExpression();
+		property = ParseExpression();
 		lexer_->MatchToken(TokenType::kSepRBrack);
-		auto end = lexer_->GetRawSourcePosition();
-		
-		return std::make_unique<MemberExpression>(
-			start, end, std::move(object), std::move(property), 
-			false, true, false
-		);
+
 	} else {
 		throw SyntaxError("Expected '.' or '[' in member expression");
 	}
+
+	bool is_method_call = false;
+	if (lexer_->PeekToken().type() == TokenType::kSepLParen) {
+		is_method_call = true;
+	}
+
+	auto end = lexer_->GetRawSourcePosition();
+	return std::make_unique<MemberExpression>(
+		start, end, std::move(object), std::move(property),
+		is_method_call, computed, optional
+	);
 }
 
 /**
@@ -1007,90 +1011,57 @@ std::unique_ptr<Statement> Parser::ParseStatement() {
 
 std::unique_ptr<Statement> Parser::ParseImportStatement(TokenType type) {
 	auto start = lexer_->GetSourcePosition();
-	lexer_->MatchToken(TokenType::kKwImport);
-	
-	// 解析模块名
-	std::string source;
-	if (lexer_->PeekToken().is(TokenType::kString)) {
-		source = lexer_->NextToken().value();
-	} else {
-		throw SyntaxError("Expected module name string");
+	auto token = lexer_->PeekTokenN(2);
+	if (token.is(TokenType::kOpMul)) {
+		lexer_->MatchToken(type);
+		auto token = lexer_->NextToken();
+		lexer_->MatchToken(TokenType::kKwAs);
+		auto module_name = lexer_->MatchToken(TokenType::kIdentifier).value();
+		lexer_->MatchToken(TokenType::kKwFrom);
+
+		auto source = lexer_->MatchToken(TokenType::kString).value();
+
+		// 静态import会被提升，单独保存
+		auto end = lexer_->GetRawSourcePosition();
+		auto import_stat = std::make_unique<ImportDeclaration>(start, end, std::move(source), std::move(module_name));
+		import_declarations_.emplace_back(std::move(import_stat));
+
+		lexer_->MatchToken(TokenType::kSepSemi);
+
+		return nullptr;
 	}
-	
-	// 解析导入名称
-	std::string name;
-	if (lexer_->PeekToken().is(TokenType::kKwAs)) {
-		lexer_->NextToken(); // 消耗 as
-		
-		if (lexer_->PeekToken().is(TokenType::kIdentifier)) {
-			name = lexer_->NextToken().value();
-		} else {
-			throw SyntaxError("Expected identifier after 'as'");
-		}
+	else if (token.is(TokenType::kSepLParen)) {
+		// 动态import
+		return ParseExpressionStatement();
 	}
-	
-	// 必须以分号结束
-	lexer_->MatchToken(TokenType::kSepSemi);
-	
-	auto end = lexer_->GetRawSourcePosition();
-	auto import_decl = std::make_unique<ImportDeclaration>(start, end, std::move(source), std::move(name));
-	
-	// 保存导入声明
-	import_declarations_.push_back(std::unique_ptr<ImportDeclaration>(
-		static_cast<ImportDeclaration*>(import_decl->clone())));
-	
-	return import_decl;
+	else {
+		throw SyntaxError("Unsupported module parsing.");
+	}
 }
 
 std::unique_ptr<ExportDeclaration> Parser::ParseExportDeclaration(TokenType type) {
 	auto start = lexer_->GetSourcePosition();
 	lexer_->MatchToken(TokenType::kKwExport);
 	
-	// 解析导出的声明
-	std::unique_ptr<Statement> declaration;
-	
-	if (lexer_->PeekToken().is(TokenType::kKwLet) || 
-		lexer_->PeekToken().is(TokenType::kKwConst)) {
-		// 导出变量声明
-		declaration = ParseVariableDeclaration(lexer_->PeekToken().type());
-		auto& var_decl = static_cast<VariableDeclaration&>(*declaration);
-		var_decl.set_is_export(true);
-	} else if (lexer_->PeekToken().is(TokenType::kKwFunction)) {
-		// 导出函数声明
-		auto func_start = lexer_->GetSourcePosition();
-		lexer_->NextToken(); // 消耗 function
-		
-		// 函数名
-		std::string name;
-		if (lexer_->PeekToken().is(TokenType::kIdentifier)) {
-			name = lexer_->NextToken().value();
-		} else {
-			throw SyntaxError("Expected function name");
+	auto stat = ParseStatement();
+	if (stat->is(StatementType::kExpression)) {
+		auto& exp = stat->as<ExpressionStatement>().expression();
+		if (exp->is(ExpressionType::kFunctionExpression)) {
+			auto& func_decl_exp = exp->as<FunctionExpression>();
+			func_decl_exp.set_is_export(true);
+			auto end = lexer_->GetRawSourcePosition();
+			return std::make_unique<ExportDeclaration>(start, end, std::move(stat));
 		}
-		
-		// 参数列表
-		auto params = ParseParameters();
-		
-		// 函数体
-		auto body = ParseBlockStatement();
-		
-		auto func_end = lexer_->GetRawSourcePosition();
-		auto func_expr = std::make_unique<FunctionExpression>(
-			func_start, func_end, name, std::move(params), 
-			std::move(body), false, false, false
-		);
-		
-		// 设置为导出
-		func_expr->set_is_export(true);
-		
-		// 创建表达式语句
-		declaration = std::make_unique<ExpressionStatement>(func_start, func_end, std::move(func_expr));
-	} else {
-		throw SyntaxError("Unsupported export declaration");
 	}
-	
+	if (stat->is(StatementType::kVariableDeclaration)) {
+		auto& var_decl = stat->as<VariableDeclaration>();
+		var_decl.set_is_export(true);
+	}
+	else {
+		throw SyntaxError("Statement that cannot be exported.");
+	}
 	auto end = lexer_->GetRawSourcePosition();
-	return std::make_unique<ExportDeclaration>(start, end, std::move(declaration));
+	return std::make_unique<ExportDeclaration>(start, end, std::move(stat));
 }
 
 std::unique_ptr<VariableDeclaration> Parser::ParseVariableDeclaration(TokenType kind) {

@@ -161,6 +161,10 @@ void CodeGenerator::GenerateExpression(Expression* exp) {
             // 成员访问表达式
             auto& prop_exp = mem_exp.property()->as<Identifier>();
 
+            //if (prop_exp->GetType() != ExpType::kIdentifier) {
+            //	throw std::runtime_error("Incorrect right value for attribute access.");
+            //}
+
             // 访问对象成员
             auto const_idx = AllocateConst(Value(String::New(prop_exp.name())));
             current_func_def_->bytecode_table().EmitPropertyLoad(const_idx);
@@ -853,6 +857,9 @@ void CodeGenerator::GenerateParamList(const std::vector<std::unique_ptr<Expressi
     for (auto& param : param_list) {
         GenerateExpression(param.get());
     }
+
+    auto const_idx = AllocateConst(Value(param_list.size()));
+    current_func_def_->bytecode_table().EmitConstLoad(const_idx);
 }
 
 void CodeGenerator::GenerateLabeledStatement(LabeledStatement* stat) {
