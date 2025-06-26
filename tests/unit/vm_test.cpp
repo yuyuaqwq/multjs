@@ -281,9 +281,9 @@ TEST_F(VMTest, FunctionCall) {
     auto& main_table = main_func.function_def().bytecode_table();
     
     // 主函数字节码：CLoad func, Undefined (this), CLoad 10, FunctionCall 1, Return
-    main_table.EmitConstLoad(func_const);
-    main_table.EmitOpcode(OpcodeType::kUndefined);
     main_table.EmitConstLoad(arg_const);
+    main_table.EmitOpcode(OpcodeType::kUndefined);
+    main_table.EmitConstLoad(func_const);
     main_table.EmitOpcode(OpcodeType::kFunctionCall);
     main_table.EmitOpcode(OpcodeType::kReturn);
     
@@ -330,8 +330,7 @@ TEST_F(VMTest, TryCatchException) {
     
     // 添加异常处理表项
     func_def.function_def().var_def_table().AddVar("error_var");
-    //func_def.function_def().exception_table().AddEntry(2, 4, 5, 8, 0); // try: 2-4, catch: 5-8, error_var: 0
-    
+
     // 生成字节码：
     // 0: TryBegin
     // 1: CLoad error
@@ -341,14 +340,20 @@ TEST_F(VMTest, TryCatchException) {
     // 5: CLoad 99 (catch块)
     // 6: Return
     auto& table = func_def.function_def().bytecode_table();
+    auto try_start_pc = table.Size();
     table.EmitOpcode(OpcodeType::kTryBegin);      // 0
     table.EmitConstLoad(error_const);             // 1
     table.EmitOpcode(OpcodeType::kThrow);         // 3
     table.EmitConstLoad(success_const);           // 4
-    table.EmitOpcode(OpcodeType::kTryEnd);        // 6
+    auto try_end_pc = table.Size();
+    auto catch_start_pc = table.Size();
     table.EmitConstLoad(caught_const);            // 7 (catch开始)
     table.EmitOpcode(OpcodeType::kReturn);        // 9
-    
+    auto catch_end_pc = table.Size();
+    table.EmitOpcode(OpcodeType::kTryEnd);        // 6
+
+    func_def.function_def().exception_table().AddEntry(ExceptionEntry{ try_start_pc, try_end_pc, catch_start_pc, catch_end_pc, 0 }); // try: 2-4, catch: 5-8, error_var: 0
+
     StackFrame stack_frame(&runtime_->stack());
     Value this_val;
     auto args = std::vector<Value>();
