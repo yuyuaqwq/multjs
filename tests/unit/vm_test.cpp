@@ -274,7 +274,7 @@ TEST_F(VMTest, FunctionCall) {
     
     // 将被调用函数添加到常量池
     ConstIndex func_const = AddConstant(called_func);
-    ConstIndex arg_const = AddConstant(Value(10.0));
+    ConstIndex arg_const = AddConstant(Value(10ull));
     
     // 创建主函数
     auto main_func = CreateSimpleFunction("main_function");

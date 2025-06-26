@@ -592,7 +592,10 @@ void CodeGenerator::GenerateStatement(Statement* stat) {
 
 void CodeGenerator::GenerateExpressionStatement(ExpressionStatement* stat) {
     auto exp = stat->expression().get();
-    assert(exp);
+    if (!exp) {
+        // 空语句
+        return;
+    }
     // 抛弃纯表达式语句的最终结果
     GenerateExpression(exp);
     current_func_def_->bytecode_table().EmitOpcode(OpcodeType::kPop);
