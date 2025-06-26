@@ -656,7 +656,7 @@ void CodeGenerator::GenerateIfStatement(IfStatement* stat) {
 
     // 条件为false时，跳转到if块之后的地址
     auto if_pc = current_func_def_->bytecode_table().Size();
-    GenerateIfEq(stat->test().get());
+    GenerateIfEq();
 
     GenerateBlock(stat->consequent().get());
 
@@ -729,7 +729,7 @@ void CodeGenerator::GenerateForStatement(ForStatement* stat) {
         .repair_pc = current_func_def_->bytecode_table().Size(),
         });
     // 提前写入跳转的指令
-    GenerateIfEq(stat->test().get());
+    GenerateIfEq();
 
     bool need_set_label = current_label_reloop_pc_ && current_label_reloop_pc_ == kInvalidPc;
     current_label_reloop_pc_ = std::nullopt;
@@ -779,7 +779,7 @@ void CodeGenerator::GenerateWhileStatement(WhileStatement* stat) {
         .repair_pc = current_func_def_->bytecode_table().Size(),
         });
     // 提前写入跳转的指令
-    GenerateIfEq(stat->test().get());
+    GenerateIfEq();
 
     GenerateBlock(stat->body().get(), true, ScopeType::kWhile);
 
@@ -960,9 +960,9 @@ void CodeGenerator::GenerateBlock(BlockStatement* block, bool entry_scope, Scope
     }
 }
 
-void CodeGenerator::GenerateIfEq(Expression* exp) {
-    GenerateExpression(exp);
+void CodeGenerator::GenerateIfEq() {
     current_func_def_->bytecode_table().EmitOpcode(OpcodeType::kIfEq);
+    current_func_def_->bytecode_table().EmitPcOffset(0);
 }
 
 void CodeGenerator::GenerateParamList(const std::vector<std::unique_ptr<Expression>>& param_list) {

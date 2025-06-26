@@ -265,18 +265,6 @@ private:
 	std::unique_ptr<TemplateLiteral> ParseTemplateLiteral();
 	
 	/**
-	 * @brief 解析字面量
-	 * @return 解析后的字面量表达式
-	 */
-	std::unique_ptr<Expression> ParseLiteral();
-	
-	/**
-	 * @brief 尝试解析字面量
-	 * @return 解析后的字面量表达式，如果不是字面量则返回nullptr
-	 */
-	std::unique_ptr<Expression> TryParseLiteral();
-	
-	/**
 	 * @brief 解析标识符
 	 * @return 解析后的标识符
 	 */
@@ -407,7 +395,7 @@ private:
 	 * @brief 解析类型注解
 	 * @return 解析后的类型注解
 	 */
-	std::unique_ptr<TypeAnnotation> ParseTypeAnnotation();
+	std::unique_ptr<TypeAnnotation> TryParseTypeAnnotation();
 	
 	/**
 	 * @brief 解析联合类型

@@ -225,7 +225,7 @@ private:
      * @brief 生成条件相等判断代码
      * @param exp 表达式
      */
-    void GenerateIfEq(Expression* exp);
+    void GenerateIfEq();
     
     /**
      * @brief 生成参数列表代码

@@ -92,6 +92,8 @@ const std::unordered_map<OpcodeType, OpcodeInfo>& BytecodeTable::opcode_type_map
         {OpcodeType::kClosure, {"closure", {4}}},
 
         {OpcodeType::kGetGlobal, {"get_global", {4}}},
+
+        {OpcodeType::kToString, {"to_string", {}}},
     };
     return opcode_type_map;
 }
