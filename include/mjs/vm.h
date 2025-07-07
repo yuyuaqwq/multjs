@@ -59,7 +59,7 @@ private:
 	void GeneratorRestoreContext(StackFrame* stack_frame, GeneratorObject* generator);
 
 	Stack& stack();
-	FunctionDef* function_def(const Value& func_val) const;
+	FunctionDefBase* function_def(const Value& func_val) const;
 
 private:
 	Context* context_;

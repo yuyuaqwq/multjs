@@ -44,7 +44,7 @@ public:
 	void set_function_val(Value&& function_val) { function_val_ = std::move(function_val); }
 
 	const auto* function_def() const { return function_def_; }
-	void set_function_def(FunctionDef* function_def) { function_def_ = function_def; }
+	void set_function_def(FunctionDefBase* function_def) { function_def_ = function_def; }
 
 	const auto& this_val() const { return this_val_; }
 	void set_this_val(Value&& this_val) { this_val_ = std::move(this_val); }
@@ -58,7 +58,7 @@ private:
 	size_t bottom_;	// 当前栈帧的栈底(在栈中的索引)
 
 	Value function_val_;
-	FunctionDef* function_def_ = nullptr;
+	FunctionDefBase* function_def_ = nullptr;
 	Value this_val_;
 	Pc pc_ = 0;
 };

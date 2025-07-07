@@ -291,7 +291,7 @@ void VM::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 	std::optional<Value> pending_error_val;		// 异常处理过程中临时保存的异常值，没有被catch处理最后会被重抛
 	OpcodeType opcode;
 	Pc pending_goto_pc = kInvalidPc;
-	const FunctionDef* func_def = nullptr;
+	const FunctionDefBase* func_def = nullptr;
 
 	if (!FunctionScheduling(stack_frame, param_count)) {
 		if (stack_frame->function_val().IsAsyncRejectResume()) {
@@ -912,7 +912,7 @@ Stack& VM::stack() {
 	return context_->runtime().stack();
 }
 
-FunctionDef* VM::function_def(const Value& func_val) const {
+FunctionDefBase* VM::function_def(const Value& func_val) const {
 	if (func_val.IsFunctionDef()) {
 		return &func_val.function_def();
 	}

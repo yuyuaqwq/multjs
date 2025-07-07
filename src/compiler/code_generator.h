@@ -238,7 +238,7 @@ private:
      * @param sub_func 子函数
      * @param type 作用域类型
      */
-    void EnterScope(FunctionDef* sub_func = nullptr, ScopeType type = ScopeType::kNone);
+    void EnterScope(FunctionDefBase* sub_func = nullptr, ScopeType type = ScopeType::kNone);
     
     /**
      * @brief 退出作用域
@@ -312,7 +312,7 @@ private:
     Parser* parser_;                                ///< 解析器
 
     ModuleDef* current_module_def_ = nullptr;       ///< 当前生成模块
-    FunctionDef* current_func_def_ = nullptr;       ///< 当前生成函数
+    FunctionDefBase* current_func_def_ = nullptr;       ///< 当前生成函数
 
     std::vector<Scope> scopes_;                     ///< 作用域栈
 

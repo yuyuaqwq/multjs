@@ -978,8 +978,8 @@ void CodeGenerator::GenerateParamList(const std::vector<std::unique_ptr<Expressi
     current_func_def_->bytecode_table().EmitConstLoad(const_idx);
 }
 
-void CodeGenerator::EnterScope(FunctionDef* sub_func, ScopeType type) {
-    FunctionDef* func_def = sub_func ? sub_func : current_func_def_;
+void CodeGenerator::EnterScope(FunctionDefBase* sub_func, ScopeType type) {
+    FunctionDefBase* func_def = sub_func ? sub_func : current_func_def_;
     scopes_.emplace_back(func_def, type);
 }
 

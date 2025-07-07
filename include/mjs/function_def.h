@@ -15,9 +15,9 @@ namespace mjs {
 
 class ModuleDef;
 // 不会有循环引用问题，仅使用引用计数管理
-class FunctionDef : public ReferenceCounter<FunctionDef> {
+class FunctionDefBase {
 public:
-	FunctionDef(ModuleDef* module_def, std::string name, uint32_t par_count) noexcept;
+	FunctionDefBase(ModuleDef* module_def, std::string name, uint32_t par_count) noexcept;
 
 	std::string Disassembly(Context* context) const;
 
@@ -124,6 +124,10 @@ protected:
 
 	// 调试
 	DebugTable debug_table_;
+};
+
+class FunctionDef : public ReferenceCounter<FunctionDef>, public FunctionDefBase {
+	using FunctionDefBase::FunctionDefBase;
 };
 
 } // namespace mjs

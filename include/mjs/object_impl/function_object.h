@@ -12,7 +12,8 @@ namespace mjs {
 
 class FunctionObject : public Object {
 protected:
-	FunctionObject(Context* context, FunctionDef* function_def) noexcept;
+	FunctionObject(Context* context, FunctionDefBase* function_def) noexcept;
+	FunctionObject(Context* context, FunctionDefBase* function_def, ClassId class_id) noexcept;
 
 public:
 	~FunctionObject() = default;
@@ -26,7 +27,7 @@ public:
 		return Value(String::Format("function_object:{}", function_def_->name()));
 	}
 
-	FunctionDef& function_def() const { return *function_def_; }
+	FunctionDef& function_def() const { return static_cast<FunctionDef&>(*function_def_); }
 
 	const auto& closure_env() const { return closure_env_; }
 	auto& closure_env() { return closure_env_; }
@@ -36,7 +37,7 @@ public:
 	}
 
 protected:
-	FunctionDef* function_def_;
+	FunctionDefBase* function_def_;
 
 	// 闭包
 	ClosureEnvironment closure_env_;

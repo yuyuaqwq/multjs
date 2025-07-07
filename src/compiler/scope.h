@@ -57,7 +57,7 @@ struct VarInfo {
 
 class Scope : public noncopyable {
 public:
-	Scope(FunctionDef* function_def, ScopeType type)
+	Scope(FunctionDefBase* function_def, ScopeType type)
 		: function_def_(function_def)
 		, type_(type) {}
 
@@ -88,12 +88,12 @@ public:
 		return &it->second;
 	}
 
-	FunctionDef* function_def() const { return function_def_; }
+	FunctionDefBase* function_def() const { return function_def_; }
 
 	ScopeType type() const { return type_; }
 
 private:
-	FunctionDef* function_def_; // 所属函数
+	FunctionDefBase* function_def_; // 所属函数
 	std::unordered_map<std::string, VarInfo> var_table_; // 变量表
 
 	ScopeType type_;

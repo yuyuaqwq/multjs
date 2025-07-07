@@ -77,6 +77,7 @@ class ModuleObject;
 class ConstructorObject;
 
 class ClassDef;
+class FunctionDefBase;
 class ModuleDef;
 class FunctionDef;
 class ExportVar;

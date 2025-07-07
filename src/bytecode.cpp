@@ -216,7 +216,7 @@ void BytecodeTable::EmitIndexedStore() {
     EmitOpcode(OpcodeType::kIndexedStore);
 }
 
-void BytecodeTable::EmitReturn(FunctionDef* function_def) {
+void BytecodeTable::EmitReturn(FunctionDefBase* function_def) {
     if (function_def->is_generator()) {
         EmitOpcode(OpcodeType::kGeneratorReturn);
     }
@@ -244,7 +244,7 @@ Pc BytecodeTable::CalcPc(Pc cur_pc) const {
     return cur_pc + *reinterpret_cast<const int16_t*>(GetPtr(cur_pc) + 1);
 }
 
-std::string BytecodeTable::Disassembly(Context* context, Pc& pc, OpcodeType& opcode, uint32_t& par, const FunctionDef* func_def) const {
+std::string BytecodeTable::Disassembly(Context* context, Pc& pc, OpcodeType& opcode, uint32_t& par, const FunctionDefBase* func_def) const {
     std::string str;
     char buf[16] = { 0 };
     sprintf_s(buf, "%04d\t", pc);

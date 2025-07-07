@@ -20,7 +20,7 @@ inline static size_t operator-(OpcodeType a, OpcodeType b) {
 }
 
 class Context;
-class FunctionDef;
+class FunctionDefBase;
 class BytecodeTable : public noncopyable {
 public:
 	OpcodeType GetOpcode(Pc pc) const;
@@ -47,14 +47,14 @@ public:
 	void EmitIndexedLoad();
 	void EmitIndexedStore();
 
-	void EmitReturn(FunctionDef* function_def);
+	void EmitReturn(FunctionDefBase* function_def);
 
 
 	void RepairOpcode(Pc opcode_pc, OpcodeType op);
 	void RepairPc(Pc pc_from, Pc pc_to);
 	Pc CalcPc(Pc cur_pc) const;
 
-	std::string Disassembly(Context* context, Pc& pc, OpcodeType& opcode, uint32_t& par, const FunctionDef* func_def) const;
+	std::string Disassembly(Context* context, Pc& pc, OpcodeType& opcode, uint32_t& par, const FunctionDefBase* func_def) const;
 
 	Pc Size() const { return bytes_.size(); }
 

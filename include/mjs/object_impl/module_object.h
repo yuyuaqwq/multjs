@@ -50,7 +50,7 @@ public:
 	void SetProperty(Context* context, ConstIndex key, Value&& value) override;
 	bool GetProperty(Context* context, ConstIndex key, Value* value) override;
 
-    ModuleDef& module_def() const { return static_cast<ModuleDef&>(function_def()); }
+    ModuleDef& module_def() const { return static_cast<ModuleDef&>(*function_def_); }
 	auto& module_env() { return module_env_; }
 
 	static ModuleObject* New(Context* context, ModuleDef* module_def) {

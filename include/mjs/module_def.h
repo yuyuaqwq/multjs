@@ -7,11 +7,11 @@ namespace mjs {
 
 class Runtime;
 // 不会有循环引用问题，仅使用引用计数管理
-class ModuleDef : public FunctionDef {
+class ModuleDef : public ReferenceCounter<ModuleDef>, public FunctionDefBase {
 public:
 	ModuleDef(Runtime* runtime, std::string name, std::string_view source, uint32_t par_count)
 		: runtime_(runtime)
-		, FunctionDef(this, name, par_count)
+		, FunctionDefBase(this, name, par_count)
 	{
 		line_table_.Build(source);
 	}
