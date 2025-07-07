@@ -874,14 +874,19 @@ void Value::ReferenceCounterInc() {
 	switch (type()) {
 	case ValueType::kString:
 		value_.string_->Reference();
+		break;
 	case ValueType::kSymbol:
 		value_.symbol_->Reference();
+		break;
 	case ValueType::kModuleDef:
 		value_.module_def_->Reference();
+		break;
 	case ValueType::kFunctionDef:
 		value_.function_def_->Reference();
+		break;
 	case ValueType::kClosureVar:
 		value_.closure_var_->Reference();
+		break;
 	}
 }
 
@@ -889,14 +894,19 @@ void Value::ReferenceCounterDec() {
 	switch (type()) {
 	case ValueType::kString:
 		value_.string_->Dereference();
+		break;
 	case ValueType::kSymbol:
 		value_.symbol_->Dereference();
+		break;
 	case ValueType::kModuleDef:
 		value_.module_def_->Dereference();
+		break;
 	case ValueType::kFunctionDef:
 		value_.function_def_->Dereference();
+		break;
 	case ValueType::kClosureVar:
 		value_.closure_var_->Dereference();
+		break;
 	}
 }
 

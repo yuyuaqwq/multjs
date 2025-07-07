@@ -1253,8 +1253,10 @@ TEST_F(VMTest, ModuleExportVariableBinding) {
     table.EmitOpcode(OpcodeType::kVLoad_0);
     table.EmitOpcode(OpcodeType::kReturn);
     
-    Value module_val(module_def);
-    vm_->ModuleInit(&module_val);
+    auto function_def_val = Value(func_def);
+    auto module_val = Value(module_def);
+    auto module_val2 = Value(module_def);
+    vm_->ModuleInit(&module_val2);
     
     EXPECT_TRUE(module_val.IsModuleObject());
     
