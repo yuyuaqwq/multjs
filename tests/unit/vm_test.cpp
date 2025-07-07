@@ -1254,7 +1254,7 @@ TEST_F(VMTest, ModuleExportVariableBinding) {
     table.EmitOpcode(OpcodeType::kReturn);
     
     auto function_def_val = Value(func_def);
-    auto module_val = Value(module_def);
+    auto module_val = Value(module_def);    // 这个引用保证module_val2析构时，module_def不会被回收
     auto module_val2 = Value(module_def);
     vm_->ModuleInit(&module_val2);
     
