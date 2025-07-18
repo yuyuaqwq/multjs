@@ -33,7 +33,7 @@ Value CodeGenerator::Generate(std::string&& module_name, std::string_view source
     scopes_.clear();
 
     // 创建模块的函数定义
-    current_module_def_ = new ModuleDef(&context_->runtime(), std::move(module_name), source, 0);
+    current_module_def_ = ModuleDef::New(&context_->runtime(), std::move(module_name), source, 0);
     current_func_def_ = current_module_def_;
     current_func_def_->set_is_module();
     AllocateConst(Value(current_func_def_));
@@ -393,7 +393,7 @@ void CodeGenerator::GenerateFunctionBody(Statement* statement) {
 
 void CodeGenerator::GenerateFunctionExpression(FunctionExpression* exp) {
     // 创建函数定义
-    auto func_def = new FunctionDef(current_module_def_, exp->id(), exp->params().size());
+    auto func_def = FunctionDef::New(current_module_def_, exp->id(), exp->params().size());
     // 将函数定义添加到常量池
     auto const_idx = AllocateConst(Value(func_def));
 
@@ -430,7 +430,7 @@ void CodeGenerator::GenerateFunctionExpression(FunctionExpression* exp) {
     current_func_def_ = func_def;
 
     // 参数正序分配
-    for (size_t i = 0; i < current_func_def_->par_count(); ++i) {
+    for (size_t i = 0; i < current_func_def_->param_count(); ++i) {
         AllocateVar(exp->params()[i]);
     }
 
@@ -449,7 +449,7 @@ void CodeGenerator::GenerateFunctionExpression(FunctionExpression* exp) {
 }
 
 void CodeGenerator::GenerateArrowFunctionExpression(ArrowFunctionExpression* exp) {
-    auto func_def = new FunctionDef(current_module_def_, "<anonymous_function>", exp->params().size());
+    auto func_def = FunctionDef::New(current_module_def_, "<anonymous_function>", exp->params().size());
     auto const_idx = AllocateConst(Value(func_def));
 
     func_def->set_is_arrow();

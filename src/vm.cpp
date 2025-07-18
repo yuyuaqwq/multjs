@@ -128,7 +128,7 @@ bool VM::FunctionScheduling(StackFrame* stack_frame, uint32_t par_count) {
 
 		// printf("%s\n", function_def->Disassembly().c_str());
 
-		if (par_count < function_def->par_count()) {
+		if (par_count < function_def->param_count()) {
 			stack_frame->push(
 				Error::Throw(context_, "Wrong number of parameters passed when calling the function.")
 			);
@@ -136,10 +136,10 @@ bool VM::FunctionScheduling(StackFrame* stack_frame, uint32_t par_count) {
 		}
 
 		// 弹出多余参数
-		stack().reduce(par_count - function_def->par_count());
+		stack().reduce(par_count - function_def->param_count());
 
-		assert(function_def->var_def_table().var_count() >= function_def->par_count());
-		stack_frame->upgrade(function_def->var_def_table().var_count() - function_def->par_count());
+		assert(function_def->var_def_table().var_count() >= function_def->param_count());
+		stack_frame->upgrade(function_def->var_def_table().var_count() - function_def->param_count());
 		if (stack_frame->function_val().type() == ValueType::kFunctionObject) {
 			BindClosureVars(stack_frame);
 		}

@@ -244,7 +244,7 @@ Pc BytecodeTable::CalcPc(Pc cur_pc) const {
     return cur_pc + *reinterpret_cast<const int16_t*>(GetPtr(cur_pc) + 1);
 }
 
-std::string BytecodeTable::Disassembly(Context* context, Pc& pc, OpcodeType& opcode, uint32_t& par, const FunctionDefBase* func_def) const {
+std::string BytecodeTable::Disassembly(Context* context, Pc& pc, OpcodeType& opcode, uint32_t& param, const FunctionDefBase* func_def) const {
     std::string str;
     char buf[16] = { 0 };
     sprintf_s(buf, "%04d\t", pc);
@@ -254,19 +254,19 @@ std::string BytecodeTable::Disassembly(Context* context, Pc& pc, OpcodeType& opc
     auto last_par = 0;
     for (const auto& par_size : info->second.par_size_list) {
         if (par_size == 1) {
-            par = GetU8(pc);
-            str += std::to_string(par) + "\t";
+            param = GetU8(pc);
+            str += std::to_string(param) + "\t";
         }
         else if (par_size == 2) {
-            par = GetU16(pc);
-            str += std::to_string(par) + "\t";
+            param = GetU16(pc);
+            str += std::to_string(param) + "\t";
         }
         else if (par_size == 4) {
-            par = GetU32(pc);
-            str += std::to_string(par) + "\t";
+            param = GetU32(pc);
+            str += std::to_string(param) + "\t";
         }
 
-        last_par = par;
+        last_par = param;
 
         pc += par_size;
     }
@@ -288,7 +288,7 @@ std::string BytecodeTable::Disassembly(Context* context, Pc& pc, OpcodeType& opc
         str += "\t";
     }
     else if (opcode == OpcodeType::kCLoad || opcode == OpcodeType::kPropertyLoad || opcode == OpcodeType::kPropertyStore) {
-        auto idx = par;
+        auto idx = param;
         const auto& val = context->GetConstValue(idx);
         if (val.IsString()) {
             str += "\"";
@@ -309,7 +309,7 @@ std::string BytecodeTable::Disassembly(Context* context, Pc& pc, OpcodeType& opc
         str += "\t";
     }
     if (opcode == OpcodeType::kVLoad) {
-        auto idx = par;
+        auto idx = param;
         auto& info = func_def->var_def_table().GetVarInfo(idx);
         str += "$";
         str += info.name;
@@ -324,7 +324,7 @@ std::string BytecodeTable::Disassembly(Context* context, Pc& pc, OpcodeType& opc
         str += "\t";
     }
     if (opcode == OpcodeType::kVStore) {
-        auto idx = par;
+        auto idx = param;
         auto& info = func_def->var_def_table().GetVarInfo(idx);
         str += "$";
         str += info.name;

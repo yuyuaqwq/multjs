@@ -17,8 +17,6 @@ class ModuleDef;
 // 不会有循环引用问题，仅使用引用计数管理
 class FunctionDefBase {
 public:
-	FunctionDefBase(ModuleDef* module_def, std::string name, uint32_t par_count) noexcept;
-
 	std::string Disassembly(Context* context) const;
 
 	const auto& module_def() const { return *module_def_; }
@@ -70,7 +68,7 @@ public:
 		return flags_.is_asnyc_;
 	}
 
-	auto par_count() const { return par_count_; }
+	auto param_count() const { return param_count_; }
 	
 
 
@@ -93,6 +91,9 @@ public:
     auto& debug_table() { return debug_table_; }
 
 protected:
+	FunctionDefBase(ModuleDef* module_def, std::string name, uint32_t param_count) noexcept;
+
+protected:
 	ModuleDef* module_def_;
 
 	std::string name_;
@@ -106,7 +107,7 @@ protected:
 		uint32_t is_asnyc_ : 1 = 0;
 	} flags_;
 
-	uint32_t par_count_;
+	uint32_t param_count_;
 
 	// 字节码
 	BytecodeTable bytecode_table_;
@@ -127,7 +128,14 @@ protected:
 };
 
 class FunctionDef : public ReferenceCounter<FunctionDef>, public FunctionDefBase {
+public:
+	static FunctionDef* New(ModuleDef* module_def, std::string name, uint32_t param_count) {
+		return new FunctionDef(module_def, std::move(name), param_count);
+	}
+
+private:
 	using FunctionDefBase::FunctionDefBase;
+
 };
 
 } // namespace mjs

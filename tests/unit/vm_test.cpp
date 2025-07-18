@@ -38,8 +38,8 @@ protected:
 
     // 辅助函数：创建简单的函数定义
     Value CreateSimpleFunction(const std::string& name, uint32_t par_count = 0) {
-        auto module_def = new ModuleDef(runtime_.get(), name + "_module", "", par_count);
-        auto func_def = new FunctionDef(module_def, name, par_count);
+        auto module_def = ModuleDef::New(runtime_.get(), name + "_module", "", par_count);
+        auto func_def = FunctionDef::New(module_def, name, par_count);
         func_def->set_is_normal();
         return Value(func_def);
     }
@@ -420,11 +420,12 @@ TEST_F(VMTest, AsyncFunction) {
 
 // 测试模块初始化
 TEST_F(VMTest, ModuleInitialization) {
-    auto module_def = std::make_unique<ModuleDef>(runtime_.get(), "test_module", "", 0);
-    
+    auto module_def = ModuleDef::New(runtime_.get(), "test_module", "", 0);
+    auto module_def_val = Value(module_def);
+
     // 添加导出变量
     module_def->export_var_def_table().AddExportVar("exportedVar", 0);
-    
+
     //Value module_val(module_def.get());
     //vm_->ModuleInit(&module_val);
     //
@@ -1234,13 +1235,13 @@ TEST_F(VMTest, ExcessParameterHandling) {
 
 // 测试模块导出变量绑定
 TEST_F(VMTest, ModuleExportVariableBinding) {
-    auto module_def = new ModuleDef(runtime_.get(), "test_export_module", "", 0);
+    auto module_def = ModuleDef::New(runtime_.get(), "test_export_module", "", 0);
     
     // 添加导出变量
     module_def->export_var_def_table().AddExportVar("exportedValue", 0);
     
     // 创建模块函数
-    auto func_def = new FunctionDef(module_def, "module_func", 0);
+    auto func_def = FunctionDef::New(module_def, "module_func", 0);
     func_def->set_is_module();
     func_def->var_def_table().AddVar("exportedValue");
     
