@@ -5,7 +5,7 @@
 namespace mjs {
 
 using ExceptionIdx = uint32_t;
-constexpr ExceptionIdx kExceptionInvalidIdx = 0xffffffff;
+constexpr ExceptionIdx kExceptionIdxInvalid = 0xffffffff;
 
 struct ExceptionEntry{
     // 左闭右开
