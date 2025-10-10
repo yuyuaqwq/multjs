@@ -1,7 +1,3 @@
-/**
- * @file code_generator.cpp
- * @brief 代码生成器实现
- */
 #include "code_generator.h"
 
 #include <iostream>
@@ -338,7 +334,7 @@ void CodeGenerator::GenerateExpression(Expression* exp) {
         break;
     }
     default:
-        throw std::runtime_error("Unsupported expression type");
+        throw std::runtime_error(std::string("Unsupported expression type: ") + std::to_string(uint32_t(exp->type())));
     }
 }
 

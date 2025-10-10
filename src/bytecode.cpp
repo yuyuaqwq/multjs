@@ -98,7 +98,6 @@ const std::unordered_map<OpcodeType, OpcodeInfo>& BytecodeTable::opcode_type_map
     return opcode_type_map;
 }
 
-
 uint8_t* BytecodeTable::GetPtr(Pc pc) {
 	return bytes_.data() + pc;
 }
@@ -107,11 +106,9 @@ const uint8_t* BytecodeTable::GetPtr(Pc pc) const {
     return bytes_.data() + pc;
 }
 
-
 OpcodeType BytecodeTable::GetOpcode(Pc pc) const {
 	return (OpcodeType)bytes_[pc];
 }
-
 
 Pc BytecodeTable::GetPc(Pc* pc) const {
     auto pc_ = *pc;
@@ -131,12 +128,9 @@ ConstIndex BytecodeTable::GetConstIndex(Pc* pc) {
     return ConstIndex(GetI32(pc_));
 }
 
-
 void BytecodeTable::EmitOpcode(OpcodeType opcode) {
 	bytes_.push_back(static_cast<uint8_t>(opcode));
 }
-
-
 
 void BytecodeTable::EmitPcOffset(PcOffset offset) {
     EmitU16(offset);
@@ -169,7 +163,6 @@ void BytecodeTable::EmitConstLoad(ConstIndex idx) {
         EmitI32(idx);
 	}
 }
-
 
 void BytecodeTable::EmitVarStore(VarIndex idx) {
     if (idx >= 0 && idx <= 3) {
@@ -207,7 +200,6 @@ void BytecodeTable::EmitPropertyStore(ConstIndex const_idx) {
     EmitI32(const_idx);
 }
 
-
 void BytecodeTable::EmitIndexedLoad() {
     EmitOpcode(OpcodeType::kIndexedLoad);
 }
@@ -232,7 +224,6 @@ void BytecodeTable::RepairOpcode(Pc opcode_pc, OpcodeType op) {
     // skip opcode
     *reinterpret_cast<OpcodeType*>(GetPtr(opcode_pc)) = op;
 }
-
 
 void BytecodeTable::RepairPc(Pc pc_from, Pc pc_to) {
 	// skip opcode
@@ -340,7 +331,6 @@ std::string BytecodeTable::Disassembly(Context* context, Pc& pc, OpcodeType& opc
     return str;
 }
 
-
 int8_t BytecodeTable::GetI8(Pc pc) const {
     return *(int8_t*)&bytes_[pc];
 }
@@ -364,8 +354,6 @@ int32_t BytecodeTable::GetI32(Pc pc) const {
 Pc BytecodeTable::GetU32(Pc pc) const {
     return *(Pc*)&bytes_[pc];
 }
-
-
 
 void BytecodeTable::EmitI8(int8_t val) {
     bytes_.push_back(0);
@@ -403,6 +391,5 @@ void BytecodeTable::EmitU32(uint32_t val) {
     bytes_.push_back(0);
     *(uint32_t*)&bytes_[bytes_.size() - 4] = val;
 }
-
 
 } // namespace mjs

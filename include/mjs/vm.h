@@ -1,3 +1,14 @@
+/**
+ * @file vm.h
+ * @brief JavaScript虚拟机核心实现
+ *
+ * @copyright Copyright (c) 2025 yuyuaqwq
+ * @license MIT License
+ *
+ * 本文件定义了JavaScript虚拟机的核心执行引擎，负责字节码解释执行、
+ * 函数调用、闭包处理等关键功能。
+ */
+
 #pragma once
 
 #include <stdint.h>
@@ -11,22 +22,51 @@
 #include <mjs/const_pool.h>
 #include <mjs/variable.h>
 #include <mjs/stack_frame.h>
-#include <mjs/value.h>
 
 namespace mjs {
 
 class Context;
+
+/**
+ * @class VM
+ * @brief JavaScript虚拟机核心类
+ *
+ * 负责执行JavaScript字节码，管理函数调用栈，处理闭包和异常等。
+ * 继承自noncopyable确保单例特性。
+ */
 class VM : public noncopyable {
 public:
-	friend class CodeGener;
+	friend class CodeGenerator;
 
 public:
+	/**
+	 * @brief 构造函数
+	 * @param context 执行上下文指针
+	 */
 	explicit VM(Context* context);
 
+	/**
+	 * @brief 模块初始化
+	 * @param value 模块值指针
+	 */
 	void ModuleInit(Value* value);
 
+	/**
+	 * @brief 绑定模块导出变量
+	 * @param stack_frame 栈帧指针
+	 */
 	void BindModuleExportVars(StackFrame* stack_frame);
 
+	/**
+	 * @brief 调用JavaScript函数
+	 * @tparam It 迭代器类型
+	 * @param stack_frame 栈帧指针
+	 * @param func_val 函数值
+	 * @param this_val this值
+	 * @param begin 参数起始迭代器
+	 * @param end 参数结束迭代器
+	 * @return 函数返回值
+	 */
 	template<typename It>
 	Value CallFunction(StackFrame* stack_frame, Value func_val, Value this_val, It begin, It end) {
 		// 参数正序入栈
@@ -38,32 +78,98 @@ public:
 }
 
 private:
+	/**
+	 * @brief 获取变量值
+	 * @param stack_frame 栈帧指针
+	 * @param idx 变量索引
+	 * @return 变量值的引用
+	 */
 	Value& GetVar(StackFrame* stack_frame, VarIndex idx);
+
+	/**
+	 * @brief 设置变量值
+	 * @param stack_frame 栈帧指针
+	 * @param idx 变量索引
+	 * @param var 变量值
+	 */
 	void SetVar(StackFrame* stack_frame, VarIndex idx, Value&& var);
 
+	/**
+	 * @brief 创建闭包
+	 * @param stack_frame 栈帧指针
+	 * @param func_def_val 函数定义值
+	 */
 	void Closure(const StackFrame& stack_frame, Value* func_def_val);
 
+	/**
+	 * @brief 绑定闭包变量
+	 * @param stack_frame 栈帧指针
+	 */
 	void BindClosureVars(StackFrame* stack_frame);
 
-	// 返回是否需要继续执行字节码
+	/**
+	 * @brief 函数调度
+	 * @param stack_frame 栈帧指针
+	 * @param par_count 参数数量
+	 * @return 是否需要继续执行字节码
+	 */
 	bool FunctionScheduling(StackFrame* stack_frame, uint32_t par_count);
 
+	/**
+	 * @brief 内部函数调用实现
+	 * @param stack_frame 栈帧指针
+	 * @param func_val 函数值
+	 * @param this_val this值
+	 * @param param_count 参数数量
+	 */
 	void CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, uint32_t param_count);
 
+	/**
+	 * @brief 加载常量
+	 * @param stack_frame 栈帧指针
+	 * @param const_idx 常量索引
+	 */
 	void LoadConst(StackFrame* stack_frame, ConstIndex const_idx);
 
+	/**
+	 * @brief 抛出异常
+	 * @param stack_frame 栈帧指针
+	 * @param error_val 错误值指针
+	 * @return 是否成功抛出异常
+	 */
 	bool ThrowException(StackFrame* stack_frame, std::optional<Value>* error_val);
 
 private:
+	/**
+	 * @brief 保存生成器上下文
+	 * @param stack_frame 栈帧指针
+	 * @param generator 生成器对象
+	 */
 	void GeneratorSaveContext(StackFrame* stack_frame, GeneratorObject* generator);
+
+	/**
+	 * @brief 恢复生成器上下文
+	 * @param stack_frame 栈帧指针
+	 * @param generator 生成器对象
+	 */
 	void GeneratorRestoreContext(StackFrame* stack_frame, GeneratorObject* generator);
 
+	/**
+	 * @brief 获取栈引用
+	 * @return 栈引用
+	 */
 	Stack& stack();
+
+	/**
+	 * @brief 获取函数定义
+	 * @param func_val 函数值
+	 * @return 函数定义基类指针
+	 */
 	FunctionDefBase* function_def(const Value& func_val) const;
 
 private:
-	Context* context_;
-	// StackFrame stack_frame_;
+	Context* context_; ///< 执行上下文指针
+	// StackFrame stack_frame_; ///< 栈帧（已注释）
 };
 
 } // namespace mjs

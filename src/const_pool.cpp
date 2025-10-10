@@ -15,18 +15,20 @@ ConstIndex GlobalConstPool::insert(Value&& value) {
 		return it->second;
 	}
 
-	//if (value.IsString()) {
-	//	printf("[global_insert]: %s\n", value.string_view());
-	//}
+	// TODO: è°ƒè¯•è¾“å‡º
+	// if (value.IsString()) {
+	// 	printf("[global_insert]: %s\n", value.string_view());
+	// }
 
-	//assert(!value.IsStringView());
+	// assert(!value.IsStringView());
 
-	// ×Ô¶¯½«StringViewÌáÉıÎªString£¬ÄÜ¼õÉÙhash¼ÆËã¿ªÏúÂğ£¿
-    // Êµ¼ÊÉÏÃ»ÓĞ£¬¹şÏ£±íÖ»ÓĞÔÚ²åÈëµÄÊ±ºò²Å»á¼ÆËã¹şÏ£Öµ£¬ÒÑ¾­²åÈëµÄÖµ²»»áÔÙÓÃ¹şÏ£±È½Ï£¬Ö±½Ó½øĞĞÖµ±È½Ï
-	// Èç¹ûÊÇStringView£¬¿ÉÒÔÖ±½Ó±È½ÏµØÖ·
-	//if (value.IsStringView()) {
-	//	value = Value(String::New(value.string_view()));
-	//}
+	// TODO: StringView æå‡ä¼˜åŒ–
+	// è‡ªåŠ¨å°†StringViewæå‡ä¸ºStringï¼Œèƒ½å‡å°‘hashè®¡ç®—å¼€é”€å—ï¼Ÿ
+    // å®é™…ä¸Šæ²¡æœ‰ï¼Œå“ˆå¸Œè¡¨åªæœ‰åœ¨æ’å…¥çš„æ—¶å€™æ‰ä¼šè®¡ç®—å“ˆå¸Œå€¼ï¼Œå·²ç»æ’å…¥çš„å€¼ä¸ä¼šå†ç”¨å“ˆå¸Œæ¯”è¾ƒï¼Œç›´æ¥è¿›è¡Œå€¼æ¯”è¾ƒ
+	// å¦‚æœæ˜¯StringViewï¼Œå¯ä»¥ç›´æ¥æ¯”è¾ƒåœ°å€
+	// if (value.IsStringView()) {
+	// 	value = Value(String::New(value.string_view()));
+	// }
 
 	auto idx = Base::insert(std::move(value));
 	auto& val = operator[](idx);
@@ -46,8 +48,6 @@ std::optional<ConstIndex> GlobalConstPool::find(const Value& value) {
 	return std::nullopt;
 }
 
-
-
 LocalConstPool::LocalConstPool() {
 	pool_.resize(1);
 }
@@ -63,18 +63,20 @@ ConstIndex LocalConstPool::insert(Value&& value) {
 		return it->second;
 	}
 
-	//if (value.IsString()) {
-	//	printf("[local_insert]: %s\n", value.string_view());
-	//}
+	// TODO: è°ƒè¯•è¾“å‡º
+	// if (value.IsString()) {
+	// 	printf("[local_insert]: %s\n", value.string_view());
+	// }
 
 	// assert(!value.IsStringView());
 
-	// ×Ô¶¯½«StringViewÌáÉıÎªString
-	//if (value.IsStringView()) {
-	//	value = Value(String::New(value.string_view()));
-	//}
+	// TODO: StringView æå‡ä¼˜åŒ–
+	// è‡ªåŠ¨å°†StringViewæå‡ä¸ºString
+	// if (value.IsStringView()) {
+	// 	value = Value(String::New(value.string_view()));
+	// }
 
-	
+
 	auto const_index = kConstIndexInvalid;
 	if (first_ == -1) {
 		const_index = pool_.size();
@@ -115,6 +117,5 @@ const Value& LocalConstPool::at(ConstIndex index) const {
 Value& LocalConstPool::at(ConstIndex index) {
 	return *pool_.at(-index).value_;
 }
-
 
 } // namespace mjs

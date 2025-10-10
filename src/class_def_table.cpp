@@ -11,6 +11,7 @@
 namespace mjs {
 
 ClassDefTable::ClassDefTable(Runtime* runtime) {
+	// æ³¨å†Œæ‰€æœ‰å†…ç½®ç±»å®šä¹‰
 	Register(std::make_unique<SymbolClassDef>(runtime));
 	Register(std::make_unique<ObjectClassDef>(runtime));
 	Register(std::make_unique<ClassDef>(runtime, ClassId::kNumberObject, "Number"));
@@ -29,7 +30,7 @@ void ClassDefTable::Register(ClassDefUnique class_def) {
 	auto id = class_def->id();
 	auto idx = insert(std::move(class_def));
 	if (idx != static_cast<uint32_t>(id)) {
-		// ±ØĞë°´Ã¶¾Ù¶¨ÒåË³Ğò²åÈë£¬ÒÔÈ·±£¸ßĞ§²éÕÒ
+		// å¿…é¡»æŒ‰æšä¸¾å®šä¹‰é¡ºåºæ’å…¥ï¼Œä»¥ç¡®ä¿é«˜æ•ˆæŸ¥æ‰¾
 		throw std::runtime_error("Class id mismatch.");
 	}
 }

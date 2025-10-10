@@ -1,3 +1,21 @@
+/**
+ * @file lexer.h
+ * @brief JavaScript 词法分析器定义
+ *
+ * @copyright Copyright (c) 2025 yuyuaqwq
+ * @license MIT License
+ *
+ * 本文件定义了 JavaScript 引擎中的词法分析器，负责将源代码字符串
+ * 转换为标记序列，支持完整的 JavaScript 语法特性，包括：
+ * - 标识符和关键字识别
+ * - 数字字面量（整数、浮点数、十六进制、二进制、八进制、BigInt）
+ * - 字符串字面量（单引号、双引号、模板字符串）
+ * - 正则表达式字面量
+ * - 运算符和分隔符
+ * - 注释处理
+ * - Unicode 转义序列
+ */
+
 #pragma once
 
 #include <string>

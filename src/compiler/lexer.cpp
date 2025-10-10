@@ -80,7 +80,7 @@ void Lexer::SkipWhitespaceAndComments() {
             // 多行注释
             position_ += 2;
             bool comment_closed = false;
-            
+
             while (position_ < source_.size()) {
                 if (source_[position_] == '*' && position_ + 1 < source_.size() && source_[position_ + 1] == '/') {
                     position_ += 2;
@@ -89,7 +89,7 @@ void Lexer::SkipWhitespaceAndComments() {
                 }
                 ++position_;
             }
-            
+
             if (!comment_closed) {
                 throw SyntaxError("Unclosed multiline comment");
             }

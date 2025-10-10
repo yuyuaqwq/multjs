@@ -1,3 +1,14 @@
+/**
+ * @file segmented_array.h
+ * @brief JavaScript 分段数组系统定义
+ *
+ * @copyright Copyright (c) 2025 yuyuaqwq
+ * @license MIT License
+ *
+ * 本文件定义了 JavaScript 引擎中的分段数组系统，包括分段数组模板类，
+ * 用于实现线程安全的数据存储结构，避免 resize 时的锁竞争。
+ */
+
 #pragma once
 
 #include <array>
@@ -10,23 +21,50 @@
 
 namespace mjs {
 
-// 使用分段静态数组，避免resize时其他运行Context的线程get，导致get需要加锁
-// 每块静态数组有kStaticArraySize个元素，满了就new新的静态数组
+/**
+ * @class SegmentedArray
+ * @brief 分段数组模板类
+ *
+ * 使用分段静态数组实现，避免 resize 时其他运行 Context 的线程 get，
+ * 导致 get 需要加锁。每块静态数组有 kStaticArraySize 个元素，
+ * 满了就 new 新的静态数组。
+ *
+ * @tparam T 元素类型
+ * @tparam IndexT 索引类型
+ * @tparam kStaticArraySize 静态数组大小
+ * @note 使用分段静态数组，避免 resize 时其他运行 Context 的线程 get，导致 get 需要加锁
+ * @note 每块静态数组有 kStaticArraySize 个元素，满了就 new 新的静态数组
+ * @see noncopyable 不可拷贝基类
+ */
 template <typename T, typename IndexT, size_t kStaticArraySize>
 class SegmentedArray : public noncopyable {
 private:
 	using StaticArray = std::array<T, kStaticArraySize>;
 
 public:
+	/**
+	 * @brief 默认构造函数
+	 */
 	SegmentedArray() {
 		pool_[0] = std::make_unique<StaticArray>();
 	}
 
+	/**
+	 * @brief 插入元素（常量引用版本）
+	 * @param value 要插入的元素
+	 * @return 插入位置的索引
+	 */
 	IndexT insert(const T& value) {
 		auto value_ = value;
 		return insert(std::move(value_));
 	}
 
+	/**
+	 * @brief 插入元素（移动语义版本）
+	 * @param value 要插入的元素
+	 * @return 插入位置的索引
+	 * @throw std::overflow_error 当常量数量超过上限时抛出
+	 */
 	IndexT insert(T&& value) {
 		if (size_ % kStaticArraySize == 0) {
 			auto i1 = size_ / kStaticArraySize;
@@ -45,10 +83,20 @@ public:
 		return idx;
 	}
 
+	/**
+	 * @brief 常量下标访问运算符
+	 * @param index 索引位置
+	 * @return 常量元素引用
+	 */
 	const T& operator[](IndexT index) const {
 		return const_cast<SegmentedArray*>(this)->operator[](index);
 	}
 
+	/**
+	 * @brief 下标访问运算符
+	 * @param index 索引位置
+	 * @return 元素引用
+	 */
 	T& operator[](IndexT index) {
 		// index = GlobalToConstIndex(index);
 		auto i1 = index / kStaticArraySize;
@@ -56,6 +104,12 @@ public:
 		return (*pool_[i1])[i2];
 	}
 
+	/**
+	 * @brief 常量安全访问方法
+	 * @param index 索引位置
+	 * @return 常量元素引用
+	 * @throw std::out_of_range 当索引超出范围时抛出
+	 */
 	const T& at(IndexT index) const {
 		if (index < 0 || index >= size()) {
 			throw std::out_of_range("Index out of range");
@@ -63,6 +117,12 @@ public:
 		return (*this)[index];
 	}
 
+	/**
+	 * @brief 安全访问方法
+	 * @param index 索引位置
+	 * @return 元素引用
+	 * @throw std::out_of_range 当索引超出范围时抛出
+	 */
 	T& at(IndexT index) {
 		if (index < 0 || index >= size()) {
 			throw std::out_of_range("Index out of range");
@@ -70,10 +130,17 @@ public:
 		return (*this)[index];
 	}
 
+	/**
+	 * @brief 获取数组大小
+	 * @return 当前元素数量
+	 */
 	size_t size() const {
 		return size_;
 	}
 
+	/**
+	 * @brief 清空数组
+	 */
 	void clear() {
 		for (auto& ptr : pool_) {
 			ptr.reset();
@@ -81,8 +148,8 @@ public:
 	}
 
 private:
-	std::array<std::unique_ptr<StaticArray>, kStaticArraySize> pool_;
-	IndexT size_ = IndexT(1);
+	std::array<std::unique_ptr<StaticArray>, kStaticArraySize> pool_; ///< 分段数组池
+	IndexT size_ = IndexT(1);                                         ///< 当前元素数量
 };
 
 } // namespace mjs
