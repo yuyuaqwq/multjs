@@ -32,7 +32,7 @@ public:
      */
     UnaryExpression(SourcePosition start, SourcePosition end,
                 TokenType op, std::unique_ptr<Expression> argument,
-                bool is_prefix = true)
+                bool is_prefix)
         : Expression(start, end), operator_(op), argument_(std::move(argument)),
           is_prefix_(is_prefix) {}
 
@@ -61,13 +61,6 @@ public:
      * @param function_def_base 函数定义
      */
     void GenerateCode(CodeGenerator* code_generator, FunctionDefBase* function_def_base) const override;
-
-    /**
-     * @brief 解析指数优先级的表达式
-     * @param lexer 词法分析器
-     * @return 解析后的指数表达式
-     */
-    static std::unique_ptr<Expression> ParseExpressionAtExponentiationLevel(Lexer* lexer);
 
     /**
      * @brief 解析一元表达式

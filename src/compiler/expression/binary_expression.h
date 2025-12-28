@@ -137,6 +137,13 @@ public:
      */
     static std::unique_ptr<Expression> ParseExpressionAtMultiplicativeLevel(Lexer* lexer);
 
+    /**
+     * @brief 解析幂运算优先级的表达式
+     * @param lexer 词法分析器
+     * @return 表达式指针
+     */
+    static std::unique_ptr<Expression> ParseExpressionAtExponentiationLevel(Lexer* lexer);
+
 private:
     TokenType operator_; ///< 运算符类型
     std::unique_ptr<Expression> left_; ///< 左操作数表达式

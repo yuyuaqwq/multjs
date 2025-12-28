@@ -261,10 +261,16 @@ public:
 	Value LeftShift(Context* context, const Value& rhs) const;
 	/** @brief 右移位运算 */
 	Value RightShift(Context* context, const Value& rhs) const;
+	/** @brief 无符号右移位运算 */
+	Value UnsignedRightShift(Context* context, const Value& rhs) const;
 	/** @brief 按位与运算 */
 	Value BitwiseAnd(Context* context, const Value& rhs) const;
 	/** @brief 按位或运算 */
 	Value BitwiseOr(Context* context, const Value& rhs) const;
+	/** @brief 按位异或运算 */
+	Value BitwiseXor(Context* context, const Value& rhs) const;
+	/** @brief 按位取反运算 */
+	Value BitwiseNot(Context* context) const;
 	/** @brief 取反运算 */
 	Value Negate(Context* context) const;
 	/** @brief 前缀递增运算 */

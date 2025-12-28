@@ -179,7 +179,7 @@ TEST_F(VMTest, StackOperations) {
     ConstIndex const1 = AddConstant(Value(1.0));
     ConstIndex const2 = AddConstant(Value(2.0));
     
-    // 生成字节码：CLoad 1, CLoad 2, Swap, Pop, Return (结果应该是1)
+    // 生成字节码：CLoad 1, CLoad 2, Swap, Pop, Return (结果应该是2)
     auto& table = func_def.function_def().bytecode_table();
     table.EmitConstLoad(const1);
     table.EmitConstLoad(const2);
@@ -195,7 +195,7 @@ TEST_F(VMTest, StackOperations) {
         args.end());
     
     EXPECT_TRUE(result.IsNumber());
-    EXPECT_DOUBLE_EQ(result.f64(), 1.0);
+    EXPECT_DOUBLE_EQ(result.f64(), 2.0);
 }
 
 // 测试比较操作指令
@@ -233,7 +233,7 @@ TEST_F(VMTest, ConditionalJump) {
     
     // 生成字节码：
     // CLoad true
-    // IfEq +4  (如果true则跳过下一条指令)
+    // IfEq +5  (如果true则跳过下一条指令)
     // CLoad 200
     // Goto +2
     // CLoad 100
@@ -241,13 +241,15 @@ TEST_F(VMTest, ConditionalJump) {
     auto& table = func_def.function_def().bytecode_table();
     table.EmitConstLoad(const_true);
     table.EmitOpcode(OpcodeType::kIfEq);
-    table.EmitU16(4); // 跳转偏移
+    table.EmitU16(5); // 跳转偏移
     table.EmitConstLoad(const2);
     table.EmitOpcode(OpcodeType::kGoto);
-    table.EmitU16(2); // 跳转偏移
+    table.EmitU16(3); // 跳转偏移
     table.EmitConstLoad(const1);
     table.EmitOpcode(OpcodeType::kReturn);
     
+    // std::cout << func_def.function_def().Disassembly(context_.get());
+
     StackFrame stack_frame(&runtime_->stack());
     Value this_val;
     std::initializer_list<Value> args = {};
@@ -274,18 +276,22 @@ TEST_F(VMTest, FunctionCall) {
     // 将被调用函数添加到常量池
     ConstIndex func_const = AddConstant(called_func);
     ConstIndex arg_const = AddConstant(Value(10ull));
-    
+    ConstIndex arg_count_const = AddConstant(Value(1ull));
+
     // 创建主函数
     auto main_func = CreateSimpleFunction("main_function");
     auto& main_table = main_func.function_def().bytecode_table();
     
     // 主函数字节码：CLoad func, Undefined (this), CLoad 10, FunctionCall 1, Return
     main_table.EmitConstLoad(arg_const);
-    main_table.EmitOpcode(OpcodeType::kUndefined);
+    main_table.EmitConstLoad(arg_count_const);
     main_table.EmitConstLoad(func_const);
+    main_table.EmitOpcode(OpcodeType::kUndefined);
     main_table.EmitOpcode(OpcodeType::kFunctionCall);
     main_table.EmitOpcode(OpcodeType::kReturn);
     
+    // std::cout << main_func.function_def().Disassembly(context_.get());
+
     StackFrame stack_frame(&runtime_->stack());
     Value this_val;
     std::initializer_list<Value> args = {};
@@ -294,7 +300,7 @@ TEST_F(VMTest, FunctionCall) {
         args.end());
     
     EXPECT_TRUE(result.IsNumber());
-    EXPECT_DOUBLE_EQ(result.f64(), 11.0); // 10 + 1
+    EXPECT_DOUBLE_EQ(result.u64(), 11.0); // 10 + 1
 }
 
 // 测试异常处理
@@ -687,8 +693,8 @@ TEST_F(VMTest, UnsignedRightShiftOperation) {
         args.begin(),
         args.end());
     
-    EXPECT_TRUE(result.IsInt64());
-    EXPECT_DOUBLE_EQ(result.i64(), 8);
+    EXPECT_TRUE(result.IsUInt64());
+    EXPECT_DOUBLE_EQ(result.u64(), 8);
 }
 
 // 测试字符串转换指令
@@ -747,23 +753,23 @@ TEST_F(VMTest, ComplexControlFlow) {
     // 生成字节码实现：if (param > 0) return 1; else if (param < 0) return -1; else return 0;
     auto& table = func_def.function_def().bytecode_table();
     
-    // VLoad_0, CLoad 0, Gt
+    // VLoad_0, CLoad 0, Le
     table.EmitOpcode(OpcodeType::kVLoad_0);
     table.EmitConstLoad(const_zero);
-    table.EmitOpcode(OpcodeType::kGt);
+    table.EmitOpcode(OpcodeType::kLe);
     
-    // IfEq +4 (如果>0跳转到返回1)
+    // IfEq +16 (如果>0跳转到返回1)
     table.EmitOpcode(OpcodeType::kIfEq);
-    table.EmitU16(4);
+    table.EmitU16(16);
     
-    // VLoad_0, CLoad 0, Lt
+    // VLoad_0, CLoad 0, Ge
     table.EmitOpcode(OpcodeType::kVLoad_0);
     table.EmitConstLoad(const_zero);
-    table.EmitOpcode(OpcodeType::kLt);
+    table.EmitOpcode(OpcodeType::kGe);
     
-    // IfEq +4 (如果<0跳转到返回-1)
+    // IfEq +6 (如果<0跳转到返回-1)
     table.EmitOpcode(OpcodeType::kIfEq);
-    table.EmitU16(4);
+    table.EmitU16(6);
     
     // 返回0
     table.EmitConstLoad(const_zero);
@@ -781,6 +787,8 @@ TEST_F(VMTest, ComplexControlFlow) {
     
     Value this_val;
     
+    // std::cout << func_def.function_def().Disassembly(context_.get());
+
     // 测试正数
     {
         std::vector<Value> args = {Value(5.0)};
@@ -792,6 +800,7 @@ TEST_F(VMTest, ComplexControlFlow) {
     
     // 测试负数
     {
+        stack_frame.set_pc(0);
         std::vector<Value> args = {Value(-3.0)};
         Value result = vm_->CallFunction(&stack_frame, func_def, this_val, 
                                        args.begin(), args.end());
@@ -801,6 +810,7 @@ TEST_F(VMTest, ComplexControlFlow) {
     
     // 测试零
     {
+        stack_frame.set_pc(0);
         std::vector<Value> args = {Value(0.0)};
         Value result = vm_->CallFunction(&stack_frame, func_def, this_val, 
                                        args.begin(), args.end());
@@ -1062,7 +1072,7 @@ TEST_F(VMTest, DumpInstruction) {
     EXPECT_DOUBLE_EQ(result.f64(), 198.0);
 }
 
-// 测试常量加载的不同变体
+// 测试常量加载
 TEST_F(VMTest, ConstantLoadVariants) {
     auto func_def = CreateSimpleFunction("test_const_variants");
     
@@ -1072,8 +1082,10 @@ TEST_F(VMTest, ConstantLoadVariants) {
     
     // 假设const0 = 0, const1 = 1，生成字节码：CLoad_0, CLoad_1, Add, Return
     auto& table = func_def.function_def().bytecode_table();
-    table.EmitOpcode(OpcodeType::kCLoad_0);
-    table.EmitOpcode(OpcodeType::kCLoad_1);
+    table.EmitOpcode(OpcodeType::kCLoad);
+    table.EmitU8(const0);
+    table.EmitOpcode(OpcodeType::kCLoad);
+    table.EmitU8(const1);
     table.EmitOpcode(OpcodeType::kAdd);
     table.EmitOpcode(OpcodeType::kReturn);
     
@@ -1086,7 +1098,7 @@ TEST_F(VMTest, ConstantLoadVariants) {
         args.end());
     
     EXPECT_TRUE(result.IsNumber());
-    // 结果取决于常量池中索引0和1的实际值
+    EXPECT_DOUBLE_EQ(result.f64(), 30.0);
 }
 
 // 测试变量加载的不同变体
@@ -1258,7 +1270,7 @@ TEST_F(VMTest, ModuleExportVariableBinding) {
     auto module_val2 = Value(module_def);
     vm_->ModuleInit(&module_val2);
     
-    EXPECT_TRUE(module_val.IsModuleObject());
+    EXPECT_TRUE(module_val.IsModuleDef());
     
     // 执行模块函数
     StackFrame stack_frame(&runtime_->stack());

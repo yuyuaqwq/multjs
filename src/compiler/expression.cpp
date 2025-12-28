@@ -11,11 +11,16 @@ std::unique_ptr<Expression> Expression::ParseExpression(Lexer* lexer) {
 	return BinaryExpression::ParseExpressionAtCommaLevel(lexer);
 }
 
-std::vector<std::string> Expression::ParseParameters(Lexer* lexer) {
+std::optional<std::vector<std::string>> Expression::TryParseParameters(Lexer* lexer) {
 	lexer->MatchToken(TokenType::kSepLParen);
 	std::vector<std::string> parList;
 	if (!lexer->PeekToken().is(TokenType::kSepRParen)) {
 		do {
+			auto token = lexer->PeekToken();
+			if (!token.is(TokenType::kIdentifier)) {
+				return std::nullopt;
+			}
+
 			parList.push_back(lexer->MatchToken(TokenType::kIdentifier).value());
 
 			// 类型注解暂时跳过
@@ -32,6 +37,12 @@ std::vector<std::string> Expression::ParseParameters(Lexer* lexer) {
 			lexer->NextToken();
 		} while (true);
 	}
+
+	auto token = lexer->PeekToken();
+	if (!token.is(TokenType::kSepRParen)) {
+		return std::nullopt;
+	}
+
 	lexer->MatchToken(TokenType::kSepRParen);
 	return parList;
 }

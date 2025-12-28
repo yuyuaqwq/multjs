@@ -134,7 +134,11 @@ std::unique_ptr<Expression> FunctionExpression::ParseTraditionalFunctionExpressi
 	}
 
 	// 参数列表
-	auto params = Expression::ParseParameters(lexer);
+	auto res = Expression::TryParseParameters(lexer);
+	if (!res) {
+		throw SyntaxError("Unable to match the parameter list.");
+	}
+	auto params = *res;
 
 	// 类型注解
 	TryParseTypeAnnotation(lexer);

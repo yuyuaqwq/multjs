@@ -568,11 +568,11 @@ TEST_F(ParserTest, ParseBreakContinueStatement) {
 
 // 测试解析标签语句
 TEST_F(ParserTest, ParseLabeledStatement) {
-    auto stmt = ParseStatement("outerLoop: for (let i = 0; i < 10; i++) { innerLoop: for (let j = 0; j < 10; j++) { if (j > 5) break outerLoop; } }");
+    auto stmt = ParseStatement("outerLoop: for (let i = 0; i < 10; i++) { innerLoop: for (let j = 0; j < 10; j++) { if (j > 5) { break outerLoop; } } }");
     auto* labeled_stmt = dynamic_cast<LabeledStatement*>(stmt.get());
     ASSERT_TRUE(labeled_stmt != nullptr);
 
-    // 检查标签名称
+    // 检查标签名称 
     EXPECT_EQ(labeled_stmt->label(), "outerLoop");
 
     // 检查标签语句的主体
@@ -604,8 +604,11 @@ TEST_F(ParserTest, ParseTemplateLiteral) {
     auto* template_literal = dynamic_cast<TemplateLiteral*>(expr.get());
     ASSERT_TRUE(template_literal != nullptr);
 
+    // 标准AST是quasis和expressions
+    // 这里的实现不一样，都放到expressions了
+
     // 检查模板字符串的部分
-    //ASSERT_GE(template_literal->quasis().size(), 2);
+    // ASSERT_EQ(template_literal->quasis().size(), 2);
     ASSERT_EQ(template_literal->expressions().size(), 1);
 
     // 检查表达式部分

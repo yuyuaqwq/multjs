@@ -548,6 +548,35 @@ Value Value::RightShift(Context* context, const Value& rhs) const {
 	}
 }
 
+
+Value Value::UnsignedRightShift(Context* context, const Value& rhs) const {
+	switch (type()) {
+	case ValueType::kFloat64: {
+		switch (rhs.type()) {
+		case ValueType::kFloat64: {
+			return Value(uint32_t(f64()) >> int32_t(rhs.f64()));
+		}
+		case ValueType::kInt64: {
+			return Value(uint32_t(f64()) >> int32_t(rhs.i64()));
+		}
+		}
+		break;
+	}
+	case ValueType::kInt64: {
+		switch (rhs.type()) {
+		case ValueType::kFloat64: {
+			return Value(uint32_t(i64()) >> int32_t(rhs.f64()));
+		}
+		case ValueType::kInt64: {
+			return Value(uint32_t(i64()) >> int32_t(rhs.i64()));
+		}
+		}
+		break;
+	}
+	default:
+		return TypeError::Throw(context, "Unsigned right shift not supported for these Value types");
+	}
+}
 Value Value::BitwiseAnd(Context* context, const Value& rhs) const {
 	switch (type()) {
 	case ValueType::kFloat64: {
@@ -606,6 +635,50 @@ Value Value::BitwiseOr(Context* context, const Value& rhs) const {
 	}
 }
 
+Value Value::BitwiseXor(Context* context, const Value& rhs) const {
+	switch (type()) {
+	case ValueType::kFloat64: {
+		switch (rhs.type()) {
+		case ValueType::kFloat64: {
+			return Value(int32_t(f64()) ^ int32_t(rhs.f64()));
+		}
+		case ValueType::kInt64: {
+			return Value(int32_t(f64()) ^ int32_t(rhs.i64()));
+		}
+		}
+		break;
+	}
+	case ValueType::kInt64: {
+		switch (rhs.type()) {
+		case ValueType::kFloat64: {
+			return Value(int32_t(i64()) ^ int32_t(rhs.f64()));
+		}
+		case ValueType::kInt64: {
+			return Value(int32_t(i64()) ^ int32_t(rhs.i64()));
+		}
+		}
+		break;
+	}
+	default:
+		return TypeError::Throw(context, "Bitwise XOR not supported for these Value types");
+	}
+}
+
+Value Value::BitwiseNot(Context* context) const {
+	switch (type()) {
+	case ValueType::kFloat64: {
+		return Value(~int32_t(f64()));
+	}
+	case ValueType::kInt64: {
+		return Value(~int32_t(i64()));
+	}
+	default:
+		return TypeError::Throw(context, "Bitwise NOT not supported for these Value types");
+	}
+}
+
+
+
 Value Value::Negate(Context* context) const {
 	switch (type()) {
 	case ValueType::kFloat64: {
@@ -629,6 +702,10 @@ Value Value::Increment(Context* context) {
 		++value_.i64_;
 		break;
 	}
+	case ValueType::kUInt64: {
+		++value_.u64_;
+		break;
+	}
 	default:
 		return TypeError::Throw(context, "Increment not supported for these Value types");
 	}
@@ -643,6 +720,10 @@ Value Value::Decrement(Context* context) {
 	}
 	case ValueType::kInt64: {
 		--value_.i64_;
+		break;
+	}
+	case ValueType::kUInt64: {
+		--value_.u64_;
 		break;
 	}
 	default:

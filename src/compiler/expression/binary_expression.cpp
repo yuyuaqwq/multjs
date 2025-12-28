@@ -238,7 +238,7 @@ std::unique_ptr<Expression> BinaryExpression::ParseExpressionAtAdditiveLevel(Lex
 
 std::unique_ptr<Expression> BinaryExpression::ParseExpressionAtMultiplicativeLevel(Lexer* lexer) {
 	auto start = lexer->GetSourcePosition();
-	auto exp = UnaryExpression::ParseExpressionAtExponentiationLevel(lexer);
+	auto exp = ParseExpressionAtExponentiationLevel(lexer);
 	do {
 		auto op = lexer->PeekToken().type();
 		if (op != TokenType::kOpMul
@@ -248,8 +248,22 @@ std::unique_ptr<Expression> BinaryExpression::ParseExpressionAtMultiplicativeLev
 		}
 		lexer->NextToken();
 		auto end = lexer->GetRawSourcePosition();
-		exp = std::make_unique<BinaryExpression>(start, end, op, std::move(exp), UnaryExpression::ParseExpressionAtExponentiationLevel(lexer));
+		exp = std::make_unique<BinaryExpression>(start, end, op, std::move(exp), ParseExpressionAtExponentiationLevel(lexer));
 	} while (true);
+	return exp;
+}
+
+std::unique_ptr<Expression> BinaryExpression::ParseExpressionAtExponentiationLevel(Lexer* lexer) {
+	// .. ** ..，右结合
+	auto start = lexer->GetSourcePosition();
+	auto exp = UnaryExpression::ParseExpressionAtUnaryLevel(lexer);
+	auto op = lexer->PeekToken().type();
+	if (op != TokenType::kOpPower) {
+		return exp;
+	}
+	lexer->NextToken();
+	auto end = lexer->GetRawSourcePosition();
+	exp = std::make_unique<BinaryExpression>(start, end, op, std::move(exp), ParseExpressionAtExponentiationLevel(lexer));
 	return exp;
 }
 

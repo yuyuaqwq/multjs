@@ -337,7 +337,7 @@ std::optional<Token> Lexer::TryHandleOperator() {
             token.set_type(longer_it->second);
             j = i + 1;
         }
-    }
+    } 
     if (token.is(TokenType::kNone)) {
         ++position_;
         return std::nullopt;

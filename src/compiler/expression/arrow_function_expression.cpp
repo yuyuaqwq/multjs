@@ -25,7 +25,12 @@ std::unique_ptr<Expression> ArrowFunctionExpression::TryParseArrowFunctionExpres
 
 	// 解析参数
 	if (lexer->PeekToken().is(TokenType::kSepLParen)) {
-		params = Expression::ParseParameters(lexer);
+		auto res = Expression::TryParseParameters(lexer);
+		if (!res) {
+			// 不是箭头函数，回退
+			lexer->RewindToCheckpoint(checkpoint);
+			return AssignmentExpression::ParseExpressionAtAssignmentLevel(lexer);
+		}
 	} else {
 		// 单个参数
 		params.push_back(lexer->NextToken().value());

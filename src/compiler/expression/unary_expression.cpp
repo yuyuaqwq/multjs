@@ -33,19 +33,6 @@ void UnaryExpression::GenerateCode(CodeGenerator* code_generator, FunctionDefBas
     }
 }
 
-std::unique_ptr<Expression> UnaryExpression::ParseExpressionAtExponentiationLevel(Lexer* lexer) {
-	// .. ** ..，右结合
-	auto start = lexer->GetSourcePosition();
-	auto exp = ParseExpressionAtUnaryLevel(lexer);
-	auto type = lexer->PeekToken().type();
-	if (type != TokenType::kOpPower) {
-		return exp;
-	}
-	lexer->NextToken();
-	auto end = lexer->GetRawSourcePosition();
-	exp = std::make_unique<UnaryExpression>(start, end, type, ParseExpressionAtExponentiationLevel(lexer));
-	return exp;
-}
 
 std::unique_ptr<Expression> UnaryExpression::ParseExpressionAtUnaryLevel(Lexer* lexer) {
 	auto start = lexer->GetSourcePosition();
@@ -69,7 +56,7 @@ std::unique_ptr<Expression> UnaryExpression::ParseExpressionAtUnaryLevel(Lexer* 
 		lexer->NextToken();
 		auto argument = ParseExpressionAtUnaryLevel(lexer);
 		auto end = lexer->GetRawSourcePosition();
-		return std::make_unique<UnaryExpression>(start, end, token.type(), std::move(argument));
+		return std::make_unique<UnaryExpression>(start, end, token.type(), std::move(argument), true);
 	}
 	case TokenType::kOpInc:      // ++
 	case TokenType::kOpDec: {     // --
@@ -103,7 +90,7 @@ std::unique_ptr<Expression> UnaryExpression::ParsePostfixExpression(Lexer* lexer
 		}
 		lexer->NextToken();
 		auto end = lexer->GetRawSourcePosition();
-		exp = std::make_unique<UnaryExpression>(start, end, TokenType::kOpSuffixInc, std::move(exp));
+		exp = std::make_unique<UnaryExpression>(start, end, TokenType::kOpSuffixInc, std::move(exp), false);
 	} while (true);
 	return exp;
 }

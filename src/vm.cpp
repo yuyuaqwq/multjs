@@ -496,7 +496,6 @@ void VM::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 			VM_EXCEPTION_CHECK_AND_THROW(a);
 			break;
 		}
-
 		case OpcodeType::kShl: {
 			auto a = stack_frame->pop();
 			auto& b = stack_frame->get(-1);
@@ -508,6 +507,13 @@ void VM::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 			auto a = stack_frame->pop();
 			auto& b = stack_frame->get(-1);
 			b = b.RightShift(context_, a);
+			VM_EXCEPTION_CHECK_AND_THROW(b);
+			break;
+		}
+		case OpcodeType::kUShr: {
+			auto a = stack_frame->pop();
+			auto& b = stack_frame->get(-1);
+			b = b.UnsignedRightShift(context_, a);
 			VM_EXCEPTION_CHECK_AND_THROW(b);
 			break;
 		}
@@ -523,6 +529,20 @@ void VM::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 			auto& b = stack_frame->get(-1);
 			b = b.BitwiseOr(context_, a);
 			VM_EXCEPTION_CHECK_AND_THROW(b);
+			break;
+		}
+
+		case OpcodeType::kBitXor: {
+			auto a = stack_frame->pop();
+			auto& b = stack_frame->get(-1);
+			b = b.BitwiseXor(context_, a);
+			VM_EXCEPTION_CHECK_AND_THROW(b);
+			break;
+		}
+		case OpcodeType::kBitNot: {
+			auto& a = stack_frame->get(-1);
+			a = a.BitwiseNot(context_);
+			VM_EXCEPTION_CHECK_AND_THROW(a);
 			break;
 		}
 		case OpcodeType::kNew: {

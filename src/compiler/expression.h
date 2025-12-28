@@ -12,6 +12,7 @@
 #include <memory>
 #include <map>
 #include <unordered_map>
+#include <optional>
 
 #include <mjs/noncopyable.h>
 #include <mjs/source_define.h>
@@ -122,11 +123,11 @@ public:
 	static std::unique_ptr<Expression> ParseExpressionAtLeftHandSideLevel(Lexer* lexer);
 
 	/**
-	 * @brief 解析函数参数列表
+	 * @brief 尝试解析函数参数列表
 	 * @param lexer 词法分析器
 	 * @return 参数名称列表
 	 */
-	static std::vector<std::string> ParseParameters(Lexer* lexer);
+    static std::optional<std::vector<std::string>> TryParseParameters(Lexer* lexer);
 
 	/**
 	 * @brief 解析表达式列表
