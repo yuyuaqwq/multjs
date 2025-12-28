@@ -818,7 +818,7 @@ exit_:
 			tmp_stack_frame = tmp_stack_frame->upper_stack_frame();
 		}
 		std::string_view func = "<unknown>";
-		SourceLine line = kInvalidSourceLine;
+		SourceLine line = kSourceLineInvalid;
 		if (tmp_stack_frame->function_def()) {
 			func = tmp_stack_frame->function_def()->name();
 			auto debug_info = tmp_stack_frame->function_def()->debug_table().FindEntry(tmp_stack_frame->pc());

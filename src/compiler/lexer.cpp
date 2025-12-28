@@ -11,7 +11,9 @@ namespace mjs {
 namespace compiler {
 
 Lexer::Lexer(std::string_view source)
-    : source_(source) {}
+    : source_(source) {
+    line_table_.Build(source);
+}
 
 char Lexer::NextChar() noexcept {
     if (position_ < source_.size()) {
@@ -102,7 +104,7 @@ void Lexer::SkipWhitespaceAndComments() {
 
 Token Lexer::PeekToken() {
     if (peek_token_.is(TokenType::kNone)) {
-        SourcePos saved_position = position_;
+        SourcePosition saved_position = position_;
         peek_token_ = ReadNextToken();
         peek_position_ = position_;
         position_ = saved_position;
@@ -189,13 +191,10 @@ Token Lexer::ReadNextToken() {
         return HandleRegExp(token);
     }
 
-    // 处理运算符和分隔符
-    std::string op_str(1, c);
-    auto op_it = Token::operator_map().find(op_str);
-    
-    // 尝试匹配多字符运算符
-    if (op_it != Token::operator_map().end()) {
-        return HandleOperator(token, op_str, op_it->second);
+    // 尝试匹配运算符
+    auto operator_token = TryHandleOperator();
+    if (operator_token) {
+        return *operator_token;
     }
 
     // 处理数字字面量
@@ -325,25 +324,25 @@ Token Lexer::HandleRegExp(Token& token) {
     throw SyntaxError("Unterminated regular expression literal");
 }
 
-Token Lexer::HandleOperator(Token& token, const std::string& op_str, TokenType initial_type) {
-    // 尝试匹配更长的运算符
-    std::string longer_op = op_str;
-    TokenType current_type = initial_type;
-    
-    while (position_ < source_.size()) {
-        longer_op.push_back(source_[position_]);
+std::optional<Token> Lexer::TryHandleOperator() {
+    Token token;
+    char longer_op[Token::kOperatorMaxSize + 1] = { 0 };
+    size_t i = 0;
+    size_t j = 0;
+    --position_;
+    for (; i < Token::kOperatorMaxSize && position_ + i < source_.size(); ++i) {
+        longer_op[i] = source_[position_ + i];
         auto longer_it = Token::operator_map().find(longer_op);
-        
         if (longer_it != Token::operator_map().end()) {
-            current_type = longer_it->second;
-            ++position_;
-        } else {
-            longer_op.pop_back(); // 移除最后添加的字符
-            break;
+            token.set_type(longer_it->second);
+            j = i + 1;
         }
     }
-    
-    token.set_type(current_type);
+    if (token.is(TokenType::kNone)) {
+        ++position_;
+        return std::nullopt;
+    }
+    position_ += j;
     return token;
 }
 

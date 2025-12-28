@@ -12,12 +12,12 @@
 #pragma once
 
 #include <mjs/noncopyable.h>
-#include <mjs/const_pool.h>
+#include <mjs/global_const_pool.h>
 #include <mjs/stack_frame.h>
 #include <mjs/class_def_table.h>
 #include <mjs/module_manager.h>
 #include <mjs/value.h>
-#include <mjs/shape.h>
+#include <mjs/shape_manager.h>
 #include <mjs/gc_manager.h>
 #include <mjs/error.h>
 
@@ -70,13 +70,13 @@ public:
 	 * @brief 获取全局常量池常量引用
 	 * @return 全局常量池常量引用
 	 */
-	const auto& const_pool() const { return const_pool_; }
+	const auto& global_const_pool() const { return global_const_pool_; }
 
 	/**
 	 * @brief 获取全局常量池引用
 	 * @return 全局常量池引用
 	 */
-	auto& const_pool() { return const_pool_; }
+	auto& global_const_pool() { return global_const_pool_; }
 
 	/**
 	 * @brief 获取垃圾回收管理器引用
@@ -144,7 +144,7 @@ private:
 	void ConsoleInitialize();
 
 private:
-	GlobalConstPool const_pool_;              ///< 全局常量池
+	GlobalConstPool global_const_pool_;              ///< 全局常量池
 	GCManager gc_manager_;                    ///< 垃圾回收管理器
 	ShapeManager shape_manager_;              ///< 形状管理器（对象布局优化）
 	Value global_this_;                       ///< 全局 this 对象

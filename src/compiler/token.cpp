@@ -1,4 +1,6 @@
-#include "token.h"
+#include <mjs/token.h>
+
+#include "./parser.h"
 
 namespace mjs {
 namespace compiler {
@@ -146,6 +148,12 @@ const std::unordered_map<std::string, TokenType>& Token::keyword_map() {
 	};
 	return keyword_map;
 }
+
+//std::unique_ptr<Statement> Token::Parse(Parser& parser) {
+//    // 使用token工厂创建具体的token子类，然后调用其Parse方法
+//    auto specific_token = TokenFactory::CreateTokenFromToken(*this);
+//    return specific_token->Parse(parser);
+//}
 
 } // namespace compiler
 } // namespace mjs

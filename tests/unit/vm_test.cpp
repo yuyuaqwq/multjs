@@ -10,9 +10,8 @@
 #include <mjs/stack_frame.h>
 #include <mjs/function_def.h>
 #include <mjs/module_def.h>
-#include <mjs/bytecode.h>
+#include <mjs/bytecode_table.h>
 #include <mjs/opcode.h>
-#include <mjs/const_pool.h>
 #include <mjs/object_impl/function_object.h>
 #include <mjs/object_impl/generator_object.h>
 #include <mjs/object_impl/async_object.h>

@@ -1,12 +1,12 @@
 /**
- * @file source.h
- * @brief JavaScript 源代码处理系统定义
+ * @file line_table.h
+ * @brief JavaScript 行号映射表定义
  *
  * @copyright Copyright (c) 2025 yuyuaqwq
  * @license MIT License
  *
- * 本文件定义了 JavaScript 引擎中的源代码处理系统，包括源代码位置类型、
- * 源代码类型和行号映射表类，用于源代码位置转换和调试信息处理。
+ * 本文件定义了 JavaScript 引擎中的行号映射表类，用于源代码位置转换和
+ * 调试信息处理，支持将字节位置转换为行号和列号（1-based）。
  */
 
 #pragma once
@@ -18,16 +18,9 @@
 #include <utility>
 #include <stdexcept>
 
+#include <mjs/source_define.h>
+
 namespace mjs {
-
-using SourcePos = uint32_t;    ///< 源代码位置类型
-using SourceLine = uint32_t;   ///< 源代码行号类型
-using SourceColumn = uint32_t; ///< 源代码列号类型
-
-constexpr SourcePos kInvalidSourcePos = 0xffffffff; ///< 无效源代码位置常量
-constexpr SourceLine kInvalidSourceLine = 0;        ///< 无效源代码行号常量
-
-using Source = std::string; ///< 源代码类型
 
 /**
  * @class LineTable
@@ -46,7 +39,7 @@ public:
         line_offsets_.clear();
         line_offsets_.push_back(0); // 第1行从0开始
 
-        for (SourcePos pos = 0; pos < source.size(); ++pos) {
+        for (SourcePosition pos = 0; pos < source.size(); ++pos) {
             if (source[pos] == '\n') {
                 line_offsets_.push_back(pos + 1); // 下一行起始位置（跳过\n）
             }
@@ -59,7 +52,7 @@ public:
      * @return 行号和列号对
      * @throw std::out_of_range 当位置超出范围时抛出
      */
-    std::pair<SourceLine, SourceColumn> PosToLineAndColumn(SourcePos pos) const {
+    std::pair<SourceLine, SourceColumn> PosToLineAndColumn(SourcePosition pos) const {
         if (line_offsets_.empty()) {
             throw std::out_of_range("LineTable is not initialized");
         }
@@ -84,8 +77,7 @@ public:
     }
 
 private:
-    std::vector<SourcePos> line_offsets_; ///< 存储每行的起始偏移量（0-based）
-
+    std::vector<SourcePosition> line_offsets_; ///< 存储每行的起始偏移量（0-based）
 };
 
 } // namespace mjs

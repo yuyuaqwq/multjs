@@ -16,13 +16,7 @@ private:
         , values_(length) {}
 
 public:
-    bool GetProperty(Context* context, ConstIndex key, Value* value) override {
-        if (key == GetClassDef<ArrayObjectClassDef>(&context->runtime()).length_const_index()) {
-            *value = Value(length());
-            return true;
-        }
-        return Object::GetProperty(context, key, value);
-    }
+    bool GetProperty(Context* context, ConstIndex key, Value* value) override;
 
     void SetComputedProperty(Context* context, const Value& key, Value&& value) override {
         if (!key.IsInt64() || key.i64() < 0 || key.i64() > values_.size()) {
@@ -31,14 +25,7 @@ public:
         values_[key.i64()] = std::move(value);
     }
 
-    bool GetComputedProperty(Context* context, const Value& key, Value* value) override {
-        if (!key.IsInt64() || key.i64() < 0 || key.i64() > values_.size()) {
-            *value = Error::Throw(context, "Not a valid index.");
-            return false; // or throw an error
-        }
-        *value = values_[key.i64()];
-        return true;
-    }
+    bool GetComputedProperty(Context* context, const Value& key, Value* value) override;
 
     void Push(Context* context, Value val) {
         values_.push_back(val);

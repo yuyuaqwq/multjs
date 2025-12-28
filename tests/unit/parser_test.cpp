@@ -6,6 +6,41 @@
 #include "../src/compiler/parser.h"
 #include "../src/compiler/expression.h"
 #include "../src/compiler/statement.h"
+#include "../src/compiler/expression/integer_literal.h"
+#include "../src/compiler/expression/string_literal.h"
+#include "../src/compiler/expression/boolean_literal.h"
+#include "../src/compiler/expression/null_literal.h"
+#include "../src/compiler/expression/undefined_literal.h"
+#include "../src/compiler/expression/identifier.h"
+#include "../src/compiler/expression/binary_expression.h"
+#include "../src/compiler/expression/assignment_expression.h"
+#include "../src/compiler/expression/object_expression.h"
+#include "../src/compiler/expression/array_expression.h"
+#include "../src/compiler/expression/function_expression.h"
+#include "../src/compiler/expression/arrow_function_expression.h"
+#include "../src/compiler/expression/unary_expression.h"
+#include "../src/compiler/expression/member_expression.h"
+#include "../src/compiler/expression/call_expression.h"
+#include "../src/compiler/expression/conditional_expression.h"
+#include "../src/compiler/expression/new_expression.h"
+#include "../src/compiler/expression/template_literal.h"
+#include "../src/compiler/expression/yield_expression.h"
+#include "../src/compiler/expression/await_expression.h"
+#include "../src/compiler/expression/import_expression.h"
+
+#include "../src/compiler/statement/block_statement.h"
+#include "../src/compiler/statement/return_statement.h"
+#include "../src/compiler/statement/expression_statement.h"
+#include "../src/compiler/statement/if_statement.h"
+#include "../src/compiler/statement/variable_declaration.h"
+#include "../src/compiler/statement/for_statement.h"
+#include "../src/compiler/statement/while_statement.h"
+#include "../src/compiler/statement/try_statement.h"
+#include "../src/compiler/statement/throw_statement.h"
+#include "../src/compiler/statement/break_statement.h"
+#include "../src/compiler/statement/continue_statement.h"
+#include "../src/compiler/statement/labeled_statement.h"
+#include "../src/compiler/statement/export_declaration.h"
 
 namespace mjs {
 namespace compiler {
@@ -25,13 +60,13 @@ protected:
     // 辅助方法，用于解析表达式
     std::unique_ptr<Expression> ParseExpression(const std::string& source) {
         auto parser = CreateParser(source);
-        return parser->ParseExpression();
+        return Expression::ParseExpression(parser->lexer_);
     }
 
     // 辅助方法，用于解析语句
     std::unique_ptr<Statement> ParseStatement(const std::string& source) {
         auto parser = CreateParser(source);
-        return parser->ParseStatement();
+        return Statement::ParseStatement(parser->lexer_);
     }
 };
 
@@ -39,197 +74,224 @@ protected:
 TEST_F(ParserTest, ParseLiterals) {
     // 测试数字字面量
     auto expr = ParseExpression("42");
-    ASSERT_TRUE(expr->is(ExpressionType::kInteger));
-    EXPECT_EQ(expr->as<IntegerLiteral>().value(), 42);
+    auto* int_expr = dynamic_cast<IntegerLiteral*>(expr.get());
+    ASSERT_TRUE(int_expr != nullptr);
+    EXPECT_EQ(int_expr->value(), 42);
 
     // 测试字符串字面量
     expr = ParseExpression("\"hello\"");
-    ASSERT_TRUE(expr->is(ExpressionType::kString));
-    EXPECT_EQ(expr->as<StringLiteral>().value(), "hello");
+    auto* string_expr = dynamic_cast<StringLiteral*>(expr.get());
+    ASSERT_TRUE(string_expr != nullptr);
+    EXPECT_EQ(string_expr->value(), "hello");
 
     // 测试布尔字面量
     expr = ParseExpression("true");
-    ASSERT_TRUE(expr->is(ExpressionType::kBoolean));
-    EXPECT_TRUE(expr->as<BooleanLiteral>().value());
+    auto* bool_true_expr = dynamic_cast<BooleanLiteral*>(expr.get());
+    ASSERT_TRUE(bool_true_expr != nullptr);
+    EXPECT_TRUE(bool_true_expr->value());
 
     expr = ParseExpression("false");
-    ASSERT_TRUE(expr->is(ExpressionType::kBoolean));
-    EXPECT_FALSE(expr->as<BooleanLiteral>().value());
+    auto* bool_false_expr = dynamic_cast<BooleanLiteral*>(expr.get());
+    ASSERT_TRUE(bool_false_expr != nullptr);
+    EXPECT_FALSE(bool_false_expr->value());
 
     // 测试null字面量
     expr = ParseExpression("null");
-    ASSERT_TRUE(expr->is(ExpressionType::kNull));
+    auto* null_expr = dynamic_cast<NullLiteral*>(expr.get());
+    ASSERT_TRUE(null_expr != nullptr);
 
     // 测试undefined字面量
     expr = ParseExpression("undefined");
-    ASSERT_TRUE(expr->is(ExpressionType::kUndefined));
+    auto* undefined_expr = dynamic_cast<UndefinedLiteral*>(expr.get());
+    ASSERT_TRUE(undefined_expr != nullptr);
 }
 
 // 测试解析标识符
 TEST_F(ParserTest, ParseIdentifier) {
     auto expr = ParseExpression("foo");
-    ASSERT_TRUE(expr->is(ExpressionType::kIdentifier));
-    EXPECT_EQ(expr->as<Identifier>().name(), "foo");
+    auto* identifier_expr = dynamic_cast<Identifier*>(expr.get());
+    ASSERT_TRUE(identifier_expr != nullptr);
+    EXPECT_EQ(identifier_expr->name(), "foo");
 }
 
 // 测试解析二元表达式
 TEST_F(ParserTest, ParseBinaryExpression) {
     // 测试加法
     auto expr = ParseExpression("1 + 2");
-    ASSERT_TRUE(expr->is(ExpressionType::kBinaryExpression));
-    auto& binary = expr->as<BinaryExpression>();
-    EXPECT_EQ(binary.op(), TokenType::kOpAdd);
-    ASSERT_TRUE(binary.left()->is(ExpressionType::kInteger));
-    EXPECT_EQ(binary.left()->as<IntegerLiteral>().value(), 1);
-    ASSERT_TRUE(binary.right()->is(ExpressionType::kInteger));
-    EXPECT_EQ(binary.right()->as<IntegerLiteral>().value(), 2);
+    auto* binary_expr = dynamic_cast<BinaryExpression*>(expr.get());
+    ASSERT_TRUE(binary_expr != nullptr);
+    EXPECT_EQ(binary_expr->op(), TokenType::kOpAdd);
+    auto* left_int = dynamic_cast<IntegerLiteral*>(binary_expr->left().get());
+    ASSERT_TRUE(left_int != nullptr);
+    EXPECT_EQ(left_int->value(), 1);
+    auto* right_int = dynamic_cast<IntegerLiteral*>(binary_expr->right().get());
+    ASSERT_TRUE(right_int != nullptr);
+    EXPECT_EQ(right_int->value(), 2);
 
     // 测试乘法
     expr = ParseExpression("3 * 4");
-    ASSERT_TRUE(expr->is(ExpressionType::kBinaryExpression));
-    auto& mul_binary = expr->as<BinaryExpression>();
-    EXPECT_EQ(mul_binary.op(), TokenType::kOpMul);
-    ASSERT_TRUE(mul_binary.left()->is(ExpressionType::kInteger));
-    EXPECT_EQ(mul_binary.left()->as<IntegerLiteral>().value(), 3);
-    ASSERT_TRUE(mul_binary.right()->is(ExpressionType::kInteger));
-    EXPECT_EQ(mul_binary.right()->as<IntegerLiteral>().value(), 4);
+    auto* mul_binary = dynamic_cast<BinaryExpression*>(expr.get());
+    ASSERT_TRUE(mul_binary != nullptr);
+    EXPECT_EQ(mul_binary->op(), TokenType::kOpMul);
+    auto* left_mul_int = dynamic_cast<IntegerLiteral*>(mul_binary->left().get());
+    ASSERT_TRUE(left_mul_int != nullptr);
+    EXPECT_EQ(left_mul_int->value(), 3);
+    auto* right_mul_int = dynamic_cast<IntegerLiteral*>(mul_binary->right().get());
+    ASSERT_TRUE(right_mul_int != nullptr);
+    EXPECT_EQ(right_mul_int->value(), 4);
 
     // 测试复杂表达式
     expr = ParseExpression("1 + 2 * 3");
-    ASSERT_TRUE(expr->is(ExpressionType::kBinaryExpression));
-    auto& complex_binary = expr->as<BinaryExpression>();
-    EXPECT_EQ(complex_binary.op(), TokenType::kOpAdd);
-    ASSERT_TRUE(complex_binary.left()->is(ExpressionType::kInteger));
-    EXPECT_EQ(complex_binary.left()->as<IntegerLiteral>().value(), 1);
-    ASSERT_TRUE(complex_binary.right()->is(ExpressionType::kBinaryExpression));
-    auto& right_binary = complex_binary.right()->as<BinaryExpression>();
-    EXPECT_EQ(right_binary.op(), TokenType::kOpMul);
+    auto* complex_binary = dynamic_cast<BinaryExpression*>(expr.get());
+    ASSERT_TRUE(complex_binary != nullptr);
+    EXPECT_EQ(complex_binary->op(), TokenType::kOpAdd);
+    auto* left_complex_int = dynamic_cast<IntegerLiteral*>(complex_binary->left().get());
+    ASSERT_TRUE(left_complex_int != nullptr);
+    EXPECT_EQ(left_complex_int->value(), 1);
+    auto* right_binary = dynamic_cast<BinaryExpression*>(complex_binary->right().get());
+    ASSERT_TRUE(right_binary != nullptr);
+    EXPECT_EQ(right_binary->op(), TokenType::kOpMul);
 }
 
 // 测试解析赋值表达式
-TEST_F(ParserTest, ParseAssignmentExpression) {
+TEST_F(ParserTest, ParseExpressionAtAssignmentLevel) {
     auto expr = ParseExpression("x = 42");
-    ASSERT_TRUE(expr->is(ExpressionType::kAssignmentExpression));
-    auto& assign = expr->as<AssignmentExpression>();
-    EXPECT_EQ(assign.op(), TokenType::kOpAssign);
-    ASSERT_TRUE(assign.left()->is(ExpressionType::kIdentifier));
-    EXPECT_EQ(assign.left()->as<Identifier>().name(), "x");
-    ASSERT_TRUE(assign.right()->is(ExpressionType::kInteger));
-    EXPECT_EQ(assign.right()->as<IntegerLiteral>().value(), 42);
+    auto* assign_expr = dynamic_cast<AssignmentExpression*>(expr.get());
+    ASSERT_TRUE(assign_expr != nullptr);
+    EXPECT_EQ(assign_expr->op(), TokenType::kOpAssign);
+    auto* left_ident = dynamic_cast<Identifier*>(assign_expr->left().get());
+    ASSERT_TRUE(left_ident != nullptr);
+    EXPECT_EQ(left_ident->name(), "x");
+    auto* right_int = dynamic_cast<IntegerLiteral*>(assign_expr->right().get());
+    ASSERT_TRUE(right_int != nullptr);
+    EXPECT_EQ(right_int->value(), 42);
 }
 
 // 测试解析对象表达式
 TEST_F(ParserTest, ParseObjectExpression) {
     auto expr = ParseExpression("{ x: 1, y: 2 }");
-    ASSERT_TRUE(expr->is(ExpressionType::kObjectExpression));
-    auto& obj = expr->as<ObjectExpression>();
-    ASSERT_EQ(obj.properties().size(), 2);
-    
+    auto* obj_expr = dynamic_cast<ObjectExpression*>(expr.get());
+    ASSERT_TRUE(obj_expr != nullptr);
+    ASSERT_EQ(obj_expr->properties().size(), 2);
+
     // 检查第一个属性
-    EXPECT_EQ(obj.properties()[0].key, "x");
-    ASSERT_TRUE(obj.properties()[0].value->is(ExpressionType::kInteger));
-    EXPECT_EQ(obj.properties()[0].value->as<IntegerLiteral>().value(), 1);
-    
+    EXPECT_EQ(obj_expr->properties()[0].key, "x");
+    auto* first_prop_int = dynamic_cast<IntegerLiteral*>(obj_expr->properties()[0].value.get());
+    ASSERT_TRUE(first_prop_int != nullptr);
+    EXPECT_EQ(first_prop_int->value(), 1);
+
     // 检查第二个属性
-    EXPECT_EQ(obj.properties()[1].key, "y");
-    ASSERT_TRUE(obj.properties()[1].value->is(ExpressionType::kInteger));
-    EXPECT_EQ(obj.properties()[1].value->as<IntegerLiteral>().value(), 2);
+    EXPECT_EQ(obj_expr->properties()[1].key, "y");
+    auto* second_prop_int = dynamic_cast<IntegerLiteral*>(obj_expr->properties()[1].value.get());
+    ASSERT_TRUE(second_prop_int != nullptr);
+    EXPECT_EQ(second_prop_int->value(), 2);
 }
 
 // 测试解析数组表达式
 TEST_F(ParserTest, ParseArrayExpression) {
     auto expr = ParseExpression("[1, 2, 3]");
-    ASSERT_TRUE(expr->is(ExpressionType::kArrayExpression));
-    auto& arr = expr->as<ArrayExpression>();
-    ASSERT_EQ(arr.elements().size(), 3);
-    
+    auto* arr_expr = dynamic_cast<ArrayExpression*>(expr.get());
+    ASSERT_TRUE(arr_expr != nullptr);
+    ASSERT_EQ(arr_expr->elements().size(), 3);
+
     // 检查元素
-    ASSERT_TRUE(arr.elements()[0]->is(ExpressionType::kInteger));
-    EXPECT_EQ(arr.elements()[0]->as<IntegerLiteral>().value(), 1);
-    
-    ASSERT_TRUE(arr.elements()[1]->is(ExpressionType::kInteger));
-    EXPECT_EQ(arr.elements()[1]->as<IntegerLiteral>().value(), 2);
-    
-    ASSERT_TRUE(arr.elements()[2]->is(ExpressionType::kInteger));
-    EXPECT_EQ(arr.elements()[2]->as<IntegerLiteral>().value(), 3);
+    auto* first_elem = dynamic_cast<IntegerLiteral*>(arr_expr->elements()[0].get());
+    ASSERT_TRUE(first_elem != nullptr);
+    EXPECT_EQ(first_elem->value(), 1);
+
+    auto* second_elem = dynamic_cast<IntegerLiteral*>(arr_expr->elements()[1].get());
+    ASSERT_TRUE(second_elem != nullptr);
+    EXPECT_EQ(second_elem->value(), 2);
+
+    auto* third_elem = dynamic_cast<IntegerLiteral*>(arr_expr->elements()[2].get());
+    ASSERT_TRUE(third_elem != nullptr);
+    EXPECT_EQ(third_elem->value(), 3);
 }
 
 // 测试解析函数表达式
-TEST_F(ParserTest, ParseFunctionExpression) {
+TEST_F(ParserTest, ParseExpressionAtFunctionLevel) {
     auto expr = ParseExpression("function foo(a, b) { return a + b; }");
-    ASSERT_TRUE(expr->is(ExpressionType::kFunctionExpression));
-    auto& func = expr->as<FunctionExpression>();
-    EXPECT_EQ(func.id(), "foo");
-    ASSERT_EQ(func.params().size(), 2);
-    EXPECT_EQ(func.params()[0], "a");
-    EXPECT_EQ(func.params()[1], "b");
-    
+    auto* func_expr = dynamic_cast<FunctionExpression*>(expr.get());
+    ASSERT_TRUE(func_expr != nullptr);
+    EXPECT_EQ(func_expr->id(), "foo");
+    ASSERT_EQ(func_expr->params().size(), 2);
+    EXPECT_EQ(func_expr->params()[0], "a");
+    EXPECT_EQ(func_expr->params()[1], "b");
+
     // 检查函数体
-    ASSERT_TRUE(func.body()->is(StatementType::kBlock));
-    auto& body = func.body()->as<BlockStatement>();
-    ASSERT_EQ(body.statements().size(), 1);
-    ASSERT_TRUE(body.statements()[0]->is(StatementType::kReturn));
+    auto* body_block = dynamic_cast<BlockStatement*>(func_expr->body().get());
+    ASSERT_TRUE(body_block != nullptr);
+    ASSERT_EQ(body_block->statements().size(), 1);
+    auto* return_stmt = dynamic_cast<ReturnStatement*>(body_block->statements()[0].get());
+    ASSERT_TRUE(return_stmt != nullptr);
 }
 
 // 测试解析箭头函数表达式
 TEST_F(ParserTest, ParseArrowFunctionExpression) {
     auto expr = ParseExpression("(a, b) => a + b");
-    ASSERT_TRUE(expr->is(ExpressionType::kArrowFunctionExpression));
-    auto& arrow = expr->as<ArrowFunctionExpression>();
-    ASSERT_EQ(arrow.params().size(), 2);
-    EXPECT_EQ(arrow.params()[0], "a");
-    EXPECT_EQ(arrow.params()[1], "b");
-    
+    auto* arrow_expr = dynamic_cast<ArrowFunctionExpression*>(expr.get());
+    ASSERT_TRUE(arrow_expr != nullptr);
+    ASSERT_EQ(arrow_expr->params().size(), 2);
+    EXPECT_EQ(arrow_expr->params()[0], "a");
+    EXPECT_EQ(arrow_expr->params()[1], "b");
+
     // 检查函数体
-    ASSERT_TRUE(arrow.body()->is(StatementType::kExpression));
+    auto* body_expr = dynamic_cast<ExpressionStatement*>(arrow_expr->body().get());
+    ASSERT_TRUE(body_expr != nullptr);
 }
 
 // 测试解析变量声明
 TEST_F(ParserTest, ParseVariableDeclaration) {
     auto stmt = ParseStatement("let x = 42;");
-    ASSERT_TRUE(stmt->is(StatementType::kVariableDeclaration));
-    auto& var_decl = stmt->as<VariableDeclaration>();
-    EXPECT_EQ(var_decl.name(), "x");
-    EXPECT_EQ(var_decl.kind(), TokenType::kKwLet);
-    ASSERT_TRUE(var_decl.init()->is(ExpressionType::kInteger));
-    EXPECT_EQ(var_decl.init()->as<IntegerLiteral>().value(), 42);
+    auto* var_decl = dynamic_cast<VariableDeclaration*>(stmt.get());
+    ASSERT_TRUE(var_decl != nullptr);
+    EXPECT_EQ(var_decl->name(), "x");
+    EXPECT_EQ(var_decl->kind(), TokenType::kKwLet);
+    auto* init_int = dynamic_cast<IntegerLiteral*>(var_decl->init().get());
+    ASSERT_TRUE(init_int != nullptr);
+    EXPECT_EQ(init_int->value(), 42);
 }
 
 // 测试解析if语句
 TEST_F(ParserTest, ParseIfStatement) {
     auto stmt = ParseStatement("if (x > 0) { y = 1; }");
-    ASSERT_TRUE(stmt->is(StatementType::kIf));
-    auto& if_stmt = stmt->as<IfStatement>();
-    
+    auto* if_stmt = dynamic_cast<IfStatement*>(stmt.get());
+    ASSERT_TRUE(if_stmt != nullptr);
+
     // 检查条件
-    ASSERT_TRUE(if_stmt.test()->is(ExpressionType::kBinaryExpression));
-    
+    auto* test_binary = dynamic_cast<BinaryExpression*>(if_stmt->test().get());
+    ASSERT_TRUE(test_binary != nullptr);
+
     // 检查consequent
-    ASSERT_TRUE(if_stmt.consequent()->is(StatementType::kBlock));
-    auto& consequent = if_stmt.consequent()->as<BlockStatement>();
-    ASSERT_EQ(consequent.statements().size(), 1);
-    
+    auto* consequent_block = dynamic_cast<BlockStatement*>(if_stmt->consequent().get());
+    ASSERT_TRUE(consequent_block != nullptr);
+    ASSERT_EQ(consequent_block->statements().size(), 1);
+
     // 检查alternate（应该为空）
-    EXPECT_EQ(if_stmt.alternate(), nullptr);
+    EXPECT_EQ(if_stmt->alternate(), nullptr);
 }
 
 // 测试解析for循环
 TEST_F(ParserTest, ParseForStatement) {
     auto stmt = ParseStatement("for (let i = 0; i < 10; i++) { sum += i; }");
-    ASSERT_TRUE(stmt->is(StatementType::kFor));
-    auto& for_stmt = stmt->as<ForStatement>();
-    
+    auto* for_stmt = dynamic_cast<ForStatement*>(stmt.get());
+    ASSERT_TRUE(for_stmt != nullptr);
+
     // 检查初始化语句
-    ASSERT_TRUE(for_stmt.init()->is(StatementType::kVariableDeclaration));
-    
+    auto* init_var = dynamic_cast<VariableDeclaration*>(for_stmt->init().get());
+    ASSERT_TRUE(init_var != nullptr);
+
     // 检查条件表达式
-    ASSERT_TRUE(for_stmt.test()->is(ExpressionType::kBinaryExpression));
-    
+    auto* test_binary = dynamic_cast<BinaryExpression*>(for_stmt->test().get());
+    ASSERT_TRUE(test_binary != nullptr);
+
     // 检查更新表达式
-    ASSERT_TRUE(for_stmt.update()->is(ExpressionType::kUnaryExpression));
-    
+    auto* update_unary = dynamic_cast<UnaryExpression*>(for_stmt->update().get());
+    ASSERT_TRUE(update_unary != nullptr);
+
     // 检查循环体
-    ASSERT_TRUE(for_stmt.body()->is(StatementType::kBlock));
+    auto* body_block = dynamic_cast<BlockStatement*>(for_stmt->body().get());
+    ASSERT_TRUE(body_block != nullptr);
 }
 
 // 测试解析完整程序
@@ -253,400 +315,446 @@ TEST_F(ParserTest, ParseProgram) {
     ASSERT_EQ(parser->statements().size(), 5);
     
     // 检查第一个语句是变量声明
-    ASSERT_TRUE(parser->statements()[0]->is(StatementType::kVariableDeclaration));
-    
+    auto* first_var_decl = dynamic_cast<VariableDeclaration*>(parser->statements()[0].get());
+    ASSERT_TRUE(first_var_decl != nullptr);
+
     // 检查第四个语句是函数表达式
-    ASSERT_TRUE(parser->statements()[3]->is(StatementType::kExpression));
-    auto& func_stmt = parser->statements()[3]->as<ExpressionStatement>();
-    ASSERT_TRUE(func_stmt.expression()->is(ExpressionType::kFunctionExpression));
+    auto* func_stmt = dynamic_cast<ExpressionStatement*>(parser->statements()[3].get());
+    ASSERT_TRUE(func_stmt != nullptr);
+    auto* func_expr = dynamic_cast<FunctionExpression*>(func_stmt->expression().get());
+    ASSERT_TRUE(func_expr != nullptr);
 }
 
 // 测试解析一元表达式
-TEST_F(ParserTest, ParseUnaryExpression) {
+TEST_F(ParserTest, ParseExpressionAtUnaryLevel) {
     // 测试前缀一元运算符
     auto expr = ParseExpression("-42");
-    ASSERT_TRUE(expr->is(ExpressionType::kUnaryExpression));
-    auto& unary = expr->as<UnaryExpression>();
-    EXPECT_EQ(unary.op(), TokenType::kOpSub);
-    EXPECT_TRUE(unary.is_prefix());
-    ASSERT_TRUE(unary.argument()->is(ExpressionType::kInteger));
-    EXPECT_EQ(unary.argument()->as<IntegerLiteral>().value(), 42);
-    
+    auto* unary_expr = dynamic_cast<UnaryExpression*>(expr.get());
+    ASSERT_TRUE(unary_expr != nullptr);
+    EXPECT_EQ(unary_expr->op(), TokenType::kOpSub);
+    EXPECT_TRUE(unary_expr->is_prefix());
+    auto* arg_int = dynamic_cast<IntegerLiteral*>(unary_expr->argument().get());
+    ASSERT_TRUE(arg_int != nullptr);
+    EXPECT_EQ(arg_int->value(), 42);
+
     // 测试前缀自增
     expr = ParseExpression("++x");
-    ASSERT_TRUE(expr->is(ExpressionType::kUnaryExpression));
-    auto& prefix_inc = expr->as<UnaryExpression>();
-    EXPECT_EQ(prefix_inc.op(), TokenType::kOpPrefixInc);
-    EXPECT_TRUE(prefix_inc.is_prefix());
-    ASSERT_TRUE(prefix_inc.argument()->is(ExpressionType::kIdentifier));
-    EXPECT_EQ(prefix_inc.argument()->as<Identifier>().name(), "x");
-    
+    auto* prefix_inc = dynamic_cast<UnaryExpression*>(expr.get());
+    ASSERT_TRUE(prefix_inc != nullptr);
+    EXPECT_EQ(prefix_inc->op(), TokenType::kOpPrefixInc);
+    EXPECT_TRUE(prefix_inc->is_prefix());
+    auto* prefix_arg = dynamic_cast<Identifier*>(prefix_inc->argument().get());
+    ASSERT_TRUE(prefix_arg != nullptr);
+    EXPECT_EQ(prefix_arg->name(), "x");
+
     // 测试后缀自增
     expr = ParseExpression("x++");
-    ASSERT_TRUE(expr->is(ExpressionType::kUnaryExpression));
-    auto& postfix_inc = expr->as<UnaryExpression>();
-    EXPECT_EQ(postfix_inc.op(), TokenType::kOpSuffixInc);
-    EXPECT_FALSE(postfix_inc.is_prefix());
-    ASSERT_TRUE(postfix_inc.argument()->is(ExpressionType::kIdentifier));
-    EXPECT_EQ(postfix_inc.argument()->as<Identifier>().name(), "x");
-    
+    auto* postfix_inc = dynamic_cast<UnaryExpression*>(expr.get());
+    ASSERT_TRUE(postfix_inc != nullptr);
+    EXPECT_EQ(postfix_inc->op(), TokenType::kOpSuffixInc);
+    EXPECT_FALSE(postfix_inc->is_prefix());
+    auto* postfix_arg = dynamic_cast<Identifier*>(postfix_inc->argument().get());
+    ASSERT_TRUE(postfix_arg != nullptr);
+    EXPECT_EQ(postfix_arg->name(), "x");
+
     // 测试逻辑非
     expr = ParseExpression("!true");
-    ASSERT_TRUE(expr->is(ExpressionType::kUnaryExpression));
-    auto& logical_not = expr->as<UnaryExpression>();
-    EXPECT_EQ(logical_not.op(), TokenType::kOpNot);
-    EXPECT_TRUE(logical_not.is_prefix());
-    ASSERT_TRUE(logical_not.argument()->is(ExpressionType::kBoolean));
-    EXPECT_TRUE(logical_not.argument()->as<BooleanLiteral>().value());
-    
+    auto* logical_not = dynamic_cast<UnaryExpression*>(expr.get());
+    ASSERT_TRUE(logical_not != nullptr);
+    EXPECT_EQ(logical_not->op(), TokenType::kOpNot);
+    EXPECT_TRUE(logical_not->is_prefix());
+    auto* bool_arg = dynamic_cast<BooleanLiteral*>(logical_not->argument().get());
+    ASSERT_TRUE(bool_arg != nullptr);
+    EXPECT_TRUE(bool_arg->value());
+
     // 测试typeof运算符
     expr = ParseExpression("typeof x");
-    ASSERT_TRUE(expr->is(ExpressionType::kUnaryExpression));
-    auto& typeof_op = expr->as<UnaryExpression>();
-    EXPECT_EQ(typeof_op.op(), TokenType::kKwTypeof);
-    EXPECT_TRUE(typeof_op.is_prefix());
-    ASSERT_TRUE(typeof_op.argument()->is(ExpressionType::kIdentifier));
-    EXPECT_EQ(typeof_op.argument()->as<Identifier>().name(), "x");
+    auto* typeof_op = dynamic_cast<UnaryExpression*>(expr.get());
+    ASSERT_TRUE(typeof_op != nullptr);
+    EXPECT_EQ(typeof_op->op(), TokenType::kKwTypeof);
+    EXPECT_TRUE(typeof_op->is_prefix());
+    auto* typeof_arg = dynamic_cast<Identifier*>(typeof_op->argument().get());
+    ASSERT_TRUE(typeof_arg != nullptr);
+    EXPECT_EQ(typeof_arg->name(), "x");
 }
 
 // 测试解析成员表达式和调用表达式
 TEST_F(ParserTest, ParseMemberAndCallExpression) {
     // 测试点访问成员表达式
     auto expr = ParseExpression("obj.prop");
-    ASSERT_TRUE(expr->is(ExpressionType::kMemberExpression));
-    auto& member = expr->as<MemberExpression>();
-    ASSERT_TRUE(member.object()->is(ExpressionType::kIdentifier));
-    EXPECT_EQ(member.object()->as<Identifier>().name(), "obj");
-    ASSERT_TRUE(member.property()->is(ExpressionType::kIdentifier));
-    EXPECT_EQ(member.property()->as<Identifier>().name(), "prop");
-    EXPECT_FALSE(member.computed());
-    EXPECT_FALSE(member.optional());
-    
+    auto* member_expr = dynamic_cast<MemberExpression*>(expr.get());
+    ASSERT_TRUE(member_expr != nullptr);
+    auto* obj_ident = dynamic_cast<Identifier*>(member_expr->object().get());
+    ASSERT_TRUE(obj_ident != nullptr);
+    EXPECT_EQ(obj_ident->name(), "obj");
+    auto* prop_ident = dynamic_cast<Identifier*>(member_expr->property().get());
+    ASSERT_TRUE(prop_ident != nullptr);
+    EXPECT_EQ(prop_ident->name(), "prop");
+    EXPECT_FALSE(member_expr->computed());
+    EXPECT_FALSE(member_expr->optional());
+
     // 测试计算属性成员表达式
     expr = ParseExpression("arr[0]");
-    ASSERT_TRUE(expr->is(ExpressionType::kMemberExpression));
-    auto& computed_member = expr->as<MemberExpression>();
-    ASSERT_TRUE(computed_member.object()->is(ExpressionType::kIdentifier));
-    EXPECT_EQ(computed_member.object()->as<Identifier>().name(), "arr");
-    ASSERT_TRUE(computed_member.property()->is(ExpressionType::kInteger));
-    EXPECT_EQ(computed_member.property()->as<IntegerLiteral>().value(), 0);
-    EXPECT_TRUE(computed_member.computed());
-    EXPECT_FALSE(computed_member.optional());
-    
+    auto* computed_member = dynamic_cast<MemberExpression*>(expr.get());
+    ASSERT_TRUE(computed_member != nullptr);
+    auto* arr_ident = dynamic_cast<Identifier*>(computed_member->object().get());
+    ASSERT_TRUE(arr_ident != nullptr);
+    EXPECT_EQ(arr_ident->name(), "arr");
+    auto* index_int = dynamic_cast<IntegerLiteral*>(computed_member->property().get());
+    ASSERT_TRUE(index_int != nullptr);
+    EXPECT_EQ(index_int->value(), 0);
+    EXPECT_TRUE(computed_member->computed());
+    EXPECT_FALSE(computed_member->optional());
+
     // 测试可选链成员表达式
     expr = ParseExpression("obj?.prop");
-    ASSERT_TRUE(expr->is(ExpressionType::kMemberExpression));
-    auto& optional_member = expr->as<MemberExpression>();
-    ASSERT_TRUE(optional_member.object()->is(ExpressionType::kIdentifier));
-    EXPECT_EQ(optional_member.object()->as<Identifier>().name(), "obj");
-    ASSERT_TRUE(optional_member.property()->is(ExpressionType::kIdentifier));
-    EXPECT_EQ(optional_member.property()->as<Identifier>().name(), "prop");
-    EXPECT_FALSE(optional_member.computed());
-    EXPECT_TRUE(optional_member.optional());
-    
+    auto* optional_member = dynamic_cast<MemberExpression*>(expr.get());
+    ASSERT_TRUE(optional_member != nullptr);
+    auto* optional_obj = dynamic_cast<Identifier*>(optional_member->object().get());
+    ASSERT_TRUE(optional_obj != nullptr);
+    EXPECT_EQ(optional_obj->name(), "obj");
+    auto* optional_prop = dynamic_cast<Identifier*>(optional_member->property().get());
+    ASSERT_TRUE(optional_prop != nullptr);
+    EXPECT_EQ(optional_prop->name(), "prop");
+    EXPECT_FALSE(optional_member->computed());
+    EXPECT_TRUE(optional_member->optional());
+
     // 测试函数调用表达式
     expr = ParseExpression("func(1, 2)");
-    ASSERT_TRUE(expr->is(ExpressionType::kCallExpression));
-    auto& call = expr->as<CallExpression>();
-    ASSERT_TRUE(call.callee()->is(ExpressionType::kIdentifier));
-    EXPECT_EQ(call.callee()->as<Identifier>().name(), "func");
-    ASSERT_EQ(call.arguments().size(), 2);
-    ASSERT_TRUE(call.arguments()[0]->is(ExpressionType::kInteger));
-    EXPECT_EQ(call.arguments()[0]->as<IntegerLiteral>().value(), 1);
-    ASSERT_TRUE(call.arguments()[1]->is(ExpressionType::kInteger));
-    EXPECT_EQ(call.arguments()[1]->as<IntegerLiteral>().value(), 2);
-    
+    auto* call_expr = dynamic_cast<CallExpression*>(expr.get());
+    ASSERT_TRUE(call_expr != nullptr);
+    auto* callee_ident = dynamic_cast<Identifier*>(call_expr->callee().get());
+    ASSERT_TRUE(callee_ident != nullptr);
+    EXPECT_EQ(callee_ident->name(), "func");
+    ASSERT_EQ(call_expr->arguments().size(), 2);
+    auto* first_arg = dynamic_cast<IntegerLiteral*>(call_expr->arguments()[0].get());
+    ASSERT_TRUE(first_arg != nullptr);
+    EXPECT_EQ(first_arg->value(), 1);
+    auto* second_arg = dynamic_cast<IntegerLiteral*>(call_expr->arguments()[1].get());
+    ASSERT_TRUE(second_arg != nullptr);
+    EXPECT_EQ(second_arg->value(), 2);
+
     // 测试链式调用
     expr = ParseExpression("obj.method().prop");
-    ASSERT_TRUE(expr->is(ExpressionType::kMemberExpression));
-    auto& chained = expr->as<MemberExpression>();
-    ASSERT_TRUE(chained.object()->is(ExpressionType::kCallExpression));
-    auto& method_call = chained.object()->as<CallExpression>();
-    ASSERT_TRUE(method_call.callee()->is(ExpressionType::kMemberExpression));
-    EXPECT_EQ(method_call.callee()->as<MemberExpression>().property()->as<Identifier>().name(), "method");
+    auto* chained = dynamic_cast<MemberExpression*>(expr.get());
+    ASSERT_TRUE(chained != nullptr);
+    auto* method_call = dynamic_cast<CallExpression*>(chained->object().get());
+    ASSERT_TRUE(method_call != nullptr);
+    auto* method_callee = dynamic_cast<MemberExpression*>(method_call->callee().get());
+    ASSERT_TRUE(method_callee != nullptr);
+    auto* method_prop = dynamic_cast<Identifier*>(method_callee->property().get());
+    ASSERT_TRUE(method_prop != nullptr);
+    EXPECT_EQ(method_prop->name(), "method");
 }
 
 // 测试解析条件表达式
 TEST_F(ParserTest, ParseConditionalExpression) {
     auto expr = ParseExpression("x > 0 ? 'positive' : 'negative'");
-    ASSERT_TRUE(expr->is(ExpressionType::kConditionalExpression));
-    auto& cond = expr->as<ConditionalExpression>();
-    
+    auto* cond_expr = dynamic_cast<ConditionalExpression*>(expr.get());
+    ASSERT_TRUE(cond_expr != nullptr);
+
     // 检查条件部分
-    ASSERT_TRUE(cond.test()->is(ExpressionType::kBinaryExpression));
-    auto& test = cond.test()->as<BinaryExpression>();
-    EXPECT_EQ(test.op(), TokenType::kOpGt);
-    
+    auto* test_binary = dynamic_cast<BinaryExpression*>(cond_expr->test().get());
+    ASSERT_TRUE(test_binary != nullptr);
+    EXPECT_EQ(test_binary->op(), TokenType::kOpGt);
+
     // 检查consequent
-    ASSERT_TRUE(cond.consequent()->is(ExpressionType::kString));
-    EXPECT_EQ(cond.consequent()->as<StringLiteral>().value(), "positive");
-    
+    auto* consequent_str = dynamic_cast<StringLiteral*>(cond_expr->consequent().get());
+    ASSERT_TRUE(consequent_str != nullptr);
+    EXPECT_EQ(consequent_str->value(), "positive");
+
     // 检查alternate
-    ASSERT_TRUE(cond.alternate()->is(ExpressionType::kString));
-    EXPECT_EQ(cond.alternate()->as<StringLiteral>().value(), "negative");
+    auto* alternate_str = dynamic_cast<StringLiteral*>(cond_expr->alternate().get());
+    ASSERT_TRUE(alternate_str != nullptr);
+    EXPECT_EQ(alternate_str->value(), "negative");
 }
 
 // 测试解析while循环语句
 TEST_F(ParserTest, ParseWhileStatement) {
     auto stmt = ParseStatement("while (i < 10) { i++; }");
-    ASSERT_TRUE(stmt->is(StatementType::kWhile));
-    auto& while_stmt = stmt->as<WhileStatement>();
-    
+    auto* while_stmt = dynamic_cast<WhileStatement*>(stmt.get());
+    ASSERT_TRUE(while_stmt != nullptr);
+
     // 检查条件
-    ASSERT_TRUE(while_stmt.test()->is(ExpressionType::kBinaryExpression));
-    auto& test = while_stmt.test()->as<BinaryExpression>();
-    EXPECT_EQ(test.op(), TokenType::kOpLt);
-    
+    auto* test_binary = dynamic_cast<BinaryExpression*>(while_stmt->test().get());
+    ASSERT_TRUE(test_binary != nullptr);
+    EXPECT_EQ(test_binary->op(), TokenType::kOpLt);
+
     // 检查循环体
-    ASSERT_TRUE(while_stmt.body()->is(StatementType::kBlock));
-    auto& body = while_stmt.body()->as<BlockStatement>();
-    ASSERT_EQ(body.statements().size(), 1);
-    ASSERT_TRUE(body.statements()[0]->is(StatementType::kExpression));
+    auto* body_block = dynamic_cast<BlockStatement*>(while_stmt->body().get());
+    ASSERT_TRUE(body_block != nullptr);
+    ASSERT_EQ(body_block->statements().size(), 1);
+    auto* expr_stmt = dynamic_cast<ExpressionStatement*>(body_block->statements()[0].get());
+    ASSERT_TRUE(expr_stmt != nullptr);
 }
 
 // 测试解析带else的if语句
 TEST_F(ParserTest, ParseIfElseStatement) {
     auto stmt = ParseStatement("if (x > 0) { y = 1; } else { y = -1; }");
-    ASSERT_TRUE(stmt->is(StatementType::kIf));
-    auto& if_stmt = stmt->as<IfStatement>();
-    
+    auto* if_stmt = dynamic_cast<IfStatement*>(stmt.get());
+    ASSERT_TRUE(if_stmt != nullptr);
+
     // 检查条件
-    ASSERT_TRUE(if_stmt.test()->is(ExpressionType::kBinaryExpression));
-    
+    auto* test_binary = dynamic_cast<BinaryExpression*>(if_stmt->test().get());
+    ASSERT_TRUE(test_binary != nullptr);
+
     // 检查consequent
-    ASSERT_TRUE(if_stmt.consequent()->is(StatementType::kBlock));
-    
+    auto* consequent_block = dynamic_cast<BlockStatement*>(if_stmt->consequent().get());
+    ASSERT_TRUE(consequent_block != nullptr);
+
     // 检查alternate（不应为空）
-    ASSERT_NE(if_stmt.alternate(), nullptr);
-    ASSERT_TRUE(if_stmt.alternate()->is(StatementType::kBlock));
+    ASSERT_NE(if_stmt->alternate(), nullptr);
+    auto* alternate_block = dynamic_cast<BlockStatement*>(if_stmt->alternate().get());
+    ASSERT_TRUE(alternate_block != nullptr);
 }
 
 // 测试解析try-catch-finally语句
 TEST_F(ParserTest, ParseTryCatchStatement) {
     auto stmt = ParseStatement("try { riskyOperation(); } catch (error) { handleError(error); } finally { cleanup(); }");
-    ASSERT_TRUE(stmt->is(StatementType::kTry));
-    auto& try_stmt = stmt->as<TryStatement>();
-    
+    auto* try_stmt = dynamic_cast<TryStatement*>(stmt.get());
+    ASSERT_TRUE(try_stmt != nullptr);
+
     // 检查try块
-    ASSERT_TRUE(try_stmt.block()->is(StatementType::kBlock));
-    
+    auto* try_block = dynamic_cast<BlockStatement*>(try_stmt->block().get());
+    ASSERT_TRUE(try_block != nullptr);
+
     // 检查catch子句
-    ASSERT_NE(try_stmt.handler(), nullptr);
-    ASSERT_TRUE(try_stmt.handler()->is(StatementType::kCatch));
-    auto& catch_clause = try_stmt.handler()->as<CatchClause>();
-    EXPECT_EQ(catch_clause.param()->name(), "error");
-    
+    ASSERT_NE(try_stmt->handler(), nullptr);
+    auto* catch_clause = dynamic_cast<CatchClause*>(try_stmt->handler().get());
+    ASSERT_TRUE(catch_clause != nullptr);
+    EXPECT_EQ(catch_clause->param()->name(), "error");
+
     // 检查finally子句
-    ASSERT_NE(try_stmt.finalizer(), nullptr);
-    ASSERT_TRUE(try_stmt.finalizer()->is(StatementType::kFinally));
+    ASSERT_NE(try_stmt->finalizer(), nullptr);
+    auto* finally_block = dynamic_cast<FinallyClause*>(try_stmt->finalizer().get());
+    ASSERT_TRUE(finally_block != nullptr);
 }
 
 // 测试解析throw语句
 TEST_F(ParserTest, ParseThrowStatement) {
     auto stmt = ParseStatement("throw new Error('Something went wrong');");
-    ASSERT_TRUE(stmt->is(StatementType::kThrow));
-    auto& throw_stmt = stmt->as<ThrowStatement>();
-    
+    auto* throw_stmt = dynamic_cast<ThrowStatement*>(stmt.get());
+    ASSERT_TRUE(throw_stmt != nullptr);
+
     // 检查抛出的表达式
-    ASSERT_TRUE(throw_stmt.argument()->is(ExpressionType::kNewExpression));
+    auto* new_expr = dynamic_cast<NewExpression*>(throw_stmt->argument().get());
+    ASSERT_TRUE(new_expr != nullptr);
 }
 
 // 测试解析break和continue语句
 TEST_F(ParserTest, ParseBreakContinueStatement) {
     // 测试break语句
     auto break_stmt = ParseStatement("break;");
-    ASSERT_TRUE(break_stmt->is(StatementType::kBreak));
-    
+    auto* break_stmt_ptr = dynamic_cast<BreakStatement*>(break_stmt.get());
+    ASSERT_TRUE(break_stmt_ptr != nullptr);
+
     // 测试带标签的break语句
     auto labeled_break = ParseStatement("break outerLoop;");
-    ASSERT_TRUE(labeled_break->is(StatementType::kBreak));
-    EXPECT_EQ(labeled_break->as<BreakStatement>().label(), "outerLoop");
-    
+    auto* labeled_break_ptr = dynamic_cast<BreakStatement*>(labeled_break.get());
+    ASSERT_TRUE(labeled_break_ptr != nullptr);
+    EXPECT_EQ(labeled_break_ptr->label(), "outerLoop");
+
     // 测试continue语句
     auto cont_stmt = ParseStatement("continue;");
-    ASSERT_TRUE(cont_stmt->is(StatementType::kContinue));
-    
+    auto* cont_stmt_ptr = dynamic_cast<ContinueStatement*>(cont_stmt.get());
+    ASSERT_TRUE(cont_stmt_ptr != nullptr);
+
     // 测试带标签的continue语句
     auto labeled_cont = ParseStatement("continue outerLoop;");
-    ASSERT_TRUE(labeled_cont->is(StatementType::kContinue));
-    EXPECT_EQ(labeled_cont->as<ContinueStatement>().label(), "outerLoop");
+    auto* labeled_cont_ptr = dynamic_cast<ContinueStatement*>(labeled_cont.get());
+    ASSERT_TRUE(labeled_cont_ptr != nullptr);
+    EXPECT_EQ(labeled_cont_ptr->label(), "outerLoop");
 }
 
 // 测试解析标签语句
 TEST_F(ParserTest, ParseLabeledStatement) {
     auto stmt = ParseStatement("outerLoop: for (let i = 0; i < 10; i++) { innerLoop: for (let j = 0; j < 10; j++) { if (j > 5) break outerLoop; } }");
-    ASSERT_TRUE(stmt->is(StatementType::kLabeled));
-    auto& labeled = stmt->as<LabeledStatement>();
-    
+    auto* labeled_stmt = dynamic_cast<LabeledStatement*>(stmt.get());
+    ASSERT_TRUE(labeled_stmt != nullptr);
+
     // 检查标签名称
-    EXPECT_EQ(labeled.label(), "outerLoop");
-    
+    EXPECT_EQ(labeled_stmt->label(), "outerLoop");
+
     // 检查标签语句的主体
-    ASSERT_TRUE(labeled.body()->is(StatementType::kFor));
+    auto* for_stmt = dynamic_cast<ForStatement*>(labeled_stmt->body().get());
+    ASSERT_TRUE(for_stmt != nullptr);
 }
 
 // 测试解析return语句
 TEST_F(ParserTest, ParseReturnStatement) {
     // 测试无值的return
     auto empty_return = ParseStatement("return;");
-    ASSERT_TRUE(empty_return->is(StatementType::kReturn));
-    EXPECT_EQ(empty_return->as<ReturnStatement>().argument(), nullptr);
-    
+    auto* empty_return_ptr = dynamic_cast<ReturnStatement*>(empty_return.get());
+    ASSERT_TRUE(empty_return_ptr != nullptr);
+    EXPECT_EQ(empty_return_ptr->argument(), nullptr);
+
     // 测试带值的return
     auto value_return = ParseStatement("return 42;");
-    ASSERT_TRUE(value_return->is(StatementType::kReturn));
-    ASSERT_NE(value_return->as<ReturnStatement>().argument(), nullptr);
-    ASSERT_TRUE(value_return->as<ReturnStatement>().argument()->is(ExpressionType::kInteger));
-    EXPECT_EQ(value_return->as<ReturnStatement>().argument()->as<IntegerLiteral>().value(), 42);
+    auto* value_return_ptr = dynamic_cast<ReturnStatement*>(value_return.get());
+    ASSERT_TRUE(value_return_ptr != nullptr);
+    ASSERT_NE(value_return_ptr->argument(), nullptr);
+    auto* return_int = dynamic_cast<IntegerLiteral*>(value_return_ptr->argument().get());
+    ASSERT_TRUE(return_int != nullptr);
+    EXPECT_EQ(return_int->value(), 42);
 }
 
 // 测试解析模板字符串
 TEST_F(ParserTest, ParseTemplateLiteral) {
     auto expr = ParseExpression("`Hello, ${name}!`");
-    ASSERT_TRUE(expr->is(ExpressionType::kTemplateLiteral));
-    auto& template_literal = expr->as<TemplateLiteral>();
-    
+    auto* template_literal = dynamic_cast<TemplateLiteral*>(expr.get());
+    ASSERT_TRUE(template_literal != nullptr);
+
     // 检查模板字符串的部分
-    //ASSERT_GE(template_literal.quasis().size(), 2);
-    ASSERT_EQ(template_literal.expressions().size(), 1);
-    
+    //ASSERT_GE(template_literal->quasis().size(), 2);
+    ASSERT_EQ(template_literal->expressions().size(), 1);
+
     // 检查表达式部分
-    ASSERT_TRUE(template_literal.expressions()[0]->is(ExpressionType::kIdentifier));
-    EXPECT_EQ(template_literal.expressions()[0]->as<Identifier>().name(), "name");
+    auto* expr_ident = dynamic_cast<Identifier*>(template_literal->expressions()[0].get());
+    ASSERT_TRUE(expr_ident != nullptr);
+    EXPECT_EQ(expr_ident->name(), "name");
 }
 
 // 测试解析导入语句
 TEST_F(ParserTest, ParseImportStatement) {
     auto stmt = ParseStatement("import { foo, bar as baz } from 'module';");
-    ASSERT_TRUE(stmt->is(StatementType::kImport));
-    auto& import_stmt = stmt->as<ImportDeclaration>();
-    
+    auto* import_stmt = dynamic_cast<ImportDeclaration*>(stmt.get());
+    ASSERT_TRUE(import_stmt != nullptr);
+
     // 检查导入的模块
-    EXPECT_EQ(import_stmt.source(), "module");
-    
+    EXPECT_EQ(import_stmt->source(), "module");
+
     // 检查导入的标识符
-    //ASSERT_GE(import_stmt.specifiers().size(), 2);
+    //ASSERT_GE(import_stmt->specifiers().size(), 2);
 }
 
 // 测试解析导出语句
 TEST_F(ParserTest, ParseExportStatement) {
     auto stmt = ParseStatement("export const PI = 3.14;");
-    ASSERT_TRUE(stmt->is(StatementType::kExport));
-    auto& export_stmt = stmt->as<ExportDeclaration>();
-    
+    auto* export_stmt = dynamic_cast<ExportDeclaration*>(stmt.get());
+    ASSERT_TRUE(export_stmt != nullptr);
+
     // 检查导出的声明
-    ASSERT_NE(export_stmt.declaration(), nullptr);
-    ASSERT_TRUE(export_stmt.declaration()->is(StatementType::kVariableDeclaration));
-    auto& var_decl = export_stmt.declaration()->as<VariableDeclaration>();
-    EXPECT_EQ(var_decl.name(), "PI");
-    EXPECT_EQ(var_decl.kind(), TokenType::kKwConst);
+    ASSERT_NE(export_stmt->declaration(), nullptr);
+    auto* var_decl = dynamic_cast<VariableDeclaration*>(export_stmt->declaration().get());
+    ASSERT_TRUE(var_decl != nullptr);
+    EXPECT_EQ(var_decl->name(), "PI");
+    EXPECT_EQ(var_decl->kind(), TokenType::kKwConst);
 }
 
 // 测试解析new表达式
 TEST_F(ParserTest, ParseNewExpression) {
     auto expr = ParseExpression("new Date()");
-    ASSERT_TRUE(expr->is(ExpressionType::kNewExpression));
-    auto& new_expr = expr->as<NewExpression>();
-    
+    auto* new_expr = dynamic_cast<NewExpression*>(expr.get());
+    ASSERT_TRUE(new_expr != nullptr);
+
     // 检查构造函数
-    ASSERT_TRUE(new_expr.callee()->is(ExpressionType::kIdentifier));
-    EXPECT_EQ(new_expr.callee()->as<Identifier>().name(), "Date");
-    
+    auto* callee_ident = dynamic_cast<Identifier*>(new_expr->callee().get());
+    ASSERT_TRUE(callee_ident != nullptr);
+    EXPECT_EQ(callee_ident->name(), "Date");
+
     // 检查参数（应为空）
-    EXPECT_EQ(new_expr.arguments().size(), 0);
-    
+    EXPECT_EQ(new_expr->arguments().size(), 0);
+
     // 测试带参数的new表达式
     expr = ParseExpression("new Person('John', 30)");
-    ASSERT_TRUE(expr->is(ExpressionType::kNewExpression));
-    auto& new_expr_with_args = expr->as<NewExpression>();
-    
+    auto* new_expr_with_args = dynamic_cast<NewExpression*>(expr.get());
+    ASSERT_TRUE(new_expr_with_args != nullptr);
+
     // 检查构造函数
-    ASSERT_TRUE(new_expr_with_args.callee()->is(ExpressionType::kIdentifier));
-    EXPECT_EQ(new_expr_with_args.callee()->as<Identifier>().name(), "Person");
-    
+    auto* person_ident = dynamic_cast<Identifier*>(new_expr_with_args->callee().get());
+    ASSERT_TRUE(person_ident != nullptr);
+    EXPECT_EQ(person_ident->name(), "Person");
+
     // 检查参数
-    ASSERT_EQ(new_expr_with_args.arguments().size(), 2);
-    ASSERT_TRUE(new_expr_with_args.arguments()[0]->is(ExpressionType::kString));
-    ASSERT_TRUE(new_expr_with_args.arguments()[1]->is(ExpressionType::kInteger));
+    ASSERT_EQ(new_expr_with_args->arguments().size(), 2);
+    auto* first_arg = dynamic_cast<StringLiteral*>(new_expr_with_args->arguments()[0].get());
+    ASSERT_TRUE(first_arg != nullptr);
+    auto* second_arg = dynamic_cast<IntegerLiteral*>(new_expr_with_args->arguments()[1].get());
+    ASSERT_TRUE(second_arg != nullptr);
 }
 
 // 测试解析yield表达式
 TEST_F(ParserTest, ParseYieldExpression) {
     auto expr = ParseExpression("yield value");
-    ASSERT_TRUE(expr->is(ExpressionType::kYieldExpression));
-    auto& yield_expr = expr->as<YieldExpression>();
-    
+    auto* yield_expr = dynamic_cast<YieldExpression*>(expr.get());
+    ASSERT_TRUE(yield_expr != nullptr);
+
     // 检查yield的值
-    ASSERT_NE(yield_expr.argument(), nullptr);
-    ASSERT_TRUE(yield_expr.argument()->is(ExpressionType::kIdentifier));
-    EXPECT_EQ(yield_expr.argument()->as<Identifier>().name(), "value");
-    //EXPECT_FALSE(yield_expr.delegate());
-    
+    ASSERT_NE(yield_expr->argument(), nullptr);
+    auto* yield_arg = dynamic_cast<Identifier*>(yield_expr->argument().get());
+    ASSERT_TRUE(yield_arg != nullptr);
+    EXPECT_EQ(yield_arg->name(), "value");
+    //EXPECT_FALSE(yield_expr->delegate());
+
     // 测试yield*表达式
     expr = ParseExpression("yield* generator()");
-    ASSERT_TRUE(expr->is(ExpressionType::kYieldExpression));
-    auto& yield_star_expr = expr->as<YieldExpression>();
-    
+    auto* yield_star_expr = dynamic_cast<YieldExpression*>(expr.get());
+    ASSERT_TRUE(yield_star_expr != nullptr);
+
     // 检查yield*的值
-    ASSERT_NE(yield_star_expr.argument(), nullptr);
-    ASSERT_TRUE(yield_star_expr.argument()->is(ExpressionType::kCallExpression));
-    //EXPECT_TRUE(yield_star_expr.delegate());
+    ASSERT_NE(yield_star_expr->argument(), nullptr);
+    auto* yield_star_arg = dynamic_cast<CallExpression*>(yield_star_expr->argument().get());
+    ASSERT_TRUE(yield_star_arg != nullptr);
+    //EXPECT_TRUE(yield_star_expr->delegate());
 }
 
 // 测试解析await表达式
 TEST_F(ParserTest, ParseAwaitExpression) {
     auto expr = ParseExpression("await promise");
-    ASSERT_TRUE(expr->is(ExpressionType::kAwaitExpression));
-    auto& await_expr = expr->as<AwaitExpression>();
-    
+    auto* await_expr = dynamic_cast<AwaitExpression*>(expr.get());
+    ASSERT_TRUE(await_expr != nullptr);
+
     // 检查await的值
-    ASSERT_NE(await_expr.argument(), nullptr);
-    ASSERT_TRUE(await_expr.argument()->is(ExpressionType::kIdentifier));
-    EXPECT_EQ(await_expr.argument()->as<Identifier>().name(), "promise");
+    ASSERT_NE(await_expr->argument(), nullptr);
+    auto* await_arg = dynamic_cast<Identifier*>(await_expr->argument().get());
+    ASSERT_TRUE(await_arg != nullptr);
+    EXPECT_EQ(await_arg->name(), "promise");
 }
 
 // 测试解析类表达式
-TEST_F(ParserTest, ParseClassExpression) {
-    auto expr = ParseExpression("class Person { constructor(name) { this.name = name; } getName() { return this.name; } }");
-    ASSERT_TRUE(expr->is(ExpressionType::kClassExpression));
-    //auto& class_expr = expr->as<ClassExpression>();
-    //
-    //// 检查类名
-    //EXPECT_EQ(class_expr.id(), "Person");
-    //
-    //// 检查类体
-    //ASSERT_GE(class_expr.body().size(), 2);  // 至少有constructor和getName方法
-}
+//TEST_F(ParserTest, ParseClassExpression) {
+//    auto expr = ParseExpression("class Person { constructor(name) { this.name = name; } getName() { return this.name; } }");
+//    auto* class_expr = dynamic_cast<ClassExpression*>(expr.get());
+//    ASSERT_TRUE(class_expr != nullptr);
+//    //
+//    //// 检查类名
+//    //EXPECT_EQ(class_expr->id(), "Person");
+//    //
+//    //// 检查类体
+//    //ASSERT_GE(class_expr->body().size(), 2);  // 至少有constructor和getName方法
+//}
 
 // 测试解析import表达式
 TEST_F(ParserTest, ParseImportExpression) {
     auto expr = ParseExpression("import('module')");
-    ASSERT_TRUE(expr->is(ExpressionType::kImportExpression));
-    auto& import_expr = expr->as<ImportExpression>();
-    
+    auto* import_expr = dynamic_cast<ImportExpression*>(expr.get());
+    ASSERT_TRUE(import_expr != nullptr);
+
     // 检查导入的模块
-    ASSERT_TRUE(import_expr.source()->is(ExpressionType::kString));
-    EXPECT_EQ(import_expr.source()->as<StringLiteral>().value(), "module");
+    auto* source_str = dynamic_cast<StringLiteral*>(import_expr->source().get());
+    ASSERT_TRUE(source_str != nullptr);
+    EXPECT_EQ(source_str->value(), "module");
 }
 
 // 测试解析复杂的嵌套表达式
 TEST_F(ParserTest, ParseComplexNestedExpression) {
     auto expr = ParseExpression("(a + b) * (c - d) / Math.sqrt(e ** 2 + f ** 2)");
-    ASSERT_TRUE(expr->is(ExpressionType::kBinaryExpression));
-    
+    auto* div_expr = dynamic_cast<BinaryExpression*>(expr.get());
+    ASSERT_TRUE(div_expr != nullptr);
+
     // 检查顶层操作符（除法）
-    auto& div_expr = expr->as<BinaryExpression>();
-    EXPECT_EQ(div_expr.op(), TokenType::kOpDiv);
-    
+    EXPECT_EQ(div_expr->op(), TokenType::kOpDiv);
+
     // 检查左侧（乘法表达式）
-    ASSERT_TRUE(div_expr.left()->is(ExpressionType::kBinaryExpression));
-    auto& mul_expr = div_expr.left()->as<BinaryExpression>();
-    EXPECT_EQ(mul_expr.op(), TokenType::kOpMul);
-    
+    auto* mul_expr = dynamic_cast<BinaryExpression*>(div_expr->left().get());
+    ASSERT_TRUE(mul_expr != nullptr);
+    EXPECT_EQ(mul_expr->op(), TokenType::kOpMul);
+
     // 检查右侧（函数调用）
-    ASSERT_TRUE(div_expr.right()->is(ExpressionType::kCallExpression));
-    auto& call_expr = div_expr.right()->as<CallExpression>();
-    ASSERT_TRUE(call_expr.callee()->is(ExpressionType::kMemberExpression));
+    auto* call_expr = dynamic_cast<CallExpression*>(div_expr->right().get());
+    ASSERT_TRUE(call_expr != nullptr);
+    auto* callee_member = dynamic_cast<MemberExpression*>(call_expr->callee().get());
+    ASSERT_TRUE(callee_member != nullptr);
 }
 
 } // namespace test

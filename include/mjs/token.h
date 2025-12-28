@@ -4,7 +4,7 @@
 #include <string_view>
 #include <unordered_map>
 
-#include <mjs/source.h>
+#include <mjs/source_define.h>
 
 namespace mjs {
 namespace compiler {
@@ -170,7 +170,7 @@ public:
      * @brief 获取标记在源代码中的位置
      * @return 源代码位置
      */
-    [[nodiscard]] SourcePos pos() const noexcept { 
+    [[nodiscard]] SourcePosition pos() const noexcept { 
         return position_; 
     }
     
@@ -178,7 +178,7 @@ public:
      * @brief 设置标记在源代码中的位置
      * @param position 源代码位置
      */
-    void set_pos(SourcePos position) { 
+    void set_pos(SourcePosition position) { 
         position_ = position; 
     }
 
@@ -248,8 +248,10 @@ public:
     static const std::unordered_map<std::string, TokenType>& operator_map();
     static const std::unordered_map<std::string, TokenType>& keyword_map();
 
+    static constexpr size_t kOperatorMaxSize = 4;
+
 private:
-    SourcePos position_ = 0;           ///< 标记在源代码中的位置
+    SourcePosition position_ = 0;           ///< 标记在源代码中的位置
     TokenType type_ = TokenType::kNone; ///< 标记类型
     std::string value_;                ///< 标记值（如标识符名称、字符串内容等）
     std::string regex_flags_;          ///< 正则表达式标志（如果是正则表达式标记）

@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(build.bat)",
+      "Bash(grep:*)",
+      "Bash(cat:*)",
+      "Bash(done)",
+      "Bash(g++:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

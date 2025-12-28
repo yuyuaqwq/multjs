@@ -10,13 +10,13 @@ namespace mjs {
 ArrayObjectClassDef::ArrayObjectClassDef(Runtime* runtime)
 	: ClassDef(runtime, ClassId::kArrayObject, "Array")
 {
-	length_const_index_ = runtime->const_pool().insert(Value("length"));
-	of_const_index_ = runtime->const_pool().insert(Value("of"));
-	push_const_index_ = runtime->const_pool().insert(Value("push"));
-	pop_const_index_ = runtime->const_pool().insert(Value("pop"));
-	forEach_const_index_ = runtime->const_pool().insert(Value("forEach"));
-	map_const_index_ = runtime->const_pool().insert(Value("map"));
-	filter_const_index_ = runtime->const_pool().insert(Value("filter"));
+	length_const_index_ = runtime->global_const_pool().insert(Value("length"));
+	of_const_index_ = runtime->global_const_pool().insert(Value("of"));
+	push_const_index_ = runtime->global_const_pool().insert(Value("push"));
+	pop_const_index_ = runtime->global_const_pool().insert(Value("pop"));
+	forEach_const_index_ = runtime->global_const_pool().insert(Value("forEach"));
+	map_const_index_ = runtime->global_const_pool().insert(Value("map"));
+	filter_const_index_ = runtime->global_const_pool().insert(Value("filter"));
 
 	constructor_object_.object().SetProperty(nullptr, of_const_index_, Value([](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
 		return ArrayObjectClassDef::Of(context, par_count, stack);

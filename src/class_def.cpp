@@ -8,7 +8,7 @@ namespace mjs {
 ClassDef::ClassDef(Runtime* runtime, ClassId id, const char* name)
 	: id_(id)
 {
-	name_ = runtime->const_pool().insert(Value(name));
+	name_ = runtime->global_const_pool().insert(Value(name));
 	constructor_object_ = Value(ConstructorObject::New(runtime, id_));
 	prototype_ = Value(Object::New(runtime));
 

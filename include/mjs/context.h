@@ -22,6 +22,7 @@
 #include <mjs/object.h>
 #include <mjs/shape.h>
 #include <mjs/gc_manager.h>
+#include <mjs/local_const_pool.h>
 
 namespace mjs {
 

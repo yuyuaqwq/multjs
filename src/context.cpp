@@ -6,6 +6,7 @@
 #include <mjs/runtime.h>
 #include <mjs/error.h>
 #include <mjs/object_impl/module_object.h>
+#include <mjs/line_table.h>
 
 #include "compiler/lexer.h"
 #include "compiler/parser.h"
@@ -38,23 +39,20 @@ Value Context::CompileModule(std::string module_name, std::string_view script) {
 	}
 	catch (SyntaxError& e) {
 		auto pos = lexer.GetRawSourcePosition();
-		LineTable line_table;
-		line_table.Build(script);
-		auto&& [line, column] = line_table.PosToLineAndColumn(pos);
+		auto&& [line, column] = lexer.line_table().PosToLineAndColumn(pos);
 		auto info = std::format("{}: [func:{}, line:{}, column:{}] {}", e.error_name(), module_name, line, column, e.what());
 		return Value(String::New(info)).SetException();
 	}
+
 	try {
 		auto module_def = code_generator.Generate(std::move(module_name), script);
 		return module_def;
 	}
 	catch (SyntaxError& e) {
 		std::string info;
-		if (code_generator.GetCurrentModuleDef()) {
-			auto pos = lexer.GetRawSourcePosition();
-			auto&& [line, column] = code_generator.GetCurrentModuleDef()->line_table().PosToLineAndColumn(pos);
-			info = std::format("{}: [name:{}, line:{}, column:{}] {}", e.error_name(), code_generator.GetCurrentModuleDef()->name(), line, column, e.what());
-		}
+		auto pos = lexer.GetRawSourcePosition();
+		auto&& [line, column] = lexer.line_table().PosToLineAndColumn(pos);
+		info = std::format("{}: [name:{}, line:{}, column:{}] {}", e.error_name(), module_name, line, column, e.what());
 		return Value(String::New(info)).SetException();
 	}
 }
@@ -105,7 +103,7 @@ ConstIndex Context::FindConstOrInsertToLocal(const Value& value) {
 		return *local_res;
 	}
 
-	auto global_res = runtime_->const_pool().find(value);
+	auto global_res = runtime_->global_const_pool().find(value);
 	if (global_res) {
 		return *global_res;
 	}
@@ -124,7 +122,7 @@ ConstIndex Context::FindConstOrInsertToGlobal(const Value& value) {
 		return *local_res;
 	}
 
-	return runtime_->const_pool().insert(value);
+	return runtime_->global_const_pool().insert(value);
 }
 
 const Value& Context::GetConstValue(ConstIndex const_index) {
@@ -132,7 +130,7 @@ const Value& Context::GetConstValue(ConstIndex const_index) {
 		return local_const_pool_[const_index];
 	}
 	else {
-		return runtime_->const_pool()[const_index];
+		return runtime_->global_const_pool()[const_index];
 	}
 }
 

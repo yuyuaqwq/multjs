@@ -18,7 +18,7 @@
 #include <mjs/reference_counter.h>
 #include <mjs/exception.h>
 #include <mjs/variable.h>
-#include <mjs/bytecode.h>
+#include <mjs/bytecode_table.h>
 #include <mjs/closure.h>
 #include <mjs/debug.h>
 
@@ -56,6 +56,12 @@ public:
 	 * @return 模块定义常量引用
 	 */
 	const auto& module_def() const { return *module_def_; }
+
+	/**
+	 * @brief 获取所属模块可变定义
+	 * @return 模块定义常量引用
+	 */
+	auto& module_def() { return *module_def_; }
 
 	/**
 	 * @brief 获取函数名称

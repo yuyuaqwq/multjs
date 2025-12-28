@@ -12,7 +12,7 @@
 #pragma once
 
 #include <mjs/function_def.h>
-#include <mjs/source.h>
+#include <mjs/line_table.h>
 
 namespace mjs {
 

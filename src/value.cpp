@@ -288,6 +288,7 @@ size_t Value::hash() const {
 		return std::hash<int64_t>()(i64());
 	case mjs::ValueType::kUInt64:
 		return std::hash<uint64_t>()(u64());
+	case mjs::ValueType::kModuleDef:
 	case mjs::ValueType::kFunctionDef:
 	case mjs::ValueType::kCppFunction:
 	case mjs::ValueType::kClosureVar:

@@ -25,9 +25,9 @@
 #include <stack>
 
 #include <mjs/noncopyable.h>
-#include <mjs/source.h>
-
-#include "token.h"
+#include <mjs/source_define.h>
+#include <mjs/token.h>
+#include <mjs/line_table.h>
 
 namespace mjs {
 namespace compiler {
@@ -42,8 +42,8 @@ public:
 	 * @brief 词法分析器的检查点，用于回溯
 	 */
 	struct Checkpoint {
-		SourcePos position;
-		SourcePos peek_position;
+		SourcePosition position;
+		SourcePosition peek_position;
 		Token current_token;
 		Token peek_token;
 		bool in_template;
@@ -125,7 +125,7 @@ public:
 	 * @brief 获取当前源代码位置（跳过空白字符和注释）
 	 * @return 源代码位置
 	 */
-	SourcePos GetSourcePosition() {
+	SourcePosition GetSourcePosition() {
 		SkipWhitespaceAndComments();
 		return position_;
 	}
@@ -134,9 +134,11 @@ public:
 	 * @brief 获取当前原始源代码位置（不跳过任何字符）
 	 * @return 源代码位置
 	 */
-	SourcePos GetRawSourcePosition() const {
+	SourcePosition GetRawSourcePosition() const {
 		return position_;
 	}
+
+	const LineTable& line_table() const { return line_table_; }
 
 private:
 	/**
@@ -223,7 +225,7 @@ private:
 	 * @param initial_type 初始标记类型
 	 * @return 处理后的标记
 	 */
-	Token HandleOperator(Token& token, const std::string& op_str, TokenType initial_type);
+	std::optional<Token> TryHandleOperator();
 
 	/**
 	 * @brief 处理以0开头的数字
@@ -324,8 +326,9 @@ private:
 
 private:
 	std::string_view source_;       ///< 源代码
-	SourcePos position_ = 0;        ///< 当前位置
-	SourcePos peek_position_ = 0;   ///< 预览位置
+	LineTable line_table_;			///< 行号表
+	SourcePosition position_ = 0;        ///< 当前位置
+	SourcePosition peek_position_ = 0;   ///< 预览位置
 	Token current_token_;           ///< 当前标记
 	Token peek_token_;              ///< 预览标记
 	bool in_template_ = false;      ///< 是否在模板字符串中

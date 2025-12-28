@@ -2,6 +2,7 @@
 
 #include <mjs/context.h>
 #include <mjs/runtime.h>
+#include <mjs/shape.h>
 
 namespace mjs {
 
@@ -36,12 +37,12 @@ Object::~Object() {
 
 
 void Object::SetProperty(Runtime* runtime, const char* key, Value&& value) {
-	auto const_index = runtime->const_pool().insert(mjs::Value(key));
+	auto const_index = runtime->global_const_pool().insert(mjs::Value(key));
 	SetProperty(nullptr, const_index, std::move(value));
 }
 
 bool Object::GetProperty(Runtime* runtime, const char* key, Value* value) {
-	auto const_index = runtime->const_pool().insert(mjs::Value(key));
+	auto const_index = runtime->global_const_pool().insert(mjs::Value(key));
 	return GetProperty(nullptr, const_index, value);
 }
 

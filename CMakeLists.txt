@@ -64,7 +64,7 @@ if(WIN32)
         endif()
     endforeach()
 endif()
-file(GLOB SRC
+file(GLOB_RECURSE SRC
     ./src/*.cpp
     ./src/**/*.cpp)
 
@@ -78,7 +78,6 @@ foreach(SOURCE ${SRC})
         source_group("Source Files" FILES ${SOURCE})
     endif()
 endforeach()
-
 
 add_library(${MJS_LIB_TARGET} STATIC ${SRC} ${PRIVATE_HEADERS} ${PUBLIC_HEADERS})
 target_include_directories(${MJS_LIB_TARGET} PRIVATE ${MJS_INCLUDE_DIR})

@@ -1,4 +1,4 @@
-#include <mjs/Bytecode.h>
+#include <mjs/bytecode_table.h>
 
 #include <mjs/context.h>
 #include <mjs/runtime.h>
