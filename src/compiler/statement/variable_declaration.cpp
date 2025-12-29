@@ -1,7 +1,7 @@
 #include "variable_declaration.h"
 
 #include "../code_generator.h"
-#include "../expression/assignment_expression.h"
+#include "../expression/yield_expression.h"
 
 namespace mjs {
 namespace compiler {
@@ -42,7 +42,7 @@ std::unique_ptr<VariableDeclaration> VariableDeclaration::ParseVariableDeclarati
 	}
 
 	lexer->MatchToken(TokenType::kOpAssign);
-	auto init = AssignmentExpression::ParseExpressionAtAssignmentLevel(lexer);
+	auto init = YieldExpression::ParseExpressionAtYieldLevel(lexer);
 	lexer->MatchToken(TokenType::kSepSemi);
 	auto end = lexer->GetRawSourcePosition();
 	return std::make_unique<VariableDeclaration>(start, end, std::move(name), std::move(init), kind);

@@ -1,7 +1,7 @@
 #include "while_statement.h"
 
 #include "../code_generator.h"
-#include "../expression/assignment_expression.h"
+#include "../expression/yield_expression.h"
 
 namespace mjs {
 namespace compiler {
@@ -17,7 +17,7 @@ std::unique_ptr<WhileStatement> WhileStatement::ParseWhileStatement(Lexer* lexer
 	auto start = lexer->GetSourcePosition();
 	lexer->MatchToken(TokenType::kKwWhile);
 	lexer->MatchToken(TokenType::kSepLParen);
-	auto exp = AssignmentExpression::ParseExpressionAtAssignmentLevel(lexer);
+	auto exp = YieldExpression::ParseExpressionAtYieldLevel(lexer);
 	lexer->MatchToken(TokenType::kSepRParen);
 	auto block = BlockStatement::ParseBlockStatement(lexer);
 	auto end = lexer->GetRawSourcePosition();

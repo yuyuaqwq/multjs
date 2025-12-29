@@ -1,7 +1,7 @@
 #include "throw_statement.h"
 
 #include "../code_generator.h"
-#include "../expression/assignment_expression.h"
+#include "../expression/yield_expression.h"
 
 namespace mjs {
 namespace compiler {
@@ -16,7 +16,7 @@ namespace compiler {
 std::unique_ptr<ThrowStatement> ThrowStatement::ParseThrowStatement(Lexer* lexer) {
 	auto start = lexer->GetSourcePosition();
 	lexer->MatchToken(TokenType::kKwThrow);
-	auto exp = AssignmentExpression::ParseExpressionAtAssignmentLevel(lexer);
+	auto exp = YieldExpression::ParseExpressionAtYieldLevel(lexer);
 	auto end = lexer->GetRawSourcePosition();
 	return std::make_unique<ThrowStatement>(start, end, std::move(exp));
 }

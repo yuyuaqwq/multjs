@@ -4,7 +4,9 @@
 #include "../code_generator.h"
 #include "../statement/block_statement.h"
 #include "../statement/expression_statement.h"
+
 #include "assignment_expression.h"
+#include "yield_expression.h"
 
 namespace mjs {
 namespace compiler {
@@ -53,7 +55,7 @@ std::unique_ptr<Expression> ArrowFunctionExpression::TryParseArrowFunctionExpres
 	} else {
 		auto exp_start = lexer->GetSourcePosition();
 		// 避免解析kSepComma
-		auto exp = AssignmentExpression::ParseExpressionAtAssignmentLevel(lexer);
+		auto exp = YieldExpression::ParseExpressionAtYieldLevel(lexer);
 		auto exp_end = lexer->GetRawSourcePosition();
 		body = std::make_unique<ExpressionStatement>(exp_start, exp_end, std::move(exp));
 	}
@@ -91,8 +93,6 @@ void ArrowFunctionExpression::GenerateCode(CodeGenerator* code_generator, Functi
 	for (auto& param : params()) {
 		scope.AllocVar(param, VarFlags::kNone);
 	}
-
-	body()->GenerateCode(code_generator, new_func_def);
 
 	code_generator->GenerateFunctionBody(function_def_base, body().get());
 

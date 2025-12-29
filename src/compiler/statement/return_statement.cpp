@@ -1,7 +1,7 @@
 #include "return_statement.h"
 
 #include "../code_generator.h"
-#include "../expression/assignment_expression.h"
+#include "../expression/yield_expression.h"
 
 namespace mjs {
 namespace compiler {
@@ -18,7 +18,7 @@ std::unique_ptr<ReturnStatement> ReturnStatement::ParseReturnStatement(Lexer* le
 	lexer->MatchToken(TokenType::kKwReturn);
 	std::unique_ptr<Expression> exp;
 	if (!lexer->PeekToken().is(TokenType::kSepSemi)) {
-		exp = AssignmentExpression::ParseExpressionAtAssignmentLevel(lexer);
+		exp = YieldExpression::ParseExpressionAtYieldLevel(lexer);
 	}
 	lexer->MatchToken(TokenType::kSepSemi);
 	auto end = lexer->GetRawSourcePosition();

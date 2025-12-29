@@ -1,7 +1,7 @@
 #include "if_statement.h"
 
 #include "../code_generator.h"
-#include "../expression/assignment_expression.h"
+#include "../expression/yield_expression.h"
 
 namespace mjs {
 namespace compiler {
@@ -41,7 +41,7 @@ std::unique_ptr<IfStatement> IfStatement::ParseIfStatement(Lexer* lexer) {
 	lexer->NextToken();
 
 	lexer->MatchToken(TokenType::kSepLParen);
-	auto test = AssignmentExpression::ParseExpressionAtAssignmentLevel(lexer);
+	auto test = YieldExpression::ParseExpressionAtYieldLevel(lexer);
 	lexer->MatchToken(TokenType::kSepRParen);
 
 	auto consequent = BlockStatement::ParseBlockStatement(lexer);

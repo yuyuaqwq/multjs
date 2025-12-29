@@ -4,7 +4,7 @@
 #include "../code_generator.h"
 #include <mjs/object_impl/array_object.h>
 
-#include "assignment_expression.h"
+#include "yield_expression.h"
 #include "unary_expression.h"
 
 namespace mjs {
@@ -28,14 +28,14 @@ std::unique_ptr<ArrayExpression> ArrayExpression::ParseArrayExpression(Lexer* le
 		if (lexer->PeekToken().is(TokenType::kSepEllipsis)) {
 			// 处理展开运算符 ...arr
 			lexer->NextToken(); // 消耗...
-			auto arg = AssignmentExpression::ParseExpressionAtAssignmentLevel(lexer);
+			auto arg = YieldExpression::ParseExpressionAtYieldLevel(lexer);
 			auto spread_end = lexer->GetRawSourcePosition();
 			auto spread = std::make_unique<UnaryExpression>(
 				arg->start(), spread_end, TokenType::kSepEllipsis, std::move(arg), true
 			);
 			elements.push_back(std::move(spread));
 		} else {
-			elements.push_back(AssignmentExpression::ParseExpressionAtAssignmentLevel(lexer));
+			elements.push_back(YieldExpression::ParseExpressionAtYieldLevel(lexer));
 		}
 
 		// 检查是否有逗号分隔符

@@ -7,8 +7,9 @@
 
 #include "statement.h"
 #include "statement/named_type.h"
+
 #include "expression/function_expression.h"
-#include "expression/assignment_expression.h"
+#include "expression/yield_expression.h"
 
 /* EBNF
 exp = exp3
@@ -68,7 +69,7 @@ std::vector<std::unique_ptr<Expression>> Parser::ParseExpressions(
 	if (!lexer_->PeekToken().is(end)) {
 		do {
 			// 避免解析kSepComma
-			par_list.emplace_back(AssignmentExpression::ParseExpressionAtAssignmentLevel(lexer_));
+			par_list.emplace_back(YieldExpression::ParseExpressionAtYieldLevel(lexer_));
 			if (!lexer_->PeekToken().is(TokenType::kSepComma)) {
 				break;
 			}

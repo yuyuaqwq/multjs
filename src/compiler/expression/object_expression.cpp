@@ -1,12 +1,13 @@
 #include "object_expression.h"
 
-#include "../statement.h"
-#include "../code_generator.h"
-#include "assignment_expression.h"
-#include "identifier.h"
-
 #include <mjs/class_def_impl/object_class_def.h>
 #include <mjs/error.h>
+
+#include "../statement.h"
+#include "../code_generator.h"
+
+#include "yield_expression.h"
+#include "identifier.h"
 
 namespace mjs {
 namespace compiler {
@@ -65,7 +66,7 @@ std::unique_ptr<ObjectExpression> ObjectExpression::ParseObjectExpression(Lexer*
 			lexer->MatchToken(TokenType::kSepColon);
 
 			// 解析属性值
-			value = AssignmentExpression::ParseExpressionAtAssignmentLevel(lexer);
+			value = YieldExpression::ParseExpressionAtYieldLevel(lexer);
 		} else if (lexer->PeekToken().is(TokenType::kIdentifier)) {
 			// 标识符作为属性名
 			key = lexer->NextToken().value();
@@ -73,7 +74,7 @@ std::unique_ptr<ObjectExpression> ObjectExpression::ParseObjectExpression(Lexer*
 			if (lexer->PeekToken().is(TokenType::kSepColon)) {
 				// 普通属性: key: value
 				lexer->NextToken(); // 消耗 :
-				value = AssignmentExpression::ParseExpressionAtAssignmentLevel(lexer);
+				value = YieldExpression::ParseExpressionAtYieldLevel(lexer);
 			} else {
 				// 简写属性: key (等同于 key: key)
 				shorthand = true;
@@ -89,7 +90,7 @@ std::unique_ptr<ObjectExpression> ObjectExpression::ParseObjectExpression(Lexer*
 			lexer->MatchToken(TokenType::kSepColon);
 
 			// 解析属性值
-			value = AssignmentExpression::ParseExpressionAtAssignmentLevel(lexer);
+			value = YieldExpression::ParseExpressionAtYieldLevel(lexer);
 		} else {
 			throw SyntaxError("Invalid property name");
 		}

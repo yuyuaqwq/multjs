@@ -1,11 +1,13 @@
 #include "scope.h"
 
+#include <mjs/error.h>
+
 namespace mjs {
 namespace compiler {
 
 const VarInfo& Scope::AllocVar(const std::string& var_name, VarFlags flags) {
 	if (var_table_.find(var_name) != var_table_.end()) {
-		throw std::runtime_error("local var redefinition");
+		throw SyntaxError("local var redefinition: {}.", var_name);
 	}
 	auto var_idx = function_def_->var_def_table().var_count();
 	function_def_->var_def_table().AddVar(var_name);

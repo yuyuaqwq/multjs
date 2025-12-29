@@ -83,7 +83,7 @@ std::unique_ptr<Expression> BinaryExpression::ParseExpressionAtCommaLevel(Lexer*
 		}
 		lexer->NextToken();
 		auto end = lexer->GetRawSourcePosition();
-		exp = std::make_unique<BinaryExpression>(start, end, op, std::move(exp), AssignmentExpression::ParseExpressionAtAssignmentLevel(lexer));
+		exp = std::make_unique<BinaryExpression>(start, end, op, std::move(exp), YieldExpression::ParseExpressionAtYieldLevel(lexer));
 
 	} while (true);
 	return exp;

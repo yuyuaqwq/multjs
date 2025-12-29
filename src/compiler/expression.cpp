@@ -2,7 +2,7 @@
 
 #include "lexer.h"
 #include "expression/binary_expression.h"
-#include "expression/assignment_expression.h"
+#include "expression/yield_expression.h"
 
 namespace mjs {
 namespace compiler {
@@ -55,7 +55,7 @@ std::vector<std::unique_ptr<Expression>> Expression::ParseExpressions(
 	if (!lexer->PeekToken().is(end)) {
 		do {
 			// 避免解析kSepComma
-			par_list.emplace_back(AssignmentExpression::ParseExpressionAtAssignmentLevel(lexer));
+			par_list.emplace_back(YieldExpression::ParseExpressionAtYieldLevel(lexer));
 			if (!lexer->PeekToken().is(TokenType::kSepComma)) {
 				break;
 			}
