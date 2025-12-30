@@ -13,7 +13,14 @@
       "Bash(./Debug/unit_tests.exe --gtest_filter=\"ParserTest.ParseClassWithAsyncMethod\")",
       "Bash(cmd /c \"cd /d e:\\\\D\\\\Project\\\\mmo-pokemon-server2\\\\million && build.bat\")",
       "Bash(./unit_tests.exe:*)",
-      "Bash(./build/Debug/unit_tests.exe:*)"
+      "Bash(./build/Debug/unit_tests.exe:*)",
+      "Bash(git stash:*)",
+      "Bash(./\"e:\\\\D\\\\Project\\\\mmo-pokemon-server2\\\\million\\\\third_party\\\\multjs\\\\build\\\\Debug\\\\unit_tests.exe\" --gtest_filter=\"ParserTest.ParseForStatement\")",
+      "Bash(cmd /c \"e:\\\\D\\\\Project\\\\mmo-pokemon-server2\\\\million\\\\third_party\\\\multjs\\\\build\\\\Debug\\\\unit_tests.exe\" --gtest_filter=\"ParserTest.ParseForStatement\")",
+      "Bash(\"./build/Debug/integration_tests.exe\":*)",
+      "Bash(\"./build/Debug/integration_tests.exe\" test_div.js)",
+      "Bash(\"./build/Debug/integration_tests.exe\" lexer_test.js)",
+      "Bash(cmd:*)"
     ],
     "deny": [],
     "ask": []

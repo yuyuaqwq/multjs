@@ -116,18 +116,19 @@ Token Lexer::PeekTokenN(uint32_t n) {
     if (n == 0) {
         throw std::invalid_argument("PeekTokenN: n must be greater than 0");
     }
-    
+
     if (n == 1) {
         return PeekToken();
     }
-    
+
     Checkpoint checkpoint = CreateCheckpoint();
     Token result;
-    
+
     for (uint32_t i = 0; i < n; ++i) {
-        result = ReadNextToken();
+        NextToken();
     }
-    
+    result = current_token_;
+
     RewindToCheckpoint(checkpoint);
     return result;
 }
@@ -140,7 +141,7 @@ Token Lexer::NextToken() {
         current_token_ = token;
         return token;
     }
-    
+
     current_token_ = ReadNextToken();
     return current_token_;
 }
@@ -159,20 +160,20 @@ Token Lexer::ReadNextToken() {
     SkipWhitespaceAndComments();
 
     token.set_pos(GetRawSourcePosition());
-    
+
     // 检查是否到达源码结束
     if (position_ >= source_.size()) {
         token.set_type(TokenType::kEof);
         return token;
     }
-    
+
     char c = NextChar();
 
     // 处理模板字符串
     if (c == '`') {
         return HandleBacktick(token);
     }
-    
+
     if (in_template_) {
         if (c == '$' && TestChar('{')) {
             return HandleTemplateInterpolation(token);
@@ -270,9 +271,9 @@ Token Lexer::HandleTemplateInterpolationEnd(Token& token) {
 }
 
 bool Lexer::CanStartRegExp() const {
-    return !current_token_.is(TokenType::kIdentifier) && 
-           !current_token_.is(TokenType::kInteger) && 
-           !current_token_.is(TokenType::kFloat) && 
+    return !current_token_.is(TokenType::kIdentifier) &&
+           !current_token_.is(TokenType::kInteger) &&
+           !current_token_.is(TokenType::kFloat) &&
            !current_token_.is(TokenType::kString) &&
            !current_token_.is(TokenType::kSepRParen) &&
            !current_token_.is(TokenType::kSepRBrack) &&
@@ -283,28 +284,28 @@ Token Lexer::HandleRegExp(Token& token) {
     std::string pattern;
     bool in_char_class = false;
     bool escaped = false;
-    
+
     // 读取正则表达式模式
     while (position_ < source_.size()) {
         char next_char = NextChar();
-        
+
         if (next_char == '/' && !escaped && !in_char_class) {
             // 读取标志
             std::string flags;
-            while (position_ < source_.size() && 
-                   (TestChar('g') || TestChar('i') || 
-                    TestChar('m') || TestChar('s') || 
-                    TestChar('u') || TestChar('y') || 
+            while (position_ < source_.size() &&
+                   (TestChar('g') || TestChar('i') ||
+                    TestChar('m') || TestChar('s') ||
+                    TestChar('u') || TestChar('y') ||
                     TestChar('d'))) {
                 flags.push_back(NextChar());
             }
-            
+
             token.set_type(TokenType::kRegExp);
             token.set_value(pattern);
             token.set_regex_flags(flags);
             return token;
         }
-        
+
         if (next_char == '[' && !escaped) {
             in_char_class = true;
         } else if (next_char == ']' && !escaped) {
@@ -316,11 +317,11 @@ Token Lexer::HandleRegExp(Token& token) {
         } else if (next_char == '\n' || next_char == '\r' || next_char == 0) {
             throw SyntaxError("Unterminated regular expression literal");
         }
-        
+
         pattern.push_back(next_char);
         escaped = false;
     }
-    
+
     throw SyntaxError("Unterminated regular expression literal");
 }
 
@@ -383,6 +384,11 @@ Token Lexer::HandleHexNumber(Token& token, std::string& value) {
         } else if (source_[position_] == '_' && has_digits) {
             // 跳过数字分隔符
             NextChar();
+        } else if (source_[position_] == 'n' && has_digits) {
+            // BigInt后缀
+            NextChar();
+            token.set_type(TokenType::kBigInt);
+            break;
         } else if (std::isalpha(source_[position_]) || source_[position_] == '.') {
             // 无效的十六进制数字
             throw SyntaxError("Invalid hexadecimal literal");
@@ -393,12 +399,6 @@ Token Lexer::HandleHexNumber(Token& token, std::string& value) {
 
     if (!has_digits) {
         throw SyntaxError("Invalid hexadecimal number");
-    }
-
-    // 检查是否为BigInt
-    if (TestChar('n')) {
-        NextChar();
-        token.set_type(TokenType::kBigInt);
     }
 
     token.set_value(std::move(value));
@@ -416,6 +416,11 @@ Token Lexer::HandleBinaryNumber(Token& token, std::string& value) {
         } else if (source_[position_] == '_' && has_digits) {
             // 跳过数字分隔符
             NextChar();
+        } else if (source_[position_] == 'n' && has_digits) {
+            // BigInt后缀
+            NextChar();
+            token.set_type(TokenType::kBigInt);
+            break;
         } else if (std::isxdigit(source_[position_]) || source_[position_] == '.') {
             // 无效的二进制数字
             throw SyntaxError("Invalid binary literal");
@@ -426,12 +431,6 @@ Token Lexer::HandleBinaryNumber(Token& token, std::string& value) {
 
     if (!has_digits) {
         throw SyntaxError("Invalid binary number");
-    }
-
-    // 检查是否为BigInt
-    if (TestChar('n')) {
-        NextChar();
-        token.set_type(TokenType::kBigInt);
     }
 
     token.set_value(std::move(value));
@@ -449,6 +448,11 @@ Token Lexer::HandleOctalNumber(Token& token, std::string& value) {
         } else if (source_[position_] == '_' && has_digits) {
             // 跳过数字分隔符
             NextChar();
+        } else if (source_[position_] == 'n' && has_digits) {
+            // BigInt后缀
+            NextChar();
+            token.set_type(TokenType::kBigInt);
+            break;
         } else if (std::isxdigit(source_[position_]) || source_[position_] == '.') {
             // 无效的八进制数字
             throw SyntaxError("Invalid octal literal");
@@ -459,12 +463,6 @@ Token Lexer::HandleOctalNumber(Token& token, std::string& value) {
 
     if (!has_digits) {
         throw SyntaxError("Invalid octal number");
-    }
-
-    // 检查是否为BigInt
-    if (TestChar('n')) {
-        NextChar();
-        token.set_type(TokenType::kBigInt);
     }
 
     token.set_value(std::move(value));

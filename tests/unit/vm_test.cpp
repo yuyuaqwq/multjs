@@ -1309,5 +1309,28 @@ TEST_F(VMTest, ExceptionInArithmetic) {
     EXPECT_TRUE(result.IsNumber() || result.IsException());
 }
 
+// 测试除法赋值运算符
+TEST_F(VMTest, CompoundAssignDivision) {
+    auto module = context_->CompileModule("", "let a = 10; a /= 2;");
+    ASSERT_FALSE(module.IsException()) << "Failed to compile 'let a = 10; a /= 2;'";
+    context_->CallModule(&module);
+}
+
+// 测试除法运算符
+TEST_F(VMTest, DivisionOperator) {
+    auto module = context_->CompileModule("", "return 10 / 2;");
+    auto value = context_->CallModule(&module);
+    EXPECT_TRUE(value.IsNumber());
+    EXPECT_EQ(value.f64(), 5.0);
+}
+
+// 测试连续除法
+TEST_F(VMTest, SequentialDivision) {
+    auto module = context_->CompileModule("", "return 20 / 2 / 2;");
+    auto value = context_->CallModule(&module);
+    EXPECT_TRUE(value.IsNumber());
+    EXPECT_EQ(value.f64(), 5.0);
+}
+
 } // namespace test
 } // namespace mjs 
