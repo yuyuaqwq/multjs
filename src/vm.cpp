@@ -574,6 +574,50 @@ void VM::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 			stack_frame->push(lexical_this);
 			break;
 		}
+		case OpcodeType::kGetSuper: {
+			// 获取 super 引用
+			// super 的值取决于当前函数的上下文
+			// 1. 在构造函数中：super 指向父类构造函数
+			// 2. 在方法中：super 指向父类原型
+
+			auto& this_val = stack_frame->this_val();
+
+			// 获取当前对象的构造函数
+			Value constructor;
+			if (!this_val.object().GetProperty(&context_->runtime(), "constructor", &constructor)) {
+				VM_EXCEPTION_THROW(
+					ReferenceError::Throw(context_, "super requires a constructor")
+				);
+			}
+
+			if (!constructor.IsObject()) {
+				VM_EXCEPTION_THROW(
+					TypeError::Throw(context_, "super requires a constructor object")
+				);
+			}
+
+			// 获取构造函数的原型 (即当前类的原型)
+			Value current_prototype;
+			if (!constructor.object().GetProperty(&context_->runtime(), "prototype", &current_prototype)) {
+				VM_EXCEPTION_THROW(
+					ReferenceError::Throw(context_, "super requires a valid prototype chain")
+				);
+			}
+
+			if (!current_prototype.IsObject()) {
+				VM_EXCEPTION_THROW(
+					TypeError::Throw(context_, "super requires a valid prototype object")
+				);
+			}
+
+			// 获取原型的原型 (即父类原型)
+			auto& super_prototype = current_prototype.object().GetPrototype(&context_->runtime());
+
+			// 如果父类原型是 null 或对象，push 到栈上
+			// 在方法调用时，这个值会被用于属性访问
+			stack_frame->push(super_prototype);
+			break;
+		}
 		case OpcodeType::kReturn: {
 			goto exit_;
 			break;

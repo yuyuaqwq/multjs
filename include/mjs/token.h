@@ -141,6 +141,11 @@ enum class TokenType {
     kKwAsync,         // async (用于定义异步函数)
     kKwAwait,         // await (用于等待异步结果)
     kKwThis,          // this
+    kKwExtends,       // extends
+    kKwSuper,         // super
+    kKwStatic,        // static
+    kKwGet,           // get
+    kKwSet,           // set
 
     // 其他运算符
     kOpNullishCoalescing, // ?? 空值合并运算符

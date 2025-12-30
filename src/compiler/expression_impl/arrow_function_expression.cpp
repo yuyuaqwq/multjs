@@ -31,7 +31,7 @@ std::unique_ptr<Expression> ArrowFunctionExpression::TryParseArrowFunctionExpres
 		if (!res) {
 			// 不是箭头函数，回退
 			lexer->RewindToCheckpoint(checkpoint);
-			return AssignmentExpression::ParseExpressionAtAssignmentLevel(lexer);
+			return nullptr;
 		}
 		params = *res;
 	}
@@ -42,14 +42,14 @@ std::unique_ptr<Expression> ArrowFunctionExpression::TryParseArrowFunctionExpres
 	else {
 		// 不是箭头函数，回退
 		lexer->RewindToCheckpoint(checkpoint);
-		return AssignmentExpression::ParseExpressionAtAssignmentLevel(lexer);
+		return nullptr;
 	}
 
 	// 检查是否有箭头 =>
 	if (!lexer->PeekToken().is(TokenType::kSepArrow)) {
 		// 不是箭头函数，回退
 		lexer->RewindToCheckpoint(checkpoint);
-		return AssignmentExpression::ParseExpressionAtAssignmentLevel(lexer);
+		return nullptr;
 	}
 
 	// 确认是箭头函数

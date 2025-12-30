@@ -54,7 +54,7 @@ private:
 
     Value prototype_;
 
-    ClassId class_id_;
+    ClassId class_id_ = ClassId::kInvalid;
 
     uint32_t property_size_;
     ShapePropertyHashTable* property_map_;

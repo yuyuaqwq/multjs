@@ -80,6 +80,7 @@ const std::unordered_map<OpcodeType, OpcodeInfo>& BytecodeTable::opcode_type_map
         {OpcodeType::kAsyncReturn, {"async_return", {}}},
 
         {OpcodeType::kNew, {"new", {}}},
+        {OpcodeType::kGetSuper, {"get_super", {}}},
 
         {OpcodeType::kTryBegin, {"try_begin", {}}},
         {OpcodeType::kThrow, {"throw", {}}},

@@ -5,7 +5,15 @@
       "Bash(grep:*)",
       "Bash(cat:*)",
       "Bash(done)",
-      "Bash(g++:*)"
+      "Bash(g++:*)",
+      "Bash(dir:*)",
+      "Bash(cmake:*)",
+      "Bash(msbuild:*)",
+      "Bash(ctest:*)",
+      "Bash(./Debug/unit_tests.exe --gtest_filter=\"ParserTest.ParseClassWithAsyncMethod\")",
+      "Bash(cmd /c \"cd /d e:\\\\D\\\\Project\\\\mmo-pokemon-server2\\\\million && build.bat\")",
+      "Bash(./unit_tests.exe:*)",
+      "Bash(./build/Debug/unit_tests.exe:*)"
     ],
     "deny": [],
     "ask": []

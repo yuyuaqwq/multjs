@@ -540,8 +540,8 @@ TEST(LexerTest, MoreKeywords) {
     EXPECT_EQ(tokens[i++].type(), TokenType::kKwCase);
     EXPECT_EQ(tokens[i++].type(), TokenType::kKwDefault);
     EXPECT_EQ(tokens[i++].type(), TokenType::kKwClass);
-    EXPECT_EQ(tokens[i++].type(), TokenType::kIdentifier); // extends (如果已实现)
-    EXPECT_EQ(tokens[i++].type(), TokenType::kIdentifier); // super (如果已实现)
+    EXPECT_EQ(tokens[i++].type(), TokenType::kKwExtends);
+    EXPECT_EQ(tokens[i++].type(), TokenType::kKwSuper);
 }
 
 // ES6+ 特性关键字测试

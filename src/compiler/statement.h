@@ -33,6 +33,7 @@ enum class StatementType {
 
     // 声明语句
     kVariableDeclaration,
+    kClassDeclaration,
 
     // 控制流
     kIf,

@@ -375,7 +375,7 @@ Token Lexer::HandleZeroPrefixedNumber(Token& token) {
 Token Lexer::HandleHexNumber(Token& token, std::string& value) {
     value.push_back(NextChar()); // 添加 'x' 或 'X'
     bool has_digits = false;
-    
+
     while (position_ < source_.size()) {
         if (std::isxdigit(source_[position_])) {
             value.push_back(NextChar());
@@ -383,21 +383,24 @@ Token Lexer::HandleHexNumber(Token& token, std::string& value) {
         } else if (source_[position_] == '_' && has_digits) {
             // 跳过数字分隔符
             NextChar();
+        } else if (std::isalpha(source_[position_]) || source_[position_] == '.') {
+            // 无效的十六进制数字
+            throw SyntaxError("Invalid hexadecimal literal");
         } else {
             break;
         }
     }
-    
+
     if (!has_digits) {
         throw SyntaxError("Invalid hexadecimal number");
     }
-    
+
     // 检查是否为BigInt
     if (TestChar('n')) {
         NextChar();
         token.set_type(TokenType::kBigInt);
     }
-    
+
     token.set_value(std::move(value));
     return token;
 }
@@ -405,7 +408,7 @@ Token Lexer::HandleHexNumber(Token& token, std::string& value) {
 Token Lexer::HandleBinaryNumber(Token& token, std::string& value) {
     value.push_back(NextChar()); // 添加 'b' 或 'B'
     bool has_digits = false;
-    
+
     while (position_ < source_.size()) {
         if (source_[position_] == '0' || source_[position_] == '1') {
             value.push_back(NextChar());
@@ -413,21 +416,24 @@ Token Lexer::HandleBinaryNumber(Token& token, std::string& value) {
         } else if (source_[position_] == '_' && has_digits) {
             // 跳过数字分隔符
             NextChar();
+        } else if (std::isxdigit(source_[position_]) || source_[position_] == '.') {
+            // 无效的二进制数字
+            throw SyntaxError("Invalid binary literal");
         } else {
             break;
         }
     }
-    
+
     if (!has_digits) {
         throw SyntaxError("Invalid binary number");
     }
-    
+
     // 检查是否为BigInt
     if (TestChar('n')) {
         NextChar();
         token.set_type(TokenType::kBigInt);
     }
-    
+
     token.set_value(std::move(value));
     return token;
 }
@@ -435,7 +441,7 @@ Token Lexer::HandleBinaryNumber(Token& token, std::string& value) {
 Token Lexer::HandleOctalNumber(Token& token, std::string& value) {
     value.push_back(NextChar()); // 添加 'o' 或 'O'
     bool has_digits = false;
-    
+
     while (position_ < source_.size()) {
         if (source_[position_] >= '0' && source_[position_] <= '7') {
             value.push_back(NextChar());
@@ -443,21 +449,24 @@ Token Lexer::HandleOctalNumber(Token& token, std::string& value) {
         } else if (source_[position_] == '_' && has_digits) {
             // 跳过数字分隔符
             NextChar();
+        } else if (std::isxdigit(source_[position_]) || source_[position_] == '.') {
+            // 无效的八进制数字
+            throw SyntaxError("Invalid octal literal");
         } else {
             break;
         }
     }
-    
+
     if (!has_digits) {
         throw SyntaxError("Invalid octal number");
     }
-    
+
     // 检查是否为BigInt
     if (TestChar('n')) {
         NextChar();
         token.set_type(TokenType::kBigInt);
     }
-    
+
     token.set_value(std::move(value));
     return token;
 }
@@ -729,8 +738,8 @@ std::string Lexer::ReadString(char quote_type, std::initializer_list<std::string
                     break;
                 }
                 default:
-                    // 其他转义字符直接保留
-                    value.push_back(escaped_char);
+                    // 无效的转义序列
+                    throw SyntaxError("Invalid escape sequence");
             }
         } else if (c == quote_type) {
             // 遇到匹配的引号，字符串结束

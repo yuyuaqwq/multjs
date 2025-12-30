@@ -4,6 +4,7 @@
 #include "../statement.h"
 #include "member_expression.h"
 #include "primary_expression.h"
+#include "super_expression.h"
 
 namespace mjs {
 namespace compiler {
@@ -19,6 +20,10 @@ void CallExpression::GenerateCode(CodeGenerator* code_generator, FunctionDefBase
     // 将this置于栈顶
     if (dynamic_cast<MemberExpression*>(call_exp.callee().get())) {
         function_def_base->bytecode_table().EmitOpcode(OpcodeType::kSwap);
+    }
+    else if (dynamic_cast<SuperExpression*>(call_exp.callee().get())) {
+        // super() 调用时，this已经在栈上（由SuperExpression::GenerateCode生成kGetSuper）
+        // 不需要压入undefined
     }
     else {
         function_def_base->bytecode_table().EmitOpcode(OpcodeType::kUndefined);

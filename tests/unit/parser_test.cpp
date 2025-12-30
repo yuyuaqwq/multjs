@@ -27,6 +27,8 @@
 #include "../src/compiler/expression_impl/yield_expression.h"
 #include "../src/compiler/expression_impl/await_expression.h"
 #include "../src/compiler/expression_impl/import_expression.h"
+#include "../src/compiler/expression_impl/class_expression.h"
+#include "../src/compiler/expression_impl/class_element.h"
 
 #include "../src/compiler/statement_impl/block_statement.h"
 #include "../src/compiler/statement_impl/return_statement.h"
@@ -41,6 +43,7 @@
 #include "../src/compiler/statement_impl/continue_statement.h"
 #include "../src/compiler/statement_impl/labeled_statement.h"
 #include "../src/compiler/statement_impl/export_declaration.h"
+#include "../src/compiler/statement_impl/class_declaration.h"
 
 namespace mjs {
 namespace compiler {
@@ -758,6 +761,637 @@ TEST_F(ParserTest, ParseComplexNestedExpression) {
     ASSERT_TRUE(call_expr != nullptr);
     auto* callee_member = dynamic_cast<MemberExpression*>(call_expr->callee().get());
     ASSERT_TRUE(callee_member != nullptr);
+}
+
+// ==================== Class 相关测试 ====================
+
+// 测试解析简单的类声明
+TEST_F(ParserTest, ParseSimpleClassDeclaration) {
+    auto stmt = ParseStatement("class MyClass { }");
+    auto* class_decl = dynamic_cast<ClassDeclaration*>(stmt.get());
+    ASSERT_TRUE(class_decl != nullptr);
+    EXPECT_EQ(class_decl->id(), "MyClass");
+    EXPECT_FALSE(class_decl->has_super_class());
+    EXPECT_EQ(class_decl->elements().size(), 0);
+}
+
+// 测试解析带构造函数的类声明
+TEST_F(ParserTest, ParseClassDeclarationWithConstructor) {
+    auto stmt = ParseStatement("class Person { constructor(name) { this.name = name; } }");
+    auto* class_decl = dynamic_cast<ClassDeclaration*>(stmt.get());
+    ASSERT_TRUE(class_decl != nullptr);
+    EXPECT_EQ(class_decl->id(), "Person");
+
+    // 检查类元素
+    ASSERT_EQ(class_decl->elements().size(), 1);
+    const auto& elem = class_decl->elements()[0];
+    EXPECT_EQ(elem.kind(), MethodKind::kConstructor);
+    EXPECT_EQ(elem.key(), "constructor");
+}
+
+// 测试解析带方法的类声明
+TEST_F(ParserTest, ParseClassDeclarationWithMethods) {
+    auto stmt = ParseStatement("class Rectangle { constructor(w, h) { this.width = w; this.height = h; } getArea() { return this.width * this.height; } }");
+    auto* class_decl = dynamic_cast<ClassDeclaration*>(stmt.get());
+    ASSERT_TRUE(class_decl != nullptr);
+    EXPECT_EQ(class_decl->id(), "Rectangle");
+
+    // 检查类元素数量（constructor + getArea）
+    ASSERT_EQ(class_decl->elements().size(), 2);
+
+    // 检查第一个元素是constructor
+    const auto& constructor_elem = class_decl->elements()[0];
+    EXPECT_EQ(constructor_elem.kind(), MethodKind::kConstructor);
+    EXPECT_EQ(constructor_elem.key(), "constructor");
+
+    // 检查第二个元素是普通方法
+    const auto& method_elem = class_decl->elements()[1];
+    EXPECT_EQ(method_elem.kind(), MethodKind::kMethod);
+    EXPECT_EQ(method_elem.key(), "getArea");
+}
+
+// 测试解析带继承的类声明
+TEST_F(ParserTest, ParseClassDeclarationWithExtends) {
+    auto stmt = ParseStatement("class Dog extends Animal { constructor(name) { super(name); } }");
+    auto* class_decl = dynamic_cast<ClassDeclaration*>(stmt.get());
+    ASSERT_TRUE(class_decl != nullptr);
+    EXPECT_EQ(class_decl->id(), "Dog");
+    EXPECT_TRUE(class_decl->has_super_class());
+
+    // 检查父类表达式
+    auto* super_ident = dynamic_cast<Identifier*>(class_decl->super_class().get());
+    ASSERT_TRUE(super_ident != nullptr);
+    EXPECT_EQ(super_ident->name(), "Animal");
+}
+
+// 测试解析带getter的类声明
+TEST_F(ParserTest, ParseClassDeclarationWithGetter) {
+    auto stmt = ParseStatement("class Circle { get radius() { return this._radius; } }");
+    auto* class_decl = dynamic_cast<ClassDeclaration*>(stmt.get());
+    ASSERT_TRUE(class_decl != nullptr);
+    EXPECT_EQ(class_decl->id(), "Circle");
+
+    // 检查getter元素
+    ASSERT_EQ(class_decl->elements().size(), 1);
+    const auto& elem = class_decl->elements()[0];
+    EXPECT_EQ(elem.kind(), MethodKind::kGetter);
+    EXPECT_EQ(elem.key(), "radius");
+}
+
+// 测试解析带setter的类声明
+TEST_F(ParserTest, ParseClassDeclarationWithSetter) {
+    auto stmt = ParseStatement("class Circle { set radius(value) { this._radius = value; } }");
+    auto* class_decl = dynamic_cast<ClassDeclaration*>(stmt.get());
+    ASSERT_TRUE(class_decl != nullptr);
+    EXPECT_EQ(class_decl->id(), "Circle");
+
+    // 检查setter元素
+    ASSERT_EQ(class_decl->elements().size(), 1);
+    const auto& elem = class_decl->elements()[0];
+    EXPECT_EQ(elem.kind(), MethodKind::kSetter);
+    EXPECT_EQ(elem.key(), "radius");
+}
+
+// 测试解析带静态方法的类声明
+TEST_F(ParserTest, ParseClassDeclarationWithStaticMethod) {
+    auto stmt = ParseStatement("class MathHelper { static add(a, b) { return a + b; } }");
+    auto* class_decl = dynamic_cast<ClassDeclaration*>(stmt.get());
+    ASSERT_TRUE(class_decl != nullptr);
+    EXPECT_EQ(class_decl->id(), "MathHelper");
+
+    // 检查静态方法元素
+    ASSERT_EQ(class_decl->elements().size(), 1);
+    const auto& elem = class_decl->elements()[0];
+    EXPECT_EQ(elem.kind(), MethodKind::kStatic);
+    EXPECT_EQ(elem.key(), "add");
+}
+
+// 测试解析带静态getter的类声明
+TEST_F(ParserTest, ParseClassDeclarationWithStaticGetter) {
+    auto stmt = ParseStatement("class Config { static get version() { return '1.0.0'; } }");
+    auto* class_decl = dynamic_cast<ClassDeclaration*>(stmt.get());
+    ASSERT_TRUE(class_decl != nullptr);
+    EXPECT_EQ(class_decl->id(), "Config");
+
+    // 检查静态getter元素
+    ASSERT_EQ(class_decl->elements().size(), 1);
+    const auto& elem = class_decl->elements()[0];
+    EXPECT_EQ(elem.kind(), MethodKind::kStaticGetter);
+    EXPECT_EQ(elem.key(), "version");
+}
+
+// 测试解析带静态setter的类声明
+TEST_F(ParserTest, ParseClassDeclarationWithStaticSetter) {
+    auto stmt = ParseStatement("class Config { static set version(v) { this._version = v; } }");
+    auto* class_decl = dynamic_cast<ClassDeclaration*>(stmt.get());
+    ASSERT_TRUE(class_decl != nullptr);
+    EXPECT_EQ(class_decl->id(), "Config");
+
+    // 检查静态setter元素
+    ASSERT_EQ(class_decl->elements().size(), 1);
+    const auto& elem = class_decl->elements()[0];
+    EXPECT_EQ(elem.kind(), MethodKind::kStaticSetter);
+    EXPECT_EQ(elem.key(), "version");
+}
+
+// 测试解析带字段的类声明
+TEST_F(ParserTest, ParseClassDeclarationWithFields) {
+    auto stmt = ParseStatement("class Rectangle { width = 0; height = 0; }");
+    auto* class_decl = dynamic_cast<ClassDeclaration*>(stmt.get());
+    ASSERT_TRUE(class_decl != nullptr);
+    EXPECT_EQ(class_decl->id(), "Rectangle");
+
+    // 检查字段元素
+    ASSERT_EQ(class_decl->elements().size(), 2);
+
+    const auto& width_elem = class_decl->elements()[0];
+    EXPECT_EQ(width_elem.kind(), MethodKind::kField);
+    EXPECT_EQ(width_elem.key(), "width");
+
+    const auto& height_elem = class_decl->elements()[1];
+    EXPECT_EQ(height_elem.kind(), MethodKind::kField);
+    EXPECT_EQ(height_elem.key(), "height");
+}
+
+// 测试解析带静态字段的类声明
+TEST_F(ParserTest, ParseClassDeclarationWithStaticFields) {
+    auto stmt = ParseStatement("class Constants { static PI = 3.14159; static E = 2.71828; }");
+    auto* class_decl = dynamic_cast<ClassDeclaration*>(stmt.get());
+    ASSERT_TRUE(class_decl != nullptr);
+    EXPECT_EQ(class_decl->id(), "Constants");
+
+    // 检查静态字段元素
+    ASSERT_EQ(class_decl->elements().size(), 2);
+
+    const auto& pi_elem = class_decl->elements()[0];
+    EXPECT_EQ(pi_elem.kind(), MethodKind::kStaticField);
+    EXPECT_EQ(pi_elem.key(), "PI");
+    EXPECT_TRUE(pi_elem.is_static());
+
+    const auto& e_elem = class_decl->elements()[1];
+    EXPECT_EQ(e_elem.kind(), MethodKind::kStaticField);
+    EXPECT_EQ(e_elem.key(), "E");
+    EXPECT_TRUE(e_elem.is_static());
+}
+
+// 测试解析匿名类表达式
+TEST_F(ParserTest, ParseAnonymousClassExpression) {
+    auto expr = ParseExpression("class { constructor() { this.value = 42; } }");
+    auto* class_expr = dynamic_cast<ClassExpression*>(expr.get());
+    ASSERT_TRUE(class_expr != nullptr);
+    EXPECT_FALSE(class_expr->id().has_value());
+    EXPECT_FALSE(class_expr->has_super_class());
+    EXPECT_EQ(class_expr->elements().size(), 1);
+}
+
+// 测试解析命名类表达式
+TEST_F(ParserTest, ParseNamedClassExpression) {
+    auto expr = ParseExpression("class MyClass { constructor() { } }");
+    auto* class_expr = dynamic_cast<ClassExpression*>(expr.get());
+    ASSERT_TRUE(class_expr != nullptr);
+    ASSERT_TRUE(class_expr->id().has_value());
+    EXPECT_EQ(class_expr->id().value(), "MyClass");
+    EXPECT_FALSE(class_expr->has_super_class());
+}
+
+// 测试解析带继承的类表达式
+TEST_F(ParserTest, ParseClassExpressionWithExtends) {
+    auto expr = ParseExpression("class Child extends Parent { }");
+    auto* class_expr = dynamic_cast<ClassExpression*>(expr.get());
+    ASSERT_TRUE(class_expr != nullptr);
+    ASSERT_TRUE(class_expr->id().has_value());
+    EXPECT_EQ(class_expr->id().value(), "Child");
+    EXPECT_TRUE(class_expr->has_super_class());
+
+    auto* super_ident = dynamic_cast<Identifier*>(class_expr->super_class().get());
+    ASSERT_TRUE(super_ident != nullptr);
+    EXPECT_EQ(super_ident->name(), "Parent");
+}
+
+// 测试解析复杂的类声明
+TEST_F(ParserTest, ParseComplexClassDeclaration) {
+    auto stmt = ParseStatement(R"(
+        class Student extends Person {
+            static count = 0;
+            school = 'default';
+
+            constructor(name, age, school) {
+                super(name, age);
+                this.school = school;
+                Student.count++;
+            }
+
+            get info() {
+                return `${this.name} - ${this.school}`;
+            }
+
+            set info(value) {
+                // setter implementation
+            }
+
+            static getCount() {
+                return Student.count;
+            }
+
+            study() {
+                return `${this.name} is studying`;
+            }
+        }
+    )");
+    auto* class_decl = dynamic_cast<ClassDeclaration*>(stmt.get());
+    ASSERT_TRUE(class_decl != nullptr);
+    EXPECT_EQ(class_decl->id(), "Student");
+    EXPECT_TRUE(class_decl->has_super_class());
+
+    // 检查所有类元素
+    const auto& elements = class_decl->elements();
+    ASSERT_EQ(elements.size(), 7);
+
+    // 验证各个元素类型
+    EXPECT_EQ(elements[0].kind(), MethodKind::kStaticField);  // static count
+    EXPECT_EQ(elements[1].kind(), MethodKind::kField);        // school
+    EXPECT_EQ(elements[2].kind(), MethodKind::kConstructor);  // constructor
+    EXPECT_EQ(elements[3].kind(), MethodKind::kGetter);       // get info
+    EXPECT_EQ(elements[4].kind(), MethodKind::kSetter);       // set info
+    EXPECT_EQ(elements[5].kind(), MethodKind::kStatic);       // static getCount
+    EXPECT_EQ(elements[6].kind(), MethodKind::kMethod);       // study
+}
+
+// 测试解析类声明中的多个方法
+TEST_F(ParserTest, ParseClassWithMultipleMethods) {
+    auto stmt = ParseStatement(R"(
+        class Calculator {
+            add(a, b) { return a + b; }
+            subtract(a, b) { return a - b; }
+            multiply(a, b) { return a * b; }
+            divide(a, b) { return a / b; }
+        }
+    )");
+    auto* class_decl = dynamic_cast<ClassDeclaration*>(stmt.get());
+    ASSERT_TRUE(class_decl != nullptr);
+    EXPECT_EQ(class_decl->id(), "Calculator");
+
+    const auto& elements = class_decl->elements();
+    ASSERT_EQ(elements.size(), 4);
+
+    EXPECT_EQ(elements[0].kind(), MethodKind::kMethod);
+    EXPECT_EQ(elements[0].key(), "add");
+    EXPECT_EQ(elements[1].kind(), MethodKind::kMethod);
+    EXPECT_EQ(elements[1].key(), "subtract");
+    EXPECT_EQ(elements[2].kind(), MethodKind::kMethod);
+    EXPECT_EQ(elements[2].key(), "multiply");
+    EXPECT_EQ(elements[3].kind(), MethodKind::kMethod);
+    EXPECT_EQ(elements[3].key(), "divide");
+}
+
+// 测试解析带字段的完整类
+TEST_F(ParserTest, ParseClassWithFieldsAndMethods) {
+    auto stmt = ParseStatement(R"(
+        class Point {
+            x = 0;
+            y = 0;
+
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+            }
+
+            get distance() {
+                return Math.sqrt(this.x ** 2 + this.y ** 2);
+            }
+
+            toString() {
+                return `(${this.x}, ${this.y})`;
+            }
+        }
+    )");
+    auto* class_decl = dynamic_cast<ClassDeclaration*>(stmt.get());
+    ASSERT_TRUE(class_decl != nullptr);
+    EXPECT_EQ(class_decl->id(), "Point");
+
+    const auto& elements = class_decl->elements();
+    ASSERT_EQ(elements.size(), 5);
+
+    EXPECT_EQ(elements[0].kind(), MethodKind::kField);
+    EXPECT_EQ(elements[0].key(), "x");
+    EXPECT_EQ(elements[1].kind(), MethodKind::kField);
+    EXPECT_EQ(elements[1].key(), "y");
+    EXPECT_EQ(elements[2].kind(), MethodKind::kConstructor);
+    EXPECT_EQ(elements[3].kind(), MethodKind::kGetter);
+    EXPECT_EQ(elements[4].kind(), MethodKind::kMethod);
+}
+
+// 测试解析链式继承的类
+TEST_F(ParserTest, ParseChainedInheritance) {
+    auto stmt = ParseStatement("class GrandChild extends Child { }");
+    auto* class_decl = dynamic_cast<ClassDeclaration*>(stmt.get());
+    ASSERT_TRUE(class_decl != nullptr);
+    EXPECT_EQ(class_decl->id(), "GrandChild");
+    EXPECT_TRUE(class_decl->has_super_class());
+
+    auto* super_ident = dynamic_cast<Identifier*>(class_decl->super_class().get());
+    ASSERT_TRUE(super_ident != nullptr);
+    EXPECT_EQ(super_ident->name(), "Child");
+}
+
+// 测试解析类中的空构造函数
+TEST_F(ParserTest, ParseClassWithEmptyConstructor) {
+    auto stmt = ParseStatement("class Empty { constructor() { } }");
+    auto* class_decl = dynamic_cast<ClassDeclaration*>(stmt.get());
+    ASSERT_TRUE(class_decl != nullptr);
+    EXPECT_EQ(class_decl->id(), "Empty");
+
+    ASSERT_EQ(class_decl->elements().size(), 1);
+    const auto& elem = class_decl->elements()[0];
+    EXPECT_EQ(elem.kind(), MethodKind::kConstructor);
+    EXPECT_EQ(elem.key(), "constructor");
+}
+
+// 测试解析只有静态成员的类
+TEST_F(ParserTest, ParseClassWithOnlyStaticMembers) {
+    auto stmt = ParseStatement("class Utility { static log(msg) { console.log(msg); } }");
+    auto* class_decl = dynamic_cast<ClassDeclaration*>(stmt.get());
+    ASSERT_TRUE(class_decl != nullptr);
+    EXPECT_EQ(class_decl->id(), "Utility");
+
+    ASSERT_EQ(class_decl->elements().size(), 1);
+    const auto& elem = class_decl->elements()[0];
+    EXPECT_EQ(elem.kind(), MethodKind::kStatic);
+    EXPECT_EQ(elem.key(), "log");
+    EXPECT_TRUE(elem.is_static());
+}
+
+// 测试解析作为变量赋值的类表达式
+TEST_F(ParserTest, ParseClassExpressionInAssignment) {
+    auto stmt = ParseStatement("const MyClass = class { constructor() { } };");
+    auto* var_decl = dynamic_cast<VariableDeclaration*>(stmt.get());
+    ASSERT_TRUE(var_decl != nullptr);
+    EXPECT_EQ(var_decl->name(), "MyClass");
+
+    auto* class_expr = dynamic_cast<ClassExpression*>(var_decl->init().get());
+    ASSERT_TRUE(class_expr != nullptr);
+    EXPECT_FALSE(class_expr->id().has_value());
+}
+
+// 测试解析作为函数参数的类表达式
+TEST_F(ParserTest, ParseClassExpressionAsArgument) {
+    auto expr = ParseExpression("factory(class { })");
+    auto* call_expr = dynamic_cast<CallExpression*>(expr.get());
+    ASSERT_TRUE(call_expr != nullptr);
+    ASSERT_EQ(call_expr->arguments().size(), 1);
+
+    auto* class_expr = dynamic_cast<ClassExpression*>(call_expr->arguments()[0].get());
+    ASSERT_TRUE(class_expr != nullptr);
+    EXPECT_FALSE(class_expr->id().has_value());
+}
+
+// 测试解析类中的计算属性名（简单情况）
+TEST_F(ParserTest, ParseClassWithComputedPropertyName) {
+    auto stmt = ParseStatement("class C { [methodName]() { } }");
+    auto* class_decl = dynamic_cast<ClassDeclaration*>(stmt.get());
+    ASSERT_TRUE(class_decl != nullptr);
+    EXPECT_EQ(class_decl->id(), "C");
+
+    ASSERT_EQ(class_decl->elements().size(), 1);
+    const auto& elem = class_decl->elements()[0];
+    EXPECT_EQ(elem.kind(), MethodKind::kMethod);
+    EXPECT_TRUE(elem.is_computed());
+}
+
+// 测试解析带private字段的类（当前不支持，但测试能正确解析到错误）
+// TEST_F(ParserTest, ParseClassWithPrivateField) {
+//     auto stmt = ParseStatement("class C { #privateField = 0; }");
+//     auto* class_decl = dynamic_cast<ClassDeclaration*>(stmt.get());
+//     ASSERT_TRUE(class_decl != nullptr);
+// }
+
+// 测试解析多个构造函数（应该只保留第一个）
+TEST_F(ParserTest, ParseClassWithMultipleConstructors) {
+    auto stmt = ParseStatement(R"(
+        class C {
+            constructor() { }
+            constructor() { }
+        }
+    )");
+    auto* class_decl = dynamic_cast<ClassDeclaration*>(stmt.get());
+    ASSERT_TRUE(class_decl != nullptr);
+    EXPECT_EQ(class_decl->id(), "C");
+
+    // 应该有两个元素，虽然语法上允许多个，但运行时会报错
+    EXPECT_EQ(class_decl->elements().size(), 2);
+}
+
+// 测试解析带计算属性名的getter
+TEST_F(ParserTest, ParseClassWithComputedGetter) {
+    auto stmt = ParseStatement("class C { get [prop]() { } }");
+    auto* class_decl = dynamic_cast<ClassDeclaration*>(stmt.get());
+    ASSERT_TRUE(class_decl != nullptr);
+    EXPECT_EQ(class_decl->id(), "C");
+
+    ASSERT_EQ(class_decl->elements().size(), 1);
+    const auto& elem = class_decl->elements()[0];
+    EXPECT_EQ(elem.kind(), MethodKind::kGetter);
+    EXPECT_TRUE(elem.is_computed());
+}
+
+// 测试解析带计算属性名的setter
+TEST_F(ParserTest, ParseClassWithComputedSetter) {
+    auto stmt = ParseStatement("class C { set [prop](value) { } }");
+    auto* class_decl = dynamic_cast<ClassDeclaration*>(stmt.get());
+    ASSERT_TRUE(class_decl != nullptr);
+    EXPECT_EQ(class_decl->id(), "C");
+
+    ASSERT_EQ(class_decl->elements().size(), 1);
+    const auto& elem = class_decl->elements()[0];
+    EXPECT_EQ(elem.kind(), MethodKind::kSetter);
+    EXPECT_TRUE(elem.is_computed());
+}
+
+// 测试解析带计算属性名的字段
+TEST_F(ParserTest, ParseClassWithComputedField) {
+    auto stmt = ParseStatement("class C { [prop] = 0; }");
+    auto* class_decl = dynamic_cast<ClassDeclaration*>(stmt.get());
+    ASSERT_TRUE(class_decl != nullptr);
+    EXPECT_EQ(class_decl->id(), "C");
+
+    ASSERT_EQ(class_decl->elements().size(), 1);
+    const auto& elem = class_decl->elements()[0];
+    EXPECT_EQ(elem.kind(), MethodKind::kField);
+    EXPECT_TRUE(elem.is_computed());
+}
+
+// 测试解析带计算属性名的静态方法
+TEST_F(ParserTest, ParseClassWithComputedStaticMethod) {
+    auto stmt = ParseStatement("class C { static [method]() { } }");
+    auto* class_decl = dynamic_cast<ClassDeclaration*>(stmt.get());
+    ASSERT_TRUE(class_decl != nullptr);
+    EXPECT_EQ(class_decl->id(), "C");
+
+    ASSERT_EQ(class_decl->elements().size(), 1);
+    const auto& elem = class_decl->elements()[0];
+    EXPECT_EQ(elem.kind(), MethodKind::kStatic);
+    EXPECT_TRUE(elem.is_computed());
+}
+
+// 测试解析带异步方法的类
+TEST_F(ParserTest, ParseClassWithAsyncMethod) {
+    auto stmt = ParseStatement("class C { async method() { } }");
+    auto* class_decl = dynamic_cast<ClassDeclaration*>(stmt.get());
+    ASSERT_TRUE(class_decl != nullptr);
+    EXPECT_EQ(class_decl->id(), "C");
+
+    ASSERT_EQ(class_decl->elements().size(), 1);
+    const auto& elem = class_decl->elements()[0];
+    EXPECT_EQ(elem.kind(), MethodKind::kMethod);
+    EXPECT_EQ(elem.key(), "method");
+}
+
+// 测试解析带生成器方法的类
+TEST_F(ParserTest, ParseClassWithGeneratorMethod) {
+    auto stmt = ParseStatement("class C { *generator() { } }");
+    auto* class_decl = dynamic_cast<ClassDeclaration*>(stmt.get());
+    ASSERT_TRUE(class_decl != nullptr);
+    EXPECT_EQ(class_decl->id(), "C");
+
+    ASSERT_EQ(class_decl->elements().size(), 1);
+    const auto& elem = class_decl->elements()[0];
+    EXPECT_EQ(elem.kind(), MethodKind::kMethod);
+    EXPECT_EQ(elem.key(), "generator");
+}
+
+// 测试解析带默认参数的类方法
+TEST_F(ParserTest, ParseClassWithDefaultParameters) {
+    auto stmt = ParseStatement("class C { method(a = 1, b = 2, c = 3) { } }");
+    auto* class_decl = dynamic_cast<ClassDeclaration*>(stmt.get());
+    ASSERT_TRUE(class_decl != nullptr);
+    EXPECT_EQ(class_decl->id(), "C");
+
+    ASSERT_EQ(class_decl->elements().size(), 1);
+    const auto& elem = class_decl->elements()[0];
+    EXPECT_EQ(elem.kind(), MethodKind::kMethod);
+    EXPECT_EQ(elem.key(), "method");
+}
+
+// 测试解析带剩余参数的类方法
+TEST_F(ParserTest, ParseClassWithRestParameters) {
+    auto stmt = ParseStatement("class C { method(...args) { } }");
+    auto* class_decl = dynamic_cast<ClassDeclaration*>(stmt.get());
+    ASSERT_TRUE(class_decl != nullptr);
+    EXPECT_EQ(class_decl->id(), "C");
+
+    ASSERT_EQ(class_decl->elements().size(), 1);
+    const auto& elem = class_decl->elements()[0];
+    EXPECT_EQ(elem.kind(), MethodKind::kMethod);
+    EXPECT_EQ(elem.key(), "method");
+}
+
+// 测试解析带解构参数的类方法
+TEST_F(ParserTest, ParseClassWithDestructuredParameters) {
+    auto stmt = ParseStatement("class C { method({ x, y }) { } }");
+    auto* class_decl = dynamic_cast<ClassDeclaration*>(stmt.get());
+    ASSERT_TRUE(class_decl != nullptr);
+    EXPECT_EQ(class_decl->id(), "C");
+
+    ASSERT_EQ(class_decl->elements().size(), 1);
+    const auto& elem = class_decl->elements()[0];
+    EXPECT_EQ(elem.kind(), MethodKind::kMethod);
+    EXPECT_EQ(elem.key(), "method");
+}
+
+// 测试解析在同一类中混合各种元素
+TEST_F(ParserTest, ParseClassWithMixedElements) {
+    auto stmt = ParseStatement(R"(
+        class C {
+            static staticField = 1;
+            instanceField = 2;
+            static staticMethod() { }
+            constructor() { }
+            instanceMethod() { }
+            get getter() { }
+            set setter(value) { }
+            static get staticGetter() { }
+            static set staticSetter(value) { }
+        }
+    )");
+    auto* class_decl = dynamic_cast<ClassDeclaration*>(stmt.get());
+    ASSERT_TRUE(class_decl != nullptr);
+    EXPECT_EQ(class_decl->id(), "C");
+
+    const auto& elements = class_decl->elements();
+    ASSERT_EQ(elements.size(), 9);
+
+    EXPECT_EQ(elements[0].kind(), MethodKind::kStaticField);
+    EXPECT_EQ(elements[1].kind(), MethodKind::kField);
+    EXPECT_EQ(elements[2].kind(), MethodKind::kStatic);
+    EXPECT_EQ(elements[3].kind(), MethodKind::kConstructor);
+    EXPECT_EQ(elements[4].kind(), MethodKind::kMethod);
+    EXPECT_EQ(elements[5].kind(), MethodKind::kGetter);
+    EXPECT_EQ(elements[6].kind(), MethodKind::kSetter);
+    EXPECT_EQ(elements[7].kind(), MethodKind::kStaticGetter);
+    EXPECT_EQ(elements[8].kind(), MethodKind::kStaticSetter);
+}
+
+// 测试解析类中的方法调用表达式
+TEST_F(ParserTest, ParseClassMethodWithBody) {
+    auto stmt = ParseStatement(R"(
+        class C {
+            method() {
+                let x = 1 + 2;
+                return x * 3;
+            }
+        }
+    )");
+    auto* class_decl = dynamic_cast<ClassDeclaration*>(stmt.get());
+    ASSERT_TRUE(class_decl != nullptr);
+    EXPECT_EQ(class_decl->id(), "C");
+
+    ASSERT_EQ(class_decl->elements().size(), 1);
+    const auto& elem = class_decl->elements()[0];
+    EXPECT_EQ(elem.kind(), MethodKind::kMethod);
+}
+
+// 测试解析嵌套类（类中定义类表达式）
+TEST_F(ParserTest, ParseNestedClass) {
+    auto stmt = ParseStatement(R"(
+        class Outer {
+            constructor() {
+                this.Inner = class {
+                    method() {
+                        return 42;
+                    }
+                };
+            }
+        }
+    )");
+    auto* class_decl = dynamic_cast<ClassDeclaration*>(stmt.get());
+    ASSERT_TRUE(class_decl != nullptr);
+    EXPECT_EQ(class_decl->id(), "Outer");
+
+    ASSERT_EQ(class_decl->elements().size(), 1);
+    const auto& elem = class_decl->elements()[0];
+    EXPECT_EQ(elem.kind(), MethodKind::kConstructor);
+}
+
+// 测试解析返回类的工厂方法
+TEST_F(ParserTest, ParseFactoryMethodReturningClass) {
+    auto stmt = ParseStatement(R"(
+        class Factory {
+            static createClass() {
+                return class Product {
+                    constructor(value) {
+                        this.value = value;
+                    }
+                };
+            }
+        }
+    )");
+    auto* class_decl = dynamic_cast<ClassDeclaration*>(stmt.get());
+    ASSERT_TRUE(class_decl != nullptr);
+    EXPECT_EQ(class_decl->id(), "Factory");
+
+    ASSERT_EQ(class_decl->elements().size(), 1);
+    const auto& elem = class_decl->elements()[0];
+    EXPECT_EQ(elem.kind(), MethodKind::kStatic);
 }
 
 } // namespace test

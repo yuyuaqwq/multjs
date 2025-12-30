@@ -133,6 +133,7 @@ enum class OpcodeType : uint8_t {
 
 	// 对象创建指令
 	kNew = 0xc8, ///< 创建新对象
+	kGetSuper = 0xc9, ///< 获取 super 引用
 
 	// 异常处理指令
 	kTryBegin = 0xd0,      ///< 异常处理开始

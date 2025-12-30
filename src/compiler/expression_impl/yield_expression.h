@@ -26,10 +26,11 @@ public:
      * @param start 表达式起始位置
      * @param end 表达式结束位置
      * @param argument yield 参数表达式
+     * @param is_delegate 是否为委托yield (yield*)
      */
     YieldExpression(SourcePosition start, SourcePosition end,
-                std::unique_ptr<Expression> argument)
-        : Expression(start, end), argument_(std::move(argument)) {}
+                std::unique_ptr<Expression> argument, bool is_delegate = false)
+        : Expression(start, end), argument_(std::move(argument)), is_delegate_(is_delegate) {}
 
 
     /**
@@ -37,6 +38,12 @@ public:
      * @return yield 参数表达式的常量引用
      */
     const std::unique_ptr<Expression>& argument() const { return argument_; }
+
+    /**
+     * @brief 获取是否为委托yield
+     * @return 是否为委托yield
+     */
+    bool is_delegate() const { return is_delegate_; }
 
     /**
      * @brief 生成代码
@@ -61,6 +68,7 @@ public:
 
 private:
     std::unique_ptr<Expression> argument_; ///< yield 参数表达式
+    bool is_delegate_; ///< 是否为委托yield (yield*)
 };
 
 } // namespace compiler

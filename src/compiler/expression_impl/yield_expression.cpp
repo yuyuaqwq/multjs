@@ -1,7 +1,6 @@
 #include "yield_expression.h"
 
 #include "../code_generator.h"
-#include "function_expression.h"
 #include "assignment_expression.h"
 
 namespace mjs {
@@ -15,26 +14,12 @@ void YieldExpression::GenerateCode(CodeGenerator* code_generator, FunctionDefBas
 }
 
 std::unique_ptr<Expression> YieldExpression::ParseExpressionAtYieldLevel(Lexer* lexer) {
-	auto start = lexer->GetSourcePosition();
-	auto type = lexer->PeekToken().type();
-
 	// 处理yield表达式
-	if (type == TokenType::kKwYield) {
+	if (lexer->PeekToken().is(TokenType::kKwYield)) {
 		return ParseYieldExpression(lexer);
 	}
 
-	// 处理函数表达式
-	switch (type) {
-	case TokenType::kIdentifier:
-	case TokenType::kSepLParen:
-	case TokenType::kKwAsync:
-	case TokenType::kKwFunction:
-		return FunctionExpression::ParseExpressionAtFunctionLevel(lexer);
-	default:
-		break;
-	}
-
-	// 处理赋值表达式
+	// 否则继续解析赋值表达式
 	return AssignmentExpression::ParseExpressionAtAssignmentLevel(lexer);
 }
 
@@ -42,10 +27,17 @@ std::unique_ptr<YieldExpression> YieldExpression::ParseYieldExpression(Lexer* le
 	auto start = lexer->GetSourcePosition();
 	lexer->NextToken(); // 消耗yield关键字
 
+	// 检查是否是 yield* (委托 yield)
+	bool is_delegate = false;
+	if (lexer->PeekToken().is(TokenType::kOpMul)) {
+		lexer->NextToken(); // 消耗 *
+		is_delegate = true;
+	}
+
 	std::unique_ptr<Expression> yielded_value = AssignmentExpression::ParseExpressionAtAssignmentLevel(lexer);
 	auto end = lexer->GetRawSourcePosition();
 
-	return std::make_unique<YieldExpression>(start, end, std::move(yielded_value));
+	return std::make_unique<YieldExpression>(start, end, std::move(yielded_value), is_delegate);
 }
 
 } // namespace compiler

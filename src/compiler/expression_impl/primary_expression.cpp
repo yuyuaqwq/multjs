@@ -12,9 +12,12 @@
 #include "float_literal.h"
 #include "string_literal.h"
 #include "this_expression.h"
+#include "super_expression.h"
 #include "array_expression.h"
 #include "object_expression.h"
 #include "template_literal.h"
+#include "class_expression.h"
+#include "function_expression.h"
 
 namespace mjs {
 namespace compiler {
@@ -38,6 +41,15 @@ std::unique_ptr<Expression> PrimaryExpression::ParsePrimaryExpression(Lexer* lex
 	auto token = lexer->PeekToken();
 
 	switch (token.type()) {
+	case TokenType::kKwClass: {
+		// 类表达式
+		return ClassExpression::ParseClassExpression(lexer, false);
+	}
+	case TokenType::kKwFunction:
+	case TokenType::kKwAsync: {
+		// 函数表达式
+		return FunctionExpression::ParseExpressionAtFunctionLevel(lexer);
+	}
 	case TokenType::kUndefined: {
 		lexer->NextToken();
 		return std::make_unique<UndefinedLiteral>(start, lexer->GetRawSourcePosition());
@@ -75,6 +87,10 @@ std::unique_ptr<Expression> PrimaryExpression::ParsePrimaryExpression(Lexer* lex
 	case TokenType::kKwThis: {
 		lexer->NextToken();
 		return std::make_unique<ThisExpression>(start, lexer->GetRawSourcePosition());
+	}
+	case TokenType::kKwSuper: {
+		lexer->NextToken();
+		return std::make_unique<SuperExpression>(start, lexer->GetRawSourcePosition());
 	}
 	case TokenType::kSepLParen: {
 		// 括号表达式

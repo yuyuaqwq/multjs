@@ -101,7 +101,10 @@ std::unique_ptr<Expression> FunctionExpression::ParseExpressionAtFunctionLevel(L
 	if (lexer->PeekToken().is(TokenType::kSepLParen) ||
 		lexer->PeekToken().is(TokenType::kIdentifier)) {
 		// 可能是箭头函数或其他表达式
-		return ArrowFunctionExpression::TryParseArrowFunctionExpression(lexer, start, is_async);
+		auto expression = ArrowFunctionExpression::TryParseArrowFunctionExpression(lexer, start, is_async);
+		if (expression) {
+			return expression;
+		}
 	}
 
 	// 不是函数表达式，回退到普通表达式解析

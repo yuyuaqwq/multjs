@@ -14,6 +14,7 @@
 #include "statement_impl/block_statement.h"
 #include "statement_impl/labeled_statement.h"
 #include "statement_impl/expression_statement.h"
+#include "statement_impl/class_declaration.h"
 #include "expression_impl/function_expression.h"
 
 namespace mjs {
@@ -32,6 +33,10 @@ std::unique_ptr<Statement> Statement::ParseStatement(Lexer* lexer) {
 	case TokenType::kKwLet:
 	case TokenType::kKwConst: {
 		return VariableDeclaration::ParseVariableDeclaration(lexer, token.type());
+	}
+
+	case TokenType::kKwClass: {
+		return ClassDeclaration::ParseClassDeclaration(lexer);
 	}
 
 	case TokenType::kKwIf: {
