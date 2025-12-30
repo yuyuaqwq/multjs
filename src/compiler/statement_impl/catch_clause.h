@@ -12,7 +12,7 @@
 
 #include "../statement.h"
 #include "block_statement.h"
-#include "../expression/identifier.h"
+#include "../expression_impl/identifier.h"
 
 namespace mjs {
 namespace compiler {

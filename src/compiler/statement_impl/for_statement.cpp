@@ -3,7 +3,7 @@
 #include "../code_generator.h"
 #include "variable_declaration.h"
 #include "expression_statement.h"
-#include "../expression/assignment_expression.h"
+#include "../expression_impl/assignment_expression.h"
 
 namespace mjs {
 namespace compiler {

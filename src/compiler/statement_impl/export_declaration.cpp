@@ -5,7 +5,7 @@
 #include "../code_generator.h"
 #include "expression_statement.h"
 #include "variable_declaration.h"
-#include "../expression/function_expression.h"
+#include "../expression_impl/function_expression.h"
 
 namespace mjs {
 namespace compiler {

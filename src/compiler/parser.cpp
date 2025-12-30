@@ -6,10 +6,10 @@
 #include <mjs/error.h>
 
 #include "statement.h"
-#include "statement/named_type.h"
+#include "statement_impl/named_type.h"
 
-#include "expression/function_expression.h"
-#include "expression/yield_expression.h"
+#include "expression_impl/function_expression.h"
+#include "expression_impl/yield_expression.h"
 
 /* EBNF
 exp = exp3

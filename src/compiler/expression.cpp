@@ -1,8 +1,8 @@
 #include "expression.h"
 
 #include "lexer.h"
-#include "expression/binary_expression.h"
-#include "expression/yield_expression.h"
+#include "expression_impl/binary_expression.h"
+#include "expression_impl/yield_expression.h"
 
 namespace mjs {
 namespace compiler {

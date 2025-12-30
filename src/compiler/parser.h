@@ -28,9 +28,9 @@
 
 #include "lexer.h"
 #include "expression.h"
-#include "statement/type_annotation.h"
-#include "statement/union_type.h"
-#include "statement/import_declaration.h"
+#include "statement_impl/type_annotation.h"
+#include "statement_impl/union_type.h"
+#include "statement_impl/import_declaration.h"
 
 namespace mjs {
 namespace compiler {

@@ -2,8 +2,8 @@
 
 #include "../statement.h"
 #include "../code_generator.h"
-#include "../statement/block_statement.h"
-#include "../statement/expression_statement.h"
+#include "../statement_impl/block_statement.h"
+#include "../statement_impl/expression_statement.h"
 
 #include "assignment_expression.h"
 #include "yield_expression.h"
@@ -33,9 +33,16 @@ std::unique_ptr<Expression> ArrowFunctionExpression::TryParseArrowFunctionExpres
 			lexer->RewindToCheckpoint(checkpoint);
 			return AssignmentExpression::ParseExpressionAtAssignmentLevel(lexer);
 		}
-	} else {
+		params = *res;
+	}
+	else if (lexer->PeekToken().is(TokenType::kIdentifier)) {
 		// 单个参数
 		params.push_back(lexer->NextToken().value());
+	}
+	else {
+		// 不是箭头函数，回退
+		lexer->RewindToCheckpoint(checkpoint);
+		return AssignmentExpression::ParseExpressionAtAssignmentLevel(lexer);
 	}
 
 	// 检查是否有箭头 =>
@@ -81,29 +88,21 @@ void ArrowFunctionExpression::GenerateCode(CodeGenerator* code_generator, Functi
 	function_def_base->bytecode_table().EmitOpcode(OpcodeType::kCLoadD);
 	function_def_base->bytecode_table().EmitU32(const_idx);
 
-	// 保存环境，以生成新指令流
-	// auto savefunc = function_def_base;
-
 	// 切换环境
 	auto& scope = code_generator->EnterScope(function_def_base, new_func_def, ScopeType::kArrowFunction);
-
-	// current_func_def_ = func_def;
 
 	// 参数正序分配
 	for (auto& param : params()) {
 		scope.AllocVar(param, VarFlags::kNone);
 	}
 
-	code_generator->GenerateFunctionBody(function_def_base, body().get());
+	code_generator->GenerateFunctionBody(new_func_def, body().get());
 
 	bool need_repair = new_func_def->has_this() || !new_func_def->closure_var_table().closure_var_defs().empty();
 
 	// 恢复环境
-	new_func_def->debug_table().Sort();
-
-	// current_func_def_ = savefunc;
-
 	code_generator->ExitScope();
+	new_func_def->debug_table().Sort();
 
 	if (need_repair) {
 		function_def_base->bytecode_table().RepairOpcode(load_pc, OpcodeType::kClosure);

@@ -1,7 +1,7 @@
 #include "return_statement.h"
 
 #include "../code_generator.h"
-#include "../expression/yield_expression.h"
+#include "../expression_impl/yield_expression.h"
 
 namespace mjs {
 namespace compiler {

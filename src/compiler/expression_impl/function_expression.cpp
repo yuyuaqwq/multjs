@@ -4,7 +4,7 @@
 
 #include "../code_generator.h"
 #include "../statement.h"
-#include "../statement/block_statement.h"
+#include "../statement_impl/block_statement.h"
 #include "arrow_function_expression.h"
 #include "assignment_expression.h"
 
@@ -53,9 +53,6 @@ void FunctionExpression::GenerateCode(CodeGenerator* code_generator, FunctionDef
 		}
 	}
 
-	// 保存环境，以生成新指令流
-	// auto savefunc = current_func_def_;
-
 	// 切换环境
 	code_generator->EnterScope(function_def_base, new_func_def, ScopeType::kFunction);
 
@@ -71,7 +68,6 @@ void FunctionExpression::GenerateCode(CodeGenerator* code_generator, FunctionDef
 	// 恢复环境
 	code_generator->ExitScope();
 	new_func_def->debug_table().Sort();
-
 
 	if (need_repair) {
 		function_def_base->bytecode_table().RepairOpcode(load_pc, OpcodeType::kClosure);

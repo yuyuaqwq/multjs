@@ -8,17 +8,17 @@
 #include <mjs/class_def_impl/object_class_def.h>
 #include <mjs/class_def_impl/array_object_class_def.h>
 
-#include "statement/block_statement.h"
-#include "statement/expression_statement.h"
-#include "expression/identifier.h"
-#include "expression/member_expression.h"
-#include "expression/undefined_literal.h"
-#include "expression/null_literal.h"
-#include "expression/boolean_literal.h"
-#include "expression/integer_literal.h"
-#include "expression/float_literal.h"
-#include "expression/string_literal.h"
-#include "expression/template_element.h"
+#include "statement_impl/block_statement.h"
+#include "statement_impl/expression_statement.h"
+#include "expression_impl/identifier.h"
+#include "expression_impl/member_expression.h"
+#include "expression_impl/undefined_literal.h"
+#include "expression_impl/null_literal.h"
+#include "expression_impl/boolean_literal.h"
+#include "expression_impl/integer_literal.h"
+#include "expression_impl/float_literal.h"
+#include "expression_impl/string_literal.h"
+#include "expression_impl/template_element.h"
 
 namespace mjs {
 namespace compiler {

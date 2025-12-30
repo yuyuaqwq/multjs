@@ -22,7 +22,7 @@
 #include "scope.h"
 #include "repair_def.h"
 #include "jump_manager.h"
-#include "statement/block_statement.h"
+#include "statement_impl/block_statement.h"
 
 namespace mjs {
 
