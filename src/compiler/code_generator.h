@@ -192,14 +192,6 @@ public:
      */
     Value MakeConstValue(FunctionDefBase* function_def_base, Expression* exp) const;
 
-    /**
-     * @brief 修复跳转指令
-     * @param entries 需要修复的条目
-     * @param end_pc 结束PC
-     * @param reloop_pc 重新循环PC
-     */
-    void RepairEntries(FunctionDefBase* function_def_base, const std::vector<RepairEntry>& entries, Pc end_pc, Pc reloop_pc);
-
 private:
     friend class Statement;
 

@@ -25,15 +25,16 @@ std::unique_ptr<WhileStatement> WhileStatement::ParseWhileStatement(Lexer* lexer
 }
 
 void WhileStatement::GenerateCode(CodeGenerator* code_generator, FunctionDefBase* function_def_base) const {
-    auto save_loop_repair_entrys = code_generator->jump_manager().current_loop_repair_entries();
+    auto& jump_manager = code_generator->jump_manager();
+    auto save_loop_repair_entrys = jump_manager.current_loop_repair_entries();
 
     std::vector<RepairEntry> loop_repair_entrys;
-    code_generator->jump_manager().set_current_loop_repair_entries(&loop_repair_entrys);
+    jump_manager.set_current_loop_repair_entries(&loop_repair_entrys);
 
     // 记录重新循环的pc
     auto reloop_pc = function_def_base->bytecode_table().Size();
-    if (code_generator->jump_manager().current_label_reloop_pc() && code_generator->jump_manager().current_label_reloop_pc() == kInvalidPc) {
-        code_generator->jump_manager().set_current_label_reloop_pc(reloop_pc);
+    if (jump_manager.current_label_reloop_pc() && jump_manager.current_label_reloop_pc() == kInvalidPc) {
+        jump_manager.set_current_label_reloop_pc(reloop_pc);
     }
 
     // 表达式结果压栈
@@ -56,9 +57,9 @@ void WhileStatement::GenerateCode(CodeGenerator* code_generator, FunctionDefBase
     function_def_base->bytecode_table().EmitPcOffset(0);
     function_def_base->bytecode_table().RepairPc(function_def_base->bytecode_table().Size() - 3, reloop_pc);
 
-    code_generator->RepairEntries(function_def_base, loop_repair_entrys, function_def_base->bytecode_table().Size(), reloop_pc);
+    jump_manager.RepairEntries(function_def_base, loop_repair_entrys, function_def_base->bytecode_table().Size(), reloop_pc);
 
-    code_generator->jump_manager().set_current_loop_repair_entries(save_loop_repair_entrys);
+    jump_manager.set_current_loop_repair_entries(save_loop_repair_entrys);
 }
 
 } // namespace compiler

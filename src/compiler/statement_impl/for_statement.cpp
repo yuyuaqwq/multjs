@@ -9,10 +9,11 @@ namespace mjs {
 namespace compiler {
 
 void ForStatement::GenerateCode(CodeGenerator* code_generator, FunctionDefBase* function_def_base) const {
-    auto save_loop_repair_entrys = code_generator->jump_manager().current_loop_repair_entries();
+    auto& jump_manager = code_generator->jump_manager();
+    auto save_loop_repair_entrys = jump_manager.current_loop_repair_entries();
 
     std::vector<RepairEntry> loop_repair_entrys;
-    code_generator->jump_manager().set_current_loop_repair_entries(&loop_repair_entrys);
+    jump_manager.set_current_loop_repair_entries(&loop_repair_entrys);
 
     code_generator->EnterScope(function_def_base, nullptr, ScopeType::kFor);
 
@@ -34,15 +35,15 @@ void ForStatement::GenerateCode(CodeGenerator* code_generator, FunctionDefBase* 
     // 提前写入跳转的指令
     code_generator->GenerateIfEq(function_def_base);
 
-    bool need_set_label = code_generator->jump_manager().current_label_reloop_pc() && code_generator->jump_manager().current_label_reloop_pc() == kInvalidPc;
-    code_generator->jump_manager().set_current_label_reloop_pc(std::nullopt);
+    bool need_set_label = jump_manager.current_label_reloop_pc() && jump_manager.current_label_reloop_pc() == kInvalidPc;
+    jump_manager.set_current_label_reloop_pc(std::nullopt);
 
     body_->GenerateCode(code_generator, function_def_base);
 
     // 记录重新循环的pc
     auto reloop_pc = function_def_base->bytecode_table().Size();
     if (need_set_label) {
-        code_generator->jump_manager().set_current_label_reloop_pc(reloop_pc);
+        jump_manager.set_current_label_reloop_pc(reloop_pc);
     }
 
     if (update_) {
@@ -56,9 +57,9 @@ void ForStatement::GenerateCode(CodeGenerator* code_generator, FunctionDefBase* 
     function_def_base->bytecode_table().EmitPcOffset(0);
     function_def_base->bytecode_table().RepairPc(function_def_base->bytecode_table().Size() - 3, start_pc);
 
-    code_generator->RepairEntries(function_def_base, loop_repair_entrys, function_def_base->bytecode_table().Size(), reloop_pc);
+    jump_manager.RepairEntries(function_def_base, loop_repair_entrys, function_def_base->bytecode_table().Size(), reloop_pc);
 
-    code_generator->jump_manager().set_current_loop_repair_entries(save_loop_repair_entrys);
+    jump_manager.set_current_loop_repair_entries(save_loop_repair_entrys);
 }
 
 std::unique_ptr<ForStatement> ForStatement::ParseForStatement(Lexer* lexer) {

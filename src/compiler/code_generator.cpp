@@ -206,7 +206,7 @@ const Value& CodeGenerator::GetConstValueByIndex(ConstIndex idx) const {
 }
 
 const VarInfo& CodeGenerator::AllocateVar(const std::string& name, VarFlags flags) {
-    return scopes_.back().AllocVar(name, flags);
+    return scopes_.back().AllocateVar(name, flags);
 }
 
 const VarInfo* CodeGenerator::FindVarInfoByName(FunctionDefBase* function_def_base, const std::string& name) {
@@ -237,7 +237,7 @@ const VarInfo* CodeGenerator::FindVarInfoByName(FunctionDefBase* function_def_ba
                 scope_func = scopes_[j].function_def();
 
                 // 为Value(&closure_var)分配变量
-                find_var_info = &scopes_[j].AllocVar(name, var_info->flags);
+                find_var_info = &scopes_[j].AllocateVar(name, var_info->flags);
                 scope_func->closure_var_table().AddClosureVar(find_var_info->var_idx, var_idx);
                 var_idx = find_var_info->var_idx;
             }
@@ -290,24 +290,6 @@ Value CodeGenerator::MakeConstValue(FunctionDefBase* function_def_base, Expressi
     }
 }
 
-void CodeGenerator::RepairEntries(FunctionDefBase* function_def_base, const std::vector<RepairEntry>& entries, Pc end_pc, Pc reloop_pc) {
-    for (auto& repair_info : entries) {
-        switch (repair_info.type) {
-        case RepairEntry::Type::kBreak: {
-            function_def_base->bytecode_table().RepairPc(repair_info.repair_pc, end_pc);
-            break;
-        }
-        case RepairEntry::Type::kContinue: {
-            assert(reloop_pc != kInvalidPc);
-            function_def_base->bytecode_table().RepairPc(repair_info.repair_pc, reloop_pc);
-            break;
-        }
-        default:
-            throw SyntaxError("Incorrect type.");
-            break;
-        }
-    }
-}
 
 } // namespace compiler
 } // namespace mjs 

@@ -1,10 +1,15 @@
+#pragma once
+
 #include <vector>
+#include <optional>
 
 #include <mjs/noncopyable.h>
 
 #include "repair_def.h"
 
 namespace mjs {
+
+class FunctionDefBase;
 
 namespace compiler {
 
@@ -32,6 +37,14 @@ public:
         current_label_reloop_pc_ = current_label_reloop_pc;
     }
 
+    /**
+     * @brief 修复跳转指令
+     * @param entries 需要修复的条目
+     * @param end_pc 结束PC
+     * @param reloop_pc 重新循环PC
+     */
+    void RepairEntries(FunctionDefBase* function_def_base, const std::vector<RepairEntry>& entries, Pc end_pc, Pc reloop_pc);
+
 private:
     std::vector<RepairEntry>* current_loop_repair_entries_ = nullptr; ///< 当前循环需要修复的条目
 
@@ -40,5 +53,4 @@ private:
 };
 
 } // namespace compiler
-
 } // namespace mjs

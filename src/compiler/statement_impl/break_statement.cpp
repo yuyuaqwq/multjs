@@ -27,13 +27,14 @@ std::unique_ptr<BreakStatement> BreakStatement::ParseBreakStatement(Lexer* lexer
 }
 
 void BreakStatement::GenerateCode(CodeGenerator* code_generator, FunctionDefBase* function_def_base) const {
-    if (code_generator->jump_manager().current_loop_repair_entries() == nullptr) {
+    auto& jump_manager = code_generator->jump_manager();
+    if (jump_manager.current_loop_repair_entries() == nullptr) {
         throw SyntaxError("Cannot use break in acyclic scope.");
     }
 
     if (label_) {
-        auto iter = code_generator->jump_manager().label_map().find(*label_);
-        if (iter == code_generator->jump_manager().label_map().end()) {
+        auto iter = jump_manager.label_map().find(*label_);
+        if (iter == jump_manager.label_map().end()) {
             throw SyntaxError("Label does not exist.");
         }
         iter->second.entries.emplace_back(RepairEntry{
@@ -42,7 +43,7 @@ void BreakStatement::GenerateCode(CodeGenerator* code_generator, FunctionDefBase
             });
     }
     else {
-        code_generator->jump_manager().current_loop_repair_entries()->emplace_back(RepairEntry{
+        jump_manager.current_loop_repair_entries()->emplace_back(RepairEntry{
             .type = RepairEntry::Type::kBreak,
             .repair_pc = function_def_base->bytecode_table().Size(),
             });

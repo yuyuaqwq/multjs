@@ -5,7 +5,7 @@
 namespace mjs {
 namespace compiler {
 
-const VarInfo& Scope::AllocVar(const std::string& var_name, VarFlags flags) {
+const VarInfo& Scope::AllocateVar(const std::string& var_name, VarFlags flags) {
 	if (var_table_.find(var_name) != var_table_.end()) {
 		throw SyntaxError("local var redefinition: {}.", var_name);
 	}

@@ -70,7 +70,7 @@ public:
 		type_ = other.type_;
 	}
 
-	const VarInfo& AllocVar(const std::string& var_name, VarFlags flags);
+	const VarInfo& AllocateVar(const std::string& var_name, VarFlags flags);
 
 	const VarInfo* FindVar(const std::string& var_name) const;
 

@@ -93,7 +93,7 @@ void ArrowFunctionExpression::GenerateCode(CodeGenerator* code_generator, Functi
 
 	// 参数正序分配
 	for (auto& param : params()) {
-		scope.AllocVar(param, VarFlags::kNone);
+		scope.AllocateVar(param, VarFlags::kNone);
 	}
 
 	code_generator->GenerateFunctionBody(new_func_def, body().get());
