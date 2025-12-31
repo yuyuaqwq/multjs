@@ -54,7 +54,7 @@ std::unique_ptr<Expression> CallExpression::ParseExpressionAtCallLevel(
 
 	do {
 		auto token = lexer->PeekToken();
-		if (token.is(TokenType::kSepDot) || token.is(TokenType::kSepLBrack)) {
+		if (token.is(TokenType::kSepDot) || token.is(TokenType::kSepLBrack) || token.is(TokenType::kOpOptionalChain)) {
 			right = MemberExpression::ParseMemberExpression(lexer, std::move(right));
 		}
 		else if (match_lparen && token.is(TokenType::kSepLParen)) {

@@ -53,9 +53,14 @@ std::unique_ptr<MemberExpression> MemberExpression::ParseMemberExpression(Lexer*
 	std::unique_ptr<Expression> member;
 
 	bool computed = false;
+	bool optional = false;
 	auto token = lexer->NextToken();
 	if (token.is(TokenType::kSepDot)) {
 		member = Identifier::ParseIdentifier(lexer);
+	}
+	else if (token.is(TokenType::kOpOptionalChain)) {
+		member = Identifier::ParseIdentifier(lexer);
+		optional = true;
 	}
 	else if (token.is(TokenType::kSepLBrack)) {
 		member = ParseExpression(lexer);
@@ -74,7 +79,7 @@ std::unique_ptr<MemberExpression> MemberExpression::ParseMemberExpression(Lexer*
 	auto end = lexer->GetRawSourcePosition();
 
 	return std::make_unique<MemberExpression>(start, end,
-		std::move(object), std::move(member), is_method_call, computed, false);
+		std::move(object), std::move(member), is_method_call, computed, optional);
 }
 
 } // namespace compiler

@@ -46,6 +46,34 @@ std::unique_ptr<Statement> ImportDeclaration::ParseImportStatement(Lexer* lexer,
 		// 动态import
 		return ExpressionStatement::ParseExpressionStatement(lexer);
 	}
+	else if (token.is(TokenType::kSepLCurly)) {
+		// 命名导入: import { foo, bar as baz } from 'module'
+		lexer->MatchToken(type);
+		lexer->MatchToken(TokenType::kSepLCurly);
+
+		// 解析导入的标识符列表
+		while (!lexer->PeekToken().is(TokenType::kSepRCurly)) {
+			lexer->MatchToken(TokenType::kIdentifier);
+			if (lexer->PeekToken().is(TokenType::kKwAs)) {
+				lexer->NextToken();
+				lexer->MatchToken(TokenType::kIdentifier);
+			}
+			if (lexer->PeekToken().is(TokenType::kSepComma)) {
+				lexer->NextToken();
+			}
+		}
+		lexer->MatchToken(TokenType::kSepRCurly);
+		lexer->MatchToken(TokenType::kKwFrom);
+
+		auto source = lexer->MatchToken(TokenType::kString).value();
+		lexer->MatchToken(TokenType::kSepSemi);
+
+		auto end = lexer->GetRawSourcePosition();
+
+		// 命名导入，使用空字符串作为name
+		auto import_declaration = std::make_unique<ImportDeclaration>(start, end, std::move(source), "");
+		return import_declaration;
+	}
 	else {
 		throw SyntaxError("Unsupported module parsing.");
 	}

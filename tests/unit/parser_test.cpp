@@ -607,17 +607,24 @@ TEST_F(ParserTest, ParseTemplateLiteral) {
     auto* template_literal = dynamic_cast<TemplateLiteral*>(expr.get());
     ASSERT_TRUE(template_literal != nullptr);
 
-    // 标准AST是quasis和expressions
-    // 这里的实现不一样，都放到expressions了
+    // 检查模板字符串的部分：包含字符串字面量和插值表达式
+    // "Hello, ", name, "!" 共3部分
+    ASSERT_EQ(template_literal->expressions().size(), 3);
 
-    // 检查模板字符串的部分
-    // ASSERT_EQ(template_literal->quasis().size(), 2);
-    ASSERT_EQ(template_literal->expressions().size(), 1);
+    // 检查第一部分是字符串字面量
+    auto* first_str = dynamic_cast<StringLiteral*>(template_literal->expressions()[0].get());
+    ASSERT_TRUE(first_str != nullptr);
+    EXPECT_EQ(first_str->value(), "Hello, ");
 
-    // 检查表达式部分
-    auto* expr_ident = dynamic_cast<Identifier*>(template_literal->expressions()[0].get());
+    // 检查第二部分是插值表达式
+    auto* expr_ident = dynamic_cast<Identifier*>(template_literal->expressions()[1].get());
     ASSERT_TRUE(expr_ident != nullptr);
     EXPECT_EQ(expr_ident->name(), "name");
+
+    // 检查第三部分是字符串字面量
+    auto* last_str = dynamic_cast<StringLiteral*>(template_literal->expressions()[2].get());
+    ASSERT_TRUE(last_str != nullptr);
+    EXPECT_EQ(last_str->value(), "!");
 }
 
 // 测试解析导入语句
