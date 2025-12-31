@@ -1151,9 +1151,9 @@ Value Value::ToBoolean() const {
 		if (std::isnan(f64())) {
 			return Value(false);
 		}
-		return Value(f64() == 0);
+		return Value(f64() != 0);
 	case ValueType::kString: {
-		return Value(value_.string_->empty());
+		return Value(!value_.string_->empty());
 	}
 	case ValueType::kStringView: {
 		return Value(string_view() != nullptr && string_view()[0] != '\0');

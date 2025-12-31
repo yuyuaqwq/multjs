@@ -25,15 +25,13 @@ namespace mjs {
  * @class SegmentedArray
  * @brief 分段数组模板类
  *
- * 使用分段静态数组实现，避免 resize 时其他运行 Context 的线程 get，
- * 导致 get 需要加锁。每块静态数组有 kStaticArraySize 个元素，
- * 满了就 new 新的静态数组。
+ * 使用分段静态数组实现，避免 resize 时其他运行 Context 的线程 get，导致 get 需要加锁。
+ * 每块静态数组有 kStaticArraySize 个元素，满了就 new 新的静态数组。
+ * size初始为1，[0] 保留。
  *
  * @tparam T 元素类型
  * @tparam IndexT 索引类型
  * @tparam kStaticArraySize 静态数组大小
- * @note 使用分段静态数组，避免 resize 时其他运行 Context 的线程 get，导致 get 需要加锁
- * @note 每块静态数组有 kStaticArraySize 个元素，满了就 new 新的静态数组
  * @see noncopyable 不可拷贝基类
  */
 template <typename T, typename IndexT, size_t kStaticArraySize>
@@ -140,11 +138,14 @@ public:
 
 	/**
 	 * @brief 清空数组
+	 * 清空后size初始化为1
 	 */
 	void clear() {
 		for (auto& ptr : pool_) {
 			ptr.reset();
 		}
+		pool_[0] = std::make_unique<StaticArray>();
+		size_ = IndexT(1);
 	}
 
 private:

@@ -44,27 +44,27 @@ public:
 	/**
 	 * @brief 插入常量值
 	 * @param value 常量值
-	 * @return 常量索引
+	 * @return 全局常量索引
 	 */
 	ConstIndex insert(const Value& value);
 
 	/**
 	 * @brief 插入常量值（移动语义）
 	 * @param value 常量值
-	 * @return 常量索引
+	 * @return 全局常量索引
 	 */
 	ConstIndex insert(Value&& value);
 
 	/**
 	 * @brief 查找常量值
 	 * @param value 常量值
-	 * @return 常量索引（如果存在），否则返回空
+	 * @return 全局常量索引（如果存在），否则返回空
 	 */
 	std::optional<ConstIndex> find(const Value& value);
 
 	/**
 	 * @brief 常量索引访问运算符（常量版本）
-	 * @param index 常量索引
+	 * @param index 全局常量索引
 	 * @return 常量值常量引用
 	 */
 	const Value& operator[](ConstIndex index) const {
@@ -73,7 +73,7 @@ public:
 
 	/**
 	 * @brief 常量索引访问运算符
-	 * @param index 常量索引
+	 * @param index 全局常量索引
 	 * @return 常量值引用
 	 */
 	Value& operator[](ConstIndex index) {
@@ -83,7 +83,7 @@ public:
 
 	/**
 	 * @brief 安全访问常量值（常量版本）
-	 * @param index 常量索引
+	 * @param index 全局常量索引
 	 * @return 常量值常量引用
 	 * @throw std::out_of_range 当索引超出范围时抛出
 	 */
@@ -96,7 +96,7 @@ public:
 
 	/**
 	 * @brief 安全访问常量值
-	 * @param index 常量索引
+	 * @param index 全局常量索引
 	 * @return 常量值引用
 	 * @throw std::out_of_range 当索引超出范围时抛出
 	 */

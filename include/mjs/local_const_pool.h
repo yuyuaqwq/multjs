@@ -49,34 +49,34 @@ public:
 	/**
 	 * @brief 插入常量值（移动语义）
 	 * @param value 常量值
-	 * @return 常量索引
+	 * @return 局部常量索引（负数）
 	 */
 	ConstIndex insert(Value&& value);
 
 	/**
 	 * @brief 查找常量值
 	 * @param value 常量值
-	 * @return 常量索引（如果存在），否则返回空
+	 * @return 局部常量索引（负数，如果存在），否则返回空
 	 */
 	std::optional<ConstIndex> find(const Value& value);
 
 	/**
 	 * @brief 安全访问常量值（常量版本）
-	 * @param index 常量索引
+	 * @param index 局部常量索引
 	 * @return 常量值常量引用
 	 */
 	const Value& at(ConstIndex index) const;
 
 	/**
 	 * @brief 安全访问常量值
-	 * @param index 常量索引
+	 * @param index 局部常量索引
 	 * @return 常量值引用
 	 */
 	Value& at(ConstIndex index);
 
 	/**
 	 * @brief 常量索引访问运算符（常量版本）
-	 * @param index 常量索引
+	 * @param index 局部常量索引
 	 * @return 常量值常量引用
 	 */
 	const Value& operator[](ConstIndex index) const {
@@ -85,7 +85,7 @@ public:
 
 	/**
 	 * @brief 常量索引访问运算符
-	 * @param index 常量索引
+	 * @param index 局部常量索引
 	 * @return 常量值引用
 	 */
 	Value& operator[](ConstIndex index) {
@@ -94,7 +94,7 @@ public:
 
 	/**
 	 * @brief 增加常量引用计数
-	 * @param index 常量索引
+	 * @param index 局部常量索引
 	 */
 	void ReferenceConst(ConstIndex index) {
 		auto& node = pool_[-index];
@@ -103,7 +103,7 @@ public:
 
 	/**
 	 * @brief 减少常量引用计数
-	 * @param index 常量索引
+	 * @param index 局部常量索引
 	 * @note 当引用计数为0时自动回收常量
 	 */
 	void DereferenceConst(ConstIndex index) {
@@ -126,7 +126,7 @@ public:
 private:
 	/**
 	 * @brief 删除常量
-	 * @param index 常量索引
+	 * @param index 局部常量索引
 	 */
 	void erase(ConstIndex index);
 

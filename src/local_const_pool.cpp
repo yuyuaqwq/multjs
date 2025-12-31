@@ -14,7 +14,8 @@ ConstIndex LocalConstPool::insert(const Value& value) {
 ConstIndex LocalConstPool::insert(Value&& value) {
 	auto it = map_.find(value);
 	if (it != map_.end()) {
-		return it->second;
+		// 常量已存在
+		return -it->second;  // 转换为负索引
 	}
 
 	// TODO: 调试输出

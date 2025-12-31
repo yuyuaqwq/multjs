@@ -3,6 +3,10 @@ project(multjs)
 
 set(CMAKE_CXX_STANDARD 20)
 
+if(MSVC)
+    add_compile_options(/utf-8)
+endif()
+
 set(MJS_LIB_TARGET mjs)
 set(MJS_INCLUDE_DIR ./include)
 
