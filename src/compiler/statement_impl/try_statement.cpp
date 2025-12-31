@@ -39,14 +39,15 @@ std::unique_ptr<TryStatement> TryStatement::ParseTryStatement(Lexer* lexer) {
 
 void TryStatement::GenerateCode(CodeGenerator* code_generator, FunctionDefBase* function_def_base) const {
     auto has_finally = bool(finalizer_);
+    auto& scope_manager = code_generator->scope_manager();
 
     auto try_start_pc = function_def_base->bytecode_table().Size();
 
     function_def_base->bytecode_table().EmitOpcode(OpcodeType::kTryBegin);
 
-    code_generator->EnterScope(function_def_base, nullptr, has_finally ? ScopeType::kTryFinally : ScopeType::kTry);
+    scope_manager.EnterScope(function_def_base, nullptr, has_finally ? ScopeType::kTryFinally : ScopeType::kTry);
     block_->GenerateCode(code_generator, function_def_base);
-    code_generator->ExitScope();
+    scope_manager.ExitScope();
 
     auto try_end_pc = function_def_base->bytecode_table().Size();
 
@@ -61,14 +62,14 @@ void TryStatement::GenerateCode(CodeGenerator* code_generator, FunctionDefBase* 
 
     if (handler_) {
         catch_start_pc = function_def_base->bytecode_table().Size();
-        code_generator->EnterScope(function_def_base, nullptr, has_finally ? ScopeType::kCatchFinally : ScopeType::kCatch);
+        scope_manager.EnterScope(function_def_base, nullptr, has_finally ? ScopeType::kCatchFinally : ScopeType::kCatch);
 
         // 加载error参数到变量
-        catch_err_var_idx = code_generator->AllocateVar(handler_->param()->name()).var_idx;
+        catch_err_var_idx = scope_manager.AllocateVar(handler_->param()->name()).var_idx;
 
         handler_->body()->GenerateCode(code_generator, function_def_base);
 
-        code_generator->ExitScope();
+        scope_manager.ExitScope();
         catch_end_pc = function_def_base->bytecode_table().Size();
     }
     else {
@@ -83,9 +84,9 @@ void TryStatement::GenerateCode(CodeGenerator* code_generator, FunctionDefBase* 
     auto finally_end_pc = kInvalidPc;
     if (finalizer_) {
         finally_start_pc = function_def_base->bytecode_table().Size();
-        code_generator->EnterScope(function_def_base, nullptr, ScopeType::kFinally);
+        scope_manager.EnterScope(function_def_base, nullptr, ScopeType::kFinally);
         finalizer_->body()->GenerateCode(code_generator, function_def_base);
-        code_generator->ExitScope();
+        scope_manager.ExitScope();
         finally_end_pc = function_def_base->bytecode_table().Size();
     }
 

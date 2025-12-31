@@ -8,7 +8,7 @@ namespace compiler {
 
 void Identifier::GenerateCode(CodeGenerator* code_generator, FunctionDefBase* function_def_base) const {
     // 尝试查找到对应的变量索引
-    const auto* var_info = code_generator->GetVarInfoByExpression(function_def_base, const_cast<Identifier*>(this));
+    const auto* var_info = code_generator->scope_manager().GetVarInfoByExpression(function_def_base, const_cast<Identifier*>(this));
     if (var_info) {
         // 从变量中获取
         function_def_base->bytecode_table().EmitVarLoad(var_info->var_idx);

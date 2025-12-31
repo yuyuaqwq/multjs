@@ -8,7 +8,7 @@ namespace compiler {
 void ThisExpression::GenerateCode(CodeGenerator* code_generator, FunctionDefBase* function_def_base) const {
     // this 表达式生成 this 指令
     function_def_base->set_has_this(true);
-    if (code_generator->IsInTypeScope({ ScopeType::kFunction }, { ScopeType::kArrowFunction })) {
+    if (code_generator->scope_manager().IsInTypeScope({ ScopeType::kFunction }, { ScopeType::kArrowFunction })) {
         function_def_base->bytecode_table().EmitOpcode(OpcodeType::kGetThis);
     }
     else {

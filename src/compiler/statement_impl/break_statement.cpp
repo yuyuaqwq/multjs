@@ -50,7 +50,7 @@ void BreakStatement::GenerateCode(CodeGenerator* code_generator, FunctionDefBase
     }
 
     // 无法提前得知结束pc，保存待修复pc，等待修复
-    if (code_generator->IsInTypeScope({ ScopeType::kTryFinally,ScopeType::kCatchFinally, ScopeType::kFinally }, { ScopeType::kWhile, ScopeType::kFunction, ScopeType::kArrowFunction })) {
+    if (code_generator->scope_manager().IsInTypeScope({ ScopeType::kTryFinally,ScopeType::kCatchFinally, ScopeType::kFinally }, { ScopeType::kWhile, ScopeType::kFunction, ScopeType::kArrowFunction })) {
         function_def_base->bytecode_table().EmitOpcode(OpcodeType::kFinallyGoto);
     }
     else {

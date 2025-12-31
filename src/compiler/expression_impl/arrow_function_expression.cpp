@@ -75,6 +75,7 @@ std::unique_ptr<Expression> ArrowFunctionExpression::TryParseArrowFunctionExpres
 
 void ArrowFunctionExpression::GenerateCode(CodeGenerator* code_generator, FunctionDefBase* function_def_base) const {
     // 箭头函数表达式代码生成
+	auto& scope_manager = code_generator->scope_manager();
 
 	auto new_func_def = FunctionDef::New(&function_def_base->module_def(), "<anonymous_function>", params().size());
 	auto const_idx = code_generator->AllocateConst(Value(new_func_def));
@@ -89,7 +90,7 @@ void ArrowFunctionExpression::GenerateCode(CodeGenerator* code_generator, Functi
 	function_def_base->bytecode_table().EmitU32(const_idx);
 
 	// 切换环境
-	auto& scope = code_generator->EnterScope(function_def_base, new_func_def, ScopeType::kArrowFunction);
+	auto& scope = scope_manager.EnterScope(function_def_base, new_func_def, ScopeType::kArrowFunction);
 
 	// 参数正序分配
 	for (auto& param : params()) {
@@ -101,7 +102,7 @@ void ArrowFunctionExpression::GenerateCode(CodeGenerator* code_generator, Functi
 	bool need_repair = new_func_def->has_this() || !new_func_def->closure_var_table().closure_var_defs().empty();
 
 	// 恢复环境
-	code_generator->ExitScope();
+	scope_manager.ExitScope();
 	new_func_def->debug_table().Sort();
 
 	if (need_repair) {

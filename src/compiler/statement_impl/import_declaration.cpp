@@ -17,7 +17,7 @@ void ImportDeclaration::GenerateCode(CodeGenerator* code_generator, FunctionDefB
     auto name_const_idx = code_generator->AllocateConst(Value(String::New(name_)));
 
     // 模块对象保存到变量
-    auto& var_info = code_generator->AllocateVar(name_, VarFlags::kConst);
+    auto& var_info = code_generator->scope_manager().AllocateVar(name_, VarFlags::kConst);
     function_def_base->bytecode_table().EmitVarStore(var_info.var_idx);
     function_def_base->bytecode_table().EmitOpcode(OpcodeType::kPop);
 }

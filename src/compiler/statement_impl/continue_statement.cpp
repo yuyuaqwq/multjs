@@ -50,7 +50,7 @@ void ContinueStatement::GenerateCode(CodeGenerator* code_generator, FunctionDefB
     }
 
     // 跳到当前循环的末尾pc，等待修复
-    if (code_generator->IsInTypeScope({ ScopeType::kTryFinally,ScopeType::kCatchFinally, ScopeType::kFinally }, { ScopeType::kWhile, ScopeType::kFunction, ScopeType::kArrowFunction })) {
+    if (code_generator->scope_manager().IsInTypeScope({ ScopeType::kTryFinally,ScopeType::kCatchFinally, ScopeType::kFinally }, { ScopeType::kWhile, ScopeType::kFunction, ScopeType::kArrowFunction })) {
         function_def_base->bytecode_table().EmitOpcode(OpcodeType::kFinallyGoto);
     }
     else {

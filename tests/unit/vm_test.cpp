@@ -302,7 +302,7 @@ TEST_F(VMTest, FunctionCall) {
     EXPECT_TRUE(result.IsNumber());
     EXPECT_DOUBLE_EQ(result.u64(), 11.0); // 10 + 1
 }
-
+ 
 // 测试异常处理
 TEST_F(VMTest, ExceptionHandling) {
     auto func_def = CreateSimpleFunction("test_exception");

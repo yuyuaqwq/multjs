@@ -27,6 +27,7 @@ namespace compiler {
 void ClassExpression::GenerateCode(CodeGenerator* code_generator, FunctionDefBase* function_def_base) const {
     // Class表达式代码生成
     // class本质上是一个构造函数,其方法定义在prototype上
+    auto& scope_manager = code_generator->scope_manager();
 
     // 1. 查找constructor方法获取参数信息
     std::vector<std::string> constructor_params;
@@ -65,20 +66,20 @@ void ClassExpression::GenerateCode(CodeGenerator* code_generator, FunctionDefBas
     // 4. 如果有类名,分配变量存储类引用
     const VarInfo* var_info_ptr = nullptr;
     if (id().has_value()) {
-        auto& var_info = code_generator->AllocateVar(id().value(), VarFlags::kConst);
+        auto& var_info = scope_manager.AllocateVar(id().value(), VarFlags::kConst);
         var_info_ptr = &var_info;
         function_def_base->bytecode_table().EmitVarStore(var_info.var_idx);
     }
 
     // 5. 进入构造函数作用域生成代码
-    code_generator->EnterScope(function_def_base, constructor_def, ScopeType::kFunction);
+    scope_manager.EnterScope(function_def_base, constructor_def, ScopeType::kFunction);
 
     // 分配构造函数参数
     for (size_t i = 0; i < constructor_def->param_count(); ++i) {
         if (i < constructor_params.size()) {
-            code_generator->AllocateVar(constructor_params[i]);
+            scope_manager.AllocateVar(constructor_params[i]);
         } else {
-            code_generator->AllocateVar("");
+            scope_manager.AllocateVar("");
         }
     }
 
@@ -121,7 +122,7 @@ void ClassExpression::GenerateCode(CodeGenerator* code_generator, FunctionDefBas
     bool need_repair = !constructor_def->closure_var_table().closure_var_defs().empty();
 
     // 8. 退出构造函数作用域
-    code_generator->ExitScope();
+    scope_manager.ExitScope();
     constructor_def->debug_table().Sort();
 
     // 9. 如果有闭包变量,修复为闭包指令

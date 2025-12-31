@@ -34,7 +34,7 @@ void ReturnStatement::GenerateCode(CodeGenerator* code_generator, FunctionDefBas
         function_def_base->bytecode_table().EmitOpcode(OpcodeType::kUndefined);
     }
 
-    if (code_generator->IsInTypeScope({ ScopeType::kTryFinally,ScopeType::kCatchFinally, ScopeType::kFinally }, { ScopeType::kFunction })) {
+    if (code_generator->scope_manager().IsInTypeScope({ ScopeType::kTryFinally,ScopeType::kCatchFinally, ScopeType::kFinally }, { ScopeType::kFunction })) {
         function_def_base->bytecode_table().EmitOpcode(OpcodeType::kFinallyReturn);
     }
     else {

@@ -26,6 +26,7 @@ std::unique_ptr<WhileStatement> WhileStatement::ParseWhileStatement(Lexer* lexer
 
 void WhileStatement::GenerateCode(CodeGenerator* code_generator, FunctionDefBase* function_def_base) const {
     auto& jump_manager = code_generator->jump_manager();
+    auto& scope_manager = code_generator->scope_manager();
     auto save_loop_repair_entrys = jump_manager.current_loop_repair_entries();
 
     std::vector<RepairEntry> loop_repair_entrys;
@@ -48,9 +49,9 @@ void WhileStatement::GenerateCode(CodeGenerator* code_generator, FunctionDefBase
     // 提前写入跳转的指令
     code_generator->GenerateIfEq(function_def_base);
 
-    code_generator->EnterScope(function_def_base, nullptr, ScopeType::kWhile);
+    scope_manager.EnterScope(function_def_base, nullptr, ScopeType::kWhile);
     body_->GenerateCode(code_generator, function_def_base);
-    code_generator->ExitScope();
+    scope_manager.ExitScope();
 
     // 重新回去看是否需要循环
     function_def_base->bytecode_table().EmitOpcode(OpcodeType::kGoto);

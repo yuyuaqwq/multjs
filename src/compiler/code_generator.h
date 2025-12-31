@@ -19,8 +19,7 @@
 #include <mjs/object_impl/function_object.h>
 
 #include "./parser.h"
-#include "scope.h"
-#include "repair_def.h"
+#include "scope_manager.h"
 #include "jump_manager.h"
 #include "statement_impl/block_statement.h"
 
@@ -77,7 +76,14 @@ public:
      */
     // ModuleDef* current_module_def() { return current_module_def_; }
 
+    ScopeManager& scope_manager() { return scope_manager_; }
+
+    const ScopeManager& scope_manager() const { return scope_manager_; }
+
     JumpManager& jump_manager() { return jump_manager_; }
+
+    const JumpManager& jump_manager() const { return jump_manager_; }
+
 public:
     /**
      * @brief 生成表达式代码
@@ -127,18 +133,6 @@ public:
     void GenerateParamList(FunctionDefBase* function_def_base, const std::vector<std::unique_ptr<Expression>>& param_list);
 
     /**
-     * @brief 进入作用域
-     * @param sub_func 子函数
-     * @param type 作用域类型
-     */
-    Scope& EnterScope(FunctionDefBase* function_def_base, FunctionDefBase* sub_func = nullptr, ScopeType type = ScopeType::kNone);
-    
-    /**
-     * @brief 退出作用域
-     */
-    void ExitScope();
-
-    /**
      * @brief 分配常量
      * @param value 常量值
      * @return 常量索引
@@ -154,37 +148,6 @@ public:
     const Value& GetConstValueByIndex(ConstIndex idx) const;
 
     /**
-     * @brief 分配变量
-     * @param name 变量名
-     * @param flags 变量标志
-     * @return 变量信息
-     * @throws std::runtime_error 如果变量名已存在
-     */
-    const VarInfo& AllocateVar(const std::string& name, VarFlags flags = VarFlags::kNone);
-    
-    /**
-     * @brief 根据名称查找变量索引
-     * @param name 变量名
-     * @return 变量信息，如果未找到则返回nullptr
-     */
-    const VarInfo* FindVarInfoByName(FunctionDefBase* function_def_base, const std::string& name);
-    
-    /**
-     * @brief 检查是否在指定类型的作用域中
-     * @param types 作用域类型列表
-     * @param end_types 结束作用域类型列表
-     * @return 是否在指定类型的作用域中
-     */
-    bool IsInTypeScope(std::initializer_list<ScopeType> types, std::initializer_list<ScopeType> end_types) const;
-
-    /**
-     * @brief 根据表达式获取变量信息
-     * @param exp 表达式
-     * @return 变量信息，如果未找到则返回nullptr
-     */
-    const VarInfo* GetVarInfoByExpression(FunctionDefBase* function_def_base, Expression* exp);
-
-    /**
      * @brief 创建常量值
      * @param exp 表达式
      * @return 常量值
@@ -198,7 +161,7 @@ private:
     Context* context_;                              ///< 上下文
     Parser* parser_;                                ///< 解析器
 
-    std::vector<Scope> scopes_;                     ///< 作用域栈
+    ScopeManager scope_manager_;                    ///< 作用域管理器
 
     JumpManager jump_manager_;                      ///< 跳转上下文管理器
 };

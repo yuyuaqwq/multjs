@@ -10,12 +10,13 @@ namespace compiler {
 
 void ForStatement::GenerateCode(CodeGenerator* code_generator, FunctionDefBase* function_def_base) const {
     auto& jump_manager = code_generator->jump_manager();
+    auto& scope_manager = code_generator->scope_manager();
     auto save_loop_repair_entrys = jump_manager.current_loop_repair_entries();
 
     std::vector<RepairEntry> loop_repair_entrys;
     jump_manager.set_current_loop_repair_entries(&loop_repair_entrys);
 
-    code_generator->EnterScope(function_def_base, nullptr, ScopeType::kFor);
+    scope_manager.EnterScope(function_def_base, nullptr, ScopeType::kFor);
 
     // init
     code_generator->GenerateStatement(function_def_base, init_.get());
@@ -50,7 +51,7 @@ void ForStatement::GenerateCode(CodeGenerator* code_generator, FunctionDefBase* 
         code_generator->GenerateExpression(function_def_base, update_.get());
     }
 
-    code_generator->ExitScope();
+    scope_manager.ExitScope();
 
     // 重新回去看是否需要循环
     function_def_base->bytecode_table().EmitOpcode(OpcodeType::kGoto);

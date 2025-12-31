@@ -14,7 +14,7 @@ void VariableDeclaration::GenerateCode(CodeGenerator* code_generator, FunctionDe
     }
 
     // 分配变量
-    auto& var_info = code_generator->AllocateVar(name_, flags);
+    auto& var_info = code_generator->scope_manager().AllocateVar(name_, flags);
 
     // 如果有初始值，生成初始值代码
     if (init_) {

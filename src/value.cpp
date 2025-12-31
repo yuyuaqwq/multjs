@@ -918,7 +918,7 @@ bool Value::IsBoolean() const {
 }
 
 bool Value::IsNumber() const {
-	return IsFloat() || IsInt64();
+	return IsFloat() || IsInt64() || IsUInt64();
 }
 
 bool Value::IsString() const {

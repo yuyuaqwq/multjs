@@ -24,6 +24,8 @@ FunctionExpression::FunctionExpression(SourcePosition start, SourcePosition end,
 void FunctionExpression::GenerateCode(CodeGenerator* code_generator, FunctionDefBase* function_def_base) const {
     // 函数表达式代码生成
 	// 创建函数定义
+	auto& scope_manager = code_generator->scope_manager();
+
 	auto new_func_def = FunctionDef::New(&function_def_base->module_def(), id(), params().size());
 	// 将函数定义添加到常量池
 	auto const_idx = code_generator->AllocateConst(Value(new_func_def));
@@ -45,7 +47,7 @@ void FunctionExpression::GenerateCode(CodeGenerator* code_generator, FunctionDef
 	if (!id().empty()) {
 		// 非匿名函数分配变量来装，这里其实有个没考虑的地方
 		// 如果外层还有一层赋值，那么该函数的名字应该只在函数内作用域有效
-		auto& var_info = code_generator->AllocateVar(id(), VarFlags::kConst);
+		auto& var_info = scope_manager.AllocateVar(id(), VarFlags::kConst);
 		function_def_base->bytecode_table().EmitVarStore(var_info.var_idx);
 
 		if (is_export()) {
@@ -54,11 +56,11 @@ void FunctionExpression::GenerateCode(CodeGenerator* code_generator, FunctionDef
 	}
 
 	// 切换环境
-	code_generator->EnterScope(function_def_base, new_func_def, ScopeType::kFunction);
+	scope_manager.EnterScope(function_def_base, new_func_def, ScopeType::kFunction);
 
 	// 参数正序分配
 	for (size_t i = 0; i < new_func_def->param_count(); ++i) {
-		code_generator->AllocateVar(params()[i]);
+		scope_manager.AllocateVar(params()[i]);
 	}
 
 	code_generator->GenerateFunctionBody(new_func_def, body_.get());
@@ -66,7 +68,7 @@ void FunctionExpression::GenerateCode(CodeGenerator* code_generator, FunctionDef
 	bool need_repair = !new_func_def->closure_var_table().closure_var_defs().empty();
 
 	// 恢复环境
-	code_generator->ExitScope();
+	scope_manager.ExitScope();
 	new_func_def->debug_table().Sort();
 
 	if (need_repair) {
