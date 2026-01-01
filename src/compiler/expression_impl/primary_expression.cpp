@@ -1,6 +1,9 @@
 #include "primary_expression.h"
 
 #include <mjs/error.h>
+#include <cstdlib>
+#include <cctype>
+#include <algorithm>
 
 #include "../lexer.h"
 #include "../parser.h"
@@ -21,6 +24,53 @@
 
 namespace mjs {
 namespace compiler {
+
+namespace {
+/**
+ * @brief 解析整数字面量字符串
+ * @param value 字面量字符串(可能包含 0x, 0b, 0o 前缀)
+ * @return 解析后的整数值
+ */
+int64_t ParseIntegerLiteral(const std::string& value) {
+	if (value.empty()) {
+		return 0;
+	}
+
+	// 检查前缀
+	if (value.size() > 2 && value[0] == '0') {
+		char prefix = value[1];
+		std::string number_part = value.substr(2);
+
+		// 移除数字分隔符 '_'
+		number_part.erase(std::remove(number_part.begin(), number_part.end(), '_'), number_part.end());
+
+		switch (prefix) {
+		case 'x':
+		case 'X':
+			// 十六进制
+			return static_cast<int64_t>(std::stoull(number_part, nullptr, 16));
+		case 'b':
+		case 'B':
+			// 二进制
+			return static_cast<int64_t>(std::stoull(number_part, nullptr, 2));
+		case 'o':
+		case 'O':
+			// 八进制
+			return static_cast<int64_t>(std::stoull(number_part, nullptr, 8));
+		default:
+			// 十进制(以0开头)
+			break;
+		}
+	}
+
+	// 移除数字分隔符 '_'
+	std::string clean_value = value;
+	clean_value.erase(std::remove(clean_value.begin(), clean_value.end(), '_'), clean_value.end());
+
+	// 默认使用 std::stoll，自动检测进制
+	return std::stoll(clean_value, nullptr, 0);
+}
+} // anonymous namespace
 
 /**
  * @brief 解析基本表达式
@@ -68,7 +118,7 @@ std::unique_ptr<Expression> PrimaryExpression::ParsePrimaryExpression(Lexer* lex
 	}
 	case TokenType::kInteger: {
 		lexer->NextToken();
-		int64_t value = std::stoll(token.value(), nullptr, 0);
+		int64_t value = ParseIntegerLiteral(token.value());
 		return std::make_unique<IntegerLiteral>(start, lexer->GetRawSourcePosition(), value);
 	}
 	case TokenType::kFloat: {

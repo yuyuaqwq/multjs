@@ -124,6 +124,7 @@ const std::unordered_map<std::string, TokenType>& Token::keyword_map() {
 		{ "catch", TokenType::kKwCatch },
 		{ "finally", TokenType::kKwFinally },
 		{ "throw", TokenType::kKwThrow },
+		// { "var", TokenType::kKwVar },
 		{ "let", TokenType::kKwLet },
 		{ "const", TokenType::kKwConst },
 		{ "yield", TokenType::kKwYield },

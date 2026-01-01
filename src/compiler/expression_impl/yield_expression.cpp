@@ -9,8 +9,10 @@ namespace compiler {
 void YieldExpression::GenerateCode(CodeGenerator* code_generator, FunctionDefBase* function_def_base) const {
     // yield 表达式代码生成
     auto& yield_exp = const_cast<YieldExpression&>(*this);
-    yield_exp.argument()->GenerateCode(code_generator, function_def_base);
-    function_def_base->bytecode_table().EmitOpcode(OpcodeType::kYield);
+    if (yield_exp.argument()) {
+		yield_exp.argument()->GenerateCode(code_generator, function_def_base);
+	}
+	function_def_base->bytecode_table().EmitOpcode(OpcodeType::kYield);
 }
 
 std::unique_ptr<Expression> YieldExpression::ParseExpressionAtYieldLevel(Lexer* lexer) {
@@ -29,12 +31,19 @@ std::unique_ptr<YieldExpression> YieldExpression::ParseYieldExpression(Lexer* le
 
 	// 检查是否是 yield* (委托 yield)
 	bool is_delegate = false;
-	if (lexer->PeekToken().is(TokenType::kOpMul)) {
+	auto token = lexer->PeekToken();
+	std::unique_ptr<Expression> yielded_value;
+	if (token.is(TokenType::kOpMul)) {
 		lexer->NextToken(); // 消耗 *
 		is_delegate = true;
+		token = lexer->PeekToken();
 	}
 
-	std::unique_ptr<Expression> yielded_value = AssignmentExpression::ParseExpressionAtAssignmentLevel(lexer);
+	if (!token.is(TokenType::kEof)) {
+		yielded_value = AssignmentExpression::ParseExpressionAtAssignmentLevel(lexer);
+	}
+
+	
 	auto end = lexer->GetRawSourcePosition();
 
 	return std::make_unique<YieldExpression>(start, end, std::move(yielded_value), is_delegate);

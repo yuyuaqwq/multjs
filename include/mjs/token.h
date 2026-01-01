@@ -115,7 +115,7 @@ enum class TokenType {
     kKwContinue,      // continue
     kKwBreak,         // break
     kKwReturn,        // return
-    // kKwVar,           // var
+    // kKwVar,           // var，当前编译器不支持var
     kKwLet,           // let
     kKwConst,         // const
     kKwImport,        // import

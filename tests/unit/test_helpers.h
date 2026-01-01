@@ -1,0 +1,172 @@
+/**
+ * @file test_helpers.h
+ * @brief 单元测试辅助工具
+ *
+ * 提供简化的测试辅助类,用于创建测试所需的Runtime、ModuleDef、FunctionDef等对象,
+ * 避免在测试中重复设置复杂的依赖关系。
+ *
+ * @copyright Copyright (c) 2025
+ * @license MIT License
+ */
+
+#pragma once
+
+#include <memory>
+#include <string>
+
+#include <gtest/gtest.h>
+
+#include <mjs/runtime.h>
+#include <mjs/module_def.h>
+#include <mjs/function_def.h>
+
+namespace mjs {
+namespace test {
+
+/**
+ * @class TestRuntime
+ * @brief 测试用Runtime辅助类
+ *
+ * 提供简化的Runtime初始化,用于测试环境。
+ */
+class TestRuntime {
+public:
+    /**
+     * @brief 创建测试用Runtime
+     * @return Runtime对象
+     */
+    static std::unique_ptr<Runtime> Create() {
+        return std::make_unique<Runtime>();
+    }
+};
+
+/**
+ * @class TestModuleDef
+ * @brief 测试用ModuleDef辅助类
+ *
+ * 提供简化的ModuleDef创建,用于测试环境。
+ */
+class TestModuleDef {
+public:
+    /**
+     * @brief 创建测试用ModuleDef
+     * @param runtime 运行时环境指针
+     * @param name 模块名称(默认为"test_module")
+     * @return ModuleDef对象指针
+     */
+    static ModuleDef* Create(Runtime* runtime, const std::string& name = "test_module") {
+        return ModuleDef::New(runtime, name, "", 0);
+    }
+
+    /**
+     * @brief 创建测试用ModuleDef,使用智能指针管理
+     * @param runtime 运行时环境指针
+     * @param name 模块名称(默认为"test_module")
+     * @return ModuleDef对象智能指针
+     */
+    static std::shared_ptr<ModuleDef> CreateShared(Runtime* runtime, const std::string& name = "test_module") {
+        // 注意:ModuleDef使用引用计数,这里返回shared_ptr只是为了测试方便
+        // 实际使用时ModuleDef会通过引用计数管理生命周期
+        auto* module_def = Create(runtime, name);
+        module_def->Reference();
+        return std::shared_ptr<ModuleDef>(module_def, [](ModuleDef* p) {
+            if (p) {
+                p->Dereference();
+            }
+        });
+    }
+};
+
+/**
+ * @class TestFunctionDef
+ * @brief 测试用FunctionDef辅助类
+ *
+ * 提供简化的FunctionDef创建,用于测试环境。
+ */
+class TestFunctionDef {
+public:
+    /**
+     * @brief 创建测试用FunctionDef
+     * @param module_def 所属模块定义指针
+     * @param name 函数名称(默认为"test_function")
+     * @param param_count 参数数量(默认为0)
+     * @return FunctionDef对象指针
+     */
+    static FunctionDef* Create(ModuleDef* module_def, const std::string& name = "test_function", uint32_t param_count = 0) {
+        return FunctionDef::New(module_def, name, param_count);
+    }
+
+    /**
+     * @brief 创建测试用FunctionDef,使用智能指针管理
+     * @param module_def 所属模块定义指针
+     * @param name 函数名称(默认为"test_function")
+     * @param param_count 参数数量(默认为0)
+     * @return FunctionDef对象智能指针
+     */
+    static std::shared_ptr<FunctionDef> CreateShared(ModuleDef* module_def,
+                                                      const std::string& name = "test_function",
+                                                      uint32_t param_count = 0) {
+        auto* function_def = Create(module_def, name, param_count);
+        function_def->Reference();
+        return std::shared_ptr<FunctionDef>(function_def, [](FunctionDef* p) {
+            if (p) {
+                p->Dereference();
+            }
+        });
+    }
+};
+
+/**
+ * @class TestEnvironment
+ * @brief 完整的测试环境
+ *
+ * 封装Runtime、ModuleDef和FunctionDef的创建,提供一站式测试环境。
+ */
+class TestEnvironment {
+public:
+    /**
+     * @brief 构造测试环境
+     * 自动创建Runtime、ModuleDef和FunctionDef
+     */
+    TestEnvironment()
+        : runtime_(TestRuntime::Create())
+        , module_def_(TestModuleDef::CreateShared(runtime_.get(), "test_module"))
+        , function_def_(TestFunctionDef::CreateShared(module_def_.get(), "test_function", 0))
+    {}
+
+    /**
+     * @brief 获取Runtime指针
+     * @return Runtime指针
+     */
+    Runtime* runtime() { return runtime_.get(); }
+
+    /**
+     * @brief 获取ModuleDef指针
+     * @return ModuleDef指针
+     */
+    ModuleDef* module_def() { return module_def_.get(); }
+
+    /**
+     * @brief 获取FunctionDef指针
+     * @return FunctionDef指针
+     */
+    FunctionDef* function_def() { return function_def_.get(); }
+
+    /**
+     * @brief 创建新的FunctionDef
+     * @param name 函数名称
+     * @param param_count 参数数量
+     * @return FunctionDef对象指针
+     */
+    FunctionDef* CreateFunctionDef(const std::string& name, uint32_t param_count = 0) {
+        return TestFunctionDef::Create(module_def_.get(), name, param_count);
+    }
+
+private:
+    std::unique_ptr<Runtime> runtime_;
+    std::shared_ptr<ModuleDef> module_def_;
+    std::shared_ptr<FunctionDef> function_def_;
+};
+
+} // namespace test
+} // namespace mjs

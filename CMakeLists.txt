@@ -98,7 +98,7 @@ file(GLOB UNIT_TEST_SRC
     ./tests/unit/*_test.cpp)
 
 add_executable(unit_tests ${UNIT_TEST_SRC})
-target_include_directories(unit_tests PRIVATE ${MJS_INCLUDE_DIR})
+target_include_directories(unit_tests PRIVATE ${MJS_INCLUDE_DIR} ./src)
 target_link_libraries(unit_tests PRIVATE ${MJS_LIB_TARGET} GTest::gtest_main)
 
 include(GoogleTest)

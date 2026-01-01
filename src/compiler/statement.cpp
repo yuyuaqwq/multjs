@@ -30,6 +30,7 @@ std::unique_ptr<Statement> Statement::ParseStatement(Lexer* lexer) {
 		return ExportDeclaration::ParseExportDeclaration(lexer, token.type());
 	}
 
+	// case TokenType::kKwVar:
 	case TokenType::kKwLet:
 	case TokenType::kKwConst: {
 		return VariableDeclaration::ParseVariableDeclaration(lexer, token.type());
