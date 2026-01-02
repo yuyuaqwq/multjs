@@ -27,7 +27,7 @@ public:
      * @param end 结束位置
      * @param name 类型名
      */
-    NamedType(SourcePosition start, SourcePosition end, std::string&& name)
+    NamedType(SourceBytePosition start, SourceBytePosition end, std::string&& name)
         : Type(start, end), name_(std::move(name)) {}
 
     StatementType type() const noexcept override { return StatementType::kNamedType; }

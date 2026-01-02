@@ -30,7 +30,7 @@ public:
      * @param computed 是否为计算属性
      * @param optional 是否为可选链访问
      */
-    MemberExpression(SourcePosition start, SourcePosition end,
+    MemberExpression(SourceBytePosition start, SourceBytePosition end,
                 std::unique_ptr<Expression> object,
                 std::unique_ptr<Expression> property,
                 bool is_method_call, bool computed, bool optional)

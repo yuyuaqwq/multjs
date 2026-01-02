@@ -8,10 +8,12 @@ namespace mjs {
 GeneratorObjectClassDef::GeneratorObjectClassDef(Runtime* runtime)
 	: ClassDef(runtime, ClassId::kGeneratorObject, "Generator")
 {
-	value_const_idx_ = runtime->global_const_pool().insert(Value("value"));
-	done_const_idx_ = runtime->global_const_pool().insert(Value("done"));
+	value_const_index_ = runtime->global_const_pool().insert(Value("value"));
+	done_const_index_ = runtime->global_const_pool().insert(Value("done"));
 
-	prototype_.object().SetProperty(runtime, "next", Value(ValueType::kGeneratorNext));
+	auto next_const_index = runtime->global_const_pool().insert(Value("next"));
+
+	prototype_.object().SetProperty(runtime, next_const_index, Value(ValueType::kGeneratorNext));
 }
 
 } // namespace mjs

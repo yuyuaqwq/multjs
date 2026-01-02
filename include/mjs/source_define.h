@@ -17,11 +17,11 @@
 namespace mjs {
 
 using Source = std::string; ///< 源代码类型
-using SourcePosition = uint32_t;    ///< 源代码位置类型
+using SourceBytePosition = uint32_t;    ///< 源代码位置类型
 using SourceLine = uint32_t;   ///< 源代码行号类型
 using SourceColumn = uint32_t; ///< 源代码列号类型
 
-constexpr SourcePosition kSourcePositionInvalid = 0xffffffff; ///< 无效源代码位置常量
+constexpr SourceBytePosition kSourceBytePositionInvalid = 0xffffffff; ///< 无效源代码位置常量
 constexpr SourceLine kSourceLineInvalid = 0;        ///< 无效源代码行号常量
 
 } // namespace mjs

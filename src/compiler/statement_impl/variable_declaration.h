@@ -32,7 +32,7 @@ public:
      * @param init 初始化表达式
      * @param kind 变量类型
      */
-    VariableDeclaration(SourcePosition start, SourcePosition end,
+    VariableDeclaration(SourceBytePosition start, SourceBytePosition end,
         std::string name,
         std::unique_ptr<Expression> init,
         TokenType kind)

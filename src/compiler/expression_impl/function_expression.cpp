@@ -5,13 +5,14 @@
 #include "../code_generator.h"
 #include "../statement.h"
 #include "../statement_impl/block_statement.h"
+#include "../statement_impl/type_annotation.h"
 #include "arrow_function_expression.h"
 #include "assignment_expression.h"
 
 namespace mjs {
 namespace compiler {
 
-FunctionExpression::FunctionExpression(SourcePosition start, SourcePosition end,
+FunctionExpression::FunctionExpression(SourceBytePosition start, SourceBytePosition end,
 	std::string id, std::vector<std::string>&& params,
 	std::unique_ptr<BlockStatement> body,
 	bool is_generator, bool is_async, bool is_module)
@@ -115,7 +116,7 @@ std::unique_ptr<Expression> FunctionExpression::ParseExpressionAtFunctionLevel(L
 
 
 
-std::unique_ptr<Expression> FunctionExpression::ParseTraditionalFunctionExpression(Lexer* lexer, SourcePosition start, bool is_async, bool is_generator) {
+std::unique_ptr<Expression> FunctionExpression::ParseTraditionalFunctionExpression(Lexer* lexer, SourceBytePosition start, bool is_async, bool is_generator) {
 	// 处理传统函数声明 function [name](params) { ... }
 	lexer->MatchToken(TokenType::kKwFunction);
 
@@ -142,7 +143,7 @@ std::unique_ptr<Expression> FunctionExpression::ParseTraditionalFunctionExpressi
 	auto params = *res;
 
 	// 类型注解
-	TryParseTypeAnnotation(lexer);
+	TypeAnnotation::TryParseTypeAnnotation(lexer);
 
 	// 函数体
 	auto block = BlockStatement::ParseBlockStatement(lexer);

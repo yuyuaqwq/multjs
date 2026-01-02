@@ -43,7 +43,9 @@
       "Bash(then cd build)",
       "Bash(else:*)",
       "Bash(tee:*)",
-      "Bash(Debug/unit_tests.exe:*)"
+      "Bash(Debug/unit_tests.exe:*)",
+      "Bash(bash:*)",
+      "Bash(Select-Object:*)",
     ],
     "deny": [],
     "ask": []

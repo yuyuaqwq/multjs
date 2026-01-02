@@ -24,7 +24,7 @@ public:
      * @param start 表达式起始位置
      * @param end 表达式结束位置
      */
-    NullLiteral(SourcePosition start, SourcePosition end)
+    NullLiteral(SourceBytePosition start, SourceBytePosition end)
         : PrimaryExpression(start, end) {}
 
     /**

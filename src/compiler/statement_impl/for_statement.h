@@ -33,7 +33,7 @@ public:
      * @param update 更新表达式
      * @param body 循环体
      */
-    ForStatement(SourcePosition start, SourcePosition end,
+    ForStatement(SourceBytePosition start, SourceBytePosition end,
         std::unique_ptr<Statement> init,
         std::unique_ptr<Expression> test,
         std::unique_ptr<Expression> update,

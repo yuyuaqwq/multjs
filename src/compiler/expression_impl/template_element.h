@@ -26,7 +26,7 @@ public:
      * @param end 表达式结束位置
      * @param value 模板元素值
      */
-    TemplateElement(SourcePosition start, SourcePosition end, std::string&& value)
+    TemplateElement(SourceBytePosition start, SourceBytePosition end, std::string&& value)
         : Expression(start, end), value_(std::move(value)) {}
 
 

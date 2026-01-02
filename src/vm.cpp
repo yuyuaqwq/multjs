@@ -584,7 +584,7 @@ void VM::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 
 			// 获取当前对象的构造函数
 			Value constructor;
-			if (!this_val.object().GetProperty(&context_->runtime(), "constructor", &constructor)) {
+			if (!this_val.object().GetProperty(context_, context_->runtime().key_const_index_table().constructor_const_index(), &constructor)) {
 				VM_EXCEPTION_THROW(
 					ReferenceError::Throw(context_, "super requires a constructor")
 				);
@@ -598,7 +598,7 @@ void VM::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 
 			// 获取构造函数的原型 (即当前类的原型)
 			Value current_prototype;
-			if (!constructor.object().GetProperty(&context_->runtime(), "prototype", &current_prototype)) {
+			if (!constructor.object().GetProperty(context_, context_->runtime().key_const_index_table().prototype_const_index(), &current_prototype)) {
 				VM_EXCEPTION_THROW(
 					ReferenceError::Throw(context_, "super requires a valid prototype chain")
 				);
@@ -864,11 +864,15 @@ void VM::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 		}
 	}
 	
-
 exit_:
 	if (!pending_return_val) {
-		pending_return_val = stack_frame->pop();
-		assert(!pending_return_val->IsException());
+		if (stack_frame->empty()) {
+			throw std::runtime_error("Stack exception occurred.");
+		}
+		else {
+			pending_return_val = stack_frame->pop();
+			assert(!pending_return_val->IsException());
+		}
 	}
 	else {
 		assert(pending_return_val->IsException());

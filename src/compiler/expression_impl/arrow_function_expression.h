@@ -34,7 +34,7 @@ public:
      * @param body 函数体语句
      * @param is_async 是否为异步函数
      */
-    ArrowFunctionExpression(SourcePosition start, SourcePosition end,
+    ArrowFunctionExpression(SourceBytePosition start, SourceBytePosition end,
         std::vector<std::string>&& params,
         std::unique_ptr<Statement> body,
         bool is_async);
@@ -64,7 +64,7 @@ public:
      * @param is_async 是否是异步函数
      * @return 返回的表达式
      */
-    static std::unique_ptr<Expression> TryParseArrowFunctionExpression(Lexer* lexer, SourcePosition start, bool is_async);
+    static std::unique_ptr<Expression> TryParseArrowFunctionExpression(Lexer* lexer, SourceBytePosition start, bool is_async);
 
     /**
      * @brief 生成代码

@@ -27,7 +27,7 @@ public:
      * @param end 表达式结束位置
      * @param value 字符串值
      */
-    StringLiteral(SourcePosition start, SourcePosition end, std::string&& value)
+    StringLiteral(SourceBytePosition start, SourceBytePosition end, std::string&& value)
         : PrimaryExpression(start, end), value_(std::move(value)) {}
 
     /**

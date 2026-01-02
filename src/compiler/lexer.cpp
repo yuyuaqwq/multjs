@@ -104,7 +104,7 @@ void Lexer::SkipWhitespaceAndComments() {
 
 Token Lexer::PeekToken() {
     if (peek_token_.is(TokenType::kNone)) {
-        SourcePosition saved_position = position_;
+        SourceBytePosition saved_position = position_;
         peek_token_ = ReadNextToken();
         peek_position_ = position_;
         position_ = saved_position;

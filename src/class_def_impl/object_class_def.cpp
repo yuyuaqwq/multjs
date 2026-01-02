@@ -9,7 +9,10 @@ namespace mjs {
 ObjectClassDef::ObjectClassDef(Runtime* runtime)
 	: ClassDef(runtime, ClassId::kObject, "Object")
 {
-	prototype_ = Value();
+	// Object.prototype 是一个特殊的对象,它没有原型(原型为null)
+	// 所以我们将prototype_设置为Value() (null/undefined)
+	// 这符合JavaScript规范: Object.prototype.__proto__ === null
+	prototype_ = Value(nullptr);
 }
 
 Value ObjectClassDef::NewConstructor(Context* context, uint32_t par_count, const StackFrame& stack) const {

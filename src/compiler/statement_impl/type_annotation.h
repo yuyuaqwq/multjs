@@ -30,7 +30,7 @@ public:
      * @param end 结束位置
      * @param type_p 类型
      */
-    TypeAnnotation(SourcePosition start, SourcePosition end, std::unique_ptr<Type>&& type_p)
+    TypeAnnotation(SourceBytePosition start, SourceBytePosition end, std::unique_ptr<Type>&& type_p)
         : Statement(start, end), type_p_(std::move(type_p)) {}
 
     StatementType type() const noexcept override { return StatementType::kTypeAnnotation; }
@@ -43,16 +43,17 @@ public:
 
     void GenerateCode(CodeGenerator* code_generator, FunctionDefBase* function_def_base) const override;
 
+    /**
+    * @brief 尝试解析类型注解
+    * @param lexer 词法分析器
+    * @return 解析后的类型注解
+    */
+    static std::unique_ptr<TypeAnnotation> TryParseTypeAnnotation(Lexer* lexer);
+
 private:
     std::unique_ptr<Type> type_p_;
 };
 
-/**
- * @brief 尝试解析类型注解
- * @param lexer 词法分析器
- * @return 解析后的类型注解
- */
-std::unique_ptr<TypeAnnotation> TryParseTypeAnnotation(Lexer* lexer);
 
 } // namespace compiler
 } // namespace mjs

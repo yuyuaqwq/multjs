@@ -42,6 +42,10 @@ size_t Stack::size() const noexcept {
 	return vector_.size();
 }
 
+bool Stack::empty() const noexcept {
+	return vector_.empty();
+}
+
 void Stack::resize(size_t size) {
 	vector_.resize(size);
 }
@@ -71,6 +75,10 @@ void StackFrame::push(Value&& value) {
 
 Value StackFrame::pop() {
 	return stack_->pop();
+}
+
+bool StackFrame::empty() const noexcept {
+	return stack_->empty();
 }
 
 void StackFrame::reduce(size_t count) {

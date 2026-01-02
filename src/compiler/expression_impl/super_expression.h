@@ -24,7 +24,7 @@ public:
      * @param start 表达式起始位置
      * @param end 表达式结束位置
      */
-    SuperExpression(SourcePosition start, SourcePosition end)
+    SuperExpression(SourceBytePosition start, SourceBytePosition end)
         : PrimaryExpression(start, end) {}
 
     /**

@@ -36,7 +36,7 @@ public:
      * @param is_async 是否为异步函数
      * @param is_module 是否为模块函数
      */
-    FunctionExpression(SourcePosition start, SourcePosition end,
+    FunctionExpression(SourceBytePosition start, SourceBytePosition end,
         std::string id, std::vector<std::string>&& params,
         std::unique_ptr<BlockStatement> body,
         bool is_generator, bool is_async, bool is_module);
@@ -112,7 +112,7 @@ public:
      * @param is_generator 是否是生成器函数
      * @return 解析后的函数表达式
      */
-    static std::unique_ptr<Expression> ParseTraditionalFunctionExpression(Lexer* lexer, SourcePosition start, bool is_async, bool is_generator);
+    static std::unique_ptr<Expression> ParseTraditionalFunctionExpression(Lexer* lexer, SourceBytePosition start, bool is_async, bool is_generator);
 
 private:
     std::string id_;                         ///< 函数标识符

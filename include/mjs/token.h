@@ -175,7 +175,7 @@ public:
      * @brief 获取标记在源代码中的位置
      * @return 源代码位置
      */
-    [[nodiscard]] SourcePosition pos() const noexcept { 
+    [[nodiscard]] SourceBytePosition pos() const noexcept { 
         return position_; 
     }
     
@@ -183,7 +183,7 @@ public:
      * @brief 设置标记在源代码中的位置
      * @param position 源代码位置
      */
-    void set_pos(SourcePosition position) { 
+    void set_pos(SourceBytePosition position) { 
         position_ = position; 
     }
 
@@ -256,7 +256,7 @@ public:
     static constexpr size_t kOperatorMaxSize = 4;
 
 private:
-    SourcePosition position_ = 0;           ///< 标记在源代码中的位置
+    SourceBytePosition position_ = 0;           ///< 标记在源代码中的位置
     TokenType type_ = TokenType::kNone; ///< 标记类型
     std::string value_;                ///< 标记值（如标识符名称、字符串内容等）
     std::string regex_flags_;          ///< 正则表达式标志（如果是正则表达式标记）

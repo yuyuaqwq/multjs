@@ -30,7 +30,7 @@ public:
      * @param end 结束位置
      * @param statements 语句列表
      */
-    BlockStatement(SourcePosition start, SourcePosition end, std::vector<std::unique_ptr<Statement>>&& statements)
+    BlockStatement(SourceBytePosition start, SourceBytePosition end, std::vector<std::unique_ptr<Statement>>&& statements)
         : Statement(start, end), statements_(std::move(statements)) {}
 
     StatementType type() const noexcept override { return StatementType::kBlock; }

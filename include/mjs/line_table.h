@@ -39,7 +39,7 @@ public:
         line_offsets_.clear();
         line_offsets_.push_back(0); // 第1行从0开始
 
-        for (SourcePosition pos = 0; pos < source.size(); ++pos) {
+        for (SourceBytePosition pos = 0; pos < source.size(); ++pos) {
             if (source[pos] == '\n') {
                 line_offsets_.push_back(pos + 1); // 下一行起始位置（跳过\n）
             }
@@ -52,7 +52,7 @@ public:
      * @return 行号和列号对
      * @throw std::out_of_range 当位置超出范围时抛出
      */
-    std::pair<SourceLine, SourceColumn> PosToLineAndColumn(SourcePosition pos) const {
+    std::pair<SourceLine, SourceColumn> PosToLineAndColumn(SourceBytePosition pos) const {
         if (line_offsets_.empty()) {
             throw std::out_of_range("LineTable is not initialized");
         }
@@ -77,7 +77,7 @@ public:
     }
 
 private:
-    std::vector<SourcePosition> line_offsets_; ///< 存储每行的起始偏移量（0-based）
+    std::vector<SourceBytePosition> line_offsets_; ///< 存储每行的起始偏移量（0-based）
 };
 
 } // namespace mjs

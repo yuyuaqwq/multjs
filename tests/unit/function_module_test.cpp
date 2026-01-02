@@ -19,7 +19,7 @@
 #include <mjs/context.h>
 #include <mjs/value.h>
 #include <mjs/bytecode_table.h>
-#include "test_helpers.h"
+#include "tests/unit/test_helpers.h"
 
 namespace mjs {
 namespace test {
@@ -150,7 +150,7 @@ TEST_F(FunctionDefTest, BytecodeTableAccess) {
     auto& bytecode_table = func_def->bytecode_table();
 
     // Assert
-    EXPECT_EQ(bytecode_table.size(), 0); // 新创建的函数应该没有字节码
+    EXPECT_EQ(bytecode_table.Size(), 0); // 新创建的函数应该没有字节码
 }
 
 /**
@@ -164,7 +164,7 @@ TEST_F(FunctionDefTest, VarDefTableAccess) {
     auto& var_def_table = func_def->var_def_table();
 
     // Assert
-    EXPECT_EQ(var_def_table.size(), 0); // 新创建的函数应该没有变量定义
+    EXPECT_EQ(var_def_table.var_count(), 0); // 新创建的函数应该没有变量定义
 }
 
 /**
@@ -178,7 +178,7 @@ TEST_F(FunctionDefTest, ClosureVarTableAccess) {
     auto& closure_var_table = func_def->closure_var_table();
 
     // Assert
-    EXPECT_EQ(closure_var_table.size(), 0); // 新创建的函数应该没有闭包变量
+    EXPECT_EQ(closure_var_table.closure_var_defs().size(), 0); // 新创建的函数应该没有闭包变量
 }
 
 /**

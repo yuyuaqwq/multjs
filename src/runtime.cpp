@@ -17,7 +17,7 @@ private:
         : Object(runtime, mjs::ClassId::kObject)
     {
         auto log_const_index = runtime->global_const_pool().insert(mjs::Value("log"));
-        SetProperty(nullptr, log_const_index, mjs::Value([](mjs::Context* context, uint32_t par_count, const mjs::StackFrame& stack) -> mjs::Value {
+        SetProperty(runtime, log_const_index, mjs::Value([](mjs::Context* context, uint32_t par_count, const mjs::StackFrame& stack) -> mjs::Value {
             for (size_t i = 0; i < par_count; i++) {
                 auto val = stack.get(i);
                 try {
@@ -40,7 +40,8 @@ public:
 };
 
 Runtime::Runtime() 
-	: shape_manager_(nullptr)
+	: key_const_index_table_(&global_const_pool_)
+    , shape_manager_(nullptr)
 	, global_this_(Object::New(this))
 	, class_def_table_(this)
     , module_manager_(std::make_unique<ModuleManager>())
@@ -49,7 +50,8 @@ Runtime::Runtime()
 }
 
 Runtime::Runtime(std::unique_ptr<ModuleManagerBase> module_manager)
-    : shape_manager_(nullptr)
+    : key_const_index_table_(&global_const_pool_)
+    , shape_manager_(nullptr)
     , global_this_(Object::New(this))
     , class_def_table_(this)
     , module_manager_(std::move(module_manager))
@@ -67,7 +69,7 @@ Runtime::~Runtime() {
 
 void Runtime::AddPropertyToGlobalThis(const char* property_key, Value&& value) {
     auto const_idx = global_const_pool_.insert(Value(property_key));
-    global_this_.object().SetProperty(nullptr, const_idx, std::move(value));
+    global_this_.object().SetProperty(this, const_idx, std::move(value));
 }
 
 void Runtime::Initialize() {
@@ -78,7 +80,7 @@ void Runtime::Initialize() {
 void Runtime::GlobalThisInitialize() {
     auto const_idx = global_const_pool_.insert(Value("globalThis"));
     auto globalThis = global_this_;
-    global_this_.object().SetProperty(nullptr, const_idx, std::move(globalThis));
+    global_this_.object().SetProperty(this, const_idx, std::move(globalThis));
 }
 
 void Runtime::ConsoleInitialize() {

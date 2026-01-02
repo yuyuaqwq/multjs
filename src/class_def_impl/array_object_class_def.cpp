@@ -18,12 +18,12 @@ ArrayObjectClassDef::ArrayObjectClassDef(Runtime* runtime)
 	map_const_index_ = runtime->global_const_pool().insert(Value("map"));
 	filter_const_index_ = runtime->global_const_pool().insert(Value("filter"));
 
-	constructor_object_.object().SetProperty(nullptr, of_const_index_, Value([](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
+	constructor_object_.object().SetProperty(runtime, of_const_index_, Value([](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
 		return ArrayObjectClassDef::Of(context, par_count, stack);
 	}));
 
 	// Push method
-	prototype_.object().SetProperty(nullptr, push_const_index_, Value([](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
+	prototype_.object().SetProperty(runtime, push_const_index_, Value([](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
 		auto& arr = stack.this_val().array();
 		for (size_t i = 0; i < par_count; ++i) {
 			arr.Push(context, stack.get(i));
@@ -32,7 +32,7 @@ ArrayObjectClassDef::ArrayObjectClassDef(Runtime* runtime)
 	}));
 
 	// Pop method
-	prototype_.object().SetProperty(nullptr, pop_const_index_, Value([](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
+	prototype_.object().SetProperty(runtime, pop_const_index_, Value([](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
 		auto& arr = stack.this_val().array();
 		if (arr.length() == 0) {
 			return Value();
@@ -41,7 +41,7 @@ ArrayObjectClassDef::ArrayObjectClassDef(Runtime* runtime)
 	}));
 
 	// ForEach method
-	prototype_.object().SetProperty(nullptr, forEach_const_index_, Value([](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
+	prototype_.object().SetProperty(runtime, forEach_const_index_, Value([](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
 		if (par_count < 1) {
 			return TypeError::Throw(context, "forEach requires a callback function");
 		}
@@ -63,7 +63,7 @@ ArrayObjectClassDef::ArrayObjectClassDef(Runtime* runtime)
 	}));
 
 	// Map method
-	prototype_.object().SetProperty(nullptr, map_const_index_, Value([](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
+	prototype_.object().SetProperty(runtime, map_const_index_, Value([](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
 		if (par_count < 1) {
 			return TypeError::Throw(context, "map requires a callback function");
 		}
@@ -86,7 +86,7 @@ ArrayObjectClassDef::ArrayObjectClassDef(Runtime* runtime)
 	}));
 
 	// Filter method
-	prototype_.object().SetProperty(nullptr, filter_const_index_, Value([](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
+	prototype_.object().SetProperty(runtime, filter_const_index_, Value([](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
 		if (par_count < 1) {
 			return TypeError::Throw(context, "filter requires a callback function");
 		}

@@ -28,7 +28,7 @@ public:
      * @param end 结束位置
      * @param argument 异常表达式
      */
-    explicit ThrowStatement(SourcePosition start, SourcePosition end,
+    explicit ThrowStatement(SourceBytePosition start, SourceBytePosition end,
                           std::unique_ptr<Expression> argument)
         : Statement(start, end), argument_(std::move(argument)) {}
 

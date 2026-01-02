@@ -95,10 +95,13 @@ target_link_libraries(integration_tests PRIVATE ${MJS_LIB_TARGET})
 
 # 单元测试
 file(GLOB UNIT_TEST_SRC
-    ./tests/unit/*_test.cpp)
+	./tests/unit/*_test.cpp
+    ./tests/unit/**/*_test.cpp
+    ./tests/unit/**/**/*_test.cpp
+    )
 
 add_executable(unit_tests ${UNIT_TEST_SRC})
-target_include_directories(unit_tests PRIVATE ${MJS_INCLUDE_DIR} ./src)
+target_include_directories(unit_tests PRIVATE ${MJS_INCLUDE_DIR} .)
 target_link_libraries(unit_tests PRIVATE ${MJS_LIB_TARGET} GTest::gtest_main)
 
 include(GoogleTest)

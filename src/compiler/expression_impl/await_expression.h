@@ -26,7 +26,7 @@ public:
      * @param end 表达式结束位置
      * @param argument await 参数表达式
      */
-    AwaitExpression(SourcePosition start, SourcePosition end,
+    AwaitExpression(SourceBytePosition start, SourceBytePosition end,
         std::unique_ptr<Expression> argument)
         : Expression(start, end), argument_(std::move(argument)) {}
 

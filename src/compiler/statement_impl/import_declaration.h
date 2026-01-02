@@ -28,7 +28,7 @@ public:
      * @param source 导入源
      * @param name 导入名称
      */
-    ImportDeclaration(SourcePosition start, SourcePosition end,
+    ImportDeclaration(SourceBytePosition start, SourceBytePosition end,
         std::string source,
         std::string name)
         : Statement(start, end),

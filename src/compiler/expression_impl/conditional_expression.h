@@ -29,7 +29,7 @@ public:
      * @param consequent 条件为真时的表达式
      * @param alternate 条件为假时的表达式
      */
-    ConditionalExpression(SourcePosition start, SourcePosition end,
+    ConditionalExpression(SourceBytePosition start, SourceBytePosition end,
                 std::unique_ptr<Expression> test,
                 std::unique_ptr<Expression> consequent,
                 std::unique_ptr<Expression> alternate)

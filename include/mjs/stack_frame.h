@@ -26,6 +26,8 @@ public:
 	void push(Value&& value);
 	Value pop();
 
+	bool empty() const noexcept;
+
 	void reduce(size_t count);
 	void upgrade(size_t count);
 
@@ -81,7 +83,8 @@ public:
 	void upgrade(size_t size);
 	void reduce(size_t size);
 
-	size_t size()  const noexcept;
+	size_t size() const noexcept;
+	bool empty() const noexcept;
 	void resize(size_t size);
 
 	void clear();

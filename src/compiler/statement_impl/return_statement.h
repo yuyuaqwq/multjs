@@ -29,7 +29,7 @@ public:
      * @param end 结束位置
      * @param argument 返回值表达式（可选）
      */
-    explicit ReturnStatement(SourcePosition start, SourcePosition end,
+    explicit ReturnStatement(SourceBytePosition start, SourceBytePosition end,
         std::unique_ptr<Expression> argument)
         : Statement(start, end), argument_(std::move(argument)) {}
 

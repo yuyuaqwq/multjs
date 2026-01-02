@@ -21,7 +21,7 @@
 #include <mjs/context.h>
 #include <mjs/runtime.h>
 
-#include "test_helpers.h"
+#include "tests/unit/test_helpers.h"
 
 namespace mjs {
 namespace test {

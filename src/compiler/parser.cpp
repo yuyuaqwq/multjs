@@ -10,6 +10,7 @@
 
 #include "expression_impl/function_expression.h"
 #include "expression_impl/yield_expression.h"
+#include "statement_impl/union_type.h"
 
 /* EBNF
 exp = exp3
@@ -49,7 +50,7 @@ std::vector<std::string> Parser::ParseParameters() {
 		do {
 			parList.push_back(lexer_->MatchToken(TokenType::kIdentifier).value());
 
-			TryParseTypeAnnotation();
+			TypeAnnotation::TryParseTypeAnnotation(lexer_);
 
 			if (!lexer_->PeekToken().is(TokenType::kSepComma)) {
 				break;
@@ -82,72 +83,6 @@ std::vector<std::unique_ptr<Expression>> Parser::ParseExpressions(
 	lexer_->MatchToken(end);
 	return par_list;
 }
-
-std::unique_ptr<TypeAnnotation> Parser::TryParseTypeAnnotation() {
-	if (!lexer_->PeekToken().is(TokenType::kSepColon)) {
-		return nullptr;
-	}
-
-	auto start = lexer_->GetSourcePosition();
-	lexer_->MatchToken(TokenType::kSepColon);
-
-	// 解析类型
-	std::unique_ptr<Type> type;
-
-	if (lexer_->PeekToken().is(TokenType::kIdentifier)) {
-		// 命名类型
-		auto type_start = lexer_->GetSourcePosition();
-		auto type_name = lexer_->NextToken().value();
-		auto type_end = lexer_->GetRawSourcePosition();
-
-		type = std::make_unique<NamedType>(type_start, type_end, std::move(type_name));
-	} else if (lexer_->PeekToken().is(TokenType::kSepLParen)) {
-		// 联合类型
-		type = ParseUnionType();
-	} else {
-		throw SyntaxError("Invalid type annotation");
-	}
-
-	auto end = lexer_->GetRawSourcePosition();
-	return std::make_unique<TypeAnnotation>(start, end, std::move(type));
-}
-
-std::unique_ptr<UnionType> Parser::ParseUnionType() {
-	auto start = lexer_->GetSourcePosition();
-
-	// 解析联合类型的成员
-	std::vector<std::unique_ptr<Type>> types;
-
-	// 第一个类型
-	if (lexer_->PeekToken().is(TokenType::kIdentifier)) {
-		auto type_start = lexer_->GetSourcePosition();
-		auto type_name = lexer_->NextToken().value();
-		auto type_end = lexer_->GetRawSourcePosition();
-
-		types.push_back(std::make_unique<NamedType>(type_start, type_end, std::move(type_name)));
-	} else {
-		throw SyntaxError("Expected type name");
-	}
-
-	// 后续类型
-	while (lexer_->PeekToken().is(TokenType::kOpBitOr)) {
-		lexer_->NextToken(); // 消耗 |
-
-		if (lexer_->PeekToken().is(TokenType::kIdentifier)) {
-			auto type_start = lexer_->GetSourcePosition();
-			auto type_name = lexer_->NextToken().value();
-			auto type_end = lexer_->GetRawSourcePosition();
-
-			types.push_back(std::make_unique<NamedType>(type_start, type_end, std::move(type_name)));
-		} else {
-			throw SyntaxError("Expected type name after |");
-		}
-	}
-
-	auto end = lexer_->GetRawSourcePosition();
-	return std::make_unique<UnionType>(start, end, std::move(types));
-}
-
 
 } // namespace compiler
 } // namespace mjs

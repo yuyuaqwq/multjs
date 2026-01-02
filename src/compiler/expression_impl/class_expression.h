@@ -34,8 +34,8 @@ public:
      * @param elements 类元素列表
      */
     ClassExpression(
-        SourcePosition start,
-        SourcePosition end,
+        SourceBytePosition start,
+        SourceBytePosition end,
         std::optional<std::string> id,
         std::unique_ptr<Expression> super_class,
         std::vector<ClassElement>&& elements)

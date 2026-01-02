@@ -14,7 +14,7 @@ StringObjectClassDef::StringObjectClassDef(Runtime* runtime)
 {
 	// Split method
 	auto split_index = runtime->global_const_pool().insert(Value("split"));
-	prototype_.object().SetProperty(nullptr, split_index, Value([](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
+	prototype_.object().SetProperty(runtime, split_index, Value([](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
 		if (par_count < 1) {
 			return Value(ArrayObject::New(context, {}));
 		}
@@ -39,7 +39,7 @@ StringObjectClassDef::StringObjectClassDef(Runtime* runtime)
 
 	// Substring method
 	auto substring_index = runtime->global_const_pool().insert(Value("substring"));
-	prototype_.object().SetProperty(nullptr, substring_index, Value([](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
+	prototype_.object().SetProperty(runtime, substring_index, Value([](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
 		std::string str = stack.this_val().ToString(context).string_view();
 		int start = 0;
 		int end = str.length();
@@ -62,7 +62,7 @@ StringObjectClassDef::StringObjectClassDef(Runtime* runtime)
 
 	// IndexOf method
 	auto indexOf_index = runtime->global_const_pool().insert(Value("indexOf"));
-	prototype_.object().SetProperty(nullptr, indexOf_index, Value([](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
+	prototype_.object().SetProperty(runtime, indexOf_index, Value([](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
 		if (par_count < 1) return Value(-1);
 		
 		std::string str = stack.this_val().ToString(context).string_view();
@@ -80,7 +80,7 @@ StringObjectClassDef::StringObjectClassDef(Runtime* runtime)
 
 	// ToLowerCase method
 	auto toLowerCase_index = runtime->global_const_pool().insert(Value("toLowerCase"));
-	prototype_.object().SetProperty(nullptr, toLowerCase_index, Value([](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
+	prototype_.object().SetProperty(runtime, toLowerCase_index, Value([](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
 		std::string str = stack.this_val().ToString(context).string_view();
 		std::string result;
 		result.reserve(str.length());
@@ -92,7 +92,7 @@ StringObjectClassDef::StringObjectClassDef(Runtime* runtime)
 
 	// ToUpperCase method
 	auto toUpperCase_index = runtime->global_const_pool().insert(Value("toUpperCase"));
-	prototype_.object().SetProperty(nullptr, toUpperCase_index, Value([](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
+	prototype_.object().SetProperty(runtime, toUpperCase_index, Value([](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
 		std::string str = stack.this_val().ToString(context).string_view();
 		std::string result;
 		result.reserve(str.length());
@@ -104,7 +104,7 @@ StringObjectClassDef::StringObjectClassDef(Runtime* runtime)
 
 	// Trim method
 	auto trim_index = runtime->global_const_pool().insert(Value("trim"));
-	prototype_.object().SetProperty(nullptr, trim_index, Value([](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
+	prototype_.object().SetProperty(runtime, trim_index, Value([](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
 		std::string str = stack.this_val().ToString(context).string_view();
 		auto start = str.find_first_not_of(" \t\n\r\f\v");
 		if (start == std::string::npos) return Value("");
@@ -114,7 +114,7 @@ StringObjectClassDef::StringObjectClassDef(Runtime* runtime)
 
 	// Replace method
 	auto replace_index = runtime->global_const_pool().insert(Value("replace"));
-	prototype_.object().SetProperty(nullptr, replace_index, Value([](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
+	prototype_.object().SetProperty(runtime, replace_index, Value([](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
 		if (par_count < 2) return stack.this_val();
 		
 		std::string str = stack.this_val().ToString(context).string_view();

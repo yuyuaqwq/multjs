@@ -36,7 +36,7 @@ public:
      * @param start 起始位置
      * @param end 结束位置
      */
-    Type(SourcePosition start, SourcePosition end)
+    Type(SourceBytePosition start, SourceBytePosition end)
         : Statement(start, end) {}
 };
 

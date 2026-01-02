@@ -27,7 +27,7 @@ public:
      * @param end 结束位置
      * @param declaration 被导出的声明
      */
-    explicit ExportDeclaration(SourcePosition start, SourcePosition end,
+    explicit ExportDeclaration(SourceBytePosition start, SourceBytePosition end,
         std::unique_ptr<Statement> declaration)
         : Statement(start, end), declaration_(std::move(declaration)) {}
 

@@ -44,7 +44,7 @@ namespace test {
  * @brief 解析器测试类，用于单元测试
  */
 class ParserTest;
-}
+} // namespace test
 
 /**
  * @class Parser
@@ -78,12 +78,6 @@ public:
 	 */
 	[[nodiscard]] const auto& import_declarations() const noexcept { return import_declarations_; }
 
-	/**
-	 * @brief 声明友元类，使其可以访问私有成员
-	 * @details 允许测试类访问解析器的内部状态进行单元测试
-	 */
-	friend class test::ParserTest;
-
 private:
 	/**
 	 * @brief 解析函数参数列表
@@ -100,19 +94,13 @@ private:
 	 */
 	std::vector<std::unique_ptr<Expression>> ParseExpressions(TokenType begin, TokenType end, bool allow_comma_end);
 
-	/**
-	 * @brief 解析类型注解
-	 * @return 解析后的类型注解
-	 */
-	std::unique_ptr<TypeAnnotation> TryParseTypeAnnotation();
-	
-	/**
-	 * @brief 解析联合类型
-	 * @return 解析后的联合类型
-	 */
-	std::unique_ptr<UnionType> ParseUnionType();
-
 private:
+	/**
+	 * @brief 声明友元类，使其可以访问私有成员
+	 * @details 允许测试类访问解析器的内部状态进行单元测试
+	 */
+	friend class ::mjs::compiler::test::ParserTest;
+
 	Lexer* lexer_;  ///< 词法分析器指针，用于获取词法标记
 
 	std::vector<std::unique_ptr<Statement>> statements_;  ///< 解析后的语句列表，存储整个程序的抽象语法树

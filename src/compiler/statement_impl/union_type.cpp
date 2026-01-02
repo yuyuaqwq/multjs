@@ -8,7 +8,7 @@
 namespace mjs {
 namespace compiler {
 
-std::unique_ptr<UnionType> ParseUnionType(Lexer* lexer) {
+std::unique_ptr<UnionType> UnionType::ParseUnionType(Lexer* lexer) {
 	auto start = lexer->GetSourcePosition();
 
 	// 解析联合类型的成员

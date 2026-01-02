@@ -11,7 +11,7 @@
 namespace mjs {
 namespace compiler {
 
-ArrowFunctionExpression::ArrowFunctionExpression(SourcePosition start, SourcePosition end,
+ArrowFunctionExpression::ArrowFunctionExpression(SourceBytePosition start, SourceBytePosition end,
 	std::vector<std::string>&& params,
 	std::unique_ptr<Statement> body,
 	bool is_async)
@@ -19,7 +19,7 @@ ArrowFunctionExpression::ArrowFunctionExpression(SourcePosition start, SourcePos
 	body_(std::move(body)), is_async_(is_async) {
 }
 
-std::unique_ptr<Expression> ArrowFunctionExpression::TryParseArrowFunctionExpression(Lexer* lexer, SourcePosition start, bool is_async) {
+std::unique_ptr<Expression> ArrowFunctionExpression::TryParseArrowFunctionExpression(Lexer* lexer, SourceBytePosition start, bool is_async) {
 	// 保存当前状态以便回退
 	auto checkpoint = lexer->CreateCheckpoint();
 

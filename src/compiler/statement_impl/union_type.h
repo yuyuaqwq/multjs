@@ -29,7 +29,7 @@ public:
      * @param end 结束位置
      * @param types 类型列表
      */
-    UnionType(SourcePosition start, SourcePosition end, std::vector<std::unique_ptr<Type>>&& types)
+    UnionType(SourceBytePosition start, SourceBytePosition end, std::vector<std::unique_ptr<Type>>&& types)
         : Type(start, end), types_(std::move(types)) {}
 
     StatementType type() const noexcept override { return StatementType::kUnionType; }
@@ -42,16 +42,16 @@ public:
 
     void GenerateCode(CodeGenerator* code_generator, FunctionDefBase* function_def_base) const override {}
 
+    /**
+    * @brief 解析联合类型
+    * @param lexer 词法分析器
+    * @return 解析后的联合类型
+    */
+    static std::unique_ptr<UnionType> ParseUnionType(Lexer* lexer);
+
 private:
     std::vector<std::unique_ptr<Type>> types_;
 };
-
-/**
- * @brief 解析联合类型
- * @param lexer 词法分析器
- * @return 解析后的联合类型
- */
-std::unique_ptr<UnionType> ParseUnionType(Lexer* lexer);
 
 } // namespace compiler
 } // namespace mjs

@@ -26,7 +26,7 @@ public:
      * @param end 表达式结束位置
      * @param name 标识符名称
      */
-    Identifier(SourcePosition start, SourcePosition end, std::string&& name)
+    Identifier(SourceBytePosition start, SourceBytePosition end, std::string&& name)
         : Expression(start, end), name_(std::move(name)) {
         set_value_category(ValueCategory::kLValue);
     }

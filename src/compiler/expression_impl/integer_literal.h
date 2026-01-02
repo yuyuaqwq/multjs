@@ -25,7 +25,7 @@ public:
      * @param end 表达式结束位置
      * @param value 整数值
      */
-    IntegerLiteral(SourcePosition start, SourcePosition end, int64_t value)
+    IntegerLiteral(SourceBytePosition start, SourceBytePosition end, int64_t value)
         : PrimaryExpression(start, end), value_(value) {}
 
 

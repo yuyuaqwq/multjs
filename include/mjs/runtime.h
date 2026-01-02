@@ -13,6 +13,7 @@
 
 #include <mjs/noncopyable.h>
 #include <mjs/global_const_pool.h>
+#include <mjs/key_const_index_table.h>
 #include <mjs/stack_frame.h>
 #include <mjs/class_def_table.h>
 #include <mjs/module_manager.h>
@@ -77,6 +78,12 @@ public:
 	 * @return 全局常量池引用
 	 */
 	auto& global_const_pool() { return global_const_pool_; }
+
+	/**
+	 * @brief 获取预设key常量索引表引用
+	 * @return 预设key常量索引表引用
+	 */
+	auto& key_const_index_table() const { return key_const_index_table_; }
 
 	/**
 	 * @brief 获取垃圾回收管理器引用
@@ -145,6 +152,7 @@ private:
 
 private:
 	GlobalConstPool global_const_pool_;              ///< 全局常量池
+	KeyConstIndexTable key_const_index_table_;		 ///< 预设key常量索引表
 	GCManager gc_manager_;                    ///< 垃圾回收管理器
 	ShapeManager shape_manager_;              ///< 形状管理器（对象布局优化）
 	Value global_this_;                       ///< 全局 this 对象

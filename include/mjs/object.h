@@ -105,7 +105,7 @@ public:
 	 * @param key 属性键名（字符串）
 	 * @param value 属性值
 	 */
-	void SetProperty(Runtime* runtime, const char* key, Value&& value);
+	void SetProperty(Runtime* runtime, ConstIndex key, Value&& value);
 
 	/**
 	 * @brief 获取对象属性（字符串键）
@@ -114,7 +114,7 @@ public:
 	 * @param value 输出参数，存储获取的属性值
 	 * @return 是否成功获取属性
 	 */
-	bool GetProperty(Runtime* runtime, const char* key, Value* value);
+	bool GetProperty(Runtime* runtime, ConstIndex key, Value* value);
 
 	/**
 	 * @brief 设置对象属性（常量索引键）

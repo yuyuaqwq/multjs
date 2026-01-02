@@ -28,7 +28,7 @@ public:
      * @param end 结束位置
      * @param expression 表达式
      */
-    ExpressionStatement(SourcePosition start, SourcePosition end, std::unique_ptr<Expression> expression)
+    ExpressionStatement(SourceBytePosition start, SourceBytePosition end, std::unique_ptr<Expression> expression)
         : Statement(start, end), expression_(std::move(expression)) {}
 
     StatementType type() const noexcept override { return StatementType::kExpression; }

@@ -26,7 +26,7 @@ public:
      * @param end 表达式结束位置
      * @param source 导入源表达式
      */
-    ImportExpression(SourcePosition start, SourcePosition end, std::unique_ptr<Expression> source)
+    ImportExpression(SourceBytePosition start, SourceBytePosition end, std::unique_ptr<Expression> source)
         : Expression(start, end), source_(std::move(source)) {}
 
 

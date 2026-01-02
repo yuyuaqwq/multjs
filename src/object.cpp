@@ -36,16 +36,29 @@ Object::~Object() {
 }
 
 
-void Object::SetProperty(Runtime* runtime, const char* key, Value&& value) {
-	auto const_index = runtime->global_const_pool().insert(mjs::Value(key));
-	SetProperty(nullptr, const_index, std::move(value));
+void Object::SetProperty(Runtime* runtime, ConstIndex key, Value&& value) {
+	SetProperty(static_cast<Context*>(nullptr), key, std::move(value));
 }
 
-bool Object::GetProperty(Runtime* runtime, const char* key, Value* value) {
-	auto const_index = runtime->global_const_pool().insert(mjs::Value(key));
-	return GetProperty(nullptr, const_index, value);
-}
+bool Object::GetProperty(Runtime* runtime, ConstIndex key, Value* value) {
+	// 如果配置了exotic，需要先查找(也就是class_def中的GetProperty等方法)
 
+	// 1. 查找自身属性
+	auto index = shape_->Find(key);
+	if (index != -1) {
+		*value = values_[index];
+		return true;
+	}
+
+	// 2. 原型链查找
+	auto& prototype = GetPrototype(runtime);
+	if (prototype.IsObject()) {
+		auto success = prototype.object().GetProperty(runtime, key, value);
+		if (success) return true;
+	}
+
+	return false;
+}
 
 void Object::SetProperty(Context* context, ConstIndex key, Value&& value) {
 	assert(!context || !tag_.is_const_);

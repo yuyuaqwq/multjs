@@ -128,12 +128,14 @@ TEST_F(ClassDefTest, ClassDefName) {
 TEST_F(ClassDefTest, ClassDefPrototype) {
     // Arrange
     auto& class_def_table = runtime_->class_def_table();
-    auto& object_class = class_def_table[ClassId::kObject];
+    auto& array_class = class_def_table[ClassId::kArrayObject];
 
     // Act
-    const auto& prototype = object_class.prototype();
+    const auto& prototype = array_class.prototype();
 
     // Assert
+    // Object.prototype是特殊的,它不是Object类型(原型为null)
+    // 其他类的prototype应该是Object类型
     EXPECT_TRUE(prototype.IsObject());
 }
 
@@ -272,7 +274,8 @@ TEST_F(ClassDefTableTest, BuiltinClassPrototypes) {
     auto& class_def_table = runtime_->class_def_table();
 
     // Act & Assert
-    EXPECT_TRUE(class_def_table[ClassId::kObject].prototype().IsObject());
+    // Object.prototype是特殊的(原型为null),不应该是Object类型
+    // 其他类的prototype应该是Object类型
     EXPECT_TRUE(class_def_table[ClassId::kArrayObject].prototype().IsObject());
     EXPECT_TRUE(class_def_table[ClassId::kFunctionObject].prototype().IsObject());
 }
@@ -305,10 +308,10 @@ TEST_F(ClassDefIntegrationTest, CreateObjectViaConstructor) {
     auto& class_def_table = runtime_->class_def_table();
 
     // Act
-    auto& object_class = class_def_table[ClassId::kObject];
+    auto& array_class = class_def_table[ClassId::kArrayObject];
 
-    // Assert - 验证Object类的构造函数存在
-    EXPECT_TRUE(object_class.prototype().IsObject());
+    // Assert - 验证Array类的构造函数存在
+    EXPECT_TRUE(array_class.prototype().IsObject());
 }
 
 /**
@@ -319,9 +322,13 @@ TEST_F(ClassDefIntegrationTest, PrototypeChain) {
     auto& class_def_table = runtime_->class_def_table();
 
     // Act & Assert
-    // Object.prototype的原型应该是null
+    // Object.prototype的原型应该是null,所以不是Object类型
     auto object_prototype = class_def_table[ClassId::kObject].prototype();
-    EXPECT_TRUE(object_prototype.IsObject());
+    EXPECT_FALSE(object_prototype.IsObject());  // 应该是null/undefined
+
+    // Array.prototype的原型应该是Object.prototype
+    auto array_prototype = class_def_table[ClassId::kArrayObject].prototype();
+    EXPECT_TRUE(array_prototype.IsObject());
 }
 
 /**

@@ -136,11 +136,6 @@ public:
 	void EmitVarLoad(VarIndex idx);
 
 	/**
-	 * @brief 发射跳转指令
-	 */
-	void EmitGoto();
-
-	/**
 	 * @brief 发射属性加载指令
 	 * @param const_idx 常量索引
 	 */

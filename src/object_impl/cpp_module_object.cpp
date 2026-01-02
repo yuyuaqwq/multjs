@@ -8,7 +8,8 @@ CppModuleObject::CppModuleObject(Runtime* runtime) :
 	Object(runtime, ClassId::kCppModuleObject) {}
 
 void CppModuleObject::AddExportMethod(Runtime* runtime, const char* name, CppFunction function) {
-	SetProperty(runtime, name, Value(function));
+	auto const_index = runtime->global_const_pool().insert(Value(name));
+	SetProperty(runtime, const_index, Value(function));
 }
 
 } // namespace mjs

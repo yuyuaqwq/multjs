@@ -27,7 +27,6 @@ private:
 	ConstIndex forEach_const_index_;
 	ConstIndex map_const_index_;
 	ConstIndex filter_const_index_;
-
 };
 
 } // namespace mjs

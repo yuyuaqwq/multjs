@@ -48,7 +48,7 @@ public:
      * @param start 表达式起始位置
      * @param end 表达式结束位置
      */
-    Expression(SourcePosition start, SourcePosition end)
+    Expression(SourceBytePosition start, SourceBytePosition end)
         : start_(start), end_(end) {}
 
     /**
@@ -94,13 +94,13 @@ public:
      * @brief 获取表达式起始位置
      * @return 起始位置
      */
-    SourcePosition start() const { return start_; }
+    SourceBytePosition start() const { return start_; }
 
     /**
      * @brief 获取表达式结束位置
      * @return 结束位置
      */
-    SourcePosition end() const { return end_; }
+    SourceBytePosition end() const { return end_; }
 
 	/**
 	 * @brief 解析表达式
@@ -148,8 +148,8 @@ public:
 
 private:
     ValueCategory value_category_ = ValueCategory::kRValue; ///< 值类别
-    SourcePosition start_; ///< 表达式起始位置
-    SourcePosition end_;   ///< 表达式结束位置
+    SourceBytePosition start_; ///< 表达式起始位置
+    SourceBytePosition end_;   ///< 表达式结束位置
 };
 
 } // namespace compiler

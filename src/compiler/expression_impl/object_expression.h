@@ -40,7 +40,7 @@ public:
      * @param end 表达式结束位置
      * @param properties 对象属性列表
      */
-    ObjectExpression(SourcePosition start, SourcePosition end, std::vector<Property>&& properties)
+    ObjectExpression(SourceBytePosition start, SourceBytePosition end, std::vector<Property>&& properties)
         : Expression(start, end), properties_(std::move(properties)) {}
 
     /**

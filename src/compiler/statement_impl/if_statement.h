@@ -32,7 +32,7 @@ public:
      * @param consequent 条件为真时执行的语句块
      * @param alternate 条件为假时执行的语句（else分支）
      */
-    IfStatement(SourcePosition start, SourcePosition end,
+    IfStatement(SourceBytePosition start, SourceBytePosition end,
         std::unique_ptr<Expression> test,
         std::unique_ptr<BlockStatement> consequent,
         std::unique_ptr<Statement> alternate)

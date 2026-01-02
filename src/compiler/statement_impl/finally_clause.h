@@ -28,7 +28,7 @@ public:
      * @param end 结束位置
      * @param body finally块
      */
-    explicit FinallyClause(SourcePosition start, SourcePosition end,
+    explicit FinallyClause(SourceBytePosition start, SourceBytePosition end,
         std::unique_ptr<BlockStatement> body)
         : Statement(start, end), body_(std::move(body)) {}
 

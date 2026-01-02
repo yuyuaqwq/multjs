@@ -28,7 +28,7 @@ public:
      * @param end 表达式结束位置
      * @param elements 数组元素表达式列表
      */
-    ArrayExpression(SourcePosition start, SourcePosition end,
+    ArrayExpression(SourceBytePosition start, SourceBytePosition end,
                 std::vector<std::unique_ptr<Expression>>&& elements)
         : Expression(start, end), elements_(std::move(elements)) {}
 

@@ -30,7 +30,7 @@ public:
      * @param param 异常参数
      * @param body catch块
      */
-    CatchClause(SourcePosition start, SourcePosition end,
+    CatchClause(SourceBytePosition start, SourceBytePosition end,
         std::unique_ptr<Identifier> param,
         std::unique_ptr<BlockStatement> body)
         : Statement(start, end),

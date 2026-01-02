@@ -15,9 +15,12 @@
 #include <mjs/stack_frame.h>
 #include <mjs/value.h>
 #include <mjs/runtime.h>
+#include <mjs/context.h>
 #include <mjs/function_def.h>
 #include <mjs/module_def.h>
-#include "test_helpers.h"
+#include <mjs/object.h>
+#include <mjs/object_impl/function_object.h>
+#include "tests/unit/test_helpers.h"
 
 namespace mjs {
 namespace test {
@@ -78,7 +81,7 @@ TEST_F(StackTest, StackPop) {
     Value popped = stack_->pop();
 
     // Assert
-    EXPECT_EQ(popped.ToInt64(), 100);
+    EXPECT_EQ(popped.i64(), 100);
     EXPECT_EQ(stack_->size(), 1);
 }
 
@@ -98,7 +101,7 @@ TEST_F(StackTest, StackGet) {
     Value& value = stack_->get(1);
 
     // Assert
-    EXPECT_EQ(value.ToInt64(), 2);
+    EXPECT_EQ(value.i64(), 2);
 }
 
 /**
@@ -117,7 +120,7 @@ TEST_F(StackTest, StackSet) {
 
     // Assert
     Value& retrieved = stack_->get(0);
-    EXPECT_EQ(retrieved.ToInt64(), 99);
+    EXPECT_EQ(retrieved.i64(), 99);
 }
 
 /**
@@ -259,7 +262,7 @@ TEST_F(StackFrameTest, StackFramePop) {
     Value popped = stack_frame_->pop();
 
     // Assert
-    EXPECT_EQ(popped.ToInt64(), 100);
+    EXPECT_EQ(popped.i64(), 100);
 }
 
 /**
@@ -275,7 +278,7 @@ TEST_F(StackFrameTest, StackFrameGetPositiveIndex) {
     Value& value = stack_frame_->get(0); // 从栈帧底向上
 
     // Assert
-    EXPECT_EQ(value.ToInt64(), 10);
+    EXPECT_EQ(value.i64(), 10);
 }
 
 /**
@@ -291,7 +294,7 @@ TEST_F(StackFrameTest, StackFrameGetNegativeIndex) {
     Value& value = stack_frame_->get(-1); // 从栈帧顶向下
 
     // Assert
-    EXPECT_EQ(value.ToInt64(), 30);
+    EXPECT_EQ(value.i64(), 30);
 }
 
 /**
@@ -307,7 +310,7 @@ TEST_F(StackFrameTest, StackFrameSet) {
 
     // Assert
     Value& value = stack_frame_->get(0);
-    EXPECT_EQ(value.ToInt64(), 99);
+    EXPECT_EQ(value.i64(), 99);
 }
 
 /**
@@ -406,8 +409,10 @@ protected:
  * @test 测试设置函数值
  */
 TEST_F(StackFrameFunctionTest, SetFunctionVal) {
-    // Arrange
-    Value func_val(ValueType::kFunctionObject);
+    // Arrange - 创建一个FunctionObject并包装为Value
+    Context context(runtime_.get());
+    FunctionObject* func_obj = FunctionObject::New(&context, function_def_.get());
+    Value func_val(func_obj);
 
     // Act
     stack_frame_->set_function_val(std::move(func_val));
@@ -431,8 +436,10 @@ TEST_F(StackFrameFunctionTest, SetFunctionDef) {
  * @test 测试设置this值
  */
 TEST_F(StackFrameFunctionTest, SetThisVal) {
-    // Arrange
-    Value this_val(ValueType::kObject);
+    // Arrange - 创建一个Object并包装为Value
+    Context context(runtime_.get());
+    Object* obj = Object::New(&context);
+    Value this_val(obj);
 
     // Act
     stack_frame_->set_this_val(std::move(this_val));

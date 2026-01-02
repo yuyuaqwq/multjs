@@ -11,7 +11,8 @@ SymbolClassDef::SymbolClassDef(Runtime* runtime)
 	//auto iter = property_map_.insert(runtime, "iterator", Value());
 	//iter.first->second = Value(iter.first->first);
 
-	constructor_object_.object().SetProperty(runtime, "for", Value([](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
+	auto for_const_index = runtime->global_const_pool().insert(Value("for"));
+	constructor_object_.object().SetProperty(runtime, for_const_index, Value([](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
 		if (par_count < 1) {
 			return Value("Parameter count mismatch.").SetException();
 		}

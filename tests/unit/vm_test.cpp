@@ -1,7 +1,23 @@
+/**
+ * @file vm_test.cpp
+ * @brief 虚拟机(VM)单元测试
+ *
+ * 测试VM的所有核心功能，包括：
+ * - 基础操作（变量读写、常量加载）
+ * - 模块初始化和绑定
+ * - 闭包创建和绑定
+ * - 函数调度
+ * - 字节码执行
+ * - 异常处理
+ * - 生成器和异步函数支持
+ *
+ * @copyright Copyright (c) 2025
+ * @license MIT License
+ */
+
 #include <gtest/gtest.h>
 #include <memory>
 #include <vector>
-#include <string>
 
 #include <mjs/vm.h>
 #include <mjs/context.h>
@@ -10,1327 +26,1086 @@
 #include <mjs/stack_frame.h>
 #include <mjs/function_def.h>
 #include <mjs/module_def.h>
-#include <mjs/bytecode_table.h>
-#include <mjs/opcode.h>
+#include <mjs/object.h>
 #include <mjs/object_impl/function_object.h>
+#include <mjs/object_impl/module_object.h>
 #include <mjs/object_impl/generator_object.h>
 #include <mjs/object_impl/async_object.h>
-#include <mjs/object_impl/array_object.h>
-#include <mjs/error.h>
+#include <mjs/object_impl/promise_object.h>
+#include <mjs/object_impl/constructor_object.h>
+#include <mjs/bytecode_table.h>
+#include <mjs/variable.h>
+#include <mjs/closure.h>
+#include <mjs/exception.h>
+
+#include "tests/unit/test_helpers.h"
 
 namespace mjs {
 namespace test {
 
+// =============================================================================
+// VM基础测试
+// =============================================================================
+
+/**
+ * @class VMTest
+ * @brief VM基础测试类
+ */
 class VMTest : public ::testing::Test {
 protected:
     void SetUp() override {
-        runtime_ = std::make_unique<Runtime>();
+        runtime_ = TestRuntime::Create();
         context_ = std::make_unique<Context>(runtime_.get());
-        vm_ = std::make_unique<VM>(context_.get());
+        stack_ = std::make_unique<Stack>(1024);
+        stack_frame_ = std::make_unique<StackFrame>(stack_.get());
+        module_def_ = TestModuleDef::CreateShared(runtime_.get(), "test_module");
+        function_def_ = TestFunctionDef::CreateShared(module_def_.get(), "test_function", 2);
     }
 
     void TearDown() override {
-        vm_.reset();
+        stack_frame_.reset();
+        stack_.reset();
         context_.reset();
+        module_def_.reset();
+        function_def_.reset();
         runtime_.reset();
     }
 
-    // 辅助函数：创建简单的函数定义
-    Value CreateSimpleFunction(const std::string& name, uint32_t par_count = 0) {
-        auto module_def = ModuleDef::New(runtime_.get(), name + "_module", "", par_count);
-        auto func_def = FunctionDef::New(module_def, name, par_count);
-        func_def->set_is_normal();
-        return Value(func_def);
+    Value& GetVar(VM* vm, StackFrame* stack_frame, VarIndex var_index) {
+        return vm->GetVar(stack_frame, var_index);
     }
 
-    // 辅助函数：创建带字节码的函数定义
-    Value CreateFunctionWithBytecode(const std::string& name,
-                                                           const std::vector<uint8_t>& bytecode) {
-        auto func_def = CreateSimpleFunction(name);
-        auto& table = func_def.function_def().bytecode_table();
-        for (uint8_t byte : bytecode) {
-            table.EmitU8(byte);
-        }
-        return Value(func_def);
+    void SetVar(VM* vm, StackFrame* stack_frame, VarIndex var_index, Value&& var) {
+        return vm->SetVar(stack_frame, var_index, std::forward<Value>(var));
     }
 
-    // 辅助函数：添加常量到常量池
-    ConstIndex AddConstant(const Value& value) {
-        return context_->FindConstOrInsertToLocal(value);
+    bool FunctionScheduling(VM* vm, StackFrame* stack_frame, uint32_t param_count) {
+        return vm->FunctionScheduling(stack_frame, param_count);
+    }
+
+    void LoadConst(VM* vm, StackFrame* stack_frame, ConstIndex const_idx) {
+        vm->LoadConst(stack_frame, const_idx);
+    }
+
+    bool ThrowException(VM* vm, StackFrame* stack_frame, std::optional<Value>* error_val) {
+        return vm->ThrowException(stack_frame, error_val);
+    }
+
+    void GeneratorSaveContext(VM* vm, StackFrame* stack_frame, GeneratorObject* generator) {
+        vm->GeneratorSaveContext(stack_frame, generator);
+    }
+
+    void GeneratorRestoreContext(VM* vm, StackFrame* stack_frame, GeneratorObject* generator) {
+        vm->GeneratorRestoreContext(stack_frame, generator);
     }
 
     std::unique_ptr<Runtime> runtime_;
     std::unique_ptr<Context> context_;
-    std::unique_ptr<VM> vm_;
+    std::unique_ptr<Stack> stack_;
+    std::unique_ptr<StackFrame> stack_frame_;
+    std::shared_ptr<ModuleDef> module_def_;
+    std::shared_ptr<FunctionDef> function_def_;
 };
 
-// 测试VM基本构造和初始化
-TEST_F(VMTest, BasicConstruction) {
-    EXPECT_NE(vm_.get(), nullptr);
-    // VM应该正确关联到context
+/**
+ * @test 测试VM构造函数
+ */
+TEST_F(VMTest, VMConstruction) {
+    // Arrange & Act
+    VM vm(context_.get());
+
+    // Assert - VM成功构造，无异常抛出
+    SUCCEED();
 }
 
-// 测试基本指令执行 - 常量加载
-TEST_F(VMTest, BasicInstructionExecution_ConstantLoad) {
-    // 创建一个简单的函数，加载常量并返回
-    auto func_def = CreateSimpleFunction("test_const_load");
-    
-    // 添加常量到常量池
-    ConstIndex const_idx = AddConstant(Value(42.0));
-    
-    // 生成字节码：CLoad 常量索引, Return
-    auto& table = func_def.function_def().bytecode_table();
-    table.EmitConstLoad(const_idx);
-    table.EmitOpcode(OpcodeType::kReturn);
-    
-    // 创建栈帧并执行
-    StackFrame stack_frame(&runtime_->stack());
-    Value this_val;
-    std::initializer_list<Value> args = {};
-    Value result = vm_->CallFunction(&stack_frame, func_def, this_val, 
-        args.begin(),
-        args.end());
-    
-    EXPECT_TRUE(result.IsNumber());
-    EXPECT_DOUBLE_EQ(result.f64(), 42.0);
+/**
+ * @test 测试GetVar - 普通变量
+ */
+TEST_F(VMTest, GetVar_NormalVariable) {
+    // Arrange
+    VM vm(context_.get());
+    stack_frame_->push(Value(42));
+    stack_frame_->push(Value(100));
+
+    // Act
+    auto& value = GetVar(&vm, stack_frame_.get(), 0);
+
+    // Assert
+    EXPECT_EQ(value.i64(), 42);
 }
 
-// 测试变量操作指令
-TEST_F(VMTest, VariableOperations) {
-    auto func_def = CreateSimpleFunction("test_variables", 1); // 1个参数
-    func_def.function_def().var_def_table().AddVar("param");
-    func_def.function_def().var_def_table().AddVar("local");
-    
-    // 生成字节码：VLoad_0 (加载参数), VStore_1 (存储到本地变量), VLoad_1, Return
-    auto& table = func_def.function_def().bytecode_table();
-    table.EmitOpcode(OpcodeType::kVLoad_0);  // 加载参数0
-    table.EmitOpcode(OpcodeType::kVStore_1); // 存储到变量1
-    table.EmitOpcode(OpcodeType::kVLoad_1);  // 加载变量1
-    table.EmitOpcode(OpcodeType::kReturn);
-    
-    StackFrame stack_frame(&runtime_->stack());
-    Value this_val;
-    auto args = std::vector<Value>{Value(123.0)};
-    Value result = vm_->CallFunction(&stack_frame, func_def, this_val,
-        args.begin(),
-        args.end());
-    
-    EXPECT_TRUE(result.IsNumber());
-    EXPECT_DOUBLE_EQ(result.f64(), 123.0);
+/**
+ * @test 测试GetVar - 闭包变量
+ */
+TEST_F(VMTest, GetVar_ClosureVariable) {
+    // Arrange
+    VM vm(context_.get());
+    auto* closure_var = new ClosureVar(Value(42));
+    stack_frame_->push(Value(closure_var));
+
+    // Act
+    auto& value = GetVar(&vm, stack_frame_.get(), 0);
+
+    // Assert
+    EXPECT_EQ(value.i64(), 42);
 }
 
-// 测试算术运算指令
-TEST_F(VMTest, ArithmeticOperations) {
-    auto func_def = CreateSimpleFunction("test_arithmetic");
-    
-    // 添加常量
-    ConstIndex const1 = AddConstant(Value(10.0));
-    ConstIndex const2 = AddConstant(Value(5.0));
-    
-    // 生成字节码：CLoad 10, CLoad 5, Add, Return
-    auto& table = func_def.function_def().bytecode_table();
-    table.EmitConstLoad(const1);
-    table.EmitConstLoad(const2);
-    table.EmitOpcode(OpcodeType::kAdd);
-    table.EmitOpcode(OpcodeType::kReturn);
-    
-    StackFrame stack_frame(&runtime_->stack());
-    Value this_val;
-    std::initializer_list<Value> args = {};
-    Value result = vm_->CallFunction(&stack_frame, func_def, this_val,
-        args.begin(),
-        args.end());
-    
-    EXPECT_TRUE(result.IsNumber());
-    EXPECT_DOUBLE_EQ(result.f64(), 15.0);
+/**
+ * @test 测试SetVar - 普通变量
+ */
+TEST_F(VMTest, SetVar_NormalVariable) {
+    // Arrange
+    VM vm(context_.get());
+    stack_frame_->push(Value(0));
+    stack_frame_->push(Value(0));
+
+    // Act
+    SetVar(&vm, stack_frame_.get(), 0, Value(42));
+
+    // Assert
+    EXPECT_EQ(stack_frame_->get(0).i64(), 42);
 }
 
-// 测试多种算术运算
-TEST_F(VMTest, MultipleArithmeticOperations) {
-    auto func_def = CreateSimpleFunction("test_multi_arithmetic");
-    
-    ConstIndex const1 = AddConstant(Value(20.0));
-    ConstIndex const2 = AddConstant(Value(4.0));
-    
-    // 生成字节码：CLoad 20, CLoad 4, Sub, CLoad 4, Mul, Return (结果应该是 (20-4)*4 = 64)
-    auto& table = func_def.function_def().bytecode_table();
-    table.EmitConstLoad(const1);
-    table.EmitConstLoad(const2);
-    table.EmitOpcode(OpcodeType::kSub);
-    table.EmitConstLoad(const2);
-    table.EmitOpcode(OpcodeType::kMul);
-    table.EmitOpcode(OpcodeType::kReturn);
-    
-    StackFrame stack_frame(&runtime_->stack());
-    Value this_val;
-    std::initializer_list<Value> args = {};
-    Value result = vm_->CallFunction(&stack_frame, func_def, this_val,
-        args.begin(),
-        args.end());
-    
-    EXPECT_TRUE(result.IsNumber());
-    EXPECT_DOUBLE_EQ(result.f64(), 64.0);
+/**
+ * @test 测试SetVar - 闭包变量
+ */
+TEST_F(VMTest, SetVar_ClosureVariable) {
+    // Arrange
+    VM vm(context_.get());
+    auto* closure_var = new ClosureVar(Value(0));
+    stack_frame_->push(Value(closure_var));
+
+    // Act
+    SetVar(&vm, stack_frame_.get(), 0, Value(42));
+
+    // Assert
+    EXPECT_EQ(closure_var->value().i64(), 42);
 }
 
-// 测试栈操作指令
-TEST_F(VMTest, StackOperations) {
-    auto func_def = CreateSimpleFunction("test_stack_ops");
-    
-    ConstIndex const1 = AddConstant(Value(1.0));
-    ConstIndex const2 = AddConstant(Value(2.0));
-    
-    // 生成字节码：CLoad 1, CLoad 2, Swap, Pop, Return (结果应该是2)
-    auto& table = func_def.function_def().bytecode_table();
-    table.EmitConstLoad(const1);
-    table.EmitConstLoad(const2);
-    table.EmitOpcode(OpcodeType::kSwap);
-    table.EmitOpcode(OpcodeType::kPop);
-    table.EmitOpcode(OpcodeType::kReturn);
-    
-    StackFrame stack_frame(&runtime_->stack());
-    Value this_val;
-    std::initializer_list<Value> args = {};
-    Value result = vm_->CallFunction(&stack_frame, func_def, this_val,
-        args.begin(),
-        args.end());
-    
-    EXPECT_TRUE(result.IsNumber());
-    EXPECT_DOUBLE_EQ(result.f64(), 2.0);
+/**
+ * @test 测试SetVar - 导出变量
+ */
+TEST_F(VMTest, SetVar_ExportVariable) {
+    // Arrange
+    VM vm(context_.get());
+    auto* export_var = new ExportVar(Value(0));
+    stack_frame_->push(Value(export_var));
+
+    // Act
+    SetVar(&vm, stack_frame_.get(), 0, Value(42));
+
+    // Assert
+    EXPECT_EQ(export_var->value().i64(), 42);
 }
 
-// 测试比较操作指令
-TEST_F(VMTest, ComparisonOperations) {
-    auto func_def = CreateSimpleFunction("test_comparison");
-    
-    ConstIndex const1 = AddConstant(Value(10.0));
-    ConstIndex const2 = AddConstant(Value(5.0));
-    
-    // 生成字节码：CLoad 10, CLoad 5, Gt, Return (10 > 5 应该是true)
-    auto& table = func_def.function_def().bytecode_table();
-    table.EmitConstLoad(const1);
-    table.EmitConstLoad(const2);
-    table.EmitOpcode(OpcodeType::kGt);
-    table.EmitOpcode(OpcodeType::kReturn);
-    
-    StackFrame stack_frame(&runtime_->stack());
-    Value this_val;
-    std::initializer_list<Value> args = {};
-    Value result = vm_->CallFunction(&stack_frame, func_def, this_val,
-        args.begin(),
-        args.end());
-    
-    EXPECT_TRUE(result.IsBoolean());
-    EXPECT_TRUE(result.boolean());
+/**
+ * @test 测试GetVar - 导出变量
+ */
+TEST_F(VMTest, GetVar_ExportVariable) {
+    // Arrange
+    VM vm(context_.get());
+    auto* export_var = new ExportVar(Value(42));
+    stack_frame_->push(Value(export_var));
+
+    // Act
+    auto& value = GetVar(&vm, stack_frame_.get(), 0);
+
+    // Assert
+    EXPECT_EQ(value.i64(), 42);
 }
 
-// 测试条件跳转指令
-TEST_F(VMTest, ConditionalJump) {
-    auto func_def = CreateSimpleFunction("test_conditional_jump");
-    
-    ConstIndex const_true = AddConstant(Value(true));
-    ConstIndex const1 = AddConstant(Value(100.0));
-    ConstIndex const2 = AddConstant(Value(200.0));
-    
-    // 生成字节码：
-    // CLoad true
-    // IfEq +5  (如果true则跳过下一条指令)
-    // CLoad 200
-    // Goto +2
-    // CLoad 100
-    // Return
-    auto& table = func_def.function_def().bytecode_table();
-    table.EmitConstLoad(const_true);
-    table.EmitOpcode(OpcodeType::kIfEq);
-    table.EmitU16(5); // 跳转偏移
-    table.EmitConstLoad(const2);
-    table.EmitOpcode(OpcodeType::kGoto);
-    table.EmitU16(3); // 跳转偏移
-    table.EmitConstLoad(const1);
-    table.EmitOpcode(OpcodeType::kReturn);
-    
-    // std::cout << func_def.function_def().Disassembly(context_.get());
+// =============================================================================
+// 模块初始化和绑定测试
+// =============================================================================
 
-    StackFrame stack_frame(&runtime_->stack());
-    Value this_val;
-    std::initializer_list<Value> args = {};
-    Value result = vm_->CallFunction(&stack_frame, func_def, this_val,
-        args.begin(),
-        args.end());
-    
-    EXPECT_TRUE(result.IsNumber());
-    EXPECT_DOUBLE_EQ(result.f64(), 100.0);
-}
-
-// 测试函数调用
-TEST_F(VMTest, FunctionCall) {
-    // 创建被调用的函数
-    auto called_func = CreateSimpleFunction("called_function", 1);
-    called_func.function_def().var_def_table().AddVar("param");
-    
-    // 被调用函数的字节码：VLoad_0, Inc, Return
-    auto& called_table = called_func.function_def().bytecode_table();
-    called_table.EmitOpcode(OpcodeType::kVLoad_0);
-    called_table.EmitOpcode(OpcodeType::kInc);
-    called_table.EmitOpcode(OpcodeType::kReturn);
-    
-    // 将被调用函数添加到常量池
-    ConstIndex func_const = AddConstant(called_func);
-    ConstIndex arg_const = AddConstant(Value(10ull));
-    ConstIndex arg_count_const = AddConstant(Value(1ull));
-
-    // 创建主函数
-    auto main_func = CreateSimpleFunction("main_function");
-    auto& main_table = main_func.function_def().bytecode_table();
-    
-    // 主函数字节码：CLoad func, Undefined (this), CLoad 10, FunctionCall 1, Return
-    main_table.EmitConstLoad(arg_const);
-    main_table.EmitConstLoad(arg_count_const);
-    main_table.EmitConstLoad(func_const);
-    main_table.EmitOpcode(OpcodeType::kUndefined);
-    main_table.EmitOpcode(OpcodeType::kFunctionCall);
-    main_table.EmitOpcode(OpcodeType::kReturn);
-    
-    // std::cout << main_func.function_def().Disassembly(context_.get());
-
-    StackFrame stack_frame(&runtime_->stack());
-    Value this_val;
-    std::initializer_list<Value> args = {};
-    Value result = vm_->CallFunction(&stack_frame, main_func, this_val,
-        args.begin(),
-        args.end());
-    
-    EXPECT_TRUE(result.IsNumber());
-    EXPECT_DOUBLE_EQ(result.u64(), 11.0); // 10 + 1
-}
- 
-// 测试异常处理
-TEST_F(VMTest, ExceptionHandling) {
-    auto func_def = CreateSimpleFunction("test_exception");
-    
-    // 创建异常值
-    ConstIndex error_const = AddConstant(Error::Throw(context_.get(), "Test error"));
-    
-    // 生成字节码：CLoad error, Throw
-    auto& table = func_def.function_def().bytecode_table();
-    table.EmitConstLoad(error_const);
-    table.EmitOpcode(OpcodeType::kThrow);
-    
-    StackFrame stack_frame(&runtime_->stack());
-    Value this_val;
-    std::initializer_list<Value> args = {};
-    Value result = vm_->CallFunction(&stack_frame, func_def, this_val,
-        args.begin(),
-        args.end());
-    
-    EXPECT_TRUE(result.IsException());
-}
-
-// 测试Try-Catch异常处理
-TEST_F(VMTest, TryCatchException) {
-    auto func_def = CreateSimpleFunction("test_try_catch");
-    
-    ConstIndex error_const = AddConstant(Error::Throw(context_.get(), "Test error"));
-    ConstIndex success_const = AddConstant(Value(42.0));
-    ConstIndex caught_const = AddConstant(Value(99.0));
-    
-    // 添加异常处理表项
-    func_def.function_def().var_def_table().AddVar("error_var");
-
-    // 生成字节码：
-    // 0: TryBegin
-    // 1: CLoad error
-    // 2: Throw
-    // 3: CLoad 42 (不会执行)
-    // 4: TryEnd
-    // 5: CLoad 99 (catch块)
-    // 6: Return
-    auto& table = func_def.function_def().bytecode_table();
-    auto try_start_pc = table.Size();
-    table.EmitOpcode(OpcodeType::kTryBegin);      // 0
-    table.EmitConstLoad(error_const);             // 1
-    table.EmitOpcode(OpcodeType::kThrow);         // 3
-    table.EmitConstLoad(success_const);           // 4
-    auto try_end_pc = table.Size();
-    auto catch_start_pc = table.Size();
-    table.EmitConstLoad(caught_const);            // 7 (catch开始)
-    table.EmitOpcode(OpcodeType::kReturn);        // 9
-    auto catch_end_pc = table.Size();
-    table.EmitOpcode(OpcodeType::kTryEnd);        // 6
-
-    func_def.function_def().exception_table().AddEntry(ExceptionEntry{ try_start_pc, try_end_pc, catch_start_pc, catch_end_pc, 0 }); // try: 2-4, catch: 5-8, error_var: 0
-
-    StackFrame stack_frame(&runtime_->stack());
-    Value this_val;
-    std::initializer_list<Value> args = {};
-    Value result = vm_->CallFunction(&stack_frame, func_def, this_val,
-        args.begin(),
-        args.end());
-    
-    EXPECT_TRUE(result.IsNumber());
-    EXPECT_DOUBLE_EQ(result.f64(), 99.0); // 应该执行catch块
-}
-
-// 测试生成器函数
-TEST_F(VMTest, GeneratorFunction) {
-    auto func_def = CreateSimpleFunction("test_generator");
-    func_def.function_def().set_is_generator();
-    
-    ConstIndex const1 = AddConstant(Value(1.0));
-    ConstIndex const2 = AddConstant(Value(2.0));
-    
-    // 生成字节码：CLoad 1, Yield, CLoad 2, GeneratorReturn
-    auto& table = func_def.function_def().bytecode_table();
-    table.EmitConstLoad(const1);
-    table.EmitOpcode(OpcodeType::kYield);
-    table.EmitConstLoad(const2);
-    table.EmitOpcode(OpcodeType::kGeneratorReturn);
-    
-    StackFrame stack_frame(&runtime_->stack());
-    Value this_val;
-    // 调用生成器函数应该返回生成器对象
-    std::initializer_list<Value> args = {};
-    Value result = vm_->CallFunction(&stack_frame, func_def, this_val,
-        args.begin(),
-        args.end());
-    
-    EXPECT_TRUE(result.IsGeneratorObject());
-    
-    auto& generator = result.generator();
-    EXPECT_FALSE(generator.IsClosed());
-}
-
-// 测试异步函数
-TEST_F(VMTest, AsyncFunction) {
-    auto func_def = CreateSimpleFunction("test_async");
-    func_def.function_def().set_is_async();
-    
-    ConstIndex const_val = AddConstant(Value(42.0));
-    
-    // 生成字节码：CLoad 42, AsyncReturn
-    auto& table = func_def.function_def().bytecode_table();
-    table.EmitConstLoad(const_val);
-    table.EmitOpcode(OpcodeType::kAsyncReturn);
-    
-    StackFrame stack_frame(&runtime_->stack());
-    
-    Value this_val;
-    // 调用异步函数应该返回Promise对象
-    std::initializer_list<Value> args = {};
-    Value result = vm_->CallFunction(&stack_frame, func_def, this_val,
-        args.begin(),
-        args.end());
-    
-    EXPECT_TRUE(result.IsPromiseObject());
-}
-
-// 测试模块初始化
-TEST_F(VMTest, ModuleInitialization) {
-    auto module_def = ModuleDef::New(runtime_.get(), "test_module", "", 0);
-    auto module_def_val = Value(module_def);
-
-    // 添加导出变量
-    module_def->export_var_def_table().AddExportVar("exportedVar", 0);
-
-    //Value module_val(module_def.get());
-    //vm_->ModuleInit(&module_val);
-    //
-    //EXPECT_TRUE(module_val.IsModuleObject());
-}
-
-// 测试C++函数调用
-TEST_F(VMTest, CppFunctionCall) {
-    // 创建C++函数
-    auto cpp_func = [](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
-        if (par_count > 0) {
-            auto arg = stack.get(-static_cast<ptrdiff_t>(par_count));
-            if (arg.IsNumber()) {
-                return Value(arg.f64() * 2.0); // 返回参数的两倍
-            }
-        }
-        return Value(0.0);
-    };
-    
-    StackFrame stack_frame(&runtime_->stack());
-    Value func_val(cpp_func);
-    Value this_val;
-    std::vector<Value> args = {Value(21.0)};
-    Value result = vm_->CallFunction(&stack_frame, func_val, this_val,
-                                   args.begin(), args.end());
-    
-    EXPECT_TRUE(result.IsNumber());
-    EXPECT_DOUBLE_EQ(result.f64(), 42.0);
-}
-
-// 测试参数数量验证
-TEST_F(VMTest, ParameterCountValidation) {
-    auto func_def = CreateSimpleFunction("test_param_count", 2); // 需要2个参数
-    func_def.function_def().var_def_table().AddVar("param1");
-    func_def.function_def().var_def_table().AddVar("param2");
-    
-    // 简单返回第一个参数
-    auto& table = func_def.function_def().bytecode_table();
-    table.EmitOpcode(OpcodeType::kVLoad_0);
-    table.EmitOpcode(OpcodeType::kReturn);
-    
-    StackFrame stack_frame(&runtime_->stack());
-    
-    Value this_val;
-    // 传递少于需要的参数应该报错
-    std::vector<Value> args = {Value(10.0)}; // 只传1个参数，需要2个
-    Value result = vm_->CallFunction(&stack_frame, func_def, this_val, 
-                                   args.begin(), args.end());
-    
-    EXPECT_TRUE(result.IsException());
-}
-
-// 测试闭包变量
-TEST_F(VMTest, ClosureVariables) {
-    auto outer_func = CreateSimpleFunction("outer_function");
-    outer_func.function_def().var_def_table().AddVar("outer_var");
-    
-    auto inner_func = CreateSimpleFunction("inner_function");
-    inner_func.function_def().var_def_table().AddVar("inner_var");
-    
-    // 设置闭包变量表
-    //inner_func->closure_var_table().AddClosureVar("outer_var", 0, 0);
-    //inner_func->set_has_this(true);
-    
-    //ConstIndex inner_func_const = AddConstant(inner_func);
-    //ConstIndex const_val = AddConstant(Value(100.0));
-    //
-    //// 外部函数字节码：CLoad 100, VStore_0, CLoad inner_func, Closure, Return
-    //auto& outer_table = outer_func.function_def().bytecode_table();
-    //outer_table.EmitConstLoad(const_val);
-    //outer_table.EmitOpcode(OpcodeType::kVStore_0);
-    //outer_table.EmitConstLoad(inner_func_const);
-    //outer_table.EmitOpcode(OpcodeType::kClosure);
-    //outer_table.EmitU32(inner_func_const);
-    //outer_table.EmitOpcode(OpcodeType::kReturn);
-    //
-    //StackFrame stack_frame(&runtime_->stack());
-    //Value this_val;
-    //auto args = std::vector<Value>();
-    //Value result = vm_->CallFunction(&stack_frame, outer_func, this_val,
-    //    args.begin(),
-    //    args.end());
-    //
-    //EXPECT_TRUE(result.IsFunctionObject());
-}
-
-// 测试位运算指令
-TEST_F(VMTest, BitwiseOperations) {
-    auto func_def = CreateSimpleFunction("test_bitwise");
-    
-    ConstIndex const1 = AddConstant(Value(15.0)); // 1111 in binary
-    ConstIndex const2 = AddConstant(Value(7.0));  // 0111 in binary
-    
-    // 生成字节码：CLoad 15, CLoad 7, BitAnd, Return (应该得到7)
-    auto& table = func_def.function_def().bytecode_table();
-    table.EmitConstLoad(const1);
-    table.EmitConstLoad(const2);
-    table.EmitOpcode(OpcodeType::kBitAnd);
-    table.EmitOpcode(OpcodeType::kReturn);
-    
-    StackFrame stack_frame(&runtime_->stack());
-    
-    Value this_val;
-    std::initializer_list<Value> args = {};
-    Value result = vm_->CallFunction(&stack_frame, func_def, this_val,
-        args.begin(),
-        args.end());
-    
-    EXPECT_TRUE(result.IsInt64());
-    EXPECT_DOUBLE_EQ(result.i64(), 7);
-}
-
-// 测试位或运算
-TEST_F(VMTest, BitwiseOrOperation) {
-    auto func_def = CreateSimpleFunction("test_bitwise_or");
-    
-    ConstIndex const1 = AddConstant(Value(12.0)); // 1100 in binary
-    ConstIndex const2 = AddConstant(Value(3.0));  // 0011 in binary
-    
-    // 生成字节码：CLoad 12, CLoad 3, BitOr, Return (应该得到15: 1111)
-    auto& table = func_def.function_def().bytecode_table();
-    table.EmitConstLoad(const1);
-    table.EmitConstLoad(const2);
-    table.EmitOpcode(OpcodeType::kBitOr);
-    table.EmitOpcode(OpcodeType::kReturn);
-    
-    StackFrame stack_frame(&runtime_->stack());
-    
-    Value this_val;
-    std::initializer_list<Value> args = {};
-    Value result = vm_->CallFunction(&stack_frame, func_def, this_val,
-        args.begin(),
-        args.end());
-    
-    EXPECT_TRUE(result.IsInt64());
-    EXPECT_DOUBLE_EQ(result.i64(), 15);
-}
-
-// 测试位异或运算
-TEST_F(VMTest, BitwiseXorOperation) {
-    auto func_def = CreateSimpleFunction("test_bitwise_xor");
-    
-    ConstIndex const1 = AddConstant(Value(12.0)); // 1100 in binary
-    ConstIndex const2 = AddConstant(Value(10.0)); // 1010 in binary
-    
-    // 生成字节码：CLoad 12, CLoad 10, BitXor, Return (应该得到6: 0110)
-    auto& table = func_def.function_def().bytecode_table();
-    table.EmitConstLoad(const1);
-    table.EmitConstLoad(const2);
-    table.EmitOpcode(OpcodeType::kBitXor);
-    table.EmitOpcode(OpcodeType::kReturn);
-    
-    StackFrame stack_frame(&runtime_->stack());
-    
-    Value this_val;
-    std::initializer_list<Value> args = {};
-    Value result = vm_->CallFunction(&stack_frame, func_def, this_val,
-        args.begin(),
-        args.end());
-    
-    EXPECT_TRUE(result.IsInt64());
-    EXPECT_DOUBLE_EQ(result.i64(), 6);
-}
-
-// 测试位取反运算
-TEST_F(VMTest, BitwiseNotOperation) {
-    auto func_def = CreateSimpleFunction("test_bitwise_not");
-    
-    ConstIndex const1 = AddConstant(Value(5.0)); // 0101 in binary
-    
-    // 生成字节码：CLoad 5, BitNot, Return
-    auto& table = func_def.function_def().bytecode_table();
-    table.EmitConstLoad(const1);
-    table.EmitOpcode(OpcodeType::kBitNot);
-    table.EmitOpcode(OpcodeType::kReturn);
-    
-    StackFrame stack_frame(&runtime_->stack());
-    
-    Value this_val;
-    std::initializer_list<Value> args = {};
-    Value result = vm_->CallFunction(&stack_frame, func_def, this_val,
-        args.begin(),
-        args.end());
-    
-    EXPECT_TRUE(result.IsInt64());
-    // 位取反的结果取决于具体实现，这里主要测试指令能正常执行
-}
-
-// 测试移位运算指令
-TEST_F(VMTest, ShiftOperations) {
-    auto func_def = CreateSimpleFunction("test_shift");
-    
-    ConstIndex const1 = AddConstant(Value(8.0));
-    ConstIndex const2 = AddConstant(Value(2.0));
-    
-    // 生成字节码：CLoad 8, CLoad 2, Shl, Return (8 << 2 = 32)
-    auto& table = func_def.function_def().bytecode_table();
-    table.EmitConstLoad(const1);
-    table.EmitConstLoad(const2);
-    table.EmitOpcode(OpcodeType::kShl);
-    table.EmitOpcode(OpcodeType::kReturn);
-    
-    StackFrame stack_frame(&runtime_->stack());
-    
-    Value this_val;
-    std::initializer_list<Value> args = {};
-    Value result = vm_->CallFunction(&stack_frame, func_def, this_val,
-        args.begin(),
-        args.end());
-    
-    EXPECT_TRUE(result.IsInt64());
-    EXPECT_DOUBLE_EQ(result.i64(), 32);
-}
-
-// 测试右移位运算
-TEST_F(VMTest, RightShiftOperation) {
-    auto func_def = CreateSimpleFunction("test_right_shift");
-    
-    ConstIndex const1 = AddConstant(Value(32.0));
-    ConstIndex const2 = AddConstant(Value(2.0));
-    
-    // 生成字节码：CLoad 32, CLoad 2, Shr, Return (32 >> 2 = 8)
-    auto& table = func_def.function_def().bytecode_table();
-    table.EmitConstLoad(const1);
-    table.EmitConstLoad(const2);
-    table.EmitOpcode(OpcodeType::kShr);
-    table.EmitOpcode(OpcodeType::kReturn);
-    
-    StackFrame stack_frame(&runtime_->stack());
-    
-    Value this_val;
-    std::initializer_list<Value> args = {};
-    Value result = vm_->CallFunction(&stack_frame, func_def, this_val,
-        args.begin(),
-        args.end());
-    
-    EXPECT_TRUE(result.IsInt64());
-    EXPECT_DOUBLE_EQ(result.i64(), 8);
-}
-
-// 测试无符号右移位运算
-TEST_F(VMTest, UnsignedRightShiftOperation) {
-    auto func_def = CreateSimpleFunction("test_unsigned_right_shift");
-    
-    ConstIndex const1 = AddConstant(Value(32.0));
-    ConstIndex const2 = AddConstant(Value(2.0));
-    
-    // 生成字节码：CLoad 32, CLoad 2, UShr, Return
-    auto& table = func_def.function_def().bytecode_table();
-    table.EmitConstLoad(const1);
-    table.EmitConstLoad(const2);
-    table.EmitOpcode(OpcodeType::kUShr);
-    table.EmitOpcode(OpcodeType::kReturn);
-    
-    StackFrame stack_frame(&runtime_->stack());
-    
-    Value this_val;
-    std::initializer_list<Value> args = {};
-    Value result = vm_->CallFunction(&stack_frame, func_def, this_val,
-        args.begin(),
-        args.end());
-    
-    EXPECT_TRUE(result.IsUInt64());
-    EXPECT_DOUBLE_EQ(result.u64(), 8);
-}
-
-// 测试字符串转换指令
-TEST_F(VMTest, StringConversion) {
-    auto func_def = CreateSimpleFunction("test_string_conversion");
-    
-    ConstIndex const_num = AddConstant(Value(42.0));
-    
-    // 生成字节码：CLoad 42, ToString, Return
-    auto& table = func_def.function_def().bytecode_table();
-    table.EmitConstLoad(const_num);
-    table.EmitOpcode(OpcodeType::kToString);
-    table.EmitOpcode(OpcodeType::kReturn);
-    
-    StackFrame stack_frame(&runtime_->stack());
-    
-    Value this_val;
-    std::initializer_list<Value> args = {};
-    Value result = vm_->CallFunction(&stack_frame, func_def, this_val,
-        args.begin(),
-        args.end());
-    
-    EXPECT_TRUE(result.IsString());
-    EXPECT_EQ(std::string(result.string_view()), "42");
-}
-
-// 测试undefined值处理
-TEST_F(VMTest, UndefinedValue) {
-    auto func_def = CreateSimpleFunction("test_undefined");
-    
-    // 生成字节码：Undefined, Return
-    auto& table = func_def.function_def().bytecode_table();
-    table.EmitOpcode(OpcodeType::kUndefined);
-    table.EmitOpcode(OpcodeType::kReturn);
-    
-    StackFrame stack_frame(&runtime_->stack());
-    
-    Value this_val;
-    std::initializer_list<Value> args = {};
-    Value result = vm_->CallFunction(&stack_frame, func_def, this_val,
-        args.begin(),
-        args.end());
-    
-    EXPECT_TRUE(result.IsUndefined());
-}
-
-// 测试复杂的控制流
-TEST_F(VMTest, ComplexControlFlow) {
-    auto func_def = CreateSimpleFunction("test_complex_flow", 1);
-    func_def.function_def().var_def_table().AddVar("param");
-    
-    ConstIndex const_zero = AddConstant(Value(0.0));
-    ConstIndex const_pos = AddConstant(Value(1.0));
-    ConstIndex const_neg = AddConstant(Value(-1.0));
-    
-    // 生成字节码实现：if (param > 0) return 1; else if (param < 0) return -1; else return 0;
-    auto& table = func_def.function_def().bytecode_table();
-    
-    // VLoad_0, CLoad 0, Le
-    table.EmitOpcode(OpcodeType::kVLoad_0);
-    table.EmitConstLoad(const_zero);
-    table.EmitOpcode(OpcodeType::kLe);
-    
-    // IfEq +16 (如果>0跳转到返回1)
-    table.EmitOpcode(OpcodeType::kIfEq);
-    table.EmitU16(16);
-    
-    // VLoad_0, CLoad 0, Ge
-    table.EmitOpcode(OpcodeType::kVLoad_0);
-    table.EmitConstLoad(const_zero);
-    table.EmitOpcode(OpcodeType::kGe);
-    
-    // IfEq +6 (如果<0跳转到返回-1)
-    table.EmitOpcode(OpcodeType::kIfEq);
-    table.EmitU16(6);
-    
-    // 返回0
-    table.EmitConstLoad(const_zero);
-    table.EmitOpcode(OpcodeType::kReturn);
-    
-    // 返回-1
-    table.EmitConstLoad(const_neg);
-    table.EmitOpcode(OpcodeType::kReturn);
-    
-    // 返回1
-    table.EmitConstLoad(const_pos);
-    table.EmitOpcode(OpcodeType::kReturn);
-    
-    StackFrame stack_frame(&runtime_->stack());
-    
-    Value this_val;
-    
-    // std::cout << func_def.function_def().Disassembly(context_.get());
-
-    // 测试正数
-    {
-        std::vector<Value> args = {Value(5.0)};
-        Value result = vm_->CallFunction(&stack_frame, func_def, this_val, 
-                                       args.begin(), args.end());
-        EXPECT_TRUE(result.IsNumber());
-        EXPECT_DOUBLE_EQ(result.f64(), 1.0);
+/**
+ * @class VMModuleTest
+ * @brief VM模块相关测试
+ */
+class VMModuleTest : public ::testing::Test {
+protected:
+    void SetUp() override {
+        runtime_ = TestRuntime::Create();
+        context_ = std::make_unique<Context>(runtime_.get());
+        stack_ = std::make_unique<Stack>(1024);
+        stack_frame_ = std::make_unique<StackFrame>(stack_.get());
+        module_def_ = TestModuleDef::CreateShared(runtime_.get(), "test_module");
     }
-    
-    // 测试负数
-    {
-        stack_frame.set_pc(0);
-        std::vector<Value> args = {Value(-3.0)};
-        Value result = vm_->CallFunction(&stack_frame, func_def, this_val, 
-                                       args.begin(), args.end());
-        EXPECT_TRUE(result.IsNumber());
-        EXPECT_DOUBLE_EQ(result.f64(), -1.0);
+
+    void TearDown() override {
+        stack_frame_.reset();
+        stack_.reset();
+        context_.reset();
+        module_def_.reset();
+        runtime_.reset();
     }
-    
-    // 测试零
-    {
-        stack_frame.set_pc(0);
-        std::vector<Value> args = {Value(0.0)};
-        Value result = vm_->CallFunction(&stack_frame, func_def, this_val, 
-                                       args.begin(), args.end());
-        EXPECT_TRUE(result.IsNumber());
-        EXPECT_DOUBLE_EQ(result.f64(), 0.0);
-    }
-}
 
-// 测试字符串操作
-TEST_F(VMTest, StringOperations) {
-    auto func_def = CreateSimpleFunction("test_string");
-    
-    ConstIndex str_const = AddConstant(Value("Hello"));
-    
-    // 生成字节码：CLoad "Hello", Return
-    auto& table = func_def.function_def().bytecode_table();
-    table.EmitConstLoad(str_const);
-    table.EmitOpcode(OpcodeType::kReturn);
-    
-    StackFrame stack_frame(&runtime_->stack());
-    
-    Value this_val;
-    std::initializer_list<Value> args = {};
-    Value result = vm_->CallFunction(&stack_frame, func_def, this_val,
-        args.begin(),
-        args.end());
-    
-    EXPECT_TRUE(result.IsString());
-    EXPECT_EQ(std::string(result.string_view()), "Hello");
-}
+    std::unique_ptr<Runtime> runtime_;
+    std::unique_ptr<Context> context_;
+    std::unique_ptr<Stack> stack_;
+    std::unique_ptr<StackFrame> stack_frame_;
+    std::shared_ptr<ModuleDef> module_def_;
+};
 
-// 测试布尔值操作
-TEST_F(VMTest, BooleanOperations) {
-    auto func_def = CreateSimpleFunction("test_boolean");
-    
-    ConstIndex true_const = AddConstant(Value(true));
-    ConstIndex false_const = AddConstant(Value(false));
-    
-    // 生成字节码：CLoad true, CLoad false, Eq, Return (true == false 应该是false)
-    auto& table = func_def.function_def().bytecode_table();
-    table.EmitConstLoad(true_const);
-    table.EmitConstLoad(false_const);
-    table.EmitOpcode(OpcodeType::kEq);
-    table.EmitOpcode(OpcodeType::kReturn);
-    
-    StackFrame stack_frame(&runtime_->stack());
-    
-    Value this_val;
-    
-    std::initializer_list<Value> args = {};
-    Value result = vm_->CallFunction(&stack_frame, func_def, this_val, 
-        args.begin(),
-        args.end());
-    
-    EXPECT_TRUE(result.IsBoolean());
-    EXPECT_FALSE(result.boolean());
-}
+/**
+ * @test 测试ModuleInit - 无导出变量的模块
+ */
+TEST_F(VMModuleTest, ModuleInit_NoExports) {
+    // Arrange
+    VM vm(context_.get());
+    Value module_val(module_def_.get());
 
-// 测试递增操作
-TEST_F(VMTest, IncrementOperation) {
-    auto func_def = CreateSimpleFunction("test_increment");
-    
-    ConstIndex const_val = AddConstant(Value(5.0));
-    
-    // 生成字节码：CLoad 5, Inc, Return
-    auto& table = func_def.function_def().bytecode_table();
-    table.EmitConstLoad(const_val);
-    table.EmitOpcode(OpcodeType::kInc);
-    table.EmitOpcode(OpcodeType::kReturn);
-    
-    StackFrame stack_frame(&runtime_->stack());
-    
-    Value this_val;
-    std::initializer_list<Value> args = {};
-    Value result = vm_->CallFunction(&stack_frame, func_def, this_val,
-        args.begin(),
-        args.end());
-    
-    EXPECT_TRUE(result.IsNumber());
-    EXPECT_DOUBLE_EQ(result.f64(), 6.0);
-}
+    // Act
+    vm.ModuleInit(&module_val);
 
-// 测试除法操作
-TEST_F(VMTest, DivisionOperation) {
-    auto func_def = CreateSimpleFunction("test_division");
-    
-    ConstIndex const1 = AddConstant(Value(20.0));
-    ConstIndex const2 = AddConstant(Value(4.0));
-    
-    // 生成字节码：CLoad 20, CLoad 4, Div, Return
-    auto& table = func_def.function_def().bytecode_table();
-    table.EmitConstLoad(const1);
-    table.EmitConstLoad(const2);
-    table.EmitOpcode(OpcodeType::kDiv);
-    table.EmitOpcode(OpcodeType::kReturn);
-    
-    StackFrame stack_frame(&runtime_->stack());
-    
-    Value this_val;
-    std::initializer_list<Value> args = {};
-    Value result = vm_->CallFunction(&stack_frame, func_def, this_val,
-        args.begin(),
-        args.end());
-    
-    EXPECT_TRUE(result.IsNumber());
-    EXPECT_DOUBLE_EQ(result.f64(), 5.0);
-}
-
-// 测试取负操作
-TEST_F(VMTest, NegationOperation) {
-    auto func_def = CreateSimpleFunction("test_negation");
-    
-    ConstIndex const_val = AddConstant(Value(42.0));
-    
-    // 生成字节码：CLoad 42, Neg, Return
-    auto& table = func_def.function_def().bytecode_table();
-    table.EmitConstLoad(const_val);
-    table.EmitOpcode(OpcodeType::kNeg);
-    table.EmitOpcode(OpcodeType::kReturn);
-    
-    StackFrame stack_frame(&runtime_->stack());
-    
-    Value this_val;
-    std::initializer_list<Value> args = {};
-    Value result = vm_->CallFunction(&stack_frame, func_def, this_val,
-        args.begin(),
-        args.end());
-    
-    EXPECT_TRUE(result.IsNumber());
-    EXPECT_DOUBLE_EQ(result.f64(), -42.0);
-}
-
-// 测试不等比较
-TEST_F(VMTest, NotEqualComparison) {
-    auto func_def = CreateSimpleFunction("test_not_equal");
-    
-    ConstIndex const1 = AddConstant(Value(5.0));
-    ConstIndex const2 = AddConstant(Value(10.0));
-    
-    // 生成字节码：CLoad 5, CLoad 10, Ne, Return (5 != 10 应该是true)
-    auto& table = func_def.function_def().bytecode_table();
-    table.EmitConstLoad(const1);
-    table.EmitConstLoad(const2);
-    table.EmitOpcode(OpcodeType::kNe);
-    table.EmitOpcode(OpcodeType::kReturn);
-    
-    StackFrame stack_frame(&runtime_->stack());
-    
-    Value this_val;
-    std::initializer_list<Value> args = {};
-    Value result = vm_->CallFunction(&stack_frame, func_def, this_val,
-        args.begin(),
-        args.end());
-    
-    EXPECT_TRUE(result.IsBoolean());
-    EXPECT_TRUE(result.boolean());
-}
-
-// 测试小于等于比较
-TEST_F(VMTest, LessEqualComparison) {
-    auto func_def = CreateSimpleFunction("test_less_equal");
-    
-    ConstIndex const1 = AddConstant(Value(5.0));
-    ConstIndex const2 = AddConstant(Value(5.0));
-    
-    // 生成字节码：CLoad 5, CLoad 5, Le, Return (5 <= 5 应该是true)
-    auto& table = func_def.function_def().bytecode_table();
-    table.EmitConstLoad(const1);
-    table.EmitConstLoad(const2);
-    table.EmitOpcode(OpcodeType::kLe);
-    table.EmitOpcode(OpcodeType::kReturn);
-    
-    StackFrame stack_frame(&runtime_->stack());
-    
-    Value this_val;
-    std::initializer_list<Value> args = {};
-    Value result = vm_->CallFunction(&stack_frame, func_def, this_val,
-        args.begin(),
-        args.end());
-    
-    EXPECT_TRUE(result.IsBoolean());
-    EXPECT_TRUE(result.boolean());
-}
-
-// 测试大于等于比较
-TEST_F(VMTest, GreaterEqualComparison) {
-    auto func_def = CreateSimpleFunction("test_greater_equal");
-    
-    ConstIndex const1 = AddConstant(Value(10.0));
-    ConstIndex const2 = AddConstant(Value(5.0));
-    
-    // 生成字节码：CLoad 10, CLoad 5, Ge, Return (10 >= 5 应该是true)
-    auto& table = func_def.function_def().bytecode_table();
-    table.EmitConstLoad(const1);
-    table.EmitConstLoad(const2);
-    table.EmitOpcode(OpcodeType::kGe);
-    table.EmitOpcode(OpcodeType::kReturn);
-    
-    StackFrame stack_frame(&runtime_->stack());
-    
-    Value this_val;
-    std::initializer_list<Value> args = {};
-    Value result = vm_->CallFunction(&stack_frame, func_def, this_val,
-        args.begin(),
-        args.end());
-    
-    EXPECT_TRUE(result.IsBoolean());
-    EXPECT_TRUE(result.boolean());
-}
-
-// 测试小于比较
-TEST_F(VMTest, LessThanComparison) {
-    auto func_def = CreateSimpleFunction("test_less_than");
-    
-    ConstIndex const1 = AddConstant(Value(3.0));
-    ConstIndex const2 = AddConstant(Value(7.0));
-    
-    // 生成字节码：CLoad 3, CLoad 7, Lt, Return (3 < 7 应该是true)
-    auto& table = func_def.function_def().bytecode_table();
-    table.EmitConstLoad(const1);
-    table.EmitConstLoad(const2);
-    table.EmitOpcode(OpcodeType::kLt);
-    table.EmitOpcode(OpcodeType::kReturn);
-    
-    StackFrame stack_frame(&runtime_->stack());
-    
-    Value this_val;
-    std::initializer_list<Value> args = {};
-    Value result = vm_->CallFunction(&stack_frame, func_def, this_val,
-        args.begin(),
-        args.end());
-    
-    EXPECT_TRUE(result.IsBoolean());
-    EXPECT_TRUE(result.boolean());
-}
-
-// 测试Dump指令（复制栈顶元素）
-TEST_F(VMTest, DumpInstruction) {
-    auto func_def = CreateSimpleFunction("test_dump");
-    
-    ConstIndex const_val = AddConstant(Value(99.0));
-    
-    // 生成字节码：CLoad 99, Dump, Add, Return (99 + 99 = 198)
-    auto& table = func_def.function_def().bytecode_table();
-    table.EmitConstLoad(const_val);
-    table.EmitOpcode(OpcodeType::kDump);
-    table.EmitOpcode(OpcodeType::kAdd);
-    table.EmitOpcode(OpcodeType::kReturn);
-    
-    StackFrame stack_frame(&runtime_->stack());
-    
-    Value this_val;
-    std::initializer_list<Value> args = {};
-    Value result = vm_->CallFunction(&stack_frame, func_def, this_val,
-        args.begin(),
-        args.end());
-    
-    EXPECT_TRUE(result.IsNumber());
-    EXPECT_DOUBLE_EQ(result.f64(), 198.0);
-}
-
-// 测试常量加载
-TEST_F(VMTest, ConstantLoadVariants) {
-    auto func_def = CreateSimpleFunction("test_const_variants");
-    
-    // 测试CLoad_0到CLoad_5的快速常量加载
-    ConstIndex const0 = AddConstant(Value(10.0));
-    ConstIndex const1 = AddConstant(Value(20.0));
-    
-    // 假设const0 = 0, const1 = 1，生成字节码：CLoad_0, CLoad_1, Add, Return
-    auto& table = func_def.function_def().bytecode_table();
-    table.EmitOpcode(OpcodeType::kCLoad);
-    table.EmitU8(const0);
-    table.EmitOpcode(OpcodeType::kCLoad);
-    table.EmitU8(const1);
-    table.EmitOpcode(OpcodeType::kAdd);
-    table.EmitOpcode(OpcodeType::kReturn);
-    
-    StackFrame stack_frame(&runtime_->stack());
-    
-    Value this_val;
-    std::initializer_list<Value> args = {};
-    Value result = vm_->CallFunction(&stack_frame, func_def, this_val,
-        args.begin(),
-        args.end());
-    
-    EXPECT_TRUE(result.IsNumber());
-    EXPECT_DOUBLE_EQ(result.f64(), 30.0);
-}
-
-// 测试变量加载的不同变体
-TEST_F(VMTest, VariableLoadVariants) {
-    auto func_def = CreateSimpleFunction("test_var_variants", 4);
-    func_def.function_def().var_def_table().AddVar("param0");
-    func_def.function_def().var_def_table().AddVar("param1");
-    func_def.function_def().var_def_table().AddVar("param2");
-    func_def.function_def().var_def_table().AddVar("param3");
-    
-    // 生成字节码：VLoad_0, VLoad_1, Add, VLoad_2, Add, VLoad_3, Add, Return
-    auto& table = func_def.function_def().bytecode_table();
-    table.EmitOpcode(OpcodeType::kVLoad_0);
-    table.EmitOpcode(OpcodeType::kVLoad_1);
-    table.EmitOpcode(OpcodeType::kAdd);
-    table.EmitOpcode(OpcodeType::kVLoad_2);
-    table.EmitOpcode(OpcodeType::kAdd);
-    table.EmitOpcode(OpcodeType::kVLoad_3);
-    table.EmitOpcode(OpcodeType::kAdd);
-    table.EmitOpcode(OpcodeType::kReturn);
-    
-    StackFrame stack_frame(&runtime_->stack());
-    Value this_val;
-    std::vector<Value> args = {Value(1.0), Value(2.0), Value(3.0), Value(4.0)};
-    Value result = vm_->CallFunction(&stack_frame, func_def, this_val, 
-                                   args.begin(), args.end());
-    
-    EXPECT_TRUE(result.IsNumber());
-    EXPECT_DOUBLE_EQ(result.f64(), 10.0); // 1+2+3+4 = 10
-}
-
-// 测试变量存储的不同变体
-TEST_F(VMTest, VariableStoreVariants) {
-    auto func_def = CreateSimpleFunction("test_var_store_variants", 1);
-    func_def.function_def().var_def_table().AddVar("param");
-    func_def.function_def().var_def_table().AddVar("local0");
-    func_def.function_def().var_def_table().AddVar("local1");
-    func_def.function_def().var_def_table().AddVar("local2");
-    func_def.function_def().var_def_table().AddVar("local3");
-    
-    // 生成字节码：VLoad_0, VStore_1, VStore_2, VStore_3, VLoad_1, VLoad_2, Add, VLoad_3, Add, Return
-    auto& table = func_def.function_def().bytecode_table();
-    table.EmitOpcode(OpcodeType::kVLoad_0);  // 加载参数
-    table.EmitOpcode(OpcodeType::kDump);     // 复制
-    table.EmitOpcode(OpcodeType::kVStore_1); // 存储到local0
-    table.EmitOpcode(OpcodeType::kDump);     // 复制
-    table.EmitOpcode(OpcodeType::kVStore_2); // 存储到local1
-    table.EmitOpcode(OpcodeType::kVStore_3); // 存储到local2
-    table.EmitOpcode(OpcodeType::kVLoad_1);  // 加载local0
-    table.EmitOpcode(OpcodeType::kVLoad_2);  // 加载local1
-    table.EmitOpcode(OpcodeType::kAdd);
-    table.EmitOpcode(OpcodeType::kVLoad_3);  // 加载local2
-    table.EmitOpcode(OpcodeType::kAdd);
-    table.EmitOpcode(OpcodeType::kReturn);
-    
-    StackFrame stack_frame(&runtime_->stack());
-    Value this_val;
-    std::vector<Value> args = {Value(5.0)};
-    Value result = vm_->CallFunction(&stack_frame, func_def, this_val, 
-                                   args.begin(), args.end());
-    
-    EXPECT_TRUE(result.IsNumber());
-    EXPECT_DOUBLE_EQ(result.f64(), 15.0); // 5+5+5 = 15
-}
-
-// 测试复杂的栈操作组合
-TEST_F(VMTest, ComplexStackOperations) {
-    auto func_def = CreateSimpleFunction("test_complex_stack");
-    
-    ConstIndex const1 = AddConstant(Value(1.0));
-    ConstIndex const2 = AddConstant(Value(2.0));
-    ConstIndex const3 = AddConstant(Value(3.0));
-    
-    // 生成字节码：CLoad 1, CLoad 2, CLoad 3, Swap, Pop, Add, Return
-    // 栈变化：[1] -> [1,2] -> [1,2,3] -> [1,3,2] -> [1,3] -> [4]
-    auto& table = func_def.function_def().bytecode_table();
-    table.EmitConstLoad(const1);
-    table.EmitConstLoad(const2);
-    table.EmitConstLoad(const3);
-    table.EmitOpcode(OpcodeType::kSwap);
-    table.EmitOpcode(OpcodeType::kPop);
-    table.EmitOpcode(OpcodeType::kAdd);
-    table.EmitOpcode(OpcodeType::kReturn);
-    
-    StackFrame stack_frame(&runtime_->stack());
-    Value this_val;
-    std::initializer_list<Value> args = {};
-    Value result = vm_->CallFunction(&stack_frame, func_def, this_val,
-        args.begin(),
-        args.end());
-    
-    EXPECT_TRUE(result.IsNumber());
-    EXPECT_DOUBLE_EQ(result.f64(), 4.0); // 1 + 3 = 4
-}
-
-// 测试多个参数的函数调用
-TEST_F(VMTest, MultiParameterFunctionCall) {
-    auto func_def = CreateSimpleFunction("test_multi_param", 3);
-    func_def.function_def().var_def_table().AddVar("param0");
-    func_def.function_def().var_def_table().AddVar("param1");
-    func_def.function_def().var_def_table().AddVar("param2");
-    
-    // 生成字节码：VLoad_0, VLoad_1, Mul, VLoad_2, Add, Return (param0 * param1 + param2)
-    auto& table = func_def.function_def().bytecode_table();
-    table.EmitOpcode(OpcodeType::kVLoad_0);
-    table.EmitOpcode(OpcodeType::kVLoad_1);
-    table.EmitOpcode(OpcodeType::kMul);
-    table.EmitOpcode(OpcodeType::kVLoad_2);
-    table.EmitOpcode(OpcodeType::kAdd);
-    table.EmitOpcode(OpcodeType::kReturn);
-    
-    StackFrame stack_frame(&runtime_->stack());
-    Value this_val;
-    std::vector<Value> args = {Value(3.0), Value(4.0), Value(5.0)};
-    Value result = vm_->CallFunction(&stack_frame, func_def, this_val, 
-                                   args.begin(), args.end());
-    
-    EXPECT_TRUE(result.IsNumber());
-    EXPECT_DOUBLE_EQ(result.f64(), 17.0); // 3 * 4 + 5 = 17
-}
-
-// 测试参数过多的情况
-TEST_F(VMTest, ExcessParameterHandling) {
-    auto func_def = CreateSimpleFunction("test_excess_params", 2);
-    func_def.function_def().var_def_table().AddVar("param0");
-    func_def.function_def().var_def_table().AddVar("param1");
-    
-    // 生成字节码：VLoad_0, VLoad_1, Add, Return
-    auto& table = func_def.function_def().bytecode_table();
-    table.EmitOpcode(OpcodeType::kVLoad_0);
-    table.EmitOpcode(OpcodeType::kVLoad_1);
-    table.EmitOpcode(OpcodeType::kAdd);
-    table.EmitOpcode(OpcodeType::kReturn);
-    
-    StackFrame stack_frame(&runtime_->stack());
-    Value this_val;
-    // 传递3个参数，但函数只需要2个
-    std::vector<Value> args = {Value(10.0), Value(20.0), Value(30.0)};
-    Value result = vm_->CallFunction(&stack_frame, func_def, this_val, 
-                                   args.begin(), args.end());
-    
-    EXPECT_TRUE(result.IsNumber());
-    EXPECT_DOUBLE_EQ(result.f64(), 30.0); // 多余的参数应该被丢弃
-}
-
-// 测试模块导出变量绑定
-TEST_F(VMTest, ModuleExportVariableBinding) {
-    auto module_def = ModuleDef::New(runtime_.get(), "test_export_module", "", 0);
-    
-    // 添加导出变量
-    module_def->export_var_def_table().AddExportVar("exportedValue", 0);
-    
-    // 创建模块函数
-    auto func_def = FunctionDef::New(module_def, "module_func", 0);
-    func_def->set_is_module();
-    func_def->var_def_table().AddVar("exportedValue");
-    
-    ConstIndex const_val = AddConstant(Value(123.0));
-    
-    // 生成字节码：CLoad 123, VStore_0, VLoad_0, Return
-    auto& table = func_def->bytecode_table();
-    table.EmitConstLoad(const_val);
-    table.EmitOpcode(OpcodeType::kVStore_0);
-    table.EmitOpcode(OpcodeType::kVLoad_0);
-    table.EmitOpcode(OpcodeType::kReturn);
-    
-    auto function_def_val = Value(func_def);
-    auto module_val = Value(module_def);    // 这个引用保证module_val2析构时，module_def不会被回收
-    auto module_val2 = Value(module_def);
-    vm_->ModuleInit(&module_val2);
-    
+    // Assert - 模块值应该保持为ModuleDef类型
     EXPECT_TRUE(module_val.IsModuleDef());
-    
-    // 执行模块函数
-    StackFrame stack_frame(&runtime_->stack());
-    Value this_val;
-    std::initializer_list<Value> args = {};
-    Value result = vm_->CallFunction(&stack_frame, Value(func_def), this_val,
-        args.begin(),
-        args.end());
-    
-    EXPECT_TRUE(result.IsNumber());
-    EXPECT_DOUBLE_EQ(result.f64(), 123.0);
 }
 
-// 测试错误情况下的异常处理
-TEST_F(VMTest, ExceptionInArithmetic) {
-    auto func_def = CreateSimpleFunction("test_exception_arithmetic");
-    
-    ConstIndex const_zero = AddConstant(Value(0.0));
-    ConstIndex const_ten = AddConstant(Value(10.0));
-    
-    // 生成字节码：CLoad 10, CLoad 0, Div, Return (除零可能产生异常或特殊值)
-    auto& table = func_def.function_def().bytecode_table();
-    table.EmitConstLoad(const_ten);
-    table.EmitConstLoad(const_zero);
-    table.EmitOpcode(OpcodeType::kDiv);
-    table.EmitOpcode(OpcodeType::kReturn);
-    
-    StackFrame stack_frame(&runtime_->stack());
-    Value this_val;
-    std::initializer_list<Value> args = {};
-    Value result = vm_->CallFunction(&stack_frame, Value(func_def), this_val,
-        args.begin(),
-        args.end());
-    
-    // 结果可能是Infinity、异常或其他特殊值，主要测试VM不会崩溃
-    EXPECT_TRUE(result.IsNumber() || result.IsException());
+/**
+ * @test 测试ModuleInit - 有导出变量的模块
+ */
+TEST_F(VMModuleTest, ModuleInit_WithExports) {
+    // Arrange
+    VM vm(context_.get());
+    auto& export_table = module_def_->export_var_def_table();
+    export_table.AddExportVar("export1", 0);
+    export_table.AddExportVar("export2", 1);
+
+    Value module_val(module_def_.get());
+
+    // Act
+    vm.ModuleInit(&module_val);
+
+    // Assert - 模块值应该变成ModuleObject类型
+    EXPECT_TRUE(module_val.IsModuleObject());
+
+    // 获取 ModuleObject 引用并设置导出变量
+    auto& module_obj = module_val.module();
+    module_obj.module_env().export_vars().resize(2);
+    module_obj.module_env().export_vars()[0] = ExportVar(Value(42));
+    module_obj.module_env().export_vars()[1] = ExportVar(Value(100));
 }
 
-// 测试除法赋值运算符
-TEST_F(VMTest, CompoundAssignDivision) {
-    auto module = context_->CompileModule("", "let a = 10; a /= 2;");
-    ASSERT_FALSE(module.IsException()) << "Failed to compile 'let a = 10; a /= 2;'";
-    context_->CallModule(&module);
+/**
+ * @test 测试BindModuleExportVars
+ */
+TEST_F(VMModuleTest, BindModuleExportVars) {
+    // Arrange
+    VM vm(context_.get());
+    auto& export_table = module_def_->export_var_def_table();
+    export_table.AddExportVar("export1", 0);
+    export_table.AddExportVar("export2", 1);
+
+    auto* module_obj = ModuleObject::New(context_.get(), module_def_.get());
+    module_obj->module_env().export_vars().resize(2);
+    module_obj->module_env().export_vars()[0] = ExportVar(Value(42));
+    module_obj->module_env().export_vars()[1] = ExportVar(Value(100));
+
+    stack_frame_->set_function_val(Value(module_obj));
+    stack_frame_->upgrade(2);  // 为2个导出变量预留空间
+
+    // Act
+    vm.BindModuleExportVars(stack_frame_.get());
+
+    // Assert - 栈帧上的变量应该绑定到导出变量
+    EXPECT_TRUE(stack_frame_->get(0).IsExportVar());
+    EXPECT_TRUE(stack_frame_->get(1).IsExportVar());
 }
 
-// 测试除法运算符
-TEST_F(VMTest, DivisionOperator) {
-    auto module = context_->CompileModule("", "return 10 / 2;");
-    auto value = context_->CallModule(&module);
-    EXPECT_TRUE(value.IsNumber());
-    EXPECT_EQ(value.f64(), 5.0);
+// =============================================================================
+// 闭包相关测试
+// =============================================================================
+
+/**
+ * @class VMClosureTest
+ * @brief VM闭包相关测试
+ */
+class VMClosureTest : public ::testing::Test {
+protected:
+    void SetUp() override {
+        runtime_ = TestRuntime::Create();
+        context_ = std::make_unique<Context>(runtime_.get());
+        stack_ = std::make_unique<Stack>(1024);
+        stack_frame_ = std::make_unique<StackFrame>(stack_.get());
+        module_def_ = TestModuleDef::CreateShared(runtime_.get(), "test_module");
+        function_def_ = TestFunctionDef::CreateShared(module_def_.get(), "test_function", 0);
+    }
+
+    void TearDown() override {
+        stack_frame_.reset();
+        stack_.reset();
+        context_.reset();
+        function_def_.reset();
+        module_def_.reset();
+        runtime_.reset();
+    }
+
+    void Closure(VM* vm, const StackFrame& stack_frame, Value* value) {
+        vm->Closure(stack_frame, value);
+    }
+
+    void BindClosureVars(VM* vm, StackFrame* stack_frame) {
+        vm->BindClosureVars(stack_frame);
+    }
+
+    std::unique_ptr<Runtime> runtime_;
+    std::unique_ptr<Context> context_;
+    std::unique_ptr<Stack> stack_;
+    std::unique_ptr<StackFrame> stack_frame_;
+    std::shared_ptr<ModuleDef> module_def_;
+    std::shared_ptr<FunctionDef> function_def_;
+};
+
+/**
+ * @test 测试Closure - 创建闭包并捕获变量
+ */
+TEST_F(VMClosureTest, Closure_CreateWithCapturedVars) {
+    // Arrange
+    VM vm(context_.get());
+    function_def_->closure_var_table().AddClosureVar(0, 0);
+    function_def_->set_has_this(true);
+    function_def_->set_is_arrow();
+
+    stack_frame_->push(Value(42));  // 要捕获的变量
+    stack_frame_->set_this_val(Value(Object::New(context_.get())));
+
+    Value func_val(function_def_.get());
+
+    // Act
+    Closure(&vm, *stack_frame_, &func_val);
+
+    // Assert
+    EXPECT_TRUE(func_val.IsFunctionObject());
+    EXPECT_TRUE(func_val.function().closure_env().closure_var_refs().size() > 0);
 }
 
-// 测试连续除法
-TEST_F(VMTest, SequentialDivision) {
-    auto module = context_->CompileModule("", "return 20 / 2 / 2;");
-    auto value = context_->CallModule(&module);
-    EXPECT_TRUE(value.IsNumber());
-    EXPECT_EQ(value.f64(), 5.0);
+/**
+ * @test 测试BindClosureVars
+ */
+TEST_F(VMClosureTest, BindClosureVars) {
+    // Arrange
+    VM vm(context_.get());
+    // 添加局部变量定义和闭包变量定义(必须在创建FunctionObject之前)
+    function_def_->var_def_table().AddVar("local");
+    function_def_->closure_var_table().AddClosureVar(0, 0);
+
+    auto* func_obj = FunctionObject::New(context_.get(), function_def_.get());
+    // FunctionObject构造函数已经自动resize了closure_var_refs,现在只需设置值
+    func_obj->closure_env().closure_var_refs()[0] = Value(new ClosureVar(Value(42)));
+
+    stack_frame_->set_function_val(Value(func_obj));
+    stack_frame_->set_function_def(function_def_.get());
+    stack_frame_->upgrade(1);
+
+    // Act
+    BindClosureVars(&vm, stack_frame_.get());
+
+    // Assert - 栈帧上的变量应该绑定到闭包变量
+    EXPECT_TRUE(stack_frame_->get(0).IsClosureVar());
+}
+
+// =============================================================================
+// 函数调度测试
+// =============================================================================
+
+/**
+ * @class VMFunctionSchedulingTest
+ * @brief VM函数调度测试
+ */
+class VMFunctionSchedulingTest : public ::testing::Test {
+protected:
+    void SetUp() override {
+        runtime_ = TestRuntime::Create();
+        context_ = std::make_unique<Context>(runtime_.get());
+        stack_ = std::make_unique<Stack>(1024);
+        stack_frame_ = std::make_unique<StackFrame>(stack_.get());
+        module_def_ = TestModuleDef::CreateShared(runtime_.get(), "test_module");
+        function_def_ = TestFunctionDef::CreateShared(module_def_.get(), "test_function", 2);
+    }
+
+    void TearDown() override {
+        stack_frame_.reset();
+        stack_.reset();
+        context_.reset();
+        function_def_.reset();
+        module_def_.reset();
+        runtime_.reset();
+    }
+
+    bool FunctionScheduling(VM* vm, StackFrame* stack_frame, uint32_t param_count) {
+        return vm->FunctionScheduling(stack_frame, param_count);
+    }
+
+    std::unique_ptr<Runtime> runtime_;
+    std::unique_ptr<Context> context_;
+    std::unique_ptr<Stack> stack_;
+    std::unique_ptr<StackFrame> stack_frame_;
+    std::shared_ptr<ModuleDef> module_def_;
+    std::shared_ptr<FunctionDef> function_def_;
+};
+
+/**
+ * @test 测试FunctionScheduling - FunctionDef类型
+ */
+TEST_F(VMFunctionSchedulingTest, FunctionScheduling_FunctionDef) {
+    // Arrange
+    VM vm(context_.get());
+    stack_frame_->set_function_val(Value(function_def_.get()));
+    stack_frame_->push(Value(1));  // 参数1
+    stack_frame_->push(Value(2));  // 参数2
+
+    // Act
+    bool continue_exec = FunctionScheduling(&vm, stack_frame_.get(), 2);
+
+    // Assert
+    EXPECT_TRUE(continue_exec);
+    EXPECT_EQ(stack_frame_->function_def(), function_def_.get());
+}
+
+/**
+ * @test 测试FunctionScheduling - 参数不足
+ */
+TEST_F(VMFunctionSchedulingTest, FunctionScheduling_NotEnoughParameters) {
+    // Arrange
+    VM vm(context_.get());
+    stack_frame_->set_function_val(Value(function_def_.get()));
+    stack_frame_->push(Value(1));  // 只有1个参数，但需要2个
+
+    // Act
+    bool continue_exec = FunctionScheduling(&vm, stack_frame_.get(), 1);
+
+    // Assert
+    EXPECT_FALSE(continue_exec);
+    EXPECT_TRUE(stack_frame_->get(-1).IsException());
+}
+
+/**
+ * @test 测试FunctionScheduling - 生成器函数
+ */
+TEST_F(VMFunctionSchedulingTest, FunctionScheduling_GeneratorFunction) {
+    // Arrange
+    VM vm(context_.get());
+    function_def_->set_is_generator();
+    stack_frame_->set_function_val(Value(function_def_.get()));
+    stack_frame_->push(Value(1));
+    stack_frame_->push(Value(2));
+
+    // Act
+    bool continue_exec = FunctionScheduling(&vm, stack_frame_.get(), 2);
+
+    // Assert
+    EXPECT_FALSE(continue_exec);
+    EXPECT_TRUE(stack_frame_->get(-1).IsGeneratorObject());
+}
+
+/**
+ * @test 测试FunctionScheduling - 异步函数
+ */
+TEST_F(VMFunctionSchedulingTest, FunctionScheduling_AsyncFunction) {
+    // Arrange
+    VM vm(context_.get());
+    function_def_->set_is_async();
+    stack_frame_->set_function_val(Value(function_def_.get()));
+    stack_frame_->push(Value(1));
+    stack_frame_->push(Value(2));
+
+    // Act
+    bool continue_exec = FunctionScheduling(&vm, stack_frame_.get(), 2);
+
+    // Assert
+    EXPECT_TRUE(continue_exec);
+    EXPECT_TRUE(stack_frame_->function_val().IsAsyncObject());
+}
+
+/**
+ * @test 测试FunctionScheduling - CppFunction类型
+ */
+TEST_F(VMFunctionSchedulingTest, FunctionScheduling_CppFunction) {
+    // Arrange
+    VM vm(context_.get());
+    Value::CppFunction cpp_func = [](Context* ctx, uint32_t param_count, const StackFrame& stack_frame) -> Value {
+        return Value(42);
+    };
+    stack_frame_->set_function_val(Value(cpp_func));
+    stack_frame_->push(Value(1));
+
+    // Act
+    bool continue_exec = FunctionScheduling(&vm, stack_frame_.get(), 1);
+
+    // Assert
+    EXPECT_FALSE(continue_exec);
+    EXPECT_EQ(stack_frame_->get(-1).i64(), 42);
+}
+
+// =============================================================================
+// 字节码执行测试
+// =============================================================================
+
+/**
+ * @class VMBytecodeExecutionTest
+ * @brief VM字节码执行测试
+ */
+class VMBytecodeExecutionTest : public ::testing::Test {
+protected:
+    void SetUp() override {
+        runtime_ = TestRuntime::Create();
+        context_ = std::make_unique<Context>(runtime_.get());
+        stack_ = std::make_unique<Stack>(1024);
+        stack_frame_ = std::make_unique<StackFrame>(stack_.get());
+        module_def_ = TestModuleDef::CreateShared(runtime_.get(), "test_module");
+        function_def_ = TestFunctionDef::CreateShared(module_def_.get(), "test_function", 0);
+
+        // 设置函数定义的字节码
+        function_def_->bytecode_table().EmitOpcode(OpcodeType::kReturn);
+    }
+
+    void TearDown() override {
+        stack_frame_.reset();
+        stack_.reset();
+        context_.reset();
+        function_def_.reset();
+        module_def_.reset();
+        runtime_.reset();
+    }
+
+    // 辅助函数：添加常量到常量池
+    ConstIndex AddConstant(const Value& value) {
+        return context_->FindConstOrInsertToGlobal(value);
+    }
+
+    // 辅助函数：根据常量索引发出加载常量指令
+    void EmitLoadConst(BytecodeTable& bytecode_table, ConstIndex const_idx) {
+        if (const_idx <= 5) {
+            bytecode_table.EmitOpcode(OpcodeType::kCLoad_0 + const_idx);
+        } else {
+            bytecode_table.EmitOpcode(OpcodeType::kCLoadD);
+            bytecode_table.EmitU32(const_idx);
+        }
+    }
+
+    void LoadConst(VM* vm, StackFrame* stack_frame, ConstIndex const_idx) {
+        vm->LoadConst(stack_frame, const_idx);
+    }
+
+    std::unique_ptr<Runtime> runtime_;
+    std::unique_ptr<Context> context_;
+    std::unique_ptr<Stack> stack_;
+    std::unique_ptr<StackFrame> stack_frame_;
+    std::shared_ptr<ModuleDef> module_def_;
+    std::shared_ptr<FunctionDef> function_def_;
+};
+
+/**
+ * @test 测试LoadConst
+ */
+TEST_F(VMBytecodeExecutionTest, LoadConst_Operation) {
+    // Arrange
+    VM vm(context_.get());
+    ConstIndex const_idx = AddConstant(Value(42));
+
+    // Act
+    LoadConst(&vm, stack_frame_.get(), const_idx);
+
+    // Assert
+    EXPECT_EQ(stack_frame_->get(-1).i64(), 42);
+}
+
+/**
+ * @test 测试CallFunction - 简单函数调用
+ */
+TEST_F(VMBytecodeExecutionTest, CallFunction_SimpleCall) {
+    // Arrange
+    VM vm(context_.get());
+    auto* simple_func = TestFunctionDef::Create(module_def_.get(), "simple", 0);
+
+    Value const_val(42);
+    ConstIndex const_idx = AddConstant(const_val);
+
+    // 根据常量索引选择合适的加载指令
+    if (const_idx <= 5) {
+        simple_func->bytecode_table().EmitOpcode(OpcodeType::kCLoad_0 + const_idx);
+    } else {
+        simple_func->bytecode_table().EmitOpcode(OpcodeType::kCLoadD);
+        simple_func->bytecode_table().EmitU32(const_idx);
+    }
+    simple_func->bytecode_table().EmitOpcode(OpcodeType::kReturn);
+
+    Value func_val(simple_func);
+
+    std::vector<Value> args;
+
+    // Act
+    auto result = context_->CallFunction(&func_val, Value(), args.begin(), args.end());
+
+    // Assert
+    EXPECT_EQ(result.i64(), 42);
+}
+
+/**
+ * @test 测试CallFunction - 带参数的函数调用
+ */
+TEST_F(VMBytecodeExecutionTest, CallFunction_WithParameters) {
+    // Arrange
+    VM vm(context_.get());
+    auto* add_func = TestFunctionDef::Create(module_def_.get(), "add", 2);
+    add_func->bytecode_table().EmitOpcode(OpcodeType::kVLoad_0);  // 加载参数0
+    add_func->bytecode_table().EmitOpcode(OpcodeType::kVLoad_1);  // 加载参数1
+    add_func->bytecode_table().EmitOpcode(OpcodeType::kAdd);      // 相加
+    add_func->bytecode_table().EmitOpcode(OpcodeType::kReturn);
+
+    Value func_val(add_func);
+    std::vector<Value> args = {Value(10), Value(32)};
+
+    // Act
+    auto result = context_->CallFunction(&func_val, Value(), args.begin(), args.end());
+
+    // Assert
+    EXPECT_EQ(result.i64(), 42);
+}
+
+// =============================================================================
+// 异常处理测试
+// =============================================================================
+
+/**
+ * @class VMExceptionTest
+ * @brief VM异常处理测试
+ */
+class VMExceptionTest : public ::testing::Test {
+protected:
+    void SetUp() override {
+        runtime_ = TestRuntime::Create();
+        context_ = std::make_unique<Context>(runtime_.get());
+        stack_ = std::make_unique<Stack>(1024);
+        stack_frame_ = std::make_unique<StackFrame>(stack_.get());
+        module_def_ = TestModuleDef::CreateShared(runtime_.get(), "test_module");
+        function_def_ = TestFunctionDef::CreateShared(module_def_.get(), "test_function", 0);
+    }
+
+    void TearDown() override {
+        stack_frame_.reset();
+        stack_.reset();
+        context_.reset();
+        function_def_.reset();
+        module_def_.reset();
+        runtime_.reset();
+    }
+
+    bool ThrowException(VM* vm, StackFrame* stack_frame, std::optional<Value>* error_val) {
+        return vm->ThrowException(stack_frame, error_val);
+    }
+
+    std::unique_ptr<Runtime> runtime_;
+    std::unique_ptr<Context> context_;
+    std::unique_ptr<Stack> stack_;
+    std::unique_ptr<StackFrame> stack_frame_;
+    std::shared_ptr<ModuleDef> module_def_;
+    std::shared_ptr<FunctionDef> function_def_;
+};
+
+/**
+ * @test 测试ThrowException - 无异常处理表
+ */
+TEST_F(VMExceptionTest, ThrowException_NoExceptionTable) {
+    // Arrange
+    VM vm(context_.get());
+    stack_frame_->set_function_def(function_def_.get());
+    Value error_val = Error::Throw(context_.get(), "Test error");
+    std::optional<Value> error_opt = error_val;
+
+    // Act
+    bool handled = ThrowException(&vm, stack_frame_.get(), &error_opt);
+
+    // Assert
+    EXPECT_FALSE(handled);
+}
+
+/**
+ * @test 测试ThrowException - 有Catch块
+ */
+TEST_F(VMExceptionTest, ThrowException_WithCatch) {
+    // Arrange
+    VM vm(context_.get());
+    ExceptionEntry entry;
+    entry.try_start_pc = 0;
+    entry.try_end_pc = 10;
+    entry.catch_start_pc = 5;
+    entry.catch_end_pc = 15;
+    entry.catch_err_var_idx = 0;  // 设置错误变量的索引
+    function_def_->exception_table().AddEntry(std::move(entry));
+
+    stack_frame_->upgrade(1);  // 为错误变量预留空间
+    stack_frame_->push(Value());  // 占位符
+    stack_frame_->set_function_def(function_def_.get());
+    stack_frame_->set_pc(5);  // 位于try块中
+
+    Value error_val = Error::Throw(context_.get(), "Test error");
+    std::optional<Value> error_opt = error_val;
+
+    // Act
+    bool handled = ThrowException(&vm, stack_frame_.get(), &error_opt);
+
+    // Assert
+    EXPECT_TRUE(handled);
+    EXPECT_EQ(stack_frame_->pc(), 5);  // 跳转到catch块
+}
+
+// =============================================================================
+// 生成器相关测试
+// =============================================================================
+
+/**
+ * @class VMGeneratorTest
+ * @brief VM生成器相关测试
+ */
+class VMGeneratorTest : public ::testing::Test {
+protected:
+    void SetUp() override {
+        runtime_ = TestRuntime::Create();
+        context_ = std::make_unique<Context>(runtime_.get());
+        stack_ = std::make_unique<Stack>(1024);
+        stack_frame_ = std::make_unique<StackFrame>(stack_.get());
+        module_def_ = TestModuleDef::CreateShared(runtime_.get(), "test_module");
+        function_def_ = TestFunctionDef::CreateShared(module_def_.get(), "test_generator", 0);
+        function_def_->set_is_generator();
+    }
+
+    void TearDown() override {
+        stack_frame_.reset();
+        stack_.reset();
+        context_.reset();
+        function_def_.reset();
+        module_def_.reset();
+        runtime_.reset();
+    }
+
+    void GeneratorSaveContext(VM* vm, StackFrame* stack_frame, GeneratorObject* generator) {
+        vm->GeneratorSaveContext(stack_frame, generator);
+    }
+
+    void GeneratorRestoreContext(VM* vm, StackFrame* stack_frame, GeneratorObject* generator) {
+        vm->GeneratorRestoreContext(stack_frame, generator);
+    }
+
+    std::unique_ptr<Runtime> runtime_;
+    std::unique_ptr<Context> context_;
+    std::unique_ptr<Stack> stack_;
+    std::unique_ptr<StackFrame> stack_frame_;
+    std::shared_ptr<ModuleDef> module_def_;
+    std::shared_ptr<FunctionDef> function_def_;
+};
+
+/**
+ * @test 测试GeneratorSaveContext
+ */
+TEST_F(VMGeneratorTest, GeneratorSaveContext_SaveState) {
+    // Arrange
+    VM vm(context_.get());
+    auto* generator = GeneratorObject::New(context_.get(), Value(function_def_.get()));
+    stack_frame_->set_pc(100);
+    stack_frame_->push(Value(42));
+    generator->stack().resize(1);  // 调整generator的stack大小以匹配stack_frame
+
+    // Act
+    GeneratorSaveContext(&vm, stack_frame_.get(), generator);
+
+    // Assert
+    EXPECT_EQ(generator->pc(), 100);
+    EXPECT_EQ(generator->stack().vector().size(), 1);
+    EXPECT_EQ(generator->stack().vector()[0].i64(), 42);
+}
+
+/**
+ * @test 测试GeneratorRestoreContext
+ */
+TEST_F(VMGeneratorTest, GeneratorRestoreContext_RestoreState) {
+    // Arrange
+    VM vm(context_.get());
+    auto* generator = GeneratorObject::New(context_.get(), Value(function_def_.get()));
+    generator->set_pc(100);
+    generator->stack().push(Value(42));
+
+    // Act
+    GeneratorRestoreContext(&vm, stack_frame_.get(), generator);
+
+    // Assert
+    EXPECT_EQ(stack_frame_->pc(), 100);
+    EXPECT_TRUE(generator->IsExecuting());
+}
+
+// =============================================================================
+// 集成测试
+// =============================================================================
+
+/**
+ * @class VMIntegrationTest
+ * @brief VM集成测试
+ */
+class VMIntegrationTest : public ::testing::Test {
+protected:
+    void SetUp() override {
+        runtime_ = TestRuntime::Create();
+        context_ = std::make_unique<Context>(runtime_.get());
+        module_def_ = TestModuleDef::CreateShared(runtime_.get(), "test_module");
+    }
+
+    void TearDown() override {
+        context_.reset();
+        module_def_.reset();
+        runtime_.reset();
+    }
+
+    // 辅助函数：添加常量到常量池
+    ConstIndex AddConstant(const Value& value) {
+        return context_->FindConstOrInsertToGlobal(value);
+    }
+
+    // 辅助函数：根据常量索引发出加载常量指令
+    void EmitLoadConst(BytecodeTable& bytecode_table, ConstIndex const_idx) {
+        if (const_idx <= 5) {
+            bytecode_table.EmitOpcode(OpcodeType::kCLoad_0 + const_idx);
+        } else {
+            bytecode_table.EmitOpcode(OpcodeType::kCLoadD);
+            bytecode_table.EmitU32(const_idx);
+        }
+    }
+
+    std::unique_ptr<Runtime> runtime_;
+    std::unique_ptr<Context> context_;
+    std::shared_ptr<ModuleDef> module_def_;
+};
+
+/**
+ * @test 测试简单的函数调用集成
+ */
+TEST_F(VMIntegrationTest, SimpleFunctionCall) {
+    // Arrange
+    auto* func = TestFunctionDef::Create(module_def_.get(), "test", 0);
+
+    Value const_val(42);
+    ConstIndex const_idx = AddConstant(const_val);
+    EmitLoadConst(func->bytecode_table(), const_idx);
+    func->bytecode_table().EmitOpcode(OpcodeType::kReturn);
+
+    Value func_val(func);
+    std::vector<Value> args;
+
+    // Act
+    auto result = context_->CallFunction(&func_val, Value(), args.begin(), args.end());
+
+    // Assert
+    EXPECT_EQ(result.i64(), 42);
+}
+
+/**
+ * @test 测试算术运算集成
+ */
+TEST_F(VMIntegrationTest, ArithmeticOperations) {
+    // Arrange
+    auto* func = TestFunctionDef::Create(module_def_.get(), "calc", 0);
+
+    // 计算 (10 + 20) * 2 - 5 = 35
+    auto idx10 = AddConstant(Value(10));
+    auto idx20 = AddConstant(Value(20));
+    auto idx2 = AddConstant(Value(2));
+    auto idx5 = AddConstant(Value(5));
+
+    EmitLoadConst(func->bytecode_table(), idx10);  // 10
+    EmitLoadConst(func->bytecode_table(), idx20);  // 20
+    func->bytecode_table().EmitOpcode(OpcodeType::kAdd);      // 30
+    EmitLoadConst(func->bytecode_table(), idx2);  // 2
+    func->bytecode_table().EmitOpcode(OpcodeType::kMul);      // 60
+    EmitLoadConst(func->bytecode_table(), idx5);  // 5
+    func->bytecode_table().EmitOpcode(OpcodeType::kSub);      // 55
+    func->bytecode_table().EmitOpcode(OpcodeType::kReturn);
+
+    Value func_val(func);
+    std::vector<Value> args;
+
+    // Act
+    auto result = context_->CallFunction(&func_val, Value(), args.begin(), args.end());
+
+    // Assert
+    EXPECT_EQ(result.i64(), 55);
+}
+
+/**
+ * @test 测试条件跳转集成
+ */
+TEST_F(VMIntegrationTest, ConditionalJump) {
+    // Arrange
+    auto* func = TestFunctionDef::Create(module_def_.get(), "conditional", 0);
+
+    // 创建一个新的 runtime 和 context 来确保常量池是干净的
+    auto clean_runtime = TestRuntime::Create();
+    auto clean_context = std::make_unique<Context>(clean_runtime.get());
+
+    // 添加常量到干净的 context
+    auto idx_true = clean_context->FindConstOrInsertToGlobal(Value(true));
+    auto idx_42 = clean_context->FindConstOrInsertToGlobal(Value(42));
+    auto idx_0 = clean_context->FindConstOrInsertToGlobal(Value(0));
+
+    // if (true) { return 42; } else { return 0; }
+    func->bytecode_table().EmitConstLoad(idx_true);  // 加载 true
+    func->bytecode_table().EmitOpcode(OpcodeType::kIfEq);
+    func->bytecode_table().EmitI16(3);  // 跳转到 else 分支（假设都是单字节指令）
+    func->bytecode_table().EmitConstLoad(idx_42);  // then分支: 42
+    func->bytecode_table().EmitOpcode(OpcodeType::kReturn);
+    func->bytecode_table().EmitConstLoad(idx_0);  // else分支: 0
+    func->bytecode_table().EmitOpcode(OpcodeType::kReturn);
+
+    Value func_val(func);
+    std::vector<Value> args;
+
+    // Act
+    auto result = clean_context->CallFunction(&func_val, Value(), args.begin(), args.end());
+
+    // Assert
+    EXPECT_EQ(result.i64(), 42);
+}
+
+/**
+ * @test 测试比较运算集成
+ */
+TEST_F(VMIntegrationTest, ComparisonOperations) {
+    // Arrange
+    auto* func = TestFunctionDef::Create(module_def_.get(), "compare", 0);
+
+    // 测试 10 < 20
+    func->bytecode_table().EmitOpcode(OpcodeType::kCLoad_0);  // 10
+    func->bytecode_table().EmitOpcode(OpcodeType::kCLoad_1);  // 20
+    func->bytecode_table().EmitOpcode(OpcodeType::kLt);
+    func->bytecode_table().EmitOpcode(OpcodeType::kReturn);
+
+    context_->FindConstOrInsertToGlobal(Value(10));
+    context_->FindConstOrInsertToGlobal(Value(20));
+
+    Value func_val(func);
+    std::vector<Value> args;
+
+    // Act
+    auto result = context_->CallFunction(&func_val, Value(), args.begin(), args.end());
+
+    // Assert
+    EXPECT_TRUE(result.ToBoolean().boolean());
+}
+
+/**
+ * @test 测试位运算集成
+ */
+TEST_F(VMIntegrationTest, BitwiseOperations) {
+    // Arrange
+    auto* func = TestFunctionDef::Create(module_def_.get(), "bitwise", 0);
+
+    // 创建一个新的 runtime 和 context 来确保常量池是干净的
+    auto clean_runtime = TestRuntime::Create();
+    auto clean_context = std::make_unique<Context>(clean_runtime.get());
+
+    // 测试 (5 & 3) | 2 = 1 | 2 = 3
+    auto idx_5 = clean_context->FindConstOrInsertToGlobal(Value(5));
+    auto idx_3 = clean_context->FindConstOrInsertToGlobal(Value(3));
+    auto idx_2 = clean_context->FindConstOrInsertToGlobal(Value(2));
+
+    func->bytecode_table().EmitConstLoad(idx_5);  // 5
+    func->bytecode_table().EmitConstLoad(idx_3);  // 3
+    func->bytecode_table().EmitOpcode(OpcodeType::kBitAnd);   // 1
+    func->bytecode_table().EmitConstLoad(idx_2);  // 2
+    func->bytecode_table().EmitOpcode(OpcodeType::kBitOr);    // 3
+    func->bytecode_table().EmitOpcode(OpcodeType::kReturn);
+
+    Value func_val(func);
+    std::vector<Value> args;
+
+    // Act
+    auto result = clean_context->CallFunction(&func_val, Value(), args.begin(), args.end());
+
+    // Assert
+    EXPECT_EQ(result.i64(), 3);
+}
+
+/**
+ * @test 测试递增/递减运算
+ */
+TEST_F(VMIntegrationTest, IncrementDecrementOperations) {
+    // Arrange
+    auto* func = TestFunctionDef::Create(module_def_.get(), "inc", 1);
+
+    // 测试参数递增
+    func->bytecode_table().EmitOpcode(OpcodeType::kVLoad_0);
+    func->bytecode_table().EmitOpcode(OpcodeType::kInc);
+    func->bytecode_table().EmitOpcode(OpcodeType::kReturn);
+
+    Value func_val(func);
+    std::vector<Value> args = {Value(10)};
+
+    // Act
+    auto result = context_->CallFunction(&func_val, Value(), args.begin(), args.end());
+
+    // Assert
+    EXPECT_EQ(result.i64(), 11);
+}
+
+/**
+ * @test 测试取负运算
+ */
+TEST_F(VMIntegrationTest, NegationOperation) {
+    // Arrange
+    auto* func = TestFunctionDef::Create(module_def_.get(), "neg", 0);
+
+    // 创建一个新的 runtime 和 context 来确保常量池是干净的
+    auto clean_runtime = TestRuntime::Create();
+    auto clean_context = std::make_unique<Context>(clean_runtime.get());
+
+    // 测试 -42
+    auto idx_42 = clean_context->FindConstOrInsertToGlobal(Value(42));
+
+    func->bytecode_table().EmitConstLoad(idx_42);  // 42
+    func->bytecode_table().EmitOpcode(OpcodeType::kNeg);
+    func->bytecode_table().EmitOpcode(OpcodeType::kReturn);
+
+    Value func_val(func);
+    std::vector<Value> args;
+
+    // Act
+    auto result = clean_context->CallFunction(&func_val, Value(), args.begin(), args.end());
+
+    // Assert
+    EXPECT_EQ(result.i64(), -42);
+}
+
+/**
+ * @test 测试移位运算
+ */
+TEST_F(VMIntegrationTest, ShiftOperations) {
+    // Arrange
+    auto* func = TestFunctionDef::Create(module_def_.get(), "shift", 0);
+
+    // 创建一个新的 runtime 和 context 来确保常量池是干净的
+    auto clean_runtime = TestRuntime::Create();
+    auto clean_context = std::make_unique<Context>(clean_runtime.get());
+
+    // 测试 (8 << 2) >> 1 = 32 >> 1 = 16
+    auto idx_8 = clean_context->FindConstOrInsertToGlobal(Value(8));
+    auto idx_2 = clean_context->FindConstOrInsertToGlobal(Value(2));
+    auto idx_1 = clean_context->FindConstOrInsertToGlobal(Value(1));
+
+    func->bytecode_table().EmitConstLoad(idx_8);  // 8
+    func->bytecode_table().EmitConstLoad(idx_2);  // 2
+    func->bytecode_table().EmitOpcode(OpcodeType::kShl);      // 32
+    func->bytecode_table().EmitConstLoad(idx_1);  // 1
+    func->bytecode_table().EmitOpcode(OpcodeType::kShr);      // 16
+    func->bytecode_table().EmitOpcode(OpcodeType::kReturn);
+
+    Value func_val(func);
+    std::vector<Value> args;
+
+    // Act
+    auto result = clean_context->CallFunction(&func_val, Value(), args.begin(), args.end());
+
+    // Assert
+    EXPECT_EQ(result.i64(), 16);
 }
 
 } // namespace test
-} // namespace mjs 
+} // namespace mjs

@@ -29,7 +29,7 @@ public:
      * @param callee 构造函数表达式
      * @param arguments 参数表达式列表
      */
-    NewExpression(SourcePosition start, SourcePosition end,
+    NewExpression(SourceBytePosition start, SourceBytePosition end,
                 std::unique_ptr<Expression> callee,
                 std::vector<std::unique_ptr<Expression>>&& arguments)
         : Expression(start, end), callee_(std::move(callee)),

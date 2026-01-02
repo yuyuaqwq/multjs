@@ -41,8 +41,11 @@ std::unique_ptr<VariableDeclaration> VariableDeclaration::ParseVariableDeclarati
 		lexer->MatchToken(TokenType::kIdentifier);
 	}
 
-	lexer->MatchToken(TokenType::kOpAssign);
-	auto init = YieldExpression::ParseExpressionAtYieldLevel(lexer);
+    std::unique_ptr<Expression> init;
+    if (lexer->PeekToken().is(TokenType::kOpAssign)) {
+        lexer->NextToken();
+        init = YieldExpression::ParseExpressionAtYieldLevel(lexer);
+    }
 	lexer->MatchToken(TokenType::kSepSemi);
 	auto end = lexer->GetRawSourcePosition();
 	return std::make_unique<VariableDeclaration>(start, end, std::move(name), std::move(init), kind);

@@ -42,8 +42,8 @@ public:
 	 * @brief 词法分析器的检查点，用于回溯
 	 */
 	struct Checkpoint {
-		SourcePosition position;
-		SourcePosition peek_position;
+		SourceBytePosition position;
+		SourceBytePosition peek_position;
 		Token current_token;
 		Token peek_token;
 		bool in_template;
@@ -125,7 +125,7 @@ public:
 	 * @brief 获取当前源代码位置（跳过空白字符和注释）
 	 * @return 源代码位置
 	 */
-	SourcePosition GetSourcePosition() {
+	SourceBytePosition GetSourcePosition() {
 		SkipWhitespaceAndComments();
 		return position_;
 	}
@@ -134,7 +134,7 @@ public:
 	 * @brief 获取当前原始源代码位置（不跳过任何字符）
 	 * @return 源代码位置
 	 */
-	SourcePosition GetRawSourcePosition() const {
+	SourceBytePosition GetRawSourcePosition() const {
 		return position_;
 	}
 
@@ -327,8 +327,8 @@ private:
 private:
 	std::string_view source_;       ///< 源代码
 	LineTable line_table_;			///< 行号表
-	SourcePosition position_ = 0;        ///< 当前位置
-	SourcePosition peek_position_ = 0;   ///< 预览位置
+	SourceBytePosition position_ = 0;        ///< 当前位置
+	SourceBytePosition peek_position_ = 0;   ///< 预览位置
 	Token current_token_;           ///< 当前标记
 	Token peek_token_;              ///< 预览标记
 	bool in_template_ = false;      ///< 是否在模板字符串中

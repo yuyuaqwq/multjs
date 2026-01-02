@@ -27,7 +27,7 @@ public:
      * @param end 表达式结束位置
      * @param expressions 模板表达式列表
      */
-    TemplateLiteral(SourcePosition start, SourcePosition end,
+    TemplateLiteral(SourceBytePosition start, SourceBytePosition end,
         std::vector<std::unique_ptr<Expression>>&& expressions)
         : Expression(start, end), expressions_(std::move(expressions)) {}
 

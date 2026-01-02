@@ -29,7 +29,7 @@ public:
      * @param return_types 返回类型
      * @param param_types 参数类型列表
      */
-    FunctionType(SourcePosition start, SourcePosition end,
+    FunctionType(SourceBytePosition start, SourceBytePosition end,
         std::unique_ptr<Type> return_types,
         std::vector<std::unique_ptr<Type>> param_types)
         : Type(start, end),

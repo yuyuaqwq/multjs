@@ -28,7 +28,7 @@ public:
      * @param argument yield 参数表达式
      * @param is_delegate 是否为委托yield (yield*)
      */
-    YieldExpression(SourcePosition start, SourcePosition end,
+    YieldExpression(SourceBytePosition start, SourceBytePosition end,
                 std::unique_ptr<Expression> argument, bool is_delegate = false)
         : Expression(start, end), argument_(std::move(argument)), is_delegate_(is_delegate) {}
 

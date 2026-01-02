@@ -28,7 +28,7 @@ public:
      * @param end 结束位置
      * @param label 标签名（可选）
      */
-    explicit BreakStatement(SourcePosition start, SourcePosition end,
+    explicit BreakStatement(SourceBytePosition start, SourceBytePosition end,
         std::optional<std::string> label)
         : Statement(start, end), label_(std::move(label)) {}
 

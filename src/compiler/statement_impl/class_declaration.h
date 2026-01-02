@@ -35,8 +35,8 @@ public:
      * @param elements 类元素列表
      */
     ClassDeclaration(
-        SourcePosition start,
-        SourcePosition end,
+        SourceBytePosition start,
+        SourceBytePosition end,
         std::unique_ptr<ClassExpression> expression
         )
         : Statement(start, end)

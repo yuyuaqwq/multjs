@@ -30,7 +30,7 @@ public:
      * @param argument 操作数表达式
      * @param is_prefix 是否为前缀运算符（true为前缀，false为后缀）
      */
-    UnaryExpression(SourcePosition start, SourcePosition end,
+    UnaryExpression(SourceBytePosition start, SourceBytePosition end,
                 TokenType op, std::unique_ptr<Expression> argument,
                 bool is_prefix)
         : Expression(start, end), operator_(op), argument_(std::move(argument)),

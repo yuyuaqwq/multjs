@@ -28,7 +28,7 @@ public:
      * @param end 结束位置
      * @param value 字面量值
      */
-    LiteralType(SourcePosition start, SourcePosition end, std::unique_ptr<Expression>&& value)
+    LiteralType(SourceBytePosition start, SourceBytePosition end, std::unique_ptr<Expression>&& value)
         : Type(start, end), value_(std::move(value)) {}
 
     StatementType type() const noexcept override { return StatementType::kLiteralType; }

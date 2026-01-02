@@ -39,7 +39,7 @@ public:
      * @brief 获取标记在源代码中的位置
      * @return 源代码位置
      */
-    [[nodiscard]] SourcePosition pos() const noexcept {
+    [[nodiscard]] SourceBytePosition pos() const noexcept {
         return token_ ? token_->pos() : 0;
     }
 
@@ -47,7 +47,7 @@ public:
      * @brief 设置标记在源代码中的位置
      * @param position 源代码位置
      */
-    void set_pos(SourcePosition position) {
+    void set_pos(SourceBytePosition position) {
         if (token_) {
             token_->set_pos(position);
         }

@@ -24,6 +24,24 @@
 
 namespace mjs {
 
+/**
+ * @brief 测试命名空间，包含解析器测试相关的类
+ */
+namespace test {
+/**
+ * @class VMTest
+ * @brief 虚拟机测试类，用于单元测试
+ */
+class VMTest;
+class VMModuleTest;
+class VMClosureTest;
+class VMFunctionSchedulingTest;
+class VMBytecodeExecutionTest;
+class VMExceptionTest;
+class VMGeneratorTest;
+class VMIntegrationTest;
+} // namespace test
+
 class Context;
 
 /**
@@ -36,6 +54,14 @@ class Context;
 class VM : public noncopyable {
 public:
 	friend class CodeGenerator;
+	friend class ::mjs::test::VMTest;
+	friend class ::mjs::test::VMModuleTest;
+	friend class ::mjs::test::VMClosureTest;
+	friend class ::mjs::test::VMFunctionSchedulingTest;
+	friend class ::mjs::test::VMBytecodeExecutionTest;
+	friend class ::mjs::test::VMExceptionTest;
+	friend class ::mjs::test::VMGeneratorTest;
+	friend class ::mjs::test::VMIntegrationTest;
 
 public:
 	/**

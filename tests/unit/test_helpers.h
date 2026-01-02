@@ -93,7 +93,12 @@ public:
      * @return FunctionDef对象指针
      */
     static FunctionDef* Create(ModuleDef* module_def, const std::string& name = "test_function", uint32_t param_count = 0) {
-        return FunctionDef::New(module_def, name, param_count);
+        auto* function_def = FunctionDef::New(module_def, name, param_count);
+        // 为参数添加变量定义,确保 var_count >= param_count
+        for (uint32_t i = 0; i < param_count; ++i) {
+            function_def->var_def_table().AddVar("param_" + std::to_string(i));
+        }
+        return function_def;
     }
 
     /**

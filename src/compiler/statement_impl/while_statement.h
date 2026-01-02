@@ -31,7 +31,7 @@ public:
      * @param test 条件表达式
      * @param body 循环体
      */
-    WhileStatement(SourcePosition start, SourcePosition end,
+    WhileStatement(SourceBytePosition start, SourceBytePosition end,
         std::unique_ptr<Expression> test,
         std::unique_ptr<BlockStatement> body)
         : Statement(start, end),

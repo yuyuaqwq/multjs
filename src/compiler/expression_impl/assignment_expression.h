@@ -29,7 +29,7 @@ public:
      * @param left 左操作数表达式
      * @param right 右操作数表达式
      */
-    AssignmentExpression(SourcePosition start, SourcePosition end,
+    AssignmentExpression(SourceBytePosition start, SourceBytePosition end,
         TokenType op, std::unique_ptr<Expression> left,
         std::unique_ptr<Expression> right)
         : Expression(start, end), operator_(op), left_(std::move(left)), right_(std::move(right)) {}

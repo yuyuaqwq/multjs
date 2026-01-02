@@ -13,7 +13,7 @@ void TypeAnnotation::GenerateCode(CodeGenerator* code_generator, FunctionDefBase
     // 它们只在编译时用于类型检查
 }
 
-std::unique_ptr<TypeAnnotation> TryParseTypeAnnotation(Lexer* lexer) {
+std::unique_ptr<TypeAnnotation> TypeAnnotation::TryParseTypeAnnotation(Lexer* lexer) {
 	if (!lexer->PeekToken().is(TokenType::kSepColon)) {
 		return nullptr;
 	}
@@ -33,7 +33,7 @@ std::unique_ptr<TypeAnnotation> TryParseTypeAnnotation(Lexer* lexer) {
 		type = std::make_unique<NamedType>(type_start, type_end, std::move(type_name));
 	} else if (lexer->PeekToken().is(TokenType::kSepLParen)) {
 		// 联合类型
-		type = ParseUnionType(lexer);
+		type = UnionType::ParseUnionType(lexer);
 	} else {
 		throw SyntaxError("Invalid type annotation");
 	}

@@ -25,7 +25,7 @@ public:
      * @param end 结束位置
      * @param keyword 类型关键字
      */
-    PredefinedType(SourcePosition start, SourcePosition end, PredefinedTypeKeyword keyword)
+    PredefinedType(SourceBytePosition start, SourceBytePosition end, PredefinedTypeKeyword keyword)
         : Type(start, end), keyword_(keyword) {}
 
     StatementType type() const noexcept override { return StatementType::kPredefinedType; }
@@ -35,6 +35,8 @@ public:
      * @return 类型关键字引用
      */
     const PredefinedTypeKeyword& keyword() const { return keyword_; }
+
+    void GenerateCode(CodeGenerator* code_generator, FunctionDefBase* function_def_base) const override {}
 
 private:
     PredefinedTypeKeyword keyword_;

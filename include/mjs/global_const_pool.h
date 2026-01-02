@@ -115,9 +115,15 @@ public:
 		Base::clear();
 	}
 
+	ConstIndex constructor_const_index() const { return constructor_const_index_; }
+	ConstIndex prototype_const_index() const { return prototype_const_index_; }
+
 private:
 	std::mutex mutex_;                       ///< 互斥锁，保证线程安全
 	std::unordered_map<Value, ConstIndex> map_; ///< 值到索引的映射表
+
+	ConstIndex constructor_const_index_;
+	ConstIndex prototype_const_index_;
 };
 
 } // namespace mjs

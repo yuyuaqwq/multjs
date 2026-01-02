@@ -29,7 +29,7 @@ public:
      * @param label 标签名
      * @param body 语句体
      */
-    LabeledStatement(SourcePosition start, SourcePosition end,
+    LabeledStatement(SourceBytePosition start, SourceBytePosition end,
         std::string label,
         std::unique_ptr<Statement> body)
         : Statement(start, end),

@@ -81,10 +81,11 @@ TEST_F(ObjectTest, ReferenceCount) {
  */
 TEST_F(ObjectTest, SetPropertyWithStringKey) {
     auto* obj = Object::New(runtime_.get());
-    obj->SetProperty(runtime_.get(), "test_prop", Value(42));
+    auto index = runtime_->global_const_pool().insert(Value("test_prop"));
+    obj->SetProperty(runtime_.get(), index, Value(42));
 
     Value retrieved_value;
-    bool success = obj->GetProperty(runtime_.get(), "test_prop", &retrieved_value);
+    bool success = obj->GetProperty(runtime_.get(), index, &retrieved_value);
     ASSERT_TRUE(success);
     EXPECT_EQ(retrieved_value.i64(), 42);
 
@@ -96,17 +97,20 @@ TEST_F(ObjectTest, SetPropertyWithStringKey) {
  */
 TEST_F(ObjectTest, SetPropertyWithNumber) {
     auto* obj = Object::New(runtime_.get());
-
-    obj->SetProperty(runtime_.get(), "number_prop", Value(100));
-    Value num_val;
-    obj->GetProperty(runtime_.get(), "number_prop", &num_val);
-    EXPECT_EQ(num_val.i64(), 100);
-
-    obj->SetProperty(runtime_.get(), "float_prop", Value(3.14));
-    Value float_val;
-    obj->GetProperty(runtime_.get(), "float_prop", &float_val);
-    EXPECT_DOUBLE_EQ(float_val.f64(), 3.14);
-
+    {
+        auto index = runtime_->global_const_pool().insert(Value("number_prop"));
+        obj->SetProperty(runtime_.get(), index, Value(100));
+        Value num_val;
+        obj->GetProperty(runtime_.get(), index, &num_val);
+        EXPECT_EQ(num_val.i64(), 100);
+    }
+    {
+        auto index = runtime_->global_const_pool().insert(Value("float_prop"));
+        obj->SetProperty(runtime_.get(), index, Value(3.14));
+        Value float_val;
+        obj->GetProperty(runtime_.get(), index, &float_val);
+        EXPECT_DOUBLE_EQ(float_val.f64(), 3.14);
+    }
     // GC will clean up
 }
 
@@ -116,9 +120,10 @@ TEST_F(ObjectTest, SetPropertyWithNumber) {
 TEST_F(ObjectTest, SetPropertyWithString) {
     auto* obj = Object::New(runtime_.get());
 
-    obj->SetProperty(runtime_.get(), "string_prop", Value(String::New("hello")));
+    auto index = runtime_->global_const_pool().insert(Value("string_prop"));
+    obj->SetProperty(runtime_.get(), index, Value(String::New("hello")));
     Value str_val;
-    obj->GetProperty(runtime_.get(), "string_prop", &str_val);
+    obj->GetProperty(runtime_.get(), index, &str_val);
     EXPECT_STREQ(str_val.string_view(), "hello");
 
     // GC will clean up
@@ -129,17 +134,21 @@ TEST_F(ObjectTest, SetPropertyWithString) {
  */
 TEST_F(ObjectTest, SetPropertyWithBoolean) {
     auto* obj = Object::New(runtime_.get());
+    {
+        auto index = runtime_->global_const_pool().insert(Value("bool_prop"));
+        obj->SetProperty(runtime_.get(), index, Value(true));
+        Value bool_val;
+        obj->GetProperty(runtime_.get(), index, &bool_val);
+        EXPECT_EQ(bool_val.boolean(), true);
+    }
 
-    obj->SetProperty(runtime_.get(), "bool_prop", Value(true));
-    Value bool_val;
-    obj->GetProperty(runtime_.get(), "bool_prop", &bool_val);
-    EXPECT_EQ(bool_val.boolean(), true);
-
-    obj->SetProperty(runtime_.get(), "bool_prop2", Value(false));
-    Value bool_val2;
-    obj->GetProperty(runtime_.get(), "bool_prop2", &bool_val2);
-    EXPECT_EQ(bool_val2.boolean(), false);
-
+    {
+        auto index = runtime_->global_const_pool().insert(Value("bool_prop2"));
+        obj->SetProperty(runtime_.get(), index, Value(false));
+        Value bool_val2;
+        obj->GetProperty(runtime_.get(), index, &bool_val2);
+        EXPECT_EQ(bool_val2.boolean(), false);
+    }
     // GC will clean up
 }
 
@@ -149,9 +158,10 @@ TEST_F(ObjectTest, SetPropertyWithBoolean) {
 TEST_F(ObjectTest, SetPropertyWithNull) {
     auto* obj = Object::New(runtime_.get());
 
-    obj->SetProperty(runtime_.get(), "null_prop", Value(nullptr));
+    auto index = runtime_->global_const_pool().insert(Value("null_prop"));
+    obj->SetProperty(runtime_.get(), index, Value(nullptr));
     Value null_val;
-    obj->GetProperty(runtime_.get(), "null_prop", &null_val);
+    obj->GetProperty(runtime_.get(), index, &null_val);
     // 注意: 由于实现细节,null可能存储为其他类型
     EXPECT_TRUE(null_val.IsNull() || null_val.IsUndefined());
 
@@ -179,11 +189,12 @@ TEST_F(ObjectTest, SetPropertyWithConstIndex) {
  * @test 测试获取不存在的属性
  * @note 这个测试暂时跳过,因为GetProperty的实现可能在属性不存在时抛出异常
  */
-TEST_F(ObjectTest, DISABLED_GetNonExistentProperty) {
+TEST_F(ObjectTest, GetNonExistentProperty) {
     auto* obj = Object::New(runtime_.get());
     Value retrieved_value(42);  // 初始化为已知值
 
-    bool success = obj->GetProperty(runtime_.get(), "non_existent", &retrieved_value);
+    auto index = runtime_->global_const_pool().insert(Value("non_existent"));
+    bool success = obj->GetProperty(runtime_.get(), index, &retrieved_value);
     EXPECT_FALSE(success);
     // 如果失败,retrieved_value应该保持不变
 
@@ -287,14 +298,15 @@ TEST_F(ObjectTest, GetClassDef) {
 TEST_F(ObjectTest, SetPropertyMultipleTimes) {
     auto* obj = Object::New(runtime_.get());
 
-    obj->SetProperty(runtime_.get(), "prop", Value(1));
+    auto index = runtime_->global_const_pool().insert(Value("prop"));
+    obj->SetProperty(runtime_.get(), index, Value(1));
     Value val1;
-    obj->GetProperty(runtime_.get(), "prop", &val1);
+    obj->GetProperty(runtime_.get(), index, &val1);
     EXPECT_EQ(val1.i64(), 1);
 
-    obj->SetProperty(runtime_.get(), "prop", Value(2));
+    obj->SetProperty(runtime_.get(), index, Value(2));
     Value val2;
-    obj->GetProperty(runtime_.get(), "prop", &val2);
+    obj->GetProperty(runtime_.get(), index, &val2);
     EXPECT_EQ(val2.i64(), 2);
 
     // GC will clean up
@@ -410,24 +422,24 @@ TEST_F(ShapeManagerTest, GetEmptyShape) {
 
 /**
  * @test 测试形状管理器添加属性
- * @note 这个测试暂时跳过,因为transition_table有内部断言
  */
-TEST_F(ShapeManagerTest, DISABLED_AddPropertyToShape) {
+TEST_F(ShapeManagerTest, AddPropertyToShape) {
     Shape* shape = &context_->shape_manager().empty_shape();
     ConstIndex key_idx = context_->FindConstOrInsertToLocal(Value("prop"));
     ShapeProperty prop(0, key_idx);
 
-    int index = context_->shape_manager().AddProperty(&shape, std::move(prop));
+    int index = shape->shape_manager()->AddProperty(&shape, std::move(prop));
 
     EXPECT_GE(index, 0);
     EXPECT_NE(shape, &context_->shape_manager().empty_shape());
+
+    shape->Dereference();
 }
 
 /**
  * @test 测试多次添加属性
- * @note 这个测试暂时跳过,因为transition_table有内部断言
  */
-TEST_F(ShapeManagerTest, DISABLED_AddMultipleProperties) {
+TEST_F(ShapeManagerTest, AddMultipleProperties) {
     Shape* shape = &context_->shape_manager().empty_shape();
     ConstIndex key1 = context_->FindConstOrInsertToLocal(Value("prop1"));
     ConstIndex key2 = context_->FindConstOrInsertToLocal(Value("prop2"));
@@ -441,6 +453,8 @@ TEST_F(ShapeManagerTest, DISABLED_AddMultipleProperties) {
     EXPECT_EQ(idx2, 1);
     EXPECT_EQ(idx3, 2);
     EXPECT_EQ(shape->property_size(), 3);
+
+    shape->Dereference();
 }
 
 // ==================== Object-Shape 集成测试 ====================

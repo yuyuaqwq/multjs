@@ -25,7 +25,7 @@ public:
      * @param end 表达式结束位置
      * @param value 布尔值
      */
-    BooleanLiteral(SourcePosition start, SourcePosition end, bool value)
+    BooleanLiteral(SourceBytePosition start, SourceBytePosition end, bool value)
         : PrimaryExpression(start, end), value_(value) {}
 
 

@@ -25,7 +25,7 @@ public:
      * @param end 表达式结束位置
      * @param value 浮点数值
      */
-    FloatLiteral(SourcePosition start, SourcePosition end, double value)
+    FloatLiteral(SourceBytePosition start, SourceBytePosition end, double value)
         : PrimaryExpression(start, end), value_(value) {}
 
 

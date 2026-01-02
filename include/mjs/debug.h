@@ -26,8 +26,8 @@ namespace mjs {
 struct DebugEntry {
     Pc pc_start;                    ///< 字节码起始位置（包含）
     Pc pc_end;                      ///< 字节码结束位置（不包含）
-    SourcePosition source_start;         ///< 源代码起始位置
-    SourcePosition source_end;           ///< 源代码结束位置
+    SourceBytePosition source_start;         ///< 源代码起始位置
+    SourceBytePosition source_end;           ///< 源代码结束位置
     SourceLine source_line;         ///< 源代码行号
 };
 
@@ -51,7 +51,7 @@ public:
      * @param source_end 源代码结束位置
      * @param source_line 源代码行号
      */
-    void AddEntry(Pc pc_start, Pc pc_end, SourcePosition source_start, SourcePosition source_end, SourceLine source_line) {
+    void AddEntry(Pc pc_start, Pc pc_end, SourceBytePosition source_start, SourceBytePosition source_end, SourceLine source_line) {
         if (pc_start == pc_end) return;
         assert(pc_start < pc_end);
         entries_.emplace_back(DebugEntry{

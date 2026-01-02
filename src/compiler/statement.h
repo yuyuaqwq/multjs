@@ -78,7 +78,7 @@ public:
      * @param start 语句起始位置
      * @param end 语句结束位置
      */
-    Statement(SourcePosition start, SourcePosition end)
+    Statement(SourceBytePosition start, SourceBytePosition end)
         : start_(start), end_(end) {}
 
     /**
@@ -125,13 +125,13 @@ public:
      * @brief 获取语句起始位置
      * @return 起始位置
      */
-    SourcePosition start() const { return start_; }
+    SourceBytePosition start() const { return start_; }
 
     /**
      * @brief 获取语句结束位置
      * @return 结束位置
      */
-    SourcePosition end() const { return end_; }
+    SourceBytePosition end() const { return end_; }
 
     /**
      * @brief 生成代码
@@ -150,8 +150,8 @@ public:
     void current_loop_repair_entries() {  }
 
 private:
-    SourcePosition start_;
-    SourcePosition end_;
+    SourceBytePosition start_;
+    SourceBytePosition end_;
 };
 
 } // namespace compiler

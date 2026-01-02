@@ -32,7 +32,7 @@ public:
      * @param handler catch子句（可选）
      * @param finalizer finally子句（可选）
      */
-    TryStatement(SourcePosition start, SourcePosition end,
+    TryStatement(SourceBytePosition start, SourceBytePosition end,
         std::unique_ptr<BlockStatement> block,
         std::unique_ptr<CatchClause> handler,
         std::unique_ptr<FinallyClause> finalizer)
