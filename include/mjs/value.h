@@ -480,15 +480,49 @@ public:
 		case ValueType::kSymbol:
 			return "symbol";
 		case ValueType::kObject:
-			return "objerct";
+			return "object";
+		case ValueType::kFloatObject:
+			return "float_object";
+		case ValueType::kStringObject:
+			return "string_object";
+		case ValueType::kArrayObject:
+			return "array_object";
+		case ValueType::kFunctionObject:
+			return "function_object";
+		case ValueType::kGeneratorObject:
+			return "generator_object";
+		case ValueType::kPromiseObject:
+			return "promise_object";
+		case ValueType::kAsyncObject:
+			return "async_object";
+		case ValueType::kCppModuleObject:
+			return "cpp_module_object";
+		case ValueType::kModuleObject:
+			return "module_object";
+		case ValueType::kConstructorObject:
+			return "constructor_object";
 		case ValueType::kFunctionDef:
 			return "function_def";
 		case ValueType::kCppFunction:
 			return "cpp_function";
 		case ValueType::kClosureVar:
 			return "closure_var";
+		case ValueType::kModuleDef:
+			return "module_def";
+		case ValueType::kExportVar:
+			return "export_var";
+		case ValueType::kGeneratorNext:
+			return "generator_next";
+		case ValueType::kAsyncResolveResume:
+			return "async_resolve_resume";
+		case ValueType::kAsyncRejectResume:
+			return "async_reject_resume";
+		case ValueType::kPromiseResolve:
+			return "promise_resolve";
+		case ValueType::kPromiseReject:
+			return "promise_reject";
 		default:
-			throw std::runtime_error("Incorrect value type.");
+			return "unknown_type";
 		}
 	}
 

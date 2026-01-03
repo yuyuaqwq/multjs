@@ -90,16 +90,6 @@ public:
      */
     Value Eval(std::string module_name, std::string_view script);
 
-    /**
-     * @brief 从文件编译并执行 JavaScript 代码
-     * @param path 文件路径
-     * @return 执行结果值
-     * @throw std::runtime_error 文件读取错误时抛出
-     * @throw CompileError 编译错误时抛出
-     * @throw RuntimeError 运行时错误时抛出
-     */
-    Value EvalFromFile(std::string_view path);
-
 	/**
 	 * @brief 调用 JavaScript 函数
 	 *

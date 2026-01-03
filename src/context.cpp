@@ -68,13 +68,7 @@ Value Context::CallModule(Value* value) {
 
 Value Context::Eval(std::string module_name, std::string_view script) {
 	auto module = CompileModule(std::move(module_name), script);
-	CallModule(&module);
-	return module;
-}
-
-Value Context::EvalFromFile(std::string_view path) {
-	auto module = runtime_->module_manager().GetModule(this, path);
-	return module;
+	return CallModule(&module);
 }
 
 void Context::ReferenceConstValue(ConstIndex const_index) {

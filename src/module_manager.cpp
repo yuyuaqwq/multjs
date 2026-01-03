@@ -40,7 +40,6 @@ Value ModuleManager::GetModule(Context* ctx, std::string_view path) {
 
 	file.close();
 
-
 	auto module = ctx->CompileModule(absolute_path.string(), content);
 
 	// 先缓存模块，再调用

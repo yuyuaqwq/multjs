@@ -88,16 +88,18 @@ target_include_directories(${MJS_LIB_TARGET} PRIVATE ${MJS_INCLUDE_DIR})
 
 # 集成测试
 file(GLOB INTEGRATION_TEST_SRC
-    ./tests/integration/test.cpp)
+    ./tests/integration/*.cpp
+    ./tests/integration/**/*.cpp)
+
 add_executable(integration_tests ${INTEGRATION_TEST_SRC})
-target_include_directories(integration_tests PRIVATE ${MJS_INCLUDE_DIR})
-target_link_libraries(integration_tests PRIVATE ${MJS_LIB_TARGET})
+target_include_directories(integration_tests PRIVATE ${MJS_INCLUDE_DIR} .)
+target_link_libraries(integration_tests PRIVATE ${MJS_LIB_TARGET} GTest::gtest_main)
 
 # 单元测试
 file(GLOB UNIT_TEST_SRC
-	./tests/unit/*_test.cpp
-    ./tests/unit/**/*_test.cpp
-    ./tests/unit/**/**/*_test.cpp
+	./tests/unit/*.cpp
+    ./tests/unit/**/*.cpp
+    ./tests/unit/**/**/*.cpp
     )
 
 add_executable(unit_tests ${UNIT_TEST_SRC})
@@ -105,4 +107,5 @@ target_include_directories(unit_tests PRIVATE ${MJS_INCLUDE_DIR} .)
 target_link_libraries(unit_tests PRIVATE ${MJS_LIB_TARGET} GTest::gtest_main)
 
 include(GoogleTest)
+gtest_discover_tests(integration_tests)
 gtest_discover_tests(unit_tests)
