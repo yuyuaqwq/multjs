@@ -1,6 +1,6 @@
-#include "null_literal.h"
+#include "src/compiler/expression_impl/null_literal.h"
 
-#include "../code_generator.h"
+#include "src/compiler/code_generator.h"
 
 namespace mjs {
 namespace compiler {

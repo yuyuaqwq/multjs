@@ -1,9 +1,9 @@
-#include "binary_expression.h"
+#include "src/compiler/expression_impl/binary_expression.h"
 
-#include "../statement.h"
-#include "yield_expression.h"
-#include "assignment_expression.h"
-#include "unary_expression.h"
+#include "src/compiler/statement.h"
+#include "src/compiler/expression_impl/yield_expression.h"
+#include "src/compiler/expression_impl/assignment_expression.h"
+#include "src/compiler/expression_impl/unary_expression.h"
 
 namespace mjs {
 namespace compiler {

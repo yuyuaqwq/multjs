@@ -1,9 +1,9 @@
-#include "type_annotation.h"
+#include "src/compiler/statement_impl/type_annotation.h"
 
 #include <mjs/error.h>
 
-#include "../code_generator.h"
-#include "named_type.h"
+#include "src/compiler/code_generator.h"
+#include "src/compiler/statement_impl/named_type.h"
 
 namespace mjs {
 namespace compiler {

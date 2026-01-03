@@ -11,7 +11,7 @@
 #include <vector>
 #include <memory>
 
-#include "type_base.h"
+#include "src/compiler/type_base.h"
 
 namespace mjs {
 namespace compiler {

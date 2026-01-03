@@ -1,8 +1,8 @@
-#include "import_expression.h"
+#include "src/compiler/expression_impl/import_expression.h"
 
 #include <mjs/function_def.h>
-#include "../lexer.h"
-#include "../parser.h"
+#include "src/compiler/lexer.h"
+#include "src/compiler/parser.h"
 
 namespace mjs {
 namespace compiler {

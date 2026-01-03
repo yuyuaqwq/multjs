@@ -1,7 +1,7 @@
-#include "throw_statement.h"
+#include "src/compiler/statement_impl/throw_statement.h"
 
-#include "../code_generator.h"
-#include "../expression_impl/yield_expression.h"
+#include "src/compiler/code_generator.h"
+#include "src/compiler/expression_impl/yield_expression.h"
 
 namespace mjs {
 namespace compiler {

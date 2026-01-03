@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "type_base.h"
+#include "src/compiler/statement_impl/type_base.h"
 
 namespace mjs {
 namespace compiler {

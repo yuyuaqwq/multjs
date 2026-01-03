@@ -26,11 +26,11 @@
 #include <mjs/noncopyable.h>
 #include <mjs/token.h>
 
-#include "lexer.h"
-#include "expression.h"
-#include "statement_impl/type_annotation.h"
-#include "statement_impl/union_type.h"
-#include "statement_impl/import_declaration.h"
+#include "src/compiler/lexer.h"
+#include "src/compiler/expression.h"
+#include "src/compiler/statement_impl/type_annotation.h"
+#include "src/compiler/statement_impl/union_type.h"
+#include "src/compiler/statement_impl/import_declaration.h"
 
 namespace mjs {
 namespace compiler {

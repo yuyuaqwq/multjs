@@ -9,8 +9,8 @@
 #pragma once
 
 #include <memory>
-#include "../expression.h"
-#include "../lexer.h"
+#include "src/compiler/expression.h"
+#include "src/compiler/lexer.h"
 
 namespace mjs {
 namespace compiler {

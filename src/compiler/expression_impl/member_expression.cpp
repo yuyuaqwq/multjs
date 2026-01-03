@@ -1,10 +1,10 @@
-#include "member_expression.h"
+#include "src/compiler/expression_impl/member_expression.h"
 
 #include <mjs/error.h>
 
-#include "../statement.h"
-#include "../code_generator.h"
-#include "identifier.h"
+#include "src/compiler/statement.h"
+#include "src/compiler/code_generator.h"
+#include "src/compiler/expression_impl/identifier.h"
 
 namespace mjs {
 namespace compiler {

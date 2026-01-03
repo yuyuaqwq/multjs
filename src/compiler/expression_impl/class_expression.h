@@ -13,8 +13,8 @@
 #include <memory>
 #include <optional>
 
-#include "../expression.h"
-#include "class_element.h"
+#include "src/compiler/expression.h"
+#include "src/compiler/expression_impl/class_element.h"
 
 namespace mjs {
 namespace compiler {

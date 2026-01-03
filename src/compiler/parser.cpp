@@ -1,16 +1,16 @@
-#include "./parser.h"
+#include "src/compiler/parser.h"
 
 #include <unordered_set>
 #include <stdexcept>
 
 #include <mjs/error.h>
 
-#include "statement.h"
-#include "statement_impl/named_type.h"
+#include "src/compiler/statement.h"
+#include "src/compiler/statement_impl/named_type.h"
 
-#include "expression_impl/function_expression.h"
-#include "expression_impl/yield_expression.h"
-#include "statement_impl/union_type.h"
+#include "src/compiler/expression_impl/function_expression.h"
+#include "src/compiler/expression_impl/yield_expression.h"
+#include "src/compiler/statement_impl/union_type.h"
 
 /* EBNF
 exp = exp3

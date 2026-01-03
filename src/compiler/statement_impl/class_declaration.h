@@ -12,8 +12,8 @@
 #include <vector>
 #include <memory>
 
-#include "../statement.h"
-#include "../expression_impl/class_expression.h"
+#include "src/compiler/statement.h"
+#include "src/compiler/expression_impl/class_expression.h"
 
 namespace mjs {
 namespace compiler {

@@ -1,9 +1,9 @@
-#include "import_declaration.h"
+#include "src/compiler/statement_impl/import_declaration.h"
 
 #include <mjs/error.h>
 
-#include "../code_generator.h"
-#include "expression_statement.h"
+#include "src/compiler/code_generator.h"
+#include "src/compiler/statement_impl/expression_statement.h"
 
 namespace mjs {
 namespace compiler {

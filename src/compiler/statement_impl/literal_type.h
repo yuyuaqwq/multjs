@@ -10,8 +10,8 @@
 
 #include <memory>
 
-#include "type_base.h"
-#include "../expression.h"
+#include "src/compiler/type_base.h"
+#include "src/compiler/expression.h"
 
 namespace mjs {
 namespace compiler {

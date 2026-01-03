@@ -1,11 +1,12 @@
-#include "assignment_expression.h"
+#include "src/compiler/expression_impl/assignment_expression.h"
 
-#include "../lexer.h"
-#include "../code_generator.h"
-#include "../statement.h"
-#include "conditional_expression.h"
-#include "arrow_function_expression.h"
 #include <mjs/opcode.h>
+
+#include "src/compiler/lexer.h"
+#include "src/compiler/code_generator.h"
+#include "src/compiler/statement.h"
+#include "src/compiler/expression_impl/conditional_expression.h"
+#include "src/compiler/expression_impl/arrow_function_expression.h"
 
 namespace mjs {
 namespace compiler {

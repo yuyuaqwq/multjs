@@ -11,8 +11,8 @@
 #include <vector>
 #include <memory>
 
-#include "type_base.h"
-#include "../lexer.h"
+#include "src/compiler/lexer.h"
+#include "src/compiler/statement_impl/type_base.h"
 
 namespace mjs {
 namespace compiler {

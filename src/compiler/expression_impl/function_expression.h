@@ -11,7 +11,7 @@
 #include <vector>
 #include <string>
 #include <memory>
-#include "../expression.h"
+#include "src/compiler/expression.h"
 
 namespace mjs {
 namespace compiler {

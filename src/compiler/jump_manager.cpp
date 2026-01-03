@@ -1,4 +1,4 @@
-#include "jump_manager.h"
+#include "src/compiler/jump_manager.h"
 
 #include <mjs/error.h>
 #include <mjs/function_def.h>

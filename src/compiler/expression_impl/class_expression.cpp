@@ -6,7 +6,7 @@
  * @license MIT License
  */
 
-#include "class_expression.h"
+#include "src/compiler/expression_impl/class_expression.h"
 
 #include <mjs/error.h>
 #include <mjs/value.h>
@@ -14,12 +14,12 @@
 #include <mjs/string.h>
 #include <mjs/opcode.h>
 
-#include "../code_generator.h"
-#include "../lexer.h"
-#include "../statement.h"
-#include "../statement_impl/block_statement.h"
-#include "identifier.h"
-#include "function_expression.h"
+#include "src/compiler/code_generator.h"
+#include "src/compiler/lexer.h"
+#include "src/compiler/statement.h"
+#include "src/compiler/statement_impl/block_statement.h"
+#include "src/compiler/expression_impl/identifier.h"
+#include "src/compiler/expression_impl/function_expression.h"
 
 namespace mjs {
 namespace compiler {

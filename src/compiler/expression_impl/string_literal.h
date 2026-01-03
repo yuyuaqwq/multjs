@@ -10,7 +10,7 @@
 
 #include <string>
 
-#include "primary_expression.h"
+#include "src/compiler/expression_impl/primary_expression.h"
 
 namespace mjs {
 namespace compiler {

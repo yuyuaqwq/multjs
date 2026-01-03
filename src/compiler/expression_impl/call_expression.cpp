@@ -1,10 +1,10 @@
- #include "call_expression.h"
+ #include "src/compiler/expression_impl/call_expression.h"
 
-#include "../code_generator.h"
-#include "../statement.h"
-#include "member_expression.h"
-#include "primary_expression.h"
-#include "super_expression.h"
+#include "src/compiler/code_generator.h"
+#include "src/compiler/statement.h"
+#include "src/compiler/expression_impl/member_expression.h"
+#include "src/compiler/expression_impl/primary_expression.h"
+#include "src/compiler/expression_impl/super_expression.h"
 
 namespace mjs {
 namespace compiler {

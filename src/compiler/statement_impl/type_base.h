@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "../statement.h"
+#include "src/compiler/statement.h"
 
 namespace mjs {
 namespace compiler {

@@ -18,10 +18,10 @@
 #include <mjs/object_impl/module_object.h>
 #include <mjs/object_impl/function_object.h>
 
-#include "./parser.h"
-#include "scope_manager.h"
-#include "jump_manager.h"
-#include "statement_impl/block_statement.h"
+#include "src/compiler/parser.h"
+#include "src/compiler/scope_manager.h"
+#include "src/compiler/jump_manager.h"
+#include "src/compiler/statement_impl/block_statement.h"
 
 namespace mjs {
 

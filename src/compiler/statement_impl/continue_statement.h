@@ -11,8 +11,8 @@
 #include <string>
 #include <optional>
 
-#include "../statement.h"
-#include "../lexer.h"
+#include "src/compiler/statement.h"
+#include "src/compiler/lexer.h"
 
 namespace mjs {
 namespace compiler {

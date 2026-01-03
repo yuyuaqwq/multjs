@@ -1,8 +1,8 @@
-#include "conditional_expression.h"
+#include "src/compiler/expression_impl/conditional_expression.h"
 
-#include "../code_generator.h"
-#include "../statement.h"
-#include "binary_expression.h"
+#include "src/compiler/code_generator.h"
+#include "src/compiler/statement.h"
+#include "src/compiler/expression_impl/binary_expression.h"
 
 namespace mjs {
 namespace compiler {

@@ -1,8 +1,8 @@
-#include "continue_statement.h"
+#include "src/compiler/statement_impl/continue_statement.h"
 
 #include <mjs/error.h>
 
-#include "../code_generator.h"
+#include "src/compiler/code_generator.h"
 
 namespace mjs {
 namespace compiler {

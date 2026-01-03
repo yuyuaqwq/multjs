@@ -1,9 +1,9 @@
-#include "for_statement.h"
+#include "src/compiler/statement_impl/for_statement.h"
 
-#include "../code_generator.h"
-#include "variable_declaration.h"
-#include "expression_statement.h"
-#include "../expression_impl/assignment_expression.h"
+#include "src/compiler/code_generator.h"
+#include "src/compiler/statement_impl/variable_declaration.h"
+#include "src/compiler/statement_impl/expression_statement.h"
+#include "src/compiler/expression_impl/assignment_expression.h"
 
 namespace mjs {
 namespace compiler {

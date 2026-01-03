@@ -1,26 +1,26 @@
-#include "primary_expression.h"
+#include "src/compiler/expression_impl/primary_expression.h"
 
 #include <mjs/error.h>
 #include <cstdlib>
 #include <cctype>
 #include <algorithm>
 
-#include "../lexer.h"
-#include "../parser.h"
-#include "identifier.h"
-#include "undefined_literal.h"
-#include "null_literal.h"
-#include "boolean_literal.h"
-#include "integer_literal.h"
-#include "float_literal.h"
-#include "string_literal.h"
-#include "this_expression.h"
-#include "super_expression.h"
-#include "array_expression.h"
-#include "object_expression.h"
-#include "template_literal.h"
-#include "class_expression.h"
-#include "function_expression.h"
+#include "src/compiler/lexer.h"
+#include "src/compiler/parser.h"
+#include "src/compiler/expression_impl/identifier.h"
+#include "src/compiler/expression_impl/undefined_literal.h"
+#include "src/compiler/expression_impl/null_literal.h"
+#include "src/compiler/expression_impl/boolean_literal.h"
+#include "src/compiler/expression_impl/integer_literal.h"
+#include "src/compiler/expression_impl/float_literal.h"
+#include "src/compiler/expression_impl/string_literal.h"
+#include "src/compiler/expression_impl/this_expression.h"
+#include "src/compiler/expression_impl/super_expression.h"
+#include "src/compiler/expression_impl/array_expression.h"
+#include "src/compiler/expression_impl/object_expression.h"
+#include "src/compiler/expression_impl/template_literal.h"
+#include "src/compiler/expression_impl/class_expression.h"
+#include "src/compiler/expression_impl/function_expression.h"
 
 namespace mjs {
 namespace compiler {

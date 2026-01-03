@@ -7,8 +7,8 @@
 
 #include <mjs/noncopyable.h>
 
-#include "scope.h"
-#include "expression.h"
+#include "src/compiler/scope.h"
+#include "src/compiler/expression.h"
 
 namespace mjs {
 namespace compiler {

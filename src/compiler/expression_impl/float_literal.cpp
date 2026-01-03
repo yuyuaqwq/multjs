@@ -1,6 +1,6 @@
-#include "float_literal.h"
+#include "src/compiler/expression_impl/float_literal.h"
 
-#include "../code_generator.h"
+#include "src/compiler/code_generator.h"
 
 namespace mjs {
 namespace compiler {

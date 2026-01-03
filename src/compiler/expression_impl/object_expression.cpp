@@ -1,13 +1,13 @@
-#include "object_expression.h"
+#include "src/compiler/expression_impl/object_expression.h"
 
 #include <mjs/class_def_impl/object_class_def.h>
 #include <mjs/error.h>
 
-#include "../statement.h"
-#include "../code_generator.h"
+#include "src/compiler/statement.h"
+#include "src/compiler/code_generator.h"
 
-#include "yield_expression.h"
-#include "identifier.h"
+#include "src/compiler/expression_impl/yield_expression.h"
+#include "src/compiler/expression_impl/identifier.h"
 
 namespace mjs {
 namespace compiler {

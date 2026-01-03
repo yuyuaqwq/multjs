@@ -12,7 +12,7 @@
 #include <memory>
 #include <optional>
 
-#include "../expression.h"
+#include "src/compiler/expression.h"
 
 namespace mjs {
 namespace compiler {

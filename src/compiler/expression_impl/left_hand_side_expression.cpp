@@ -1,8 +1,8 @@
-#include "../expression.h"
+#include "src/compiler/expression.h"
 
-#include "new_expression.h"
-#include "import_expression.h"
-#include "call_expression.h"
+#include "src/compiler/expression_impl/new_expression.h"
+#include "src/compiler/expression_impl/import_expression.h"
+#include "src/compiler/expression_impl/call_expression.h"
 
 namespace mjs {
 namespace compiler {

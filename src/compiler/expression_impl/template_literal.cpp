@@ -1,10 +1,10 @@
-#include "template_literal.h"
+#include "src/compiler/expression_impl/template_literal.h"
 
 #include <mjs/error.h>
 
-#include "../statement.h"
-#include "../code_generator.h"
-#include "string_literal.h"
+#include "src/compiler/statement.h"
+#include "src/compiler/code_generator.h"
+#include "src/compiler/expression_impl/string_literal.h"
 
 namespace mjs {
 namespace compiler {

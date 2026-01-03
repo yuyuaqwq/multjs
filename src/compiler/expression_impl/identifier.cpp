@@ -1,7 +1,7 @@
-#include "identifier.h"
+#include "src/compiler/expression_impl/identifier.h"
 
 #include <mjs/error.h>
-#include "../code_generator.h"
+#include "src/compiler/code_generator.h"
 
 namespace mjs {
 namespace compiler {

@@ -1,6 +1,6 @@
-#include "catch_clause.h"
+#include "src/compiler/statement_impl/catch_clause.h"
 
-#include "../code_generator.h"
+#include "src/compiler/code_generator.h"
 
 namespace mjs {
 namespace compiler {

@@ -1,6 +1,6 @@
-#include "undefined_literal.h"
+#include "src/compiler/expression_impl/undefined_literal.h"
 
-#include "../code_generator.h"
+#include "src/compiler/code_generator.h"
 
 namespace mjs {
 namespace compiler {

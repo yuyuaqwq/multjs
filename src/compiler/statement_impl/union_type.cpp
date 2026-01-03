@@ -1,9 +1,9 @@
-#include "union_type.h"
+#include "src/compiler/statement_impl/union_type.h"
 
 #include <mjs/error.h>
 
-#include "named_type.h"
-#include "../lexer.h"
+#include "src/compiler/statement_impl/named_type.h"
+#include "src/compiler/lexer.h"
 
 namespace mjs {
 namespace compiler {

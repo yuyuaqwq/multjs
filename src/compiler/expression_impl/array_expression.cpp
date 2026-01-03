@@ -1,11 +1,11 @@
-#include "array_expression.h"
+#include "src/compiler/expression_impl/array_expression.h"
 
-#include "../parser.h"
-#include "../code_generator.h"
 #include <mjs/object_impl/array_object.h>
 
-#include "yield_expression.h"
-#include "unary_expression.h"
+#include "src/compiler/parser.h"
+#include "src/compiler/code_generator.h"
+#include "src/compiler/expression_impl/yield_expression.h"
+#include "src/compiler/expression_impl/unary_expression.h"
 
 namespace mjs {
 namespace compiler {

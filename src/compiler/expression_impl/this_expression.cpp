@@ -1,6 +1,6 @@
-#include "this_expression.h"
+#include "src/compiler/expression_impl/this_expression.h"
 
-#include "../code_generator.h"
+#include "src/compiler/code_generator.h"
 
 namespace mjs {
 namespace compiler {

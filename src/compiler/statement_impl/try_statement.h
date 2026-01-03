@@ -10,10 +10,10 @@
 
 #include <memory>
 
-#include "../statement.h"
-#include "block_statement.h"
-#include "catch_clause.h"
-#include "finally_clause.h"
+#include "src/compiler/statement.h"
+#include "src/compiler/statement_impl/block_statement.h"
+#include "src/compiler/statement_impl/catch_clause.h"
+#include "src/compiler/statement_impl/finally_clause.h"
 
 namespace mjs {
 namespace compiler {

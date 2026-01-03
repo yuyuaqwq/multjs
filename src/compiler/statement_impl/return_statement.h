@@ -10,9 +10,9 @@
 
 #include <memory>
 
-#include "../statement.h"
+#include "src/compiler/statement.h"
 
-#include "../expression.h"
+#include "src/compiler/expression.h"
 
 namespace mjs {
 namespace compiler {

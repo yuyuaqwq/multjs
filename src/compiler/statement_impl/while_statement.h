@@ -10,10 +10,10 @@
 
 #include <memory>
 
-#include "../statement.h"
-#include "block_statement.h"
-#include "../expression.h"
-#include "../lexer.h"
+#include "src/compiler/statement.h"
+#include "src/compiler/statement_impl/block_statement.h"
+#include "src/compiler/expression.h"
+#include "src/compiler/lexer.h"
 
 namespace mjs {
 namespace compiler {

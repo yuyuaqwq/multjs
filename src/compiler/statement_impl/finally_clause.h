@@ -10,8 +10,8 @@
 
 #include <memory>
 
-#include "../statement.h"
-#include "block_statement.h"
+#include "src/compiler/statement.h"
+#include "src/compiler/statement_impl/block_statement.h"
 
 namespace mjs {
 namespace compiler {

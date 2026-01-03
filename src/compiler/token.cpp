@@ -1,6 +1,6 @@
 #include <mjs/token.h>
 
-#include "./parser.h"
+#include "src/compiler/parser.h"
 
 namespace mjs {
 namespace compiler {

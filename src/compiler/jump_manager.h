@@ -5,7 +5,7 @@
 
 #include <mjs/noncopyable.h>
 
-#include "repair_def.h"
+#include "src/compiler/repair_def.h"
 
 namespace mjs {
 

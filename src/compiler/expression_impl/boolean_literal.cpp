@@ -1,7 +1,7 @@
-#include "boolean_literal.h"
+#include "src/compiler/expression_impl/boolean_literal.h"
 
-#include "../code_generator.h"
-#include "../statement.h"
+#include "src/compiler/code_generator.h"
+#include "src/compiler/statement.h"
 
 namespace mjs {
 namespace compiler {

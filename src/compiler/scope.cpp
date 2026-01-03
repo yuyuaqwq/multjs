@@ -1,4 +1,4 @@
-#include "scope.h"
+#include "src/compiler/scope.h"
 
 #include <mjs/error.h>
 

@@ -1,6 +1,6 @@
-#include "scope_manager.h"
+#include "src/compiler/scope_manager.h"
 
-#include "expression_impl/identifier.h"
+#include "src/compiler/expression_impl/identifier.h"
 
 namespace mjs {
 namespace compiler {

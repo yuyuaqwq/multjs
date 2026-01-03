@@ -1,13 +1,13 @@
-#include "function_expression.h"
+#include "src/compiler/expression_impl/function_expression.h"
 
 #include <mjs/error.h>
 
-#include "../code_generator.h"
-#include "../statement.h"
-#include "../statement_impl/block_statement.h"
-#include "../statement_impl/type_annotation.h"
-#include "arrow_function_expression.h"
-#include "assignment_expression.h"
+#include "src/compiler/code_generator.h"
+#include "src/compiler/statement.h"
+#include "src/compiler/statement_impl/block_statement.h"
+#include "src/compiler/statement_impl/type_annotation.h"
+#include "src/compiler/expression_impl/arrow_function_expression.h"
+#include "src/compiler/expression_impl/assignment_expression.h"
 
 namespace mjs {
 namespace compiler {

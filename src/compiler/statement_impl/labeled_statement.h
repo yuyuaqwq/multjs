@@ -11,7 +11,7 @@
 #include <string>
 #include <memory>
 
-#include "../statement.h"
+#include "src/compiler/statement.h"
 
 namespace mjs {
 namespace compiler {

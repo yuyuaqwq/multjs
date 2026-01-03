@@ -1,12 +1,12 @@
-#include  "arrow_function_expression.h"
+#include  "src/compiler/expression_impl/arrow_function_expression.h"
 
-#include "../statement.h"
-#include "../code_generator.h"
-#include "../statement_impl/block_statement.h"
-#include "../statement_impl/expression_statement.h"
+#include "src/compiler/statement.h"
+#include "src/compiler/code_generator.h"
+#include "src/compiler/statement_impl/block_statement.h"
+#include "src/compiler/statement_impl/expression_statement.h"
 
-#include "assignment_expression.h"
-#include "yield_expression.h"
+#include "src/compiler/expression_impl/assignment_expression.h"
+#include "src/compiler/expression_impl/yield_expression.h"
 
 namespace mjs {
 namespace compiler {

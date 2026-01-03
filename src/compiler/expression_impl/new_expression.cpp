@@ -1,7 +1,7 @@
-#include "new_expression.h"
+#include "src/compiler/expression_impl/new_expression.h"
 
-#include "../code_generator.h"
-#include "call_expression.h"
+#include "src/compiler/code_generator.h"
+#include "src/compiler/expression_impl/call_expression.h"
 
 namespace mjs {
 namespace compiler {
