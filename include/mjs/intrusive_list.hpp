@@ -4,6 +4,8 @@
 #include <type_traits>
 #include <cassert>
 
+namespace mjs {
+
 template <typename T>
 class intrusive_list {
 public:
@@ -198,3 +200,5 @@ public:
         return count;
     }
 };
+
+} // namespace mjs

@@ -84,7 +84,38 @@ foreach(SOURCE ${SRC})
 endforeach()
 
 add_library(${MJS_LIB_TARGET} STATIC ${SRC} ${PRIVATE_HEADERS} ${PUBLIC_HEADERS})
-target_include_directories(${MJS_LIB_TARGET} PRIVATE ${MJS_INCLUDE_DIR})
+target_include_directories(${MJS_LIB_TARGET} PRIVATE ${MJS_INCLUDE_DIR} .)
+
+# ========== C++代码生成器 ==========
+# C++代码生成器库
+file(GLOB CPP_GEN_SRC
+    ./cpp_gen/*.cpp)
+
+file(GLOB CPP_GEN_HEADERS
+    ./cpp_gen/*.h)
+
+add_library(mjs_cpp_gen STATIC ${CPP_GEN_SRC} ${CPP_GEN_HEADERS})
+target_include_directories(mjs_cpp_gen
+    PUBLIC ${MJS_INCLUDE_DIR}
+    PRIVATE .
+)
+target_link_libraries(mjs_cpp_gen PUBLIC ${MJS_LIB_TARGET})
+
+# 命令行工具
+add_executable(js2cpp ./tools/js2cpp.cpp)
+target_include_directories(js2cpp PRIVATE .)
+target_link_libraries(js2cpp PRIVATE mjs_cpp_gen)
+
+# C++代码生成器测试
+# 已启用测试，包括：类型系统测试、代码发射器测试、名称修饰测试、集成测试
+file(GLOB CPP_GEN_TEST_SRC
+    ./tests/cpp_gen/*.cpp)
+
+add_executable(cpp_gen_tests ${CPP_GEN_TEST_SRC})
+target_include_directories(cpp_gen_tests PRIVATE ${MJS_INCLUDE_DIR} .)
+target_link_libraries(cpp_gen_tests PRIVATE mjs_cpp_gen GTest::gtest_main)
+include(GoogleTest)
+gtest_discover_tests(cpp_gen_tests)
 
 # 集成测试
 file(GLOB INTEGRATION_TEST_SRC
