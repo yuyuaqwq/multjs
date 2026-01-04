@@ -55,7 +55,8 @@ std::unique_ptr<ObjectExpression> ObjectExpression::ParseObjectExpression(Lexer*
 		bool shorthand = false;
 
 		// 解析属性键
-		if (lexer->PeekToken().is(TokenType::kSepLBrack)) {
+		auto token = lexer->PeekToken();
+		if (token.is(TokenType::kSepLBrack)) {
 			// 计算属性名: [expr]
 			computed = true;
 			lexer->NextToken(); // 消耗 [
@@ -67,7 +68,7 @@ std::unique_ptr<ObjectExpression> ObjectExpression::ParseObjectExpression(Lexer*
 
 			// 解析属性值
 			value = YieldExpression::ParseExpressionAtYieldLevel(lexer);
-		} else if (lexer->PeekToken().is(TokenType::kIdentifier)) {
+		} else if (token.is(TokenType::kIdentifier)) {
 			// 标识符作为属性名
 			key = lexer->NextToken().value();
 
@@ -82,7 +83,7 @@ std::unique_ptr<ObjectExpression> ObjectExpression::ParseObjectExpression(Lexer*
 				auto id_end = lexer->GetRawSourcePosition();
 				value = std::make_unique<Identifier>(id_start, id_end, std::string(key));
 			}
-		} else if (lexer->PeekToken().is(TokenType::kString)) {
+		} else if (token.is(TokenType::kString)) {
 			// 字符串作为属性名: "key": value
 			key = lexer->NextToken().value();
 
@@ -92,7 +93,7 @@ std::unique_ptr<ObjectExpression> ObjectExpression::ParseObjectExpression(Lexer*
 			// 解析属性值
 			value = YieldExpression::ParseExpressionAtYieldLevel(lexer);
 		} else {
-			throw SyntaxError("Invalid property name");
+			throw SyntaxError("Invalid property name: {}", token.TypeToString(token.type()));
 		}
 
 		// 添加属性
