@@ -15,26 +15,34 @@ namespace mjs {
 namespace compiler {
 
 void ObjectExpression::GenerateCode(CodeGenerator* code_generator, FunctionDefBase* function_def_base) const {
-    // 对象表达式代码生成
-	for (auto& prop : properties()) {
-		// 将key和value入栈
-		auto key_const_index = code_generator->AllocateConst(Value(String::New(prop.key)));
-		function_def_base->bytecode_table().EmitConstLoad(key_const_index);
-		prop.value->GenerateCode(code_generator, function_def_base);
+    // 检查是否有 getter/setter
+    bool has_getter_setter = false;
+    for (auto& prop : properties()) {
+        if (prop.kind == PropertyKind::kGetter || prop.kind == PropertyKind::kSetter) {
+            has_getter_setter = true;
+            break;
+        }
+    }
 
-		// 如果是 getter 或 setter，需要设置属性描述符
-		if (prop.kind == PropertyKind::kGetter || prop.kind == PropertyKind::kSetter) {
-			// TODO: 这里需要使用 Object.defineProperty 来创建 getter/setter
-			// 当前先简单地按普通属性处理，后续需要改进
-		}
-	}
-	auto const_idx = code_generator->AllocateConst(Value(properties().size() * 2));
-	function_def_base->bytecode_table().EmitConstLoad(const_idx);
+    if (!has_getter_setter) {
+        // 没有 getter/setter，使用快速路径
+        for (auto& prop : properties()) {
+            auto key_const_index = code_generator->AllocateConst(Value(String::New(prop.key)));
+            function_def_base->bytecode_table().EmitConstLoad(key_const_index);
+            prop.value->GenerateCode(code_generator, function_def_base);
+        }
+        auto const_idx = code_generator->AllocateConst(Value(properties().size() * 2));
+        function_def_base->bytecode_table().EmitConstLoad(const_idx);
 
-	auto literal_new = code_generator->AllocateConst(Value(ObjectClassDef::LiteralNew));
-	function_def_base->bytecode_table().EmitConstLoad(literal_new);
-	function_def_base->bytecode_table().EmitOpcode(OpcodeType::kUndefined);
-	function_def_base->bytecode_table().EmitOpcode(OpcodeType::kFunctionCall);
+        auto literal_new = code_generator->AllocateConst(Value(ObjectClassDef::LiteralNew));
+        function_def_base->bytecode_table().EmitConstLoad(literal_new);
+        function_def_base->bytecode_table().EmitOpcode(OpcodeType::kUndefined);
+        function_def_base->bytecode_table().EmitOpcode(OpcodeType::kFunctionCall);
+    } else {
+        // 有 getter/setter，暂时不支持
+        // TODO: 实现完整的 getter/setter 代码生成支持
+        throw std::runtime_error("Object with getters/setters is not yet supported in code generation");
+    }
 }
 
 /**

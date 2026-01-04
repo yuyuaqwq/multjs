@@ -1,8 +1,8 @@
-#include <mjs/shape_property_hash_table.h>
-#include <mjs/context.h>
-
 #include <cassert>
 #include <cstring>
+
+#include <mjs/shape_property_hash_table.h>
+#include <mjs/context.h>
 
 namespace mjs {
 
@@ -15,7 +15,7 @@ ShapePropertyHashTable::~ShapePropertyHashTable() {
     }
 }
 
-const int ShapePropertyHashTable::Find(ConstIndex const_index, uint32_t property_size) const {
+const ShapeSlotIndex ShapePropertyHashTable::Find(ConstIndex const_index, uint32_t property_size) const {
     if (property_size_ <= kPropertiesMaxSize) {
         // 当属性数量较少时，线性查找更优
         for (uint32_t i = 0; i < property_size; i++) {
@@ -23,7 +23,7 @@ const int ShapePropertyHashTable::Find(ConstIndex const_index, uint32_t property
                 return i;
             }
         }
-        return -1;
+        return kShapeSlotIndexInvalid;
     }
     else {
         // 使用哈希表查找，带线性探测
@@ -33,15 +33,15 @@ const int ShapePropertyHashTable::Find(ConstIndex const_index, uint32_t property
         do {
             int32_t slot_index = slot_indices_[index];
 
-            if (slot_index == -1) {
+            if (slot_index == kShapeSlotIndexInvalid) {
                 // 找到空槽位，说明元素不存在
-                return -1;
+                return kShapeSlotIndexInvalid;
             }
 
             const auto& prop = properties_[slot_index];
             if (prop.const_index() == const_index) {
                 if (slot_index >= property_size) {
-                    return -1;
+                    return kShapeSlotIndexInvalid;
                 }
                 return slot_index;
             }
@@ -50,7 +50,7 @@ const int ShapePropertyHashTable::Find(ConstIndex const_index, uint32_t property
             index = (index + 1) & hash_mask_;
         } while (index != original_index); // 避免无限循环
 
-        return -1;
+        return kShapeSlotIndexInvalid;
     }
 }
 
@@ -92,7 +92,7 @@ void ShapePropertyHashTable::Add(ShapeProperty&& prop) {
         // 使用线性探测法插入
         uint32_t hash_index = std::hash<int32_t>()(prop.const_index()) & hash_mask_;
 
-        while (slot_indices_[hash_index] != -1) {
+        while (slot_indices_[hash_index] != kShapeSlotIndexInvalid) {
             // 如果已经存在相同的key，直接更新
             if (properties_[slot_indices_[hash_index]].const_index() == prop.const_index()) {
                 slot_indices_[hash_index] = index;
@@ -143,7 +143,7 @@ void ShapePropertyHashTable::Rehash(uint32_t new_capacity) {
 
     // 初始化新的slot_indices_数组
     for (uint32_t i = 0; i < hash_capacity_; i++) {
-        slot_indices_[i] = -1;
+        slot_indices_[i] = kShapeSlotIndexInvalid;
     }
 
     // 重新插入所有元素
@@ -152,7 +152,7 @@ void ShapePropertyHashTable::Rehash(uint32_t new_capacity) {
         uint32_t hash_index = std::hash<int32_t>()(prop.const_index()) & hash_mask_;
 
         // 使用线性探测找到新的位置
-        while (slot_indices_[hash_index] != -1) {
+        while (slot_indices_[hash_index] != kShapeSlotIndexInvalid) {
             hash_index = (hash_index + 1) & hash_mask_;
         }
 

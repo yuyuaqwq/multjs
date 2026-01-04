@@ -11,6 +11,8 @@ public:
 	Value NewConstructor(Context* context, uint32_t par_count, const StackFrame& stack) const override;
 
 	static Value LiteralNew(Context* context, uint32_t par_count, const StackFrame& stack);
+	static Value SetProperty(Context* context, uint32_t par_count, const StackFrame& stack);
+	static Value DefineProperty(Context* context, uint32_t par_count, const StackFrame& stack);
 
 private:
 

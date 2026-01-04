@@ -1,7 +1,7 @@
+#include <cassert>
+
 #include <mjs/shape.h>
 #include <mjs/context.h>
-
-#include <cassert>
 
 namespace mjs {
 
@@ -46,8 +46,8 @@ Shape::~Shape() {
     }
 }
 
-const int Shape::Find(ConstIndex const_index) const {
-    if (!property_map_) { return -1; }
+const ShapeSlotIndex Shape::Find(ConstIndex const_index) const {
+    if (!property_map_) { return kShapeSlotIndexInvalid; }
     return property_map_->Find(const_index, property_size_);
 }
 
@@ -56,7 +56,7 @@ void Shape::Add(ShapeProperty&& prop) {
     return property_map_->Add(std::move(prop));
 }
 
-const ShapeProperty& Shape::GetProperty(int32_t idx) const {
+const ShapeProperty& Shape::GetProperty(ShapeSlotIndex idx) const {
     return property_map_->GetProperty(idx);
 }
 

@@ -32,9 +32,9 @@ public:
     Shape(Shape* parent_shape, uint32_t property_size);
     ~Shape();
 
-    const int Find(ConstIndex const_index) const;
+    const ShapeSlotIndex Find(ConstIndex const_index) const;
     void Add(ShapeProperty&& prop);
-    const ShapeProperty& GetProperty(int32_t idx) const;
+    const ShapeProperty& GetProperty(ShapeSlotIndex idx) const;
 
     Shape* parent_shape() const { return parent_shape_; }
     void set_parent_shape(Shape* parent_shape) { parent_shape_ = parent_shape; }

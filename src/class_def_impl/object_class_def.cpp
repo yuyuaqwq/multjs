@@ -2,7 +2,8 @@
 
 #include <mjs/stack_frame.h>
 #include <mjs/context.h>
-#include <mjs/object_impl/array_object.h>
+#include <mjs/shape_property.h>
+#include <mjs/object.h>
 
 namespace mjs {
 
@@ -26,6 +27,34 @@ Value ObjectClassDef::LiteralNew(Context* context, uint32_t par_count, const Sta
 		assert(key_const_index != kConstIndexInvalid);
 		obj->SetProperty(context, key_const_index, std::move(stack.get(i + 1)));
 	}
+	return Value(obj);
+}
+
+Value ObjectClassDef::SetProperty(Context* context, uint32_t par_count, const StackFrame& stack) {
+	// 参数: obj, key, value
+	assert(par_count == 3);
+	auto* obj = &stack.get(0).object();
+	auto key_const_index = stack.get(1).const_index();
+	assert(key_const_index != kConstIndexInvalid);
+	obj->SetProperty(context, key_const_index, std::move(stack.get(2)));
+	return Value(obj);
+}
+
+Value ObjectClassDef::DefineProperty(Context* context, uint32_t par_count, const StackFrame& stack) {
+	// 参数: obj, key, getter/setter函数, kind(1=getter, 2=setter)
+	assert(par_count == 4);
+	auto* obj = &stack.get(0).object();
+	auto key_const_index = stack.get(1).const_index();
+	assert(key_const_index != kConstIndexInvalid);
+	auto* accessor = &stack.get(2).function();
+	auto kind = static_cast<int>(stack.get(3).i64());
+
+	// 设置正确的 accessor 标志
+	uint32_t flags = (kind == 1) ? ShapeProperty::kIsGetter : ShapeProperty::kIsSetter;
+
+	// 使用 SetPropertyWithFlags 存储带标志的属性
+	obj->SetPropertyWithFlags(context, key_const_index, Value(accessor), flags);
+
 	return Value(obj);
 }
 

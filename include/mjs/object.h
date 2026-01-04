@@ -21,6 +21,7 @@
 #include <mjs/constant.h>
 #include <mjs/value.h>
 #include <mjs/class_def.h>
+#include <mjs/shape_property.h>
 
 namespace mjs {
 
@@ -147,6 +148,32 @@ public:
 	 * @param key 属性键索引
 	 */
 	virtual void DelProperty(Context* context, ConstIndex key);
+
+	/**
+	 * @brief 设置带标志的属性（用于 getter/setter）
+	 * @param context 执行上下文指针
+	 * @param key 属性键索引
+	 * @param value 属性值
+	 * @param flags 属性标志（如 kIsGetter/kIsSetter）
+	 */
+	void SetPropertyWithFlags(Context* context, ConstIndex key, Value&& value, uint32_t flags);
+
+	/**
+	 * @brief 定义 accessor 属性（getter/setter）
+	 *
+	 * 便捷方法，类似 QuickJS 的 JS_DefinePropertyGetSet
+	 * 用于同时定义 getter 和 setter（或其中之一）
+	 *
+	 * @param context 执行上下文指针
+	 * @param key 属性键索引
+	 * @param getter getter 函数（可以是 nullptr）
+	 * @param setter setter 函数（可以是 nullptr）
+	 * @param flags 属性标志（enumerable, configurable 等）
+	 */
+	void DefineAccessorProperty(Context* context, ConstIndex key,
+	                              FunctionObject* getter,
+	                              FunctionObject* setter,
+	                              uint32_t flags = ShapeProperty::kDefault);
 
 	/**
 	 * @brief 设置计算属性（动态键）
