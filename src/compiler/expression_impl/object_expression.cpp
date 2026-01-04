@@ -8,6 +8,8 @@
 
 #include "src/compiler/expression_impl/yield_expression.h"
 #include "src/compiler/expression_impl/identifier.h"
+#include "src/compiler/expression_impl/function_expression.h"
+#include "src/compiler/statement_impl/block_statement.h"
 
 namespace mjs {
 namespace compiler {
@@ -19,6 +21,12 @@ void ObjectExpression::GenerateCode(CodeGenerator* code_generator, FunctionDefBa
 		auto key_const_index = code_generator->AllocateConst(Value(String::New(prop.key)));
 		function_def_base->bytecode_table().EmitConstLoad(key_const_index);
 		prop.value->GenerateCode(code_generator, function_def_base);
+
+		// 如果是 getter 或 setter，需要设置属性描述符
+		if (prop.kind == PropertyKind::kGetter || prop.kind == PropertyKind::kSetter) {
+			// TODO: 这里需要使用 Object.defineProperty 来创建 getter/setter
+			// 当前先简单地按普通属性处理，后续需要改进
+		}
 	}
 	auto const_idx = code_generator->AllocateConst(Value(properties().size() * 2));
 	function_def_base->bytecode_table().EmitConstLoad(const_idx);
@@ -38,6 +46,8 @@ void ObjectExpression::GenerateCode(CodeGenerator* code_generator, FunctionDefBa
  * - 简写属性：key（等同于key: key）
  * - 计算属性：[expr]: value
  * - 字符串键属性："key": value
+ * - getter: get propName() { ... }
+ * - setter: set propName(value) { ... }
  *
  * @return 解析后的对象表达式
  */
@@ -53,6 +63,7 @@ std::unique_ptr<ObjectExpression> ObjectExpression::ParseObjectExpression(Lexer*
 		std::string key;
 		std::unique_ptr<Expression> value;
 		bool shorthand = false;
+		PropertyKind kind = PropertyKind::kNormal;
 
 		// 解析属性键
 		auto token = lexer->PeekToken();
@@ -68,6 +79,90 @@ std::unique_ptr<ObjectExpression> ObjectExpression::ParseObjectExpression(Lexer*
 
 			// 解析属性值
 			value = YieldExpression::ParseExpressionAtYieldLevel(lexer);
+		} else if (token.is(TokenType::kKwGet)) {
+			// getter: get propName() { ... }
+			kind = PropertyKind::kGetter;
+			lexer->NextToken(); // 消耗 get
+
+			// 解析属性名
+			auto name_token = lexer->PeekToken();
+			if (name_token.is(TokenType::kIdentifier)) {
+				key = name_token.value();
+				lexer->NextToken();
+			} else if (name_token.is(TokenType::kSepLBrack)) {
+				// 计算属性名暂不支持
+				throw SyntaxError("Computed property names for getters are not yet supported: 'get [expr]()'");
+			} else {
+				throw SyntaxError("Expected property name after 'get'");
+			}
+
+			// 检查是否有左括号
+			if (!lexer->PeekToken().is(TokenType::kSepLParen)) {
+				throw SyntaxError("Expected '(' after getter name");
+			}
+
+			// 解析参数列表
+			auto method_start = lexer->GetSourcePosition();
+			auto params_res = Expression::TryParseParameters(lexer);
+			if (!params_res) {
+				throw SyntaxError("Expected parameter list for getter");
+			}
+			auto params = *params_res;
+
+			// 解析方法体
+			auto body = BlockStatement::ParseBlockStatement(lexer);
+			auto method_end = lexer->GetRawSourcePosition();
+
+			// 创建函数表达式
+			std::string method_id;
+			value = std::make_unique<FunctionExpression>(
+				method_start, method_end,
+				std::move(method_id), std::move(params),
+				std::move(body),
+				false, false, false
+			);
+		} else if (token.is(TokenType::kKwSet)) {
+			// setter: set propName(value) { ... }
+			kind = PropertyKind::kSetter;
+			lexer->NextToken(); // 消耗 set
+
+			// 解析属性名
+			auto name_token = lexer->PeekToken();
+			if (name_token.is(TokenType::kIdentifier)) {
+				key = name_token.value();
+				lexer->NextToken();
+			} else if (name_token.is(TokenType::kSepLBrack)) {
+				// 计算属性名暂不支持
+				throw SyntaxError("Computed property names for setters are not yet supported: 'set [expr](value)'");
+			} else {
+				throw SyntaxError("Expected property name after 'set'");
+			}
+
+			// 检查是否有左括号
+			if (!lexer->PeekToken().is(TokenType::kSepLParen)) {
+				throw SyntaxError("Expected '(' after setter name");
+			}
+
+			// 解析参数列表
+			auto method_start = lexer->GetSourcePosition();
+			auto params_res = Expression::TryParseParameters(lexer);
+			if (!params_res) {
+				throw SyntaxError("Expected parameter list for setter");
+			}
+			auto params = *params_res;
+
+			// 解析方法体
+			auto body = BlockStatement::ParseBlockStatement(lexer);
+			auto method_end = lexer->GetRawSourcePosition();
+
+			// 创建函数表达式
+			std::string method_id;
+			value = std::make_unique<FunctionExpression>(
+				method_start, method_end,
+				std::move(method_id), std::move(params),
+				std::move(body),
+				false, false, false
+			);
 		} else if (token.is(TokenType::kIdentifier)) {
 			// 标识符作为属性名
 			key = lexer->NextToken().value();
@@ -97,7 +192,7 @@ std::unique_ptr<ObjectExpression> ObjectExpression::ParseObjectExpression(Lexer*
 		}
 
 		// 添加属性
-		properties.push_back({key, std::move(value), shorthand, computed});
+		properties.push_back({key, std::move(value), shorthand, computed, kind});
 
 		// 如果有逗号，继续解析下一个属性
 		if (lexer->PeekToken().is(TokenType::kSepComma)) {

@@ -18,6 +18,16 @@ namespace mjs {
 namespace compiler {
 
 /**
+ * @enum PropertyKind
+ * @brief 对象属性类型
+ */
+enum class PropertyKind {
+    kNormal,    ///< 普通属性
+    kGetter,    ///< getter
+    kSetter,    ///< setter
+};
+
+/**
  * @class ObjectExpression
  * @brief 对象表达式
  */
@@ -32,6 +42,7 @@ public:
         std::unique_ptr<Expression> value; ///< 属性值表达式
         bool shorthand;                    ///< 是否为简写属性
         bool computed;                     ///< 是否为计算属性
+        PropertyKind kind;                 ///< 属性类型（普通/getter/setter）
     };
 
     /**

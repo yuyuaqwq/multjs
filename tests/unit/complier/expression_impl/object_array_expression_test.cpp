@@ -27,6 +27,8 @@
 #include "src/compiler/expression_impl/array_expression.h"
 #include "src/compiler/expression_impl/object_expression.h"
 
+using PropertyKind = mjs::compiler::PropertyKind;
+
 namespace mjs {
 namespace compiler {
 namespace test {
@@ -364,6 +366,103 @@ TEST_F(ObjectArrayExpressionTest, ComplexExpressionInObject) {
     auto* object_expr = dynamic_cast<ObjectExpression*>(expr.get());
     ASSERT_NE(object_expr, nullptr);
     EXPECT_EQ(object_expr->properties().size(), 2);
+}
+
+// ============================================================================
+// 对象 getter/setter 测试
+// ============================================================================
+
+/**
+ * @test 测试对象中的 getter
+ */
+TEST_F(ObjectArrayExpressionTest, GetterInObject) {
+    auto expr = ParseExpression("{get area() { return this.width * this.height; }}");
+    auto* object_expr = dynamic_cast<ObjectExpression*>(expr.get());
+    ASSERT_NE(object_expr, nullptr);
+    EXPECT_EQ(object_expr->properties().size(), 1);
+    EXPECT_EQ(object_expr->properties()[0].key, "area");
+    EXPECT_EQ(object_expr->properties()[0].kind, PropertyKind::kGetter);
+    EXPECT_FALSE(object_expr->properties()[0].computed);
+}
+
+/**
+ * @test 测试对象中的 setter
+ */
+TEST_F(ObjectArrayExpressionTest, SetterInObject) {
+    auto expr = ParseExpression("{set width(value) { this._width = value; }}");
+    auto* object_expr = dynamic_cast<ObjectExpression*>(expr.get());
+    ASSERT_NE(object_expr, nullptr);
+    EXPECT_EQ(object_expr->properties().size(), 1);
+    EXPECT_EQ(object_expr->properties()[0].key, "width");
+    EXPECT_EQ(object_expr->properties()[0].kind, PropertyKind::kSetter);
+    EXPECT_FALSE(object_expr->properties()[0].computed);
+}
+
+/**
+ * @test 测试对象中同时包含 getter 和 setter
+ */
+TEST_F(ObjectArrayExpressionTest, GetterAndSetterInObject) {
+    auto expr = ParseExpression("{get x() { return _x; }, set x(value) { _x = value; }}");
+    auto* object_expr = dynamic_cast<ObjectExpression*>(expr.get());
+    ASSERT_NE(object_expr, nullptr);
+    EXPECT_EQ(object_expr->properties().size(), 2);
+
+    EXPECT_EQ(object_expr->properties()[0].key, "x");
+    EXPECT_EQ(object_expr->properties()[0].kind, PropertyKind::kGetter);
+
+    EXPECT_EQ(object_expr->properties()[1].key, "x");
+    EXPECT_EQ(object_expr->properties()[1].kind, PropertyKind::kSetter);
+}
+
+/**
+ * @test 测试混合普通属性和 getter/setter
+ */
+TEST_F(ObjectArrayExpressionTest, MixedNormalAndGetterSetter) {
+    auto expr = ParseExpression("{name: 'test', get value() { return _value; }, set value(v) { _value = v; }}");
+    auto* object_expr = dynamic_cast<ObjectExpression*>(expr.get());
+    ASSERT_NE(object_expr, nullptr);
+    EXPECT_EQ(object_expr->properties().size(), 3);
+
+    EXPECT_EQ(object_expr->properties()[0].key, "name");
+    EXPECT_EQ(object_expr->properties()[0].kind, PropertyKind::kNormal);
+
+    EXPECT_EQ(object_expr->properties()[1].key, "value");
+    EXPECT_EQ(object_expr->properties()[1].kind, PropertyKind::kGetter);
+
+    EXPECT_EQ(object_expr->properties()[2].key, "value");
+    EXPECT_EQ(object_expr->properties()[2].kind, PropertyKind::kSetter);
+}
+
+/**
+ * @test 测试计算属性名的 getter（暂不支持）
+ */
+TEST_F(ObjectArrayExpressionTest, ComputedGetterNotSupported) {
+    // 计算属性名的 getter 暂不支持，应该抛出异常
+    EXPECT_THROW({
+        ParseExpression("{get [expr]() { return value; }}");
+    }, SyntaxError);
+}
+
+/**
+ * @test 测试计算属性名的 setter（暂不支持）
+ */
+TEST_F(ObjectArrayExpressionTest, ComputedSetterNotSupported) {
+    // 计算属性名的 setter 暂不支持，应该抛出异常
+    EXPECT_THROW({
+        ParseExpression("{set [expr](value) { _value = value; }}");
+    }, SyntaxError);
+}
+
+/**
+ * @test 测试简单的 getter 返回常量
+ */
+TEST_F(ObjectArrayExpressionTest, SimpleGetter) {
+    auto expr = ParseExpression("{get clrType() { return MessageId; }}");
+    auto* object_expr = dynamic_cast<ObjectExpression*>(expr.get());
+    ASSERT_NE(object_expr, nullptr);
+    EXPECT_EQ(object_expr->properties().size(), 1);
+    EXPECT_EQ(object_expr->properties()[0].key, "clrType");
+    EXPECT_EQ(object_expr->properties()[0].kind, PropertyKind::kGetter);
 }
 
 } // namespace test
