@@ -18,7 +18,7 @@ void ModuleObject::SetProperty(Context* context, ConstIndex key, Value&& value) 
         FunctionObject::SetProperty(context, key, std::move(value));
         return;
     }
-    values_[index].export_var().set_value(std::move(value));
+    GetPropertyValue(index).export_var().set_value(std::move(value));
 }
 
 bool ModuleObject::GetProperty(Context* context, ConstIndex key, Value* value) {

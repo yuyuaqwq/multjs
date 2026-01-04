@@ -24,10 +24,12 @@ namespace mjs {
  * 属性描述符系统：
  * - 支持数据属性和访问器属性（getter/setter）
  * - 支持标准的属性特性（enumerable, configurable, writable）
+ *
+ * @note flags 已经移到 Object::PropertySlot 中，这里只存储 const_index
  */
 class ShapeProperty {
 public:
-	// 属性类型标志
+	// 属性类型标志（这些标志现在存储在 Object::PropertySlot 中）
 	enum Flags {
 		// Accessor 属性标志
 		kNone = 0,
@@ -45,30 +47,13 @@ public:
 	};
 
 	ShapeProperty() = default;
-	ShapeProperty(uint32_t flags, ConstIndex const_index);
+	ShapeProperty(ConstIndex const_index);
 	~ShapeProperty() = default;
-
-	uint32_t flags() const { return flags_; }
-	void set_flags(uint32_t flags) { flags_ = flags; }
 
 	ConstIndex const_index() const { return const_index_; }
 	void set_const_index(ConstIndex const_index) { const_index_ = const_index; }
 
-	// Accessor 属性检查
-	bool is_getter() const { return flags_ & kIsGetter; }
-	bool is_setter() const { return flags_ & kIsSetter; }
-	bool is_accessor() const { return is_getter() || is_setter(); }
-
-	// 属性特性检查
-	bool is_enumerable() const { return flags_ & kEnumerable; }
-	bool is_configurable() const { return flags_ & kConfigurable; }
-	bool is_writable() const { return flags_ & kWritable; }
-
-	// 辅助方法：检查是否为数据属性（非 accessor）
-	bool is_data_property() const { return !is_accessor(); }
-
 private:
-	uint32_t flags_ = 0;
 	ConstIndex const_index_;
 };
 

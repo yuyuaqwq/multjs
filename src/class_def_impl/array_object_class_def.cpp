@@ -53,7 +53,7 @@ ArrayObjectClassDef::ArrayObjectClassDef(Runtime* runtime)
 
 		for (size_t i = 0; i < arr.length(); ++i) {
 			std::array<Value, 3> args = {
-				arr[i],
+				arr.At(context, i),
 				Value(static_cast<int64_t>(i)),
 				stack.this_val()
 			};
@@ -76,11 +76,11 @@ ArrayObjectClassDef::ArrayObjectClassDef(Runtime* runtime)
 		auto result = ArrayObject::New(context, arr.length());
 		for (size_t i = 0; i < arr.length(); ++i) {
 			std::array<Value, 3> args = {
-				arr[i],
+				arr.At(context, i),
 				Value(static_cast<int64_t>(i)),
 				stack.this_val()
 			};
-			context->CallFunction(&(*result)[i], Value(), args.begin(), args.end());
+			context->CallFunction(&(*result).At(context, i), Value(), args.begin(), args.end());
 		}
 		return Value(result);
 	}));
@@ -99,13 +99,13 @@ ArrayObjectClassDef::ArrayObjectClassDef(Runtime* runtime)
 		auto result = ArrayObject::New(context, 0);
 		for (size_t i = 0; i < arr.length(); ++i) {
 			std::array<Value, 3> args = {
-				arr[i],
+				arr.At(context, i),
 				Value(static_cast<int64_t>(i)),
 				stack.this_val()
 			};
-			auto callback_result = context->CallFunction(&(*result)[i], Value(), args.begin(), args.end());
+			auto callback_result = context->CallFunction(&(*result).At(context, i), Value(), args.begin(), args.end());
 			if (callback_result.ToBoolean().boolean()) {
-				result->Push(context, arr[i]);
+				result->Push(context, arr.At(context, i));
 			}
 		}
 		return Value(result);
@@ -123,7 +123,7 @@ Value ArrayObjectClassDef::Of(Context* context, uint32_t par_count, const StackF
 Value ArrayObjectClassDef::LiteralNew(Context* context, uint32_t par_count, const StackFrame& stack) {
 	auto arr = ArrayObject::New(context, par_count);
 	for (size_t i = 0; i < par_count; ++i) {
-		arr->operator[](i) = std::move(stack.get(i));
+		arr->At(context, i) = std::move(stack.get(i));
 	}
 	return Value(arr);
 }

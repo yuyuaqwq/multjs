@@ -46,8 +46,8 @@ Shape::~Shape() {
     }
 }
 
-const ShapeSlotIndex Shape::Find(ConstIndex const_index) const {
-    if (!property_map_) { return kShapeSlotIndexInvalid; }
+const PropertySlotIndex Shape::Find(ConstIndex const_index) const {
+    if (!property_map_) { return kPropertySlotIndexInvalid; }
     return property_map_->Find(const_index, property_size_);
 }
 
@@ -56,7 +56,7 @@ void Shape::Add(ShapeProperty&& prop) {
     return property_map_->Add(std::move(prop));
 }
 
-const ShapeProperty& Shape::GetProperty(ShapeSlotIndex idx) const {
+const ShapeProperty& Shape::GetProperty(PropertySlotIndex idx) const {
     return property_map_->GetProperty(idx);
 }
 

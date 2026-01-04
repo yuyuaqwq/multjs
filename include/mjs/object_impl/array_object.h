@@ -7,81 +7,52 @@ namespace mjs {
 
 class ArrayObject : public Object {
 private:
-    ArrayObject(Runtime* runtime, size_t length)
-        : Object(runtime, ClassId::kArrayObject)
-        , values_(length) {}
+    ArrayObject(Context* context);
 
-    ArrayObject(Context* context, size_t length)
-        : Object(context, ClassId::kArrayObject)
-        , values_(length) {}
+    // 初始化 length 属性
+    void InitLengthProperty(Context* context);
+
+    // 获取 length 属性的键
+    ConstIndex GetLengthConstIndex(Context* context) const;
+
+    // 设置 length 属性值（内部使用）
+    void SetLengthValue(Context* context, size_t new_length);
+
+    // 检查是否是有效的数组索引（符合 JS 规范：32位无符号整数）
+    static bool IsValidArrayIndex(uint64_t index) {
+        return index < 4294967296ULL; // 2^32
+    }
+
+    // 将值转换为数组索引
+    static bool ToArrayIndex(const Value& key, uint64_t* out_index);
+
+    // 缓存 length 属性的 slot 索引（用于快速访问）
+    mutable PropertySlotIndex length_slot_index_;
 
 public:
     bool GetProperty(Context* context, ConstIndex key, Value* value) override;
-
-    void SetComputedProperty(Context* context, const Value& key, Value&& value) override {
-        if (!key.IsInt64() || key.i64() < 0 || key.i64() > values_.size()) {
-            return; // or throw an error
-        }
-        values_[key.i64()] = std::move(value);
-    }
+    void SetProperty(Context* context, ConstIndex key, Value&& value) override;
+    void DelProperty(Context* context, ConstIndex key) override;
 
     bool GetComputedProperty(Context* context, const Value& key, Value* value) override;
+    void SetComputedProperty(Context* context, const Value& key, Value&& value) override;
+    void DelComputedProperty(Context* context, const Value& key) override;
 
-    void Push(Context* context, Value val) {
-        values_.push_back(val);
-    }
+    void Push(Context* context, Value val);
+    Value Pop(Context* context);
 
-    void Push(Runtime* runtime, Value val) {
-        values_.push_back(val);
-    }
+    void ForEach(Context* context, Value callback);
 
-    Value Pop(Context* context) {
-        auto back = std::move(values_.back());
-        values_.pop_back();
-        return back;
-    }
+    // 获取数组长度
+    size_t length() const;
 
-    void ForEach(Context* context, Value callback) {
-        
-    }
-
-    size_t length() const { return values_.size(); }
-
-    Value& operator[](size_t index) {
-        return values_[index];
-    }
-
-    const Value& operator[](size_t index) const {
-        return values_[index];
-    }
+    // 数组元素访问
+    Value& At(Context* context, size_t index);
 
     virtual ClassId class_id() const { return ClassId::kArrayObject; }
 
-
-    static ArrayObject* New(Runtime* runtime, std::initializer_list<Value> values) {
-        auto arr_obj = new ArrayObject(runtime, values.size());
-        size_t i = 0;
-        for (auto& value : values) {
-            arr_obj->operator[](i++) = value;
-        }
-        return arr_obj;
-    }
-
-    static ArrayObject* New(Context* context, std::initializer_list<Value> values) {
-        auto arr_obj = new ArrayObject(context, values.size());
-        size_t i = 0;
-        for (auto& value : values) {
-            arr_obj->operator[](i++) = value;
-        }
-        return arr_obj;
-    }
-
-    static ArrayObject* New(Context* context, size_t count) {
-        return new ArrayObject(context, count);
-    }
-
-private:
-    std::vector<Value> values_;
+    static ArrayObject* New(Context* context, std::initializer_list<Value> values);
+    static ArrayObject* New(Context* context, size_t count);
 };
 
 } // namespace mjs

@@ -22,6 +22,7 @@
 #include <mjs/value.h>
 #include <mjs/class_def.h>
 #include <mjs/shape_property.h>
+#include <mjs/shape_property_hash_table.h>
 
 namespace mjs {
 
@@ -95,8 +96,8 @@ public:
 	 * @note 数据成员中有 Value，必须重写此方法，否则会导致内存泄漏
 	 */
 	virtual void GCForEachChild(Context* context, intrusive_list<Object>* list, void(*callback)(Context* context, intrusive_list<Object>* list, const Value& child)) {
-		for (auto& val : values_) {
-			callback(context, list, val);
+		for (auto& slot : properties_) {
+			callback(context, list, slot.value);
 		}
 	}
 
@@ -293,18 +294,143 @@ public:
 		return new Object(context, ClassId::kObject);
 	}
 
+	/**
+	 * @brief 冻结对象，使其不可修改（符合 JavaScript 标准）
+	 *
+	 * 冻结后的对象：
+	 * 1. 不能添加新属性
+	 * 2. 不能删除现有属性
+	 * 3. 不能修改现有属性的值
+	 * 4. 将所有属性设置为不可写（writable=false）和不可配置（configurable=false）
+	 * 5. 对象变为不可扩展（extensible=false）
+	 */
+	void Freeze();
+
+	/**
+	 * @brief 检查对象是否已被冻结
+	 * @return 是否已冻结
+	 */
+	bool IsFrozen() const;
+
+	/**
+	 * @brief 密封对象（符合 JavaScript 标准）
+	 *
+	 * 密封后的对象：
+	 * 1. 不能添加新属性
+	 * 2. 不能删除现有属性
+	 * 3. 可以修改现有属性的值（如果可写）
+	 * 4. 将所有属性设置为不可配置（configurable=false）
+	 */
+	void Seal();
+
+	/**
+	 * @brief 检查对象是否已被密封
+	 * @return 是否已密封
+	 */
+	bool IsSealed() const;
+
+	/**
+	 * @brief 阻止对象扩展（符合 JavaScript 标准）
+	 *
+	 * 阻止扩展后的对象：
+	 * 1. 不能添加新属性
+	 * 2. 可以删除现有属性
+	 * 3. 可以修改现有属性的值
+	 */
+	void PreventExtensions();
+
+	/**
+	 * @brief 检查对象是否可扩展
+	 * @return 是否可扩展
+	 */
+	bool IsExtensible() const;
+
+	/**
+	 * @brief 获取指定索引的属性标志（对象独立的副本）
+	 * @param index 属性索引
+	 * @return 属性标志
+	 */
+	uint32_t GetPropertyFlags(PropertySlotIndex index) const {
+		if (index >= 0 && index < static_cast<PropertySlotIndex>(properties_.size())) {
+			return properties_[index].flags;
+		}
+		return ShapeProperty::kDefault;
+	}
+
+	/**
+	 * @brief 设置指定索引的属性标志（仅修改当前对象）
+	 * @param index 属性索引
+	 * @param flags 新的属性标志
+	 */
+	void SetPropertyFlags(PropertySlotIndex index, uint32_t flags) {
+		if (index >= 0 && index < static_cast<PropertySlotIndex>(properties_.size())) {
+			properties_[index].flags = flags;
+		}
+	}
+
+protected:
+	/**
+	 * @brief 属性存储结构（值 + 标志）
+	 *
+	 * 每个对象都有独立的属性存储，避免 Shape 共享导致的标志冲突问题
+	 */
+	struct PropertySlot {
+		Value value;           ///< 属性值
+		uint32_t flags;        ///< 属性标志（每个对象独立）
+
+		PropertySlot() : flags(ShapeProperty::kDefault) {}
+		PropertySlot(Value&& v) : value(std::move(v)), flags(ShapeProperty::kDefault) {}
+		PropertySlot(Value&& v, uint32_t f) : value(std::move(v)), flags(f) {}
+	};
+
+	/**
+	 * @brief 获取属性值引用
+	 */
+	Value& GetPropertyValue(PropertySlotIndex index) {
+		return properties_[index].value;
+	}
+
+	/**
+	 * @brief 获取属性值引用
+	 */
+	const Value& GetPropertyValue(PropertySlotIndex index) const {
+		return properties_[index].value;
+	}
+
+	/**
+	 * @brief 设置属性值
+	 */
+	void SetPropertyValue(PropertySlotIndex index, Value&& value) {
+		properties_[index].value = std::move(value);
+	}
+
+	/**
+	 * @brief 添加新属性槽
+	 */
+	void AddPropertySlot(PropertySlotIndex index, Value&& value, uint32_t flags) {
+		if (index < static_cast<PropertySlotIndex>(properties_.size())) {
+			properties_[index] = PropertySlot(std::move(value), flags);
+		} else {
+			assert(index == static_cast<PropertySlotIndex>(properties_.size()));
+			properties_.emplace_back(std::move(value), flags);
+		}
+	}
+
 protected:
 	union {
 		uint64_t full_ = 0;                   ///< 完整64位值
 		struct {
 			uint32_t ref_count_;                ///< 引用计数
 			uint32_t gc_mark_ : 1;              ///< 垃圾回收标记位
-			uint32_t is_const_ : 1;             ///< 是否为常量对象标记
+			uint32_t is_extensible_ : 1;        ///< 是否可扩展（JS 标准）
+			uint32_t is_frozen_ : 1;            ///< 是否已冻结（JS 标准）
+			uint32_t is_sealed_ : 1;            ///< 是否已密封（JS 标准）
+			uint32_t reserved_ : 12;            ///< 保留位
 			uint32_t class_id_ : 16;            ///< 类标识符（16位）
 		};
 	} tag_;
 	Shape* shape_;                          ///< 形状指针（对象布局描述）
-	std::vector<Value> values_;             ///< 属性值向量
+	std::vector<PropertySlot> properties_;  ///< 属性槽向量（每个对象独立）
 };
 
 } // namespace mjs

@@ -73,6 +73,18 @@ public:
     bool has_super_class() const { return expression_->has_super_class(); }
 
     /**
+     * @brief 判断是否为导出的类
+     * @return 是否为导出的类
+     */
+    bool is_export() const { return expression_->is_export(); }
+
+    /**
+     * @brief 设置是否为导出的类
+     * @param is_export 是否为导出的类
+     */
+    void set_is_export(bool is_export) { expression_->set_is_export(is_export); }
+
+    /**
      * @brief 生成代码
      * @param code_generator 代码生成器
      * @param function_def_base 函数定义

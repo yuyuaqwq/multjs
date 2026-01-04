@@ -16,9 +16,8 @@ namespace mjs {
 
 class Context;
 
-using ShapeSlotIndex = int32_t;
-constexpr ShapeSlotIndex kShapeSlotIndexInvalid = -1;
-
+using PropertySlotIndex = int32_t;
+constexpr PropertySlotIndex kPropertySlotIndexInvalid = -1;
 
 /**
  * @class ShapePropertyHashTable
@@ -34,9 +33,9 @@ class ShapePropertyHashTable {
 public:
 	~ShapePropertyHashTable();
 
-	const ShapeSlotIndex Find(ConstIndex const_index, uint32_t property_size) const;
+	const PropertySlotIndex Find(ConstIndex const_index, uint32_t property_size) const;
 	void Add(ShapeProperty&& prop);
-	const ShapeProperty& GetProperty(ShapeSlotIndex idx);
+	const ShapeProperty& GetProperty(PropertySlotIndex idx);
 	void DereferenceConstValue(Context* context);
 
 private:
@@ -54,7 +53,7 @@ private:
 
 	uint32_t hash_mask_ = 0;
 	uint32_t hash_capacity_ = 0;
-	ShapeSlotIndex* slot_indices_ = nullptr;
+	PropertySlotIndex* slot_indices_ = nullptr;
 };
 
 } // namespace mjs

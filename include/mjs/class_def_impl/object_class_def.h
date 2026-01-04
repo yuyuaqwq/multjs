@@ -13,6 +13,9 @@ public:
 	static Value LiteralNew(Context* context, uint32_t par_count, const StackFrame& stack);
 	static Value SetProperty(Context* context, uint32_t par_count, const StackFrame& stack);
 	static Value DefineProperty(Context* context, uint32_t par_count, const StackFrame& stack);
+	static Value Freeze(Context* context, uint32_t par_count, const StackFrame& stack);
+	static Value Seal(Context* context, uint32_t par_count, const StackFrame& stack);
+	static Value PreventExtensions(Context* context, uint32_t par_count, const StackFrame& stack);
 
 private:
 

@@ -69,6 +69,18 @@ public:
     bool has_super_class() const { return super_class_ != nullptr; }
 
     /**
+     * @brief 判断是否为导出的类
+     * @return 是否为导出的类
+     */
+    bool is_export() const { return is_export_; }
+
+    /**
+     * @brief 设置是否为导出的类
+     * @param is_export 是否为导出的类
+     */
+    void set_is_export(bool is_export) { is_export_ = is_export; }
+
+    /**
      * @brief 生成代码
      * @param code_generator 代码生成器
      * @param function_def_base 函数定义
@@ -86,6 +98,7 @@ private:
     std::optional<std::string> id_;               ///< 类标识符
     std::unique_ptr<Expression> super_class_;     ///< 父类表达式
     std::vector<ClassElement> elements_;          ///< 类元素列表
+    bool is_export_ = false;                      ///< 是否为导出的类
 };
 
 } // namespace compiler

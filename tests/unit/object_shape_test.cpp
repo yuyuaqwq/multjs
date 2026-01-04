@@ -426,7 +426,7 @@ TEST_F(ShapeManagerTest, GetEmptyShape) {
 TEST_F(ShapeManagerTest, AddPropertyToShape) {
     Shape* shape = &context_->shape_manager().empty_shape();
     ConstIndex key_idx = context_->FindConstOrInsertToLocal(Value("prop"));
-    ShapeProperty prop(0, key_idx);
+    ShapeProperty prop(key_idx);
 
     int index = shape->shape_manager()->AddProperty(&shape, std::move(prop));
 
@@ -445,9 +445,9 @@ TEST_F(ShapeManagerTest, AddMultipleProperties) {
     ConstIndex key2 = context_->FindConstOrInsertToLocal(Value("prop2"));
     ConstIndex key3 = context_->FindConstOrInsertToLocal(Value("prop3"));
 
-    int idx1 = context_->shape_manager().AddProperty(&shape, ShapeProperty(0, key1));
-    int idx2 = context_->shape_manager().AddProperty(&shape, ShapeProperty(0, key2));
-    int idx3 = context_->shape_manager().AddProperty(&shape, ShapeProperty(0, key3));
+    int idx1 = context_->shape_manager().AddProperty(&shape, ShapeProperty(key1));
+    int idx2 = context_->shape_manager().AddProperty(&shape, ShapeProperty(key2));
+    int idx3 = context_->shape_manager().AddProperty(&shape, ShapeProperty(key3));
 
     EXPECT_EQ(idx1, 0);
     EXPECT_EQ(idx2, 1);

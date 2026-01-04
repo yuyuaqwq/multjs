@@ -5,7 +5,9 @@
 #include "src/compiler/code_generator.h"
 #include "src/compiler/statement_impl/expression_statement.h"
 #include "src/compiler/statement_impl/variable_declaration.h"
+#include "src/compiler/statement_impl/class_declaration.h"
 #include "src/compiler/expression_impl/function_expression.h"
+#include "src/compiler/expression_impl/class_expression.h"
 
 namespace mjs {
 namespace compiler {
@@ -30,10 +32,19 @@ std::unique_ptr<ExportDeclaration> ExportDeclaration::ParseExportDeclaration(Lex
 			auto end = lexer->GetRawSourcePosition();
 			return std::make_unique<ExportDeclaration>(start, end, std::move(stat));
 		}
+		if (auto* class_exp = dynamic_cast<ClassExpression*>(exp.get())) {
+			class_exp->set_is_export(true);
+			auto end = lexer->GetRawSourcePosition();
+			return std::make_unique<ExportDeclaration>(start, end, std::move(stat));
+		}
 	}
 	if (stat->is(StatementType::kVariableDeclaration)) {
 		auto& var_decl = stat->as<VariableDeclaration>();
 		var_decl.set_is_export(true);
+	}
+	else if (stat->is(StatementType::kClassDeclaration)) {
+		auto& class_decl = stat->as<ClassDeclaration>();
+		class_decl.set_is_export(true);
 	}
 	else {
 		throw SyntaxError("Statement that cannot be exported.");

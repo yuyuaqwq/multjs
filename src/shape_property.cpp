@@ -2,8 +2,7 @@
 
 namespace mjs {
 
-ShapeProperty::ShapeProperty(uint32_t flags, ConstIndex const_index)
-    : flags_(flags)
-    , const_index_(const_index) {}
+ShapeProperty::ShapeProperty(ConstIndex const_index)
+    : const_index_(const_index) {}
 
 } // namespace mjs
