@@ -220,7 +220,7 @@ void Object::DelProperty(Context* context, ConstIndex key) {
 	}
 
 	// TODO: 实现属性删除逻辑
-	throw std::runtime_error("DelProperty error.");
+	throw InternalError("DelProperty error.");
 }
 
 void Object::SetComputedProperty(Context* context, const Value& key, Value&& val) {

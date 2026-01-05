@@ -308,9 +308,9 @@ void VM::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 	
 	func_def = stack_frame->function_def();
 	while (stack_frame->pc() >= 0 && func_def && stack_frame->pc() < func_def->bytecode_table().Size()) {
-		//{
-		//	OpcodeType opcode_; uint32_t par; auto pc = stack_frame->pc(); std::cout << func_def->bytecode_table().Disassembly(context_, pc, opcode_, par, func_def) << std::endl;
-		//}
+		{
+			OpcodeType opcode_; uint32_t par; auto pc = stack_frame->pc(); std::cout << func_def->bytecode_table().Disassembly(context_, pc, opcode_, par, func_def) << std::endl;
+		}
 
 		opcode = func_def->bytecode_table().GetOpcode(stack_frame->pc());
 		stack_frame->set_pc(stack_frame->pc() + 1);
@@ -427,7 +427,7 @@ void VM::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 				obj.SetProperty(context_, const_idx, std::move(val));
 			}
 			else {
-				throw std::runtime_error("Cannot modify the properties of temporary objects.");
+				VM_EXCEPTION_THROW(TypeError::Throw(context_, "Not an object: {}", obj_val.TypeToString(obj_val.type())));
 			}
 			break;
 		}
@@ -786,7 +786,7 @@ void VM::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 			auto& table = func_def->exception_table();
 			auto* entry = table.FindEntry(stack_frame->pc());
 			if (!entry || !entry->HasFinally()) {
-				throw std::runtime_error("Incorrect finally return.");
+				VM_EXCEPTION_THROW(InternalError::Throw(context_, "Incorrect finally return."));
 			}
 			pending_return_val = stack_frame->pop();
 			if (entry->LocatedInFinally(stack_frame->pc())) {
@@ -804,7 +804,7 @@ void VM::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 			auto& table = func_def->exception_table();
 			auto* entry = table.FindEntry(stack_frame->pc());
 			if (!entry || !entry->HasFinally()) {
-				throw std::runtime_error("Incorrect finally return.");
+				VM_EXCEPTION_THROW(InternalError::Throw(context_, "Incorrect finally return."));
 			}
 			pending_goto_pc = func_def->bytecode_table().CalcPc(stack_frame->pc());
 			if (entry->LocatedInFinally(stack_frame->pc())) {
@@ -854,12 +854,10 @@ void VM::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 			break;
 		}
 		default:
-			throw std::runtime_error("Unknown instruction.");
-			break;
+			VM_EXCEPTION_THROW(InternalError::Throw(context_, "Unknown instruction."));
 		{
 		inject_exception_:
 			VM_EXCEPTION_THROW(stack_frame->pop());
-			break;
 		}
 		}
 	}
@@ -867,7 +865,7 @@ void VM::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 exit_:
 	if (!pending_return_val) {
 		if (stack_frame->empty()) {
-			throw std::runtime_error("Stack exception occurred.");
+			pending_return_val = InternalError::Throw(context_, "Stack exception occurred.");
 		}
 		else {
 			pending_return_val = stack_frame->pop();
@@ -948,7 +946,8 @@ bool VM::ThrowException(StackFrame* stack_frame, std::optional<Value>* error_val
 		stack_frame->set_pc(entry->finally_end_pc);
 	}
 	else {
-		throw std::runtime_error("Incorrect execption address.");
+		*error_val = InternalError::Throw(context_, "Incorrect execption address.");
+		return false;
 	}
 	return true;
 }
@@ -994,7 +993,6 @@ FunctionDefBase* VM::function_def(const Value& func_val) const {
 		return &func_val.module().module_def();
 	}
 	return nullptr;
-	throw std::runtime_error("Unavailable function definition.");
 }
 
 } // namespace mjs

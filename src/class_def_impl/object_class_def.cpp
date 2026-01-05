@@ -57,19 +57,44 @@ Value ObjectClassDef::SetProperty(Context* context, uint32_t par_count, const St
 }
 
 Value ObjectClassDef::DefineProperty(Context* context, uint32_t par_count, const StackFrame& stack) {
-	// 参数: obj, key, getter/setter函数, kind(1=getter, 2=setter)
-	assert(par_count == 4);
+	// 支持两种调用方式:
+	// 1. 标准 JavaScript 语法: Object.defineProperty(obj, prop, descriptor) - 3个参数
+	// 2. 内部 getter/setter 语法: Object.defineProperty(obj, key, accessor, kind) - 4个参数
+
 	auto* obj = &stack.get(0).object();
 	auto key_const_index = stack.get(1).const_index();
 	assert(key_const_index != kConstIndexInvalid);
-	auto* accessor = &stack.get(2).function();
-	auto kind = static_cast<int>(stack.get(3).i64());
 
-	// 设置正确的 accessor 标志
-	uint32_t flags = (kind == 1) ? ShapeProperty::kIsGetter : ShapeProperty::kIsSetter;
+	if (par_count == 3) {
+		// 标准 JavaScript 语法: Object.defineProperty(obj, prop, descriptor)
+		// descriptor 是一个对象，包含 value, writable, enumerable, configurable, get, set 等属性
+		auto& descriptor = stack.get(2);
 
-	// 使用 SetPropertyWithFlags 存储带标志的属性
-	obj->SetPropertyWithFlags(context, key_const_index, Value(accessor), flags);
+		if (descriptor.IsObject()) {
+			auto& desc_obj = descriptor.object();
+
+			// 尝试获取 value 属性
+			auto value_const_index = context->runtime().global_const_pool().insert(Value("value"));
+			Value value_value;
+			if (desc_obj.GetProperty(context, value_const_index, &value_value)) {
+				// 如果有 value 属性，设置属性值
+				obj->SetProperty(context, key_const_index, std::move(value_value));
+			}
+		}
+	} else if (par_count == 4) {
+		// 内部 getter/setter 语法: Object.defineProperty(obj, key, accessor, kind)
+		auto* accessor = &stack.get(2).function();
+		auto kind = static_cast<int>(stack.get(3).i64());
+
+		// 设置正确的 accessor 标志
+		uint32_t flags = (kind == 1) ? ShapeProperty::kIsGetter : ShapeProperty::kIsSetter;
+
+		// 使用 SetPropertyWithFlags 存储带标志的属性
+		obj->SetPropertyWithFlags(context, key_const_index, Value(accessor), flags);
+	} else {
+		// 不支持的参数数量
+		assert(false && "Unsupported parameter count for Object.defineProperty");
+	}
 
 	return Value(obj);
 }

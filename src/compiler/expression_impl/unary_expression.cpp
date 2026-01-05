@@ -29,7 +29,7 @@ void UnaryExpression::GenerateCode(CodeGenerator* code_generator, FunctionDefBas
         function_def_base->bytecode_table().EmitOpcode(OpcodeType::kPop);
         break;
     default:
-        throw std::runtime_error("Unsupported unary operator");
+        throw SyntaxError("Unsupported unary operator");
     }
 }
 

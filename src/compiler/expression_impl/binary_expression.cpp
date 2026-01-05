@@ -33,7 +33,13 @@ void BinaryExpression::GenerateCode(CodeGenerator* code_generator, FunctionDefBa
     case TokenType::kOpEq:
         function_def_base->bytecode_table().EmitOpcode(OpcodeType::kEq);
         break;
+    case TokenType::kOpStrictEq:
+        function_def_base->bytecode_table().EmitOpcode(OpcodeType::kEq);
+        break;
     case TokenType::kOpNe:
+        function_def_base->bytecode_table().EmitOpcode(OpcodeType::kNe);
+        break;
+    case TokenType::kOpStrictNe:
         function_def_base->bytecode_table().EmitOpcode(OpcodeType::kNe);
         break;
     case TokenType::kOpLt:
@@ -69,7 +75,7 @@ void BinaryExpression::GenerateCode(CodeGenerator* code_generator, FunctionDefBa
         function_def_base->bytecode_table().EmitOpcode(OpcodeType::kBitXor);
         break;
     default:
-        throw std::runtime_error("Unsupported binary operator");
+        throw SyntaxError("Unsupported binary operator");
     }
 }
 

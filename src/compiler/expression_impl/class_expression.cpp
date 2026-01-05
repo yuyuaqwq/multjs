@@ -18,6 +18,7 @@
 #include "src/compiler/lexer.h"
 #include "src/compiler/statement.h"
 #include "src/compiler/statement_impl/block_statement.h"
+#include "src/compiler/expression_impl/undefined_literal.h"
 #include "src/compiler/expression_impl/identifier.h"
 #include "src/compiler/expression_impl/function_expression.h"
 
@@ -55,18 +56,26 @@ void ClassExpression::GenerateCode(CodeGenerator* code_generator, FunctionDefBas
     auto class_name = id().value_or("");
     auto constructor_def = FunctionDef::New(&function_def_base->module_def(), class_name, constructor_params.size());
     constructor_def->set_is_normal();
+    constructor_def->set_has_this(true);  // 构造函数需要 this
 
     // 3. 将构造函数添加到常量池
     auto constructor_const_idx = code_generator->AllocateConst(Value(constructor_def));
 
+    // 这里是加载构造函数，后面可能会修复？
     auto load_pc = function_def_base->bytecode_table().Size();
     function_def_base->bytecode_table().EmitOpcode(OpcodeType::kCLoadD);
-    function_def_base->bytecode_table().EmitU32(constructor_const_idx);
-
-    // 4. 如果有类名,分配变量存储类引用
+    function_def_base->bytecode_table().EmitI32(constructor_const_idx);
+    
+    // 4. 分配变量存储类引用（即使没有类名也需要，用于设置静态属性）
     const VarInfo* var_info_ptr = nullptr;
     if (id().has_value()) {
         auto& var_info = scope_manager.AllocateVar(id().value(), VarFlags::kConst);
+        var_info_ptr = &var_info;
+        function_def_base->bytecode_table().EmitVarStore(var_info.var_idx);
+    } else if (!elements().empty()) {
+        // 匿名类但有类元素（静态字段/方法），需要临时变量存储构造函数对象
+        // 这样才能在静态字段/方法中引用构造函数
+        auto& var_info = scope_manager.AllocateVar("", VarFlags::kConst);
         var_info_ptr = &var_info;
         function_def_base->bytecode_table().EmitVarStore(var_info.var_idx);
     }
@@ -93,18 +102,12 @@ void ClassExpression::GenerateCode(CodeGenerator* code_generator, FunctionDefBas
             // 生成字段初始值
             field->value()->GenerateCode(code_generator, constructor_def);
 
-            // 生成字段名
-            auto field_key_idx = code_generator->AllocateConst(Value(String::New(field->key())));
-            constructor_def->bytecode_table().EmitConstLoad(field_key_idx);
-
             // 重新加载 this
             constructor_def->bytecode_table().EmitOpcode(OpcodeType::kGetThis);
 
-            // 交换栈顶: [this, field_key, value, this] -> [this, field_key, this, value]
-            constructor_def->bytecode_table().EmitOpcode(OpcodeType::kSwap);
-
-            // 存储字段: this.field = value
-            constructor_def->bytecode_table().EmitOpcode(OpcodeType::kPropertyStore);
+             // 存储字段: this.field = value
+            auto field_key_idx = code_generator->AllocateConst(Value(String::New(field->key())));
+            constructor_def->bytecode_table().EmitPropertyStore(field_key_idx);
         }
     }
 
@@ -125,8 +128,9 @@ void ClassExpression::GenerateCode(CodeGenerator* code_generator, FunctionDefBas
     scope_manager.ExitScope();
     constructor_def->debug_table().Sort();
 
-    // 9. 如果有闭包变量,修复为闭包指令
-    if (need_repair) {
+    // 9. 如果有闭包变量或者这是类构造函数,修复为闭包指令
+    // 类构造函数需要创建函数对象以便设置静态属性
+    if (need_repair || !elements().empty()) {
         function_def_base->bytecode_table().RepairOpcode(load_pc, OpcodeType::kClosure);
     }
 
@@ -140,6 +144,9 @@ void ClassExpression::GenerateCode(CodeGenerator* code_generator, FunctionDefBas
         // 处理静态字段
         if (element.kind() == MethodKind::kStaticField) {
             // 静态字段直接设置到构造函数上
+            // 生成字段初始值
+            element.value()->GenerateCode(code_generator, function_def_base);
+
             // 重新加载构造函数到栈顶
             if (var_info_ptr) {
                 function_def_base->bytecode_table().EmitVarLoad(var_info_ptr->var_idx);
@@ -147,16 +154,11 @@ void ClassExpression::GenerateCode(CodeGenerator* code_generator, FunctionDefBas
                 function_def_base->bytecode_table().EmitConstLoad(constructor_const_idx);
             }
 
-            // 生成字段名
+            // 生成字段名常量索引（用于PropertyStore指令）
             auto key_const_idx = code_generator->AllocateConst(Value(String::New(element.key())));
-            function_def_base->bytecode_table().EmitConstLoad(key_const_idx);
 
-            // 生成字段初始值
-            element.value()->GenerateCode(code_generator, function_def_base);
-
-            // 交换栈顶
-            function_def_base->bytecode_table().EmitOpcode(OpcodeType::kSwap);
-            function_def_base->bytecode_table().EmitOpcode(OpcodeType::kPropertyStore);
+            // 构造函数.静态字段key = element
+            function_def_base->bytecode_table().EmitPropertyStore(key_const_idx);
             continue;
         }
 
@@ -165,112 +167,99 @@ void ClassExpression::GenerateCode(CodeGenerator* code_generator, FunctionDefBas
             continue;
         }
 
+        // 生成属性值(方法)
+        element.value()->GenerateCode(code_generator, function_def_base);
+
         // 重新加载构造函数到栈顶
         if (var_info_ptr) {
             function_def_base->bytecode_table().EmitVarLoad(var_info_ptr->var_idx);
-        } else {
+        }
+        else {
             // 匿名类,重新加载常量
             function_def_base->bytecode_table().EmitConstLoad(constructor_const_idx);
         }
 
         // 生成属性键
         auto key_const_idx = code_generator->AllocateConst(Value(String::New(element.key())));
-        function_def_base->bytecode_table().EmitConstLoad(key_const_idx);
-
-        // 生成属性值(方法)
-        element.value()->GenerateCode(code_generator, function_def_base);
-
-        // 交换栈顶: 栈状态变为 [构造函数, 方法, 属性名] -> [构造函数, 属性名, 方法]
-        function_def_base->bytecode_table().EmitOpcode(OpcodeType::kSwap);
 
         if (element.is_static()) {
             // 静态方法直接设置到构造函数上
-            // 栈状态: [构造函数, 属性名, 方法]
-            function_def_base->bytecode_table().EmitOpcode(OpcodeType::kPropertyStore);
+            // 构造函数.key = element
+            function_def_base->bytecode_table().EmitPropertyStore(key_const_idx);
         } else {
             // 实例方法设置到prototype上
             // 加载prototype对象: 构造函数.prototype
-            // 栈状态: [构造函数, 属性名, 方法]
-            auto prototype_key_idx = code_generator->AllocateConst(Value(String::New("prototype")));
-            function_def_base->bytecode_table().EmitConstLoad(prototype_key_idx);
-
+            
             // 复制构造函数引用
-            if (var_info_ptr) {
-                function_def_base->bytecode_table().EmitVarLoad(var_info_ptr->var_idx);
-            } else {
-                function_def_base->bytecode_table().EmitConstLoad(constructor_const_idx);
-            }
+            function_def_base->bytecode_table().EmitOpcode(OpcodeType::kDump);
 
-            // 加载prototype属性
-            function_def_base->bytecode_table().EmitOpcode(OpcodeType::kPropertyLoad);
+            // 构造函数.prototype
+            auto prototype_key_idx = code_generator->AllocateConst(Value("prototype"));
+            function_def_base->bytecode_table().EmitPropertyLoad(prototype_key_idx);
 
-            // 栈状态: [prototype对象, 属性名, 方法]
+
             function_def_base->bytecode_table().EmitOpcode(OpcodeType::kSwap);
-            function_def_base->bytecode_table().EmitOpcode(OpcodeType::kPropertyStore);
+            // 构造函数.prototype.key = element
+            function_def_base->bytecode_table().EmitPropertyStore(key_const_idx);
         }
     }
 
     // 10. 处理继承关系
     if (has_super_class()) {
-        // 设置原型链
-        // 需要: Child.__proto__ = Parent
-        //      Child.prototype.__proto__ = Parent.prototype
+        SyntaxError("todo: has_super_class.");
+        //// 设置原型链
+        //// 需要: Child.__proto__ = Parent
+        ////      Child.prototype.__proto__ = Parent.prototype
 
-        // 重新加载子类构造函数到栈顶
-        if (var_info_ptr) {
-            function_def_base->bytecode_table().EmitVarLoad(var_info_ptr->var_idx);
-        } else {
-            function_def_base->bytecode_table().EmitConstLoad(constructor_const_idx);
-        }
+        //// 重新加载子类构造函数到栈顶
+        //if (var_info_ptr) {
+        //    function_def_base->bytecode_table().EmitVarLoad(var_info_ptr->var_idx);
+        //} else {
+        //    function_def_base->bytecode_table().EmitConstLoad(constructor_const_idx);
+        //}
 
-        // 加载父类构造函数
-        super_class()->GenerateCode(code_generator, function_def_base);
+        //// 加载父类构造函数
+        //super_class()->GenerateCode(code_generator, function_def_base);
 
-        // 设置 Child.__proto__ = Parent
-        // 栈: [ChildConstructor, ParentConstructor]
-        function_def_base->bytecode_table().EmitOpcode(OpcodeType::kSwap);
-        auto proto_idx = code_generator->AllocateConst(Value(String::New("__proto__")));
-        function_def_base->bytecode_table().EmitConstLoad(proto_idx);
-        function_def_base->bytecode_table().EmitOpcode(OpcodeType::kSwap);
-        // 栈: [ChildConstructor, "__proto__", ParentConstructor]
-        function_def_base->bytecode_table().EmitOpcode(OpcodeType::kPropertyStore);
+        //// Child.__proto__ = Parent
+        //// PropertyStore需要: [值=ParentConstructor, 对象=ChildConstructor]
+        //auto proto_idx = code_generator->AllocateConst(Value("__proto__"));
+        //function_def_base->bytecode_table().EmitPropertyStore(proto_idx);
 
-        // 设置 Child.prototype.__proto__ = Parent.prototype
-        // 重新加载子类构造函数
-        if (var_info_ptr) {
-            function_def_base->bytecode_table().EmitVarLoad(var_info_ptr->var_idx);
-        } else {
-            function_def_base->bytecode_table().EmitConstLoad(constructor_const_idx);
-        }
+        //// 设置 Child.prototype.__proto__ = Parent.prototype
+        //// 重新加载子类构造函数
+        //if (var_info_ptr) {
+        //    function_def_base->bytecode_table().EmitVarLoad(var_info_ptr->var_idx);
+        //} else {
+        //    function_def_base->bytecode_table().EmitConstLoad(constructor_const_idx);
+        //}
 
-        // 加载父类构造函数
-        super_class()->GenerateCode(code_generator, function_def_base);
+        //// 加载父类构造函数
+        //super_class()->GenerateCode(code_generator, function_def_base);
 
-        // 获取 Child.prototype 和 Parent.prototype
-        auto prototype_key_idx = code_generator->AllocateConst(Value(String::New("prototype")));
-        function_def_base->bytecode_table().EmitConstLoad(prototype_key_idx);
-        function_def_base->bytecode_table().EmitOpcode(OpcodeType::kPropertyLoad);
-        // 栈: [ChildConstructor, Parent.prototype]
+        //// 获取 Parent.prototype
+        //// 栈: [ChildConstructor, ParentConstructor]
+        //auto prototype_key_idx = code_generator->AllocateConst(Value("prototype"));
+        //function_def_base->bytecode_table().EmitPropertyLoad(prototype_key_idx);
+        //// 栈: [ChildConstructor, Parent.prototype]
 
-        // 复制 ChildConstructor
-        if (var_info_ptr) {
-            function_def_base->bytecode_table().EmitVarLoad(var_info_ptr->var_idx);
-        } else {
-            function_def_base->bytecode_table().EmitConstLoad(constructor_const_idx);
-        }
+        //// 复制 ChildConstructor
+        //if (var_info_ptr) {
+        //    function_def_base->bytecode_table().EmitVarLoad(var_info_ptr->var_idx);
+        //} else {
+        //    function_def_base->bytecode_table().EmitConstLoad(constructor_const_idx);
+        //}
 
-        // 获取 Child.prototype
-        function_def_base->bytecode_table().EmitConstLoad(prototype_key_idx);
-        function_def_base->bytecode_table().EmitOpcode(OpcodeType::kPropertyLoad);
-        // 栈: [ChildConstructor, Parent.prototype, Child.prototype]
+        //// 获取 Child.prototype
+        //function_def_base->bytecode_table().EmitPropertyLoad(prototype_key_idx);
+        //// 栈: [ChildConstructor, Parent.prototype, Child.prototype]
 
-        // 设置 Child.prototype.__proto__ = Parent.prototype
-        function_def_base->bytecode_table().EmitOpcode(OpcodeType::kSwap);
-        auto proto_idx2 = code_generator->AllocateConst(Value(String::New("__proto__")));
-        function_def_base->bytecode_table().EmitConstLoad(proto_idx2);
-        function_def_base->bytecode_table().EmitOpcode(OpcodeType::kSwap);
-        // 栈: [Child.prototype, "__proto__", Parent.prototype]
-        function_def_base->bytecode_table().EmitOpcode(OpcodeType::kPropertyStore);
+        //// 设置 Child.prototype.__proto__ = Parent.prototype
+        //// 栈: [ChildConstructor, Parent.prototype, Child.prototype]
+        //// 需要: Child.prototype.__proto__ = Parent.prototype
+        //// PropertyStore需要: [值=Parent.prototype, 对象=Child.prototype]
+        //auto proto_idx2 = code_generator->AllocateConst(Value("__proto__"));
+        //function_def_base->bytecode_table().EmitPropertyStore(proto_idx2);
     }
 }
 
@@ -366,14 +355,23 @@ static ClassElement ParseClassElement(Lexer* lexer, bool is_static) {
         }
     }
 
-    // 检查是否为字段 (有等号)
-    if (!is_getter && !is_setter && lexer->PeekToken().is(TokenType::kOpAssign)) {
-        // 类字段: fieldName = value;
-        lexer->NextToken(); // 消耗 =
-        auto value = Expression::ParseExpression(lexer);
+    // 检查是否为字段 (有等号或分号)
+    if (!is_getter && !is_setter) {
+        if (lexer->PeekToken().is(TokenType::kOpAssign)) {
+            // 类字段: fieldName = value;
+            lexer->NextToken(); // 消耗 =
+            auto value = Expression::ParseExpression(lexer);
 
-        MethodKind kind = is_static ? MethodKind::kStaticField : MethodKind::kField;
-        return ClassElement(kind, std::move(key), std::move(value), computed);
+            MethodKind kind = is_static ? MethodKind::kStaticField : MethodKind::kField;
+            return ClassElement(kind, std::move(key), std::move(value), computed);
+        } else if (lexer->PeekToken().is(TokenType::kSepSemi) ||
+                   lexer->PeekToken().is(TokenType::kSepRCurly)) {
+            // 无初始值的字段: fieldName;
+            auto value = std::make_unique<UndefinedLiteral>(start, lexer->GetRawSourcePosition());
+
+            MethodKind kind = is_static ? MethodKind::kStaticField : MethodKind::kField;
+            return ClassElement(kind, std::move(key), std::move(value), computed);
+        }
     }
 
     // 检查是否为方法 (有左括号)

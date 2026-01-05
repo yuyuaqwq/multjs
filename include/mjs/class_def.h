@@ -17,6 +17,7 @@
 #include <unordered_map>
 
 #include <mjs/noncopyable.h>
+#include <mjs/error.h>
 #include <mjs/value.h>
 
 namespace mjs {
@@ -116,10 +117,10 @@ public:
 	 * @param par_count 参数数量
 	 * @param stack 栈帧引用
 	 * @return 新创建的对象值
-	 * @throw std::runtime_error 当类不支持 new 构造时抛出
+	 * @throw InternalError 当类不支持 new 构造时抛出
 	 */
 	virtual Value NewConstructor(Context* context, uint32_t par_count, const StackFrame& stack) const {
-		throw std::runtime_error(
+		throw InternalError(
 			"This constructor cannot be called with 'new'. "
 			"Either this is not a constructible function, "
 			"or you need to override NewConstructor() in the derived class."

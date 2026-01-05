@@ -31,7 +31,7 @@ void ClassDefTable::Register(ClassDefUnique class_def) {
 	auto idx = insert(std::move(class_def));
 	if (idx != static_cast<uint32_t>(id)) {
 		// 必须按枚举定义顺序插入，以确保高效查找
-		throw std::runtime_error("Class id mismatch.");
+		throw InternalError("Class id mismatch.");
 	}
 }
 

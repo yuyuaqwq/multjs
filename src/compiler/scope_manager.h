@@ -42,7 +42,7 @@ public:
      * @param name 变量名
      * @param flags 变量标志
      * @return 变量信息
-     * @throws std::runtime_error 如果变量名已存在
+     * @throws SyntaxError 如果变量名已存在
      */
     const VarInfo& AllocateVar(const std::string& name, VarFlags flags = VarFlags::kNone);
     

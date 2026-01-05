@@ -31,7 +31,7 @@ void ObjectExpression::GenerateCode(CodeGenerator* code_generator, FunctionDefBa
             function_def_base->bytecode_table().EmitConstLoad(key_const_index);
             prop.value->GenerateCode(code_generator, function_def_base);
         }
-        auto const_idx = code_generator->AllocateConst(Value(properties().size() * 2));
+        auto const_idx = code_generator->AllocateConst(Value(static_cast<uint32_t>(properties().size() * 2)));
         function_def_base->bytecode_table().EmitConstLoad(const_idx);
 
         auto literal_new = code_generator->AllocateConst(Value(ObjectClassDef::LiteralNew));
@@ -39,9 +39,49 @@ void ObjectExpression::GenerateCode(CodeGenerator* code_generator, FunctionDefBa
         function_def_base->bytecode_table().EmitOpcode(OpcodeType::kUndefined);
         function_def_base->bytecode_table().EmitOpcode(OpcodeType::kFunctionCall);
     } else {
-        // 有 getter/setter，暂时不支持
-        // TODO: 实现完整的 getter/setter 代码生成支持
-        throw std::runtime_error("Object with getters/setters is not yet supported in code generation");
+        // 有 getter/setter，使用 Object.defineProperty 的内部形式
+        // 先创建空对象
+        auto const_idx_obj = code_generator->AllocateConst(Value(static_cast<uint32_t>(0)));
+        function_def_base->bytecode_table().EmitConstLoad(const_idx_obj);
+
+        auto literal_new = code_generator->AllocateConst(Value(ObjectClassDef::LiteralNew));
+        function_def_base->bytecode_table().EmitConstLoad(literal_new);
+        function_def_base->bytecode_table().EmitOpcode(OpcodeType::kUndefined);
+        function_def_base->bytecode_table().EmitOpcode(OpcodeType::kFunctionCall);
+
+        // 对每个属性使用 Object.defineProperty
+        for (auto& prop : properties()) {
+            if (prop.kind == PropertyKind::kNormal) {
+                // 普通属性：直接设置
+                auto key_const_index = code_generator->AllocateConst(Value(String::New(prop.key)));
+                function_def_base->bytecode_table().EmitConstLoad(key_const_index);
+                prop.value->GenerateCode(code_generator, function_def_base);
+
+                auto set_property = code_generator->AllocateConst(Value(ObjectClassDef::SetProperty));
+                function_def_base->bytecode_table().EmitConstLoad(set_property);
+                function_def_base->bytecode_table().EmitOpcode(OpcodeType::kUndefined);
+                auto param_count = code_generator->AllocateConst(Value(static_cast<uint32_t>(3)));
+                function_def_base->bytecode_table().EmitConstLoad(param_count);
+                function_def_base->bytecode_table().EmitOpcode(OpcodeType::kFunctionCall);
+            } else {
+                // getter/setter：使用 Object.defineProperty(obj, key, accessor, kind)
+                auto key_const_index = code_generator->AllocateConst(Value(String::New(prop.key)));
+                function_def_base->bytecode_table().EmitConstLoad(key_const_index);
+                prop.value->GenerateCode(code_generator, function_def_base);
+
+                // kind: 1 for getter, 2 for setter
+                int kind = (prop.kind == PropertyKind::kGetter) ? 1 : 2;
+                auto kind_const_index = code_generator->AllocateConst(Value(static_cast<int64_t>(kind)));
+                function_def_base->bytecode_table().EmitConstLoad(kind_const_index);
+
+                auto define_property = code_generator->AllocateConst(Value(ObjectClassDef::DefineProperty));
+                function_def_base->bytecode_table().EmitConstLoad(define_property);
+                function_def_base->bytecode_table().EmitOpcode(OpcodeType::kUndefined);
+                auto param_count = code_generator->AllocateConst(Value(static_cast<uint32_t>(4)));
+                function_def_base->bytecode_table().EmitConstLoad(param_count);
+                function_def_base->bytecode_table().EmitOpcode(OpcodeType::kFunctionCall);
+            }
+        }
     }
 }
 

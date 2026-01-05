@@ -124,7 +124,7 @@ void CodeGenerator::GenerateFunctionBody(FunctionDefBase* function_def_base, Sta
 
 void CodeGenerator::GenerateLValueStore(FunctionDefBase* function_def_base, Expression* lvalue_exp) {
     if (lvalue_exp->value_category() != ValueCategory::kLValue) {
-        throw std::runtime_error("Expression is not an lvalue");
+        throw SyntaxError("Expression is not an lvalue");
     }
 
     // 使用dynamic_cast来检查表达式类型
@@ -156,7 +156,7 @@ void CodeGenerator::GenerateLValueStore(FunctionDefBase* function_def_base, Expr
         }
     }
     else {
-        throw std::runtime_error("Unsupported lvalue expression type");
+        throw SyntaxError("Unsupported lvalue expression type");
     }
 }
 

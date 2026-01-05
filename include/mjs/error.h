@@ -13,6 +13,8 @@ class Context;
 class StackFrame;
 class Error : public std::exception {
 public:
+	virtual ~Error() = default;
+
 	virtual const char* error_name() const {
 		return "Error";
 	}
@@ -55,7 +57,9 @@ public:
 
 class InternalError : public Error {
 public:
-	using Error::Error;
+	template<typename... Args>
+	InternalError(std::format_string<Args...> fmt, Args&&... args)
+		: Error(kInvalidPc, std::move(fmt), std::forward<Args>(args)...) {}
 
 	const char* error_name() const override {
 		return "InternalError";
@@ -82,7 +86,9 @@ public:
 
 class TypeError : public Error {
 public:
-	using Error::Error;
+	template<typename... Args>
+	TypeError(std::format_string<Args...> fmt, Args&&... args)
+		: Error(kInvalidPc, std::move(fmt), std::forward<Args>(args)...) {}
 
 	const char* error_name() const override {
 		return "TypeError";

@@ -12,7 +12,7 @@ void Identifier::GenerateCode(CodeGenerator* code_generator, FunctionDefBase* fu
     if (var_info) {
         // 从变量中获取
         function_def_base->bytecode_table().EmitVarLoad(var_info->var_idx);
-    }
+    }  
     else {
         // 尝试从全局对象获取
         auto const_idx = code_generator->AllocateConst(Value(String::New(name_)));

@@ -262,7 +262,7 @@ ptrdiff_t Value::Comparer(Context* context, const Value& rhs) const {
 	case ValueType::kClosureVar:
 		return value_.full_ - rhs.value_.full_;
 	default:
-		throw std::runtime_error("Incorrect value type");
+		throw TypeError("Incorrect value type");
 	}
 }
 
@@ -294,7 +294,7 @@ size_t Value::hash() const {
 	case mjs::ValueType::kClosureVar:
 		return std::hash<uint64_t>()(value_.full_);
 	default:
-		throw std::runtime_error("Unhashable value type.");
+		throw TypeError("Unhashable value type.");
 	}
 }
 
@@ -790,7 +790,7 @@ const char* Value::string_view() const {
 	case ValueType::kStringView:
 		return value_.string_view_;
 	default:
-		throw std::runtime_error("Non string type");
+		throw TypeError("Non string type");
 	}
 }
 
@@ -799,7 +799,7 @@ const String& Value::string() const {
 	case ValueType::kString:
 		return *value_.string_;
 	default:
-		throw std::runtime_error("Non string type");
+		throw TypeError("Non string type");
 	}
 }
 
@@ -1162,7 +1162,7 @@ Value Value::ToBoolean() const {
 		if (IsObject()) {
 			return Value(true);
 		}
-		throw std::runtime_error("Incorrect value type");
+		throw TypeError("Incorrect value type");
 	}
 }
 
@@ -1174,7 +1174,7 @@ Value Value::ToNumber() const {
 		return Value(double(i64()));
 	}
 	default:
-		throw std::runtime_error("Incorrect value type");
+		throw TypeError("Incorrect value type");
 	}
 }
 
@@ -1189,7 +1189,7 @@ Value Value::ToInt64() const {
 		return Value(int64_t(u64()));
 	}
 	default:
-		throw std::runtime_error("Incorrect value type");
+		throw TypeError("Incorrect value type");
 	}
 }
 
@@ -1204,7 +1204,7 @@ Value Value::ToUInt64() const {
 		return *this;
 	}
 	default:
-		throw std::runtime_error("Incorrect value type");
+		throw TypeError("Incorrect value type");
 	}
 }
 
@@ -1216,7 +1216,7 @@ const ModuleDef& Value::ToModuleDef() const {
 		return module_def();
 	}
 	default:
-		throw std::runtime_error("Incorrect value type");
+		throw TypeError("Incorrect value type");
 	}
 }
 const FunctionDef& Value::ToFunctionDef() const {
@@ -1227,7 +1227,7 @@ const FunctionDef& Value::ToFunctionDef() const {
 		return function_def();
 	}
 	default:
-		throw std::runtime_error("Incorrect value type");
+		throw TypeError("Incorrect value type");
 	}
 }
 

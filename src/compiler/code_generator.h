@@ -52,7 +52,7 @@ public:
      * @brief 添加C++函数
      * @param func_name 函数名
      * @param func 函数对象
-     * @throws std::runtime_error 如果函数名已存在
+     * @throws SyntaxError 如果函数名已存在
      */
     void AddCppFunction(FunctionDef* function_def, const std::string& func_name, CppFunction func);
 
@@ -88,14 +88,14 @@ public:
     /**
      * @brief 生成表达式代码
      * @param exp 表达式
-     * @throws std::runtime_error 如果表达式类型不支持
+     * @throws SyntaxError 如果表达式类型不支持
      */
     void GenerateExpression(FunctionDefBase* function_def, Expression* exp);
 
     /**
      * @brief 生成语句代码
      * @param stat 语句
-     * @throws std::runtime_error 如果语句类型不支持
+     * @throws SyntaxError 如果语句类型不支持
      */
     void GenerateStatement(FunctionDefBase* function_def_base, Statement* stat);
 
@@ -108,7 +108,7 @@ public:
     /**
      * @brief 生成左值存储代码
      * @param lvalue_exp 左值表达式
-     * @throws std::runtime_error 如果表达式不是左值
+     * @throws SyntaxError 如果表达式不是左值
      */
     void GenerateLValueStore(FunctionDefBase* function_def_base, Expression* lvalue_exp);
 

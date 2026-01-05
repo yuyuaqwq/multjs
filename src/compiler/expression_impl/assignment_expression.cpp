@@ -87,10 +87,10 @@ void AssignmentExpression::GenerateCode(CodeGenerator* code_generator, FunctionD
                 break;
             case TokenType::kOpModAssign:
                 // TODO: 支持 Mod 运算
-                throw std::runtime_error("Modulo assignment not yet implemented");
+                throw SyntaxError("Modulo assignment not yet implemented");
             case TokenType::kOpPowerAssign:
                 // TODO: 支持 Power 运算
-                throw std::runtime_error("Power assignment not yet implemented");
+                throw SyntaxError("Power assignment not yet implemented");
             case TokenType::kOpBitAndAssign:
                 opcode = OpcodeType::kBitAnd;
                 break;
@@ -110,7 +110,7 @@ void AssignmentExpression::GenerateCode(CodeGenerator* code_generator, FunctionD
                 opcode = OpcodeType::kUShr;
                 break;
             default:
-                throw std::runtime_error("Unsupported assignment operator");
+                throw SyntaxError("Unsupported assignment operator");
         }
         function_def_base->bytecode_table().EmitOpcode(opcode);
 
