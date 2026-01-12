@@ -185,13 +185,6 @@ private:
 	 */
 	Stack& stack();
 
-	/**
-	 * @brief 获取函数定义
-	 * @param func_val 函数值
-	 * @return 函数定义基类指针
-	 */
-	FunctionDefBase* function_def(const Value& func_val) const;
-
 private:
 	Context* context_; ///< 执行上下文指针
 	// StackFrame stack_frame_; ///< 栈帧（已注释）
