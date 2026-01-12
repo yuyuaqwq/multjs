@@ -17,7 +17,7 @@ void ArrayObject::InitLengthProperty(Context* context) {
 }
 
 ConstIndex ArrayObject::GetLengthConstIndex(Context* context) const {
-    return GetClassDef<ArrayObjectClassDef>(&context->runtime()).length_const_index();
+    return context->runtime().class_def_table()[ClassId::kArrayObject].get<ArrayObjectClassDef>().length_const_index();
 }
 
 void ArrayObject::SetLengthValue(Context* context, size_t new_length) {

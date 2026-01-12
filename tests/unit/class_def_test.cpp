@@ -56,8 +56,7 @@ TEST_F(ClassDefTest, ClassIdEnumValues) {
     EXPECT_EQ(static_cast<uint16_t>(ClassId::kPromiseObject), 8);
     EXPECT_EQ(static_cast<uint16_t>(ClassId::kAsyncObject), 9);
     EXPECT_EQ(static_cast<uint16_t>(ClassId::kModuleObject), 10);
-    EXPECT_EQ(static_cast<uint16_t>(ClassId::kConstructorObject), 11);
-    EXPECT_EQ(static_cast<uint16_t>(ClassId::kCppModuleObject), 12);
+    EXPECT_EQ(static_cast<uint16_t>(ClassId::kCppModuleObject), 11);
 }
 
 /**
@@ -199,7 +198,6 @@ TEST_F(ClassDefTableTest, AccessAllBuiltinClasses) {
         ClassId::kPromiseObject,
         ClassId::kAsyncObject,
         ClassId::kModuleObject,
-        ClassId::kConstructorObject,
         ClassId::kCppModuleObject,
     };
 

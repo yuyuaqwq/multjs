@@ -14,6 +14,7 @@
 #include <mjs/object_impl/module_object.h>
 #include <mjs/object_impl/constructor_object.h>
 #include <mjs/class_def_impl/promise_object_class_def.h>
+#include <mjs/class_def_impl/function_object_class_def.h>
 
 namespace mjs {
 
@@ -123,7 +124,7 @@ bool VM::FunctionScheduling(StackFrame* stack_frame, uint32_t par_count) {
 	case ValueType::kModuleObject:
 	case ValueType::kFunctionDef:
 	case ValueType::kFunctionObject: {
-		stack_frame->set_function_def(function_def(stack_frame->function_val()));
+		stack_frame->set_function_def(&stack_frame->function_val().ToFunctionDefBase());
 		auto* function_def = stack_frame->function_def();
 
 		// printf("%s\n", function_def->Disassembly().c_str());
@@ -180,13 +181,6 @@ bool VM::FunctionScheduling(StackFrame* stack_frame, uint32_t par_count) {
 			}
 		}
 		return true;
-	}
-	case ValueType::kConstructorObject: {
-		auto target_class_id = stack_frame->function_val().constructor().target_class_id();
-		auto& target_class_def = context_->runtime().class_def_table()[target_class_id];
-		auto obj = target_class_def.NewConstructor(context_, par_count, *stack_frame);
-		stack_frame->push(std::move(obj));
-		return false;
 	}
 	case ValueType::kCppFunction: {
 		// 切换栈帧
@@ -257,7 +251,7 @@ bool VM::FunctionScheduling(StackFrame* stack_frame, uint32_t par_count) {
 	}
 	default:
 	    stack_frame->push(
-			TypeError::Throw(context_, "Non callable type: '{}'.", Value::TypeToString(stack_frame->function_val().type()))
+			TypeError::Throw(context_, "Non a callable type: '{}'.", Value::TypeToString(stack_frame->function_val().type()))
 		);
 		return false;
 	}
@@ -281,12 +275,20 @@ bool VM::FunctionScheduling(StackFrame* stack_frame, uint32_t par_count) {
 	} \
     break;
 
+#define VM_EXCEPTION_THROW_AUTO_INC_PC(VALUE) \
+	pending_error_val = std::move(VALUE); \
+	if (!ThrowException(stack_frame, &pending_error_val, true)) { \
+		pending_return_val = std::move(pending_error_val); \
+		goto exit_; \
+	} \
+    break;
+
 
 
 void VM::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, uint32_t param_count) {
 	stack_frame->set_function_val(std::move(func_val));
 	stack_frame->set_this_val(std::move(this_val));
-	
+
 	std::optional<Value> pending_return_val;	// 异常时等待返回的值，需要执行finally才能返回
 	std::optional<Value> pending_error_val;		// 异常处理过程中临时保存的异常值，没有被catch处理最后会被重抛
 	OpcodeType opcode;
@@ -309,7 +311,7 @@ void VM::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 	func_def = stack_frame->function_def();
 	while (stack_frame->pc() >= 0 && func_def && stack_frame->pc() < func_def->bytecode_table().Size()) {
 		{
-			OpcodeType opcode_; uint32_t par; auto pc = stack_frame->pc(); std::cout << func_def->bytecode_table().Disassembly(context_, pc, opcode_, par, func_def) << std::endl;
+			// OpcodeType opcode_; uint32_t par; auto pc = stack_frame->pc(); std::cout << func_def->bytecode_table().Disassembly(context_, pc, opcode_, par, func_def) << std::endl;
 		}
 
 		opcode = func_def->bytecode_table().GetOpcode(stack_frame->pc());
@@ -546,8 +548,63 @@ void VM::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 			break;
 		}
 		case OpcodeType::kNew: {
-			// this，然后让function call处理
-			stack_frame->push(Value());
+			auto func_val = stack_frame->pop();
+			if (func_val.type() == ValueType::kConstructorObject) {
+				// 内置类，直接调用C++的NewConstructor
+				auto target_class_id = func_val.constructor().target_class_id();
+				auto& target_class_def = context_->runtime().class_def_table()[target_class_id];
+				auto obj = target_class_def.NewConstructor(context_, param_count, *stack_frame);
+				stack_frame->push(std::move(obj));
+				break;
+			}
+			else if (func_val.IsFunctionObject()) {
+				// 用户定义的构造函数
+				auto& func = func_val.function();
+
+				// 1. 创建新对象
+				auto obj_val = Value(Object::New(context_));
+
+				// 2. 获取构造函数的 prototype 属性
+				Value prototype_val;
+				auto& function_object_class_def = context_->runtime().class_def_table()[ClassId::kFunctionObject].get<FunctionObjectClassDef>();
+				if (!func.GetProperty(context_, function_object_class_def.prototype_const_index(), &prototype_val) || !prototype_val.IsObject()) {
+					// 如果没有 prototype 或不是对象，使用 Object.prototype
+					auto& object_class_def = context_->runtime().class_def_table()[ClassId::kObject];
+					prototype_val = object_class_def.prototype();
+				}
+
+				// 3. 设置新对象的原型
+				obj_val.object().SetPrototype(context_, prototype_val);
+
+				// 弹出函数值
+				stack_frame->pop();
+
+				// 4. 调用构造函数，以新对象为 this
+				auto new_stack_frame = StackFrame(stack_frame);
+				new_stack_frame.set_bottom(new_stack_frame.bottom() - param_count);
+				new_stack_frame.set_this_val(Value(obj_val));
+
+				// 调用构造函数
+				CallInternal(&new_stack_frame, func_val, obj_val, param_count);
+
+				auto& ret = new_stack_frame.get(-1);
+				VM_EXCEPTION_CHECK_AND_THROW(ret);
+
+				// 5. 如果构造函数返回对象，则返回该对象；否则返回新创建的对象
+				if (ret.type() != ValueType::kUndefined && ret.IsObject()) {
+					stack_frame->push(ret);
+				} else {
+					stack_frame->push(obj_val);
+				}
+			}
+			else {
+				VM_EXCEPTION_THROW(
+					TypeError::Throw(context_, "Not a type that can be instantiated: '{}'.", 
+						Value::TypeToString(stack_frame->function_val().type())
+					)
+				);
+			}
+			break;
 		}
 		case OpcodeType::kFunctionCall: {
 			auto this_val = stack_frame->pop();
@@ -584,7 +641,9 @@ void VM::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 
 			// 获取当前对象的构造函数
 			Value constructor;
-			if (!this_val.object().GetProperty(context_, context_->runtime().key_const_index_table().constructor_const_index(), &constructor)) {
+			auto& function_object_class_def = context_->runtime().class_def_table()[ClassId::kFunctionObject].get<FunctionObjectClassDef>();
+	
+			if (!this_val.object().GetProperty(context_, function_object_class_def.constructor_const_index(), &constructor)) {
 				VM_EXCEPTION_THROW(
 					ReferenceError::Throw(context_, "super requires a constructor")
 				);
@@ -598,7 +657,7 @@ void VM::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 
 			// 获取构造函数的原型 (即当前类的原型)
 			Value current_prototype;
-			if (!constructor.object().GetProperty(context_, context_->runtime().key_const_index_table().prototype_const_index(), &current_prototype)) {
+			if (!constructor.object().GetProperty(context_, function_object_class_def.prototype_const_index(), &current_prototype)) {
 				VM_EXCEPTION_THROW(
 					ReferenceError::Throw(context_, "super requires a valid prototype chain")
 				);
@@ -734,7 +793,7 @@ void VM::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 		}
 		case OpcodeType::kThrow: {
 			stack_frame->set_pc(stack_frame->pc() - 1);
-			VM_EXCEPTION_THROW(stack_frame->pop());
+			VM_EXCEPTION_THROW_AUTO_INC_PC(stack_frame->pop().SetException());
 			break;
 		}
 		case OpcodeType::kTryEnd: {
@@ -742,7 +801,7 @@ void VM::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 			stack_frame->set_pc(stack_frame->pc() - 1);
 			if (pending_error_val) {
 				// 如果还有记录的异常，就重抛，这里的重抛是直接到上层抛的，因为try end不属于当前层
-				if (!ThrowException(stack_frame, &pending_error_val)) {
+				if (!ThrowException(stack_frame, &pending_error_val, true)) {
 					goto exit_;
 				}
 			}
@@ -777,7 +836,6 @@ void VM::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 			else {
 				stack_frame->set_pc(stack_frame->pc() + 1);
 			}
-
 			break;
 		}
 		case OpcodeType::kFinallyReturn: {
@@ -869,7 +927,7 @@ exit_:
 		}
 		else {
 			pending_return_val = stack_frame->pop();
-			assert(!pending_return_val->IsException());
+			// assert(!pending_return_val->IsException());
 		}
 	}
 	else {
@@ -911,11 +969,12 @@ return_:
 	// 还原栈帧
 	stack().resize(stack_frame->bottom());
 	stack_frame->push(std::move(*pending_return_val));
+
 	return;
 }
 
 
-bool VM::ThrowException(StackFrame* stack_frame, std::optional<Value>* error_val) {
+bool VM::ThrowException(StackFrame* stack_frame, std::optional<Value>* error_val, bool need_inc_pc) {
 	auto& table = stack_frame->function_def()->exception_table();
 
 	auto* entry = table.FindEntry(stack_frame->pc());
@@ -939,6 +998,9 @@ bool VM::ThrowException(StackFrame* stack_frame, std::optional<Value>* error_val
 	else if (entry->HasCatch() && entry->LocatedInCatch(stack_frame->pc())) {
 		if (entry->HasFinally()) {
 			stack_frame->set_pc(entry->finally_start_pc);
+		}
+		else if (need_inc_pc) {
+			stack_frame->set_pc(stack_frame->pc() + 1);
 		}
 	}
 	else if (entry->HasFinally() && entry->LocatedInFinally(stack_frame->pc())) {
@@ -977,22 +1039,6 @@ void VM::GeneratorRestoreContext(StackFrame* stack_frame, GeneratorObject* gener
 
 Stack& VM::stack() {
 	return context_->runtime().stack();
-}
-
-FunctionDefBase* VM::function_def(const Value& func_val) const {
-	if (func_val.IsFunctionDef()) {
-		return &func_val.function_def();
-	}
-	else if (func_val.IsFunctionObject()) {
-		return &func_val.function().function_def();
-	}
-	if (func_val.IsModuleDef()) {
-		return &func_val.module_def();
-	}
-	else if (func_val.IsModuleObject()) {
-		return &func_val.module().module_def();
-	}
-	return nullptr;
 }
 
 } // namespace mjs

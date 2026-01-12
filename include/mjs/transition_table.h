@@ -32,11 +32,15 @@ class Shape;
 class TransitionTable {
 public:
 	TransitionTable() = default;
+
 	~TransitionTable();
 
 	bool Has() const;
+
 	Shape* Find(ConstIndex key) const;
+
 	void Add(ConstIndex key, Shape*);
+
 	bool Delete(ConstIndex key);
 
 private:
@@ -45,7 +49,9 @@ private:
 		kOne,
 		kMap
 	} type_ = Type::kNone;
+
 	ConstIndex key_;
+	
 	union {
 		Shape* shape_;
 		ankerl::unordered_dense::map<ConstIndex, Shape*>* map_;

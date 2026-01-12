@@ -18,7 +18,7 @@ ArrayObjectClassDef::ArrayObjectClassDef(Runtime* runtime)
 	map_const_index_ = runtime->global_const_pool().insert(Value("map"));
 	filter_const_index_ = runtime->global_const_pool().insert(Value("filter"));
 
-	constructor_object_.object().SetProperty(runtime, of_const_index_, Value([](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
+	constructor_.object().SetProperty(runtime, of_const_index_, Value([](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
 		return ArrayObjectClassDef::Of(context, par_count, stack);
 	}));
 
@@ -113,7 +113,43 @@ ArrayObjectClassDef::ArrayObjectClassDef(Runtime* runtime)
 }
 
 Value ArrayObjectClassDef::NewConstructor(Context* context, uint32_t par_count, const StackFrame& stack) const {
-	return Of(context, par_count, stack);
+	// 标准 new Array() 行为:
+	// - new Array() -> []
+	// - new Array(3) -> [empty x 3] (单个数字参数)
+	// - new Array(1, 2, 3) -> [1, 2, 3] (多个参数)
+
+	if (par_count == 0) {
+		// new Array()
+		return Value(ArrayObject::New(context, 0));
+	} else if (par_count == 1) {
+		// new Array(x)
+		auto& arg = stack.get(0);
+		if (arg.type() == ValueType::kInt64 || arg.type() == ValueType::kFloat64) {
+			// 数字参数: 创建指定长度的数组
+			uint64_t len;
+			if (arg.type() == ValueType::kInt64) {
+				if (arg.i64() < 0) {
+					return RangeError::Throw(context, "Invalid array length");
+				}
+				len = static_cast<uint64_t>(arg.i64());
+			} else {
+				auto fval = arg.f64();
+				if (fval < 0 || !std::isfinite(fval)) {
+					return RangeError::Throw(context, "Invalid array length");
+				}
+				len = static_cast<uint64_t>(fval);
+			}
+			return Value(ArrayObject::New(context, len));
+		} else {
+			// 非数字参数: 创建包含该元素的数组
+			auto arr = ArrayObject::New(context, 1);
+			arr->At(context, 0) = arg;
+			return Value(arr);
+		}
+	} else {
+		// 多个参数: new Array(1, 2, 3)
+		return LiteralNew(context, par_count, stack);
+	}
 }
 
 Value ArrayObjectClassDef::Of(Context* context, uint32_t par_count, const StackFrame& stack) {

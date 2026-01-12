@@ -65,9 +65,6 @@ TEST_F(ModuleObjectTest, ModuleExportVars) {
 TEST_F(ModuleObjectTest, ModuleInheritsFromFunctionObject) {
     auto* module_def = ModuleDef::New(test_env->runtime(), "test", "", 0);
     auto* module_obj = ModuleObject::New(context.get(), module_def);
-
-    // ModuleObject继承自FunctionObject
-    EXPECT_EQ(module_obj->class_id(), ClassId::kModuleObject);
 }
 
 } // namespace mjs::test

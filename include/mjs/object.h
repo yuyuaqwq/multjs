@@ -95,11 +95,7 @@ public:
 	 * @param callback 回调函数，用于标记子对象
 	 * @note 数据成员中有 Value，必须重写此方法，否则会导致内存泄漏
 	 */
-	virtual void GCForEachChild(Context* context, intrusive_list<Object>* list, void(*callback)(Context* context, intrusive_list<Object>* list, const Value& child)) {
-		for (auto& slot : properties_) {
-			callback(context, list, slot.value);
-		}
-	}
+	virtual void GCForEachChild(Context* context, intrusive_list<Object>* list, void(*callback)(Context* context, intrusive_list<Object>* list, const Value& child));
 
 	/**
 	 * @brief 设置对象属性（字符串键）
@@ -215,28 +211,11 @@ public:
 	const Value& GetPrototype(Runtime* runtime) const;
 
 	/**
-	 * @brief 获取对象的类标识符
-	 * @return 类标识符
+	 * @brief 设置对象的原型
+	 * @param context 执行上下文指针
+	 * @param prototype 要设置的原型对象
 	 */
-	ClassId class_id() const { return static_cast<ClassId>(tag_.class_id_); }
-
-	/**
-	 * @brief 获取对象的类定义
-	 * @param runtime 运行时环境指针
-	 * @return 类定义引用
-	 */
-	ClassDef& GetClassDef(Runtime* runtime) const;
-
-	/**
-	 * @brief 获取指定类型的类定义
-	 * @tparam ClassDefT 类定义类型
-	 * @param runtime 运行时环境指针
-	 * @return 指定类型的类定义常量引用
-	 */
-	template <typename ClassDefT>
-	const ClassDefT& GetClassDef(Runtime* runtime) const {
-		return static_cast<ClassDefT&>(GetClassDef(runtime));
-	}
+	void SetPrototype(Context* context, Value prototype);
 
 	/**
 	 * @brief 获取指定类型的对象常量引用
@@ -425,11 +404,11 @@ protected:
 			uint32_t is_extensible_ : 1;        ///< 是否可扩展（JS 标准）
 			uint32_t is_frozen_ : 1;            ///< 是否已冻结（JS 标准）
 			uint32_t is_sealed_ : 1;            ///< 是否已密封（JS 标准）
-			uint32_t reserved_ : 12;            ///< 保留位
-			uint32_t class_id_ : 16;            ///< 类标识符（16位）
+			uint32_t set_proto_ : 1;			///< 是否设置了__proto__
+			uint32_t reserved_ : 27;            ///< 保留位
 		};
 	} tag_;
-	Shape* shape_;                          ///< 形状指针（对象布局描述）
+	Shape* shape_;                          ///< 形状指针（对象布局描述，包含原型信息）
 	std::vector<PropertySlot> properties_;  ///< 属性槽向量（每个对象独立）
 };
 

@@ -30,7 +30,6 @@ TEST_F(ArrayObjectTest, CreateEmptyArray) {
     auto* arr = ArrayObject::New(context.get(), 0);
     ASSERT_NE(arr, nullptr);
     EXPECT_EQ(arr->length(), 0);
-    EXPECT_EQ(arr->class_id(), ClassId::kArrayObject);
 }
 
 TEST_F(ArrayObjectTest, CreateArrayWithInitializerList) {
@@ -370,7 +369,6 @@ TEST_F(ArrayObjectTest, ArrayInheritsFromObject) {
     // 测试继承自 Object
     EXPECT_TRUE(arr->GetPrototype(test_env->runtime()).IsObject() ||
                 arr->GetPrototype(test_env->runtime()).IsNull());
-    EXPECT_EQ(arr->class_id(), ClassId::kArrayObject);
 }
 
 TEST_F(ArrayObjectTest, ArrayHasOwnProperty) {

@@ -1208,7 +1208,28 @@ Value Value::ToUInt64() const {
 	}
 }
 
-const ModuleDef& Value::ToModuleDef() const {
+
+
+
+FunctionDefBase& Value::ToFunctionDefBase() const {
+	switch (type()) {
+	case ValueType::kModuleObject: {
+		return module().module_def();
+	}
+	case ValueType::kModuleDef: {
+		return module_def();
+	}
+	case ValueType::kFunctionObject: {
+		return function().function_def();
+	}
+	case ValueType::kFunctionDef: {
+		return function_def();
+	}
+	default:
+		throw TypeError("Incorrect value type");
+	}
+}
+ModuleDef& Value::ToModuleDef() const {
 	switch (type()) {
 	case ValueType::kModuleObject:
 		return module().module_def();
@@ -1219,7 +1240,8 @@ const ModuleDef& Value::ToModuleDef() const {
 		throw TypeError("Incorrect value type");
 	}
 }
-const FunctionDef& Value::ToFunctionDef() const {
+
+FunctionDef& Value::ToFunctionDef() const {
 	switch (type()) {
 	case ValueType::kFunctionObject:
 		return function().function_def();

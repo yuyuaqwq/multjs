@@ -72,7 +72,6 @@ enum class ClassId : uint16_t {
 	kPromiseObject,        ///< Promise 对象类
 	kAsyncObject,          ///< 异步对象类
 	kModuleObject,         ///< 模块对象类
-	kConstructorObject,    ///< 构造函数对象类
 	kCppModuleObject,      ///< C++ 模块对象类
 
 	kCustom,               ///< 自定义类标识符
@@ -89,6 +88,7 @@ class Runtime;
  * - 构造函数支持
  * - 原型对象管理
  * - 类名称管理
+ * 实际上就是在 C++ 中定义 JavaScript 的构造函数对象
  *
  * @note 继承自 noncopyable 确保单例特性
  * @see Object 对象基类
@@ -101,7 +101,7 @@ public:
 	 * @param id 类标识符
 	 * @param name 类名称
 	 */
-	ClassDef(Runtime* runtime, ClassId id, const char* name);
+	ClassDef(Runtime* runtime, ClassId id, const char* name, bool is_constructor_object = true);
 
 	/**
 	 * @brief 虚析构函数
@@ -166,8 +166,8 @@ protected:
 	ConstIndex name_;               ///< 类名称常量索引
 	std::string name_string_;       ///< 类名称字符串
 
-	Value constructor_object_;      ///< 构造函数对象
-	Value prototype_;               ///< 原型对象
+	Value constructor_;      ///< 构造函数对象
+	Value prototype_;               ///< 构造函数的原型对象
 };
 
 /**

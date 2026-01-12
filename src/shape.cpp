@@ -25,7 +25,7 @@ Shape::Shape(Shape* parent_shape, uint32_t property_size)
 }
 
 Shape::~Shape() {
-    if (parent_shape_) { 
+    if (parent_shape_) {
         // 从父节点的过渡表中移除
         // base_shape->parent_shape()->transition_table().erase(base_shape->parent_transition_table_iter());
         // 因为只有add才会导致创建新的shape，上次add的一定在末尾

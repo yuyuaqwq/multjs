@@ -12,7 +12,6 @@ private:
     AsyncObject(Context* context, const Value& function)
         : GeneratorObject(context, function)
     {
-        tag_.class_id_ = static_cast<uint16_t>(ClassId::kAsyncObject);
         res_promise_ = Value(PromiseObject::New(context, Value()));
     }
 

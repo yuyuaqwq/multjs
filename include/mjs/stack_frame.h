@@ -23,36 +23,48 @@ public:
 	StackFrame(const StackFrame* upper_stack_frame);
 
 	void push(const Value& value);
+
 	void push(Value&& value);
+
 	Value pop();
 
 	bool empty() const noexcept;
 
 	void reduce(size_t count);
+
 	void upgrade(size_t count);
 
 	// 正数表示从栈帧底向上索引，0开始
 	// 负数表示从栈帧顶向下索引，-1开始
 	Value& get(ptrdiff_t index) const;
+
 	void set(ptrdiff_t index, const Value& value);
+
 	void set(ptrdiff_t index, Value&& value);
 
 	const auto* upper_stack_frame() const { return upper_stack_frame_; }
 
 	size_t bottom() const { return bottom_; }
+
 	void set_bottom(size_t bottom) { bottom_ = bottom; }
 
 	const auto& function_val() const { return function_val_; }
+
 	void set_function_val(Value&& function_val) { function_val_ = std::move(function_val); }
 
 	const auto* function_def() const { return function_def_; }
+
 	void set_function_def(FunctionDefBase* function_def) { function_def_ = function_def; }
 
 	const auto& this_val() const { return this_val_; }
+
 	void set_this_val(Value&& this_val) { this_val_ = std::move(this_val); }
 
 	auto pc() const { return pc_; }
+
 	void set_pc(Pc pc) { pc_ = pc; }
+
+	const Stack* stack() const { return stack_; }
 
 private:
 	Stack* stack_;

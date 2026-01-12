@@ -68,10 +68,10 @@ Value Context::CallModule(Value* value) {
 
 Value Context::Eval(std::string module_name, std::string_view script) {
 	auto module = CompileModule(std::move(module_name), script);
-	std::cout << module.module_def().Disassembly(this) << std::endl;
-	if (module.IsException()) {
+	if (module.IsException()) { 
 		return module;
 	}
+	// std::cout << module.module_def().Disassembly(this) << std::endl;
 	return CallModule(&module);
 }
 

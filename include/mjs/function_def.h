@@ -107,7 +107,7 @@ public:
 	 * @brief 设置为异步函数类型
 	 */
 	void set_is_async() {
-		flags_.is_asnyc_ = true;
+		flags_.is_async_ = true;
 	}
 
 	/**
@@ -147,7 +147,7 @@ public:
 	 * @return 是否为异步函数
 	 */
 	bool is_async() const {
-		return flags_.is_asnyc_;
+		return flags_.is_async_;
 	}
 
 	/**
@@ -248,7 +248,7 @@ protected:
 		uint32_t is_module_ : 1 = 0;         ///< 是否为模块函数标记
 		uint32_t is_arrow_ : 1 = 0;          ///< 是否为箭头函数标记
 		uint32_t is_generator_ : 1 = 0;      ///< 是否为生成器函数标记
-		uint32_t is_asnyc_ : 1 = 0;          ///< 是否为异步函数标记
+		uint32_t is_async_ : 1 = 0;          ///< 是否为异步函数标记
 	} flags_;
 
 	uint32_t param_count_;                 ///< 参数数量

@@ -10,6 +10,8 @@ namespace mjs {
 ObjectClassDef::ObjectClassDef(Runtime* runtime)
 	: ClassDef(runtime, ClassId::kObject, "Object")
 {
+	proto_const_index_ = runtime->global_const_pool().insert(Value("__proto__"));
+
 	// Object.prototype 是一个特殊的对象,它没有原型(原型为null)
 	// 所以我们将prototype_设置为Value() (null/undefined)
 	// 这符合JavaScript规范: Object.prototype.__proto__ === null
@@ -17,19 +19,19 @@ ObjectClassDef::ObjectClassDef(Runtime* runtime)
 
 	// 注册 Object.freeze 静态方法到构造函数对象
 	auto freeze_const_index = runtime->global_const_pool().insert(Value(String::New("freeze")));
-	constructor_object_.object().SetProperty(runtime, freeze_const_index, Value(Freeze));
+	constructor_.object().SetProperty(runtime, freeze_const_index, Value(Freeze));
 
 	// 注册 Object.seal 静态方法到构造函数对象
 	auto seal_const_index = runtime->global_const_pool().insert(Value(String::New("seal")));
-	constructor_object_.object().SetProperty(runtime, seal_const_index, Value(Seal));
+	constructor_.object().SetProperty(runtime, seal_const_index, Value(Seal));
 
 	// 注册 Object.preventExtensions 静态方法到构造函数对象
 	auto prevent_extensions_const_index = runtime->global_const_pool().insert(Value(String::New("preventExtensions")));
-	constructor_object_.object().SetProperty(runtime, prevent_extensions_const_index, Value(PreventExtensions));
+	constructor_.object().SetProperty(runtime, prevent_extensions_const_index, Value(PreventExtensions));
 
 	// 注册 Object.defineProperty 静态方法到构造函数对象
 	auto define_property_const_index = runtime->global_const_pool().insert(Value(String::New("defineProperty")));
-	constructor_object_.object().SetProperty(runtime, define_property_const_index, Value(DefineProperty));
+	constructor_.object().SetProperty(runtime, define_property_const_index, Value(DefineProperty));
 }
 
 Value ObjectClassDef::NewConstructor(Context* context, uint32_t par_count, const StackFrame& stack) const {
@@ -83,14 +85,14 @@ Value ObjectClassDef::DefineProperty(Context* context, uint32_t par_count, const
 		}
 	} else if (par_count == 4) {
 		// 内部 getter/setter 语法: Object.defineProperty(obj, key, accessor, kind)
-		auto* accessor = &stack.get(2).function();
+		auto& accessor = stack.get(2).ToFunctionDef();
 		auto kind = static_cast<int>(stack.get(3).i64());
 
 		// 设置正确的 accessor 标志
 		uint32_t flags = (kind == 1) ? ShapeProperty::kIsGetter : ShapeProperty::kIsSetter;
 
 		// 使用 SetPropertyWithFlags 存储带标志的属性
-		obj->SetPropertyWithFlags(context, key_const_index, Value(accessor), flags);
+		obj->SetPropertyWithFlags(context, key_const_index, Value(&accessor), flags);
 	} else {
 		// 不支持的参数数量
 		assert(false && "Unsupported parameter count for Object.defineProperty");

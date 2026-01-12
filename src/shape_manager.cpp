@@ -1,5 +1,7 @@
 #include <mjs/shape_manager.h>
+
 #include <mjs/context.h>
+#include <mjs/class_def_impl/object_class_def.h>
 
 namespace mjs {
 
@@ -14,11 +16,11 @@ ShapeManager::~ShapeManager() {
     empty_shape_->Dereference();
 }
 
-int ShapeManager::AddProperty(Shape** base_shape_ptr, ShapeProperty&& property) {
+PropertySlotIndex ShapeManager::AddProperty(Shape** base_shape_ptr, ShapeProperty&& property) {
     auto base_shape = *base_shape_ptr;
     if (base_shape != empty_shape_) {
         auto index = base_shape->Find(property.const_index());
-        if (index != -1) {
+        if (index != kPropertySlotIndexInvalid) {
             // 已经存在的属性，返回
             return index;
         }

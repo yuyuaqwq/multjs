@@ -6,7 +6,7 @@ namespace mjs {
 
 	FunctionDefBase::FunctionDefBase(ModuleDef* module_def, std::string name, uint32_t param_count) noexcept
 	: module_def_(module_def)
-	, name_(name)
+	, name_(std::move(name))
 	, param_count_(param_count) {}
 
 std::string FunctionDefBase::Disassembly(Context* context) const {

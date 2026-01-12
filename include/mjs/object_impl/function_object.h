@@ -37,6 +37,8 @@ public:
 	}
 
 protected:
+	void InitPrototypeProperty(Context* context);
+
 	FunctionDefBase* function_def_;
 
 	// 闭包

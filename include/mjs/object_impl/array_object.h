@@ -49,8 +49,6 @@ public:
     // 数组元素访问
     Value& At(Context* context, size_t index);
 
-    virtual ClassId class_id() const { return ClassId::kArrayObject; }
-
     static ArrayObject* New(Context* context, std::initializer_list<Value> values);
     static ArrayObject* New(Context* context, size_t count);
 };

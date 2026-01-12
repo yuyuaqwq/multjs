@@ -24,7 +24,7 @@ PromiseObjectClassDef::PromiseObjectClassDef(Runtime* runtime)
 	}));
 
 	auto resolve_const_index = runtime->global_const_pool().insert(Value("resolve"));
-	constructor_object_.object().SetProperty(runtime, resolve_const_index, Value([](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
+	constructor_.object().SetProperty(runtime, resolve_const_index, Value([](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
 		Value result;
 		if (par_count > 0) {
 			result = stack.get(0);
@@ -33,7 +33,7 @@ PromiseObjectClassDef::PromiseObjectClassDef(Runtime* runtime)
 	}));
 
 	auto reject_const_index = runtime->global_const_pool().insert(Value("reject"));
-	constructor_object_.object().SetProperty(runtime, reject_const_index, Value([](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
+	constructor_.object().SetProperty(runtime, reject_const_index, Value([](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
 		Value reason;
 		if (par_count > 0) {
 			reason = stack.get(0);

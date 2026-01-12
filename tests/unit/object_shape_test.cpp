@@ -49,7 +49,6 @@ protected:
 TEST_F(ObjectTest, CreateObject) {
     auto* obj = Object::New(runtime_.get());
     ASSERT_NE(obj, nullptr);
-    EXPECT_EQ(obj->class_id(), ClassId::kObject);
     EXPECT_EQ(obj->ref_count(), 0);
     // GC will clean up
 }
@@ -276,18 +275,6 @@ TEST_F(ObjectTest, GetPrototype) {
     const Value& prototype = obj->GetPrototype(runtime_.get());
     // 原型应该是某种有效的值类型
     EXPECT_TRUE(prototype.IsObject() || prototype.IsNull() || prototype.IsUndefined());
-
-    // GC will clean up
-}
-
-/**
- * @test 测试获取类定义
- */
-TEST_F(ObjectTest, GetClassDef) {
-    auto* obj = Object::New(runtime_.get());
-
-    ClassDef& class_def = obj->GetClassDef(runtime_.get());
-    EXPECT_EQ(class_def.id(), ClassId::kObject);
 
     // GC will clean up
 }

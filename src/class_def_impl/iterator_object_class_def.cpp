@@ -11,5 +11,4 @@ IteratorClassDef::IteratorClassDef(Runtime* runtime)
 	next_const_index_ = runtime->global_const_pool().insert(Value("next"));
 }
 
-
 } // namespace mjs

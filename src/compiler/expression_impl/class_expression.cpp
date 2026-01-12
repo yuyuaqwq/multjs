@@ -89,25 +89,26 @@ void ClassExpression::GenerateCode(CodeGenerator* code_generator, FunctionDefBas
             scope_manager.AllocateVar(constructor_params[i]);
         } else {
             scope_manager.AllocateVar("");
-        }
+        } 
     }
 
     // 6. 生成字段初始化代码（在构造函数体之前）
     // 实例字段需要在构造函数开始时初始化
     if (!instance_fields.empty()) {
-        // 获取 this
-        constructor_def->bytecode_table().EmitOpcode(OpcodeType::kGetThis);
-
         for (const auto* field : instance_fields) {
-            // 生成字段初始值
+            // 生成字段初始值 (栈: [value])
             field->value()->GenerateCode(code_generator, constructor_def);
 
-            // 重新加载 this
+            // 加载 this (栈: [value, this])
             constructor_def->bytecode_table().EmitOpcode(OpcodeType::kGetThis);
 
-             // 存储字段: this.field = value
+            // 存储字段: this.field = value
+            // PropertyStore会弹出this, value留在栈上 (栈: [value])
             auto field_key_idx = code_generator->AllocateConst(Value(String::New(field->key())));
             constructor_def->bytecode_table().EmitPropertyStore(field_key_idx);
+
+            // 弹出字段的初始值,保持栈平衡
+            constructor_def->bytecode_table().EmitOpcode(OpcodeType::kPop);
         }
     }
 
@@ -196,7 +197,6 @@ void ClassExpression::GenerateCode(CodeGenerator* code_generator, FunctionDefBas
             // 构造函数.prototype
             auto prototype_key_idx = code_generator->AllocateConst(Value("prototype"));
             function_def_base->bytecode_table().EmitPropertyLoad(prototype_key_idx);
-
 
             function_def_base->bytecode_table().EmitOpcode(OpcodeType::kSwap);
             // 构造函数.prototype.key = element

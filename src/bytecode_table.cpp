@@ -279,7 +279,12 @@ std::string BytecodeTable::Disassembly(Context* context, Pc& pc, OpcodeType& opc
         }
         str += "\t";
     }
-    else if (opcode == OpcodeType::kCLoad || opcode == OpcodeType::kPropertyLoad || opcode == OpcodeType::kPropertyStore || opcode == OpcodeType::kGetGlobal) {
+    else if (opcode == OpcodeType::kCLoad || 
+        opcode == OpcodeType::kCLoadW ||
+        opcode == OpcodeType::kCLoadD ||
+        opcode == OpcodeType::kPropertyLoad || 
+        opcode == OpcodeType::kPropertyStore || 
+        opcode == OpcodeType::kGetGlobal) {
         auto idx = param;
         const auto& val = context->GetConstValue(idx);
         if (val.IsString()) {

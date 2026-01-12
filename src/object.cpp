@@ -3,6 +3,7 @@
 #include <mjs/context.h>
 #include <mjs/runtime.h>
 #include <mjs/shape.h>
+#include <mjs/class_def_impl/object_class_def.h>
 
 namespace mjs {
 
@@ -10,7 +11,6 @@ Object::Object(Runtime* runtime, ClassId class_id) {
 	// 挂入gc链表
 	runtime->gc_manager().AddObject(this);
 
-	tag_.class_id_ = static_cast<uint16_t>(class_id);
 	tag_.is_extensible_ = 1;  // 默认可扩展
 	shape_ = &runtime->shape_manager().empty_shape();
 
@@ -22,7 +22,6 @@ Object::Object(Context* context, ClassId class_id) {
 	// 挂入gc链表
 	context->gc_manager().AddObject(this);
 
-	tag_.class_id_ = static_cast<uint16_t>(class_id);
 	tag_.is_extensible_ = 1;  // 默认可扩展
 	shape_ = &context->shape_manager().empty_shape();
 	shape_->Reference();
@@ -36,6 +35,11 @@ Object::~Object() {
 	shape_->Dereference();
 }
 
+void Object::GCForEachChild(Context* context, intrusive_list<Object>* list, void(*callback)(Context* context, intrusive_list<Object>* list, const Value& child)) {
+	for (auto& slot : properties_) {
+		callback(context, list, slot.value);
+	}
+}
 
 void Object::SetProperty(Runtime* runtime, ConstIndex key, Value&& value) {
 	SetProperty(static_cast<Context*>(nullptr), key, std::move(value));
@@ -43,6 +47,11 @@ void Object::SetProperty(Runtime* runtime, ConstIndex key, Value&& value) {
 
 bool Object::GetProperty(Runtime* runtime, ConstIndex key, Value* value) {
 	// 如果配置了exotic，需要先查找(也就是class_def中的GetProperty等方法)
+
+	if (key == runtime->class_def_table()[ClassId::kObject].get<ObjectClassDef>().proto_const_index()) {
+		*value = GetPrototype(runtime);
+		return true;
+	}
 
 	// 1. 查找自身属性
 	auto index = shape_->Find(key);
@@ -260,12 +269,23 @@ Value Object::ToString(Context* context) {
 }
 
 const Value& Object::GetPrototype(Runtime* runtime) const {
-	// 未来不存class_id，通过shape获取prototype
-	return GetClassDef(runtime).prototype();
+	// TODO：未来考虑优化，使用一个标志位标记当前object是否设置了proto，是则查找，否则返回shape_的proto
+	if (tag_.set_proto_) {
+		auto index = shape_->Find(runtime->class_def_table()[ClassId::kObject].get<ObjectClassDef>().proto_const_index());
+		assert(index != kPropertySlotIndexInvalid);
+		return properties_[index].value;
+	}
+	return shape_->proto();
 }
 
-ClassDef& Object::GetClassDef(Runtime* runtime) const {
-	return runtime->class_def_table().at(class_id());
+void Object::SetPrototype(Context* context, Value prototype) {
+	if (!tag_.set_proto_) {
+		tag_.set_proto_ = true;
+	}
+	SetProperty(context, 
+		context->runtime().class_def_table()[ClassId::kObject].get<ObjectClassDef>().proto_const_index(), 
+		std::move(prototype)
+	);
 }
 
 

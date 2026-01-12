@@ -40,8 +40,7 @@ public:
 };
 
 Runtime::Runtime() 
-	: key_const_index_table_(&global_const_pool_)
-    , shape_manager_(nullptr)
+	: shape_manager_(nullptr)
 	, global_this_(Object::New(this))
 	, class_def_table_(this)
     , module_manager_(std::make_unique<ModuleManager>())
@@ -50,8 +49,7 @@ Runtime::Runtime()
 }
 
 Runtime::Runtime(std::unique_ptr<ModuleManagerBase> module_manager)
-    : key_const_index_table_(&global_const_pool_)
-    , shape_manager_(nullptr)
+    : shape_manager_(nullptr)
     , global_this_(Object::New(this))
     , class_def_table_(this)
     , module_manager_(std::move(module_manager))

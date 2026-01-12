@@ -152,7 +152,6 @@ TEST_F(GeneratorObjectTest, GeneratorInheritsFromObject) {
     // 测试继承自Object
     EXPECT_TRUE(generator->GetPrototype(test_env->runtime()).IsObject() ||
                 generator->GetPrototype(test_env->runtime()).IsNull());
-    EXPECT_EQ(generator->class_id(), ClassId::kGeneratorObject);
 }
 
 } // namespace mjs::test

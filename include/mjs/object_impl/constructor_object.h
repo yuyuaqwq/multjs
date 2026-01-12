@@ -7,7 +7,7 @@ namespace mjs {
 class ConstructorObject : public Object {
 private:
 	ConstructorObject(Runtime* runtime, ClassId target_class_id) 
-		: Object(runtime, ClassId::kConstructorObject)
+		: Object(runtime, ClassId::kFunctionObject)
 		, target_class_id_(target_class_id) {}
 
 public:

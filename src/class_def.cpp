@@ -5,24 +5,31 @@
 
 namespace mjs {
 
-ClassDef::ClassDef(Runtime* runtime, ClassId id, const char* name)
+ClassDef::ClassDef(Runtime* runtime, ClassId id, const char* name, bool is_constructor_object)
 	: id_(id)
 	, name_string_(name)
 {
 	name_ = runtime->global_const_pool().insert(Value(name));
-	constructor_object_ = Value(ConstructorObject::New(runtime, id_));
-	prototype_ = Value(Object::New(runtime));
 
 	// Debug: 检查prototype_是否正确初始化
 	// printf("ClassDef %s: prototype_.type() = %d, IsObject() = %d\n",
 	//        name, static_cast<int>(prototype_.type()), prototype_.IsObject());
 
-	auto prototype = prototype_;
-	constructor_object_.object().SetProperty(runtime, runtime->key_const_index_table().prototype_const_index(), std::move(prototype));
+	if (is_constructor_object) {
+		prototype_ = Value(Object::New(runtime));
+		constructor_ = Value(ConstructorObject::New(runtime, id_));
+		auto prototype_const_index = runtime->global_const_pool().insert(Value("prototype"));
+		auto constructor_const_index = runtime->global_const_pool().insert(Value("prototype"));
+		auto prototype = prototype_;
+		constructor_.object().SetProperty(runtime, prototype_const_index, std::move(prototype));
 
-	// 挂载构造函数对象到全局对象
-	auto constructor_object = constructor_object_;
-	runtime->global_this().object().SetProperty(runtime, name_, std::move(constructor_object));
+		// 挂载构造函数对象到全局对象
+		Value constructor = constructor_;
+		runtime->global_this().object().SetProperty(runtime, name_, std::move(constructor));
+		
+		constructor = constructor_;
+		prototype_.object().SetProperty(runtime, constructor_const_index, std::move(constructor));
+	}
 }
 
 ClassDef::~ClassDef() {}

@@ -162,7 +162,7 @@ private:
 	 * @param error_val 错误值指针
 	 * @return 是否成功抛出异常
 	 */
-	bool ThrowException(StackFrame* stack_frame, std::optional<Value>* error_val);
+	bool ThrowException(StackFrame* stack_frame, std::optional<Value>* error_val, bool need_inc_pc = false);
 
 private:
 	/**

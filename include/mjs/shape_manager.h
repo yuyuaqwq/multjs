@@ -30,11 +30,13 @@ class Context;
 class ShapeManager : public noncopyable {
 public:
 	ShapeManager(Context* context);
+
 	~ShapeManager();
 
-	int AddProperty(Shape** base_shape, ShapeProperty&& property);
+	PropertySlotIndex AddProperty(Shape** base_shape, ShapeProperty&& property);
 
 	auto& context() { return *context_; }
+
 	Shape& empty_shape() { return *empty_shape_; }
 
 private:
