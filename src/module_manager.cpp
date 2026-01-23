@@ -42,10 +42,11 @@ Value ModuleManager::GetModule(Context* ctx, std::string_view path) {
 
 	auto module = ctx->CompileModule(absolute_path.string(), content);
 
-	// 先缓存模块，再调用
-	module_cache_.emplace(absolute_path, module);
-	
 	auto result = ctx->CallModule(&module);
+
+	// 缓存模块
+	module_cache_.emplace(absolute_path, module);
+
 	if (result.IsException()) {
 		return result;
 	}

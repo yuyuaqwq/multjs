@@ -269,7 +269,6 @@ Value Object::ToString(Context* context) {
 }
 
 const Value& Object::GetPrototype(Runtime* runtime) const {
-	// TODO：未来考虑优化，使用一个标志位标记当前object是否设置了proto，是则查找，否则返回shape_的proto
 	if (tag_.set_proto_) {
 		auto index = shape_->Find(runtime->class_def_table()[ClassId::kObject].get<ObjectClassDef>().proto_const_index());
 		assert(index != kPropertySlotIndexInvalid);

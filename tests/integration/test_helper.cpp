@@ -53,6 +53,10 @@ void IntegrationTestHelper::AssertEq(const std::string& code, Value expected) {
 void IntegrationTestHelper::AssertEq(const std::string& module_name, const std::string& code, Value expected) {
     Value result = Exec(module_name, code);
 
+    if (result.IsException()) {
+        FAIL() << "exception: " << result.string_view();
+    }
+
     // 根据类型进行比较
     if (expected.IsNumber() && result.IsNumber()) {
         EXPECT_DOUBLE_EQ(expected.ToNumber().f64(), result.ToNumber().f64())

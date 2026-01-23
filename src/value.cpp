@@ -1,9 +1,11 @@
 #include <mjs/value.h>
 
+#include <cmath>
 #include <format>
 
 #include <mjs/context.h>
 #include <mjs/error.h>
+#include <mjs/class_def_impl/function_object_class_def.h>
 #include <mjs/object.h>
 #include <mjs/object_impl/module_object.h>
 #include <mjs/object_impl/function_object.h>
@@ -258,6 +260,7 @@ ptrdiff_t Value::Comparer(Context* context, const Value& rhs) const {
 	case ValueType::kUInt64:
 		return u64() - rhs.u64();
 	case ValueType::kFunctionDef:
+	case ValueType::kModuleDef:
 	case ValueType::kCppFunction:
 	case ValueType::kClosureVar:
 		return value_.full_ - rhs.value_.full_;
@@ -323,6 +326,86 @@ Value Value::EqualTo(Context* context, const Value& rhs) const {
 		return Value(const_index() == rhs.const_index());
 	}
 	return Value(Comparer(context, rhs) == 0);
+}
+
+Value Value::InstanceOf(Context* context, const Value& rhs) const {
+	// instanceof: 检查 rhs 的 prototype 属性是否出现在 this 的原型链上
+	// 左操作数(this)是要检查的对象，右操作数(rhs)是构造函数
+
+	// 如果右操作数不是函数对象，抛出 TypeError
+	if (!rhs.IsFunctionObject()) {
+		throw TypeError("Right-hand side of 'instanceof' is not callable");
+	}
+
+	// 如果左操作数不是对象，返回 false
+	if (!IsObject() && !IsFunctionObject() && !IsArrayObject()) {
+		return Value(false);
+	}
+
+	// 获取构造函数的 prototype 属性
+	auto& runtime = context->runtime();
+	auto constructor_func = rhs.value_.object_;
+	Value prototype_value;
+
+	auto& function_object_class_def = context->runtime().class_def_table()[ClassId::kFunctionObject].get<FunctionObjectClassDef>();
+	auto prototype_key = function_object_class_def.prototype_const_index();
+	constructor_func->GetProperty(context, prototype_key, &prototype_value);
+
+	// 如果构造函数没有 prototype 属性或 prototype 不是对象，返回 false
+	if (!prototype_value.IsObject()) {
+		return Value(false);
+	}
+
+	auto prototype = prototype_value.value_.object_;
+
+	// 遍历左操作数的原型链
+	Value current(this->value_.object_);
+	while (current.IsObject() || current.IsFunctionObject() || current.IsArrayObject()) {
+		auto current_obj = current.value_.object_;
+
+		// 检查当前原型是否与构造函数的 prototype 相等
+		if (current_obj == prototype) {
+			return Value(true);
+		}
+
+		// 获取下一个原型
+		const Value& prototype_ref = current_obj->GetPrototype(&runtime);
+		if (!prototype_ref.IsObject()) {
+			break;
+		}
+		current = prototype_ref;
+	}
+
+	return Value(false);
+}
+
+Value Value::In(Context* context, const Value& rhs) const {
+	// in 运算符: 检查属性是否存在于对象或其原型链上
+	// 左操作数(this)是属性名，右操作数(rhs)是对象
+
+	// 如果右操作数不是对象，抛出 TypeError
+	if (!rhs.IsObject() && !rhs.IsFunctionObject() && !rhs.IsArrayObject()) {
+		throw TypeError("Right-hand side of 'in' is not an object");
+	}
+
+	auto obj = rhs.value_.object_;
+
+	// 将左操作数转换为属性键
+	ConstIndex key_idx;
+	if (IsString()) {
+		key_idx = context->FindConstOrInsertToLocal(Value(string_view()));
+	} 
+	// else if (IsSymbol()) {
+	//	// Symbol 类型的键需要特殊处理
+	//	key_idx = context->FindConstOrInsertToLocal(ToString(context));
+	// } 
+	else {
+		// 其他类型转为字符串
+		key_idx = context->FindConstOrInsertToLocal(ToString(context));
+	}
+
+	// 检查对象及其原型链上是否有该属性
+	return Value(obj->HasProperty(context, key_idx));
 }
 
 Value Value::Add(Context* context, const Value& rhs) const {
@@ -487,6 +570,35 @@ Value Value::Divide(Context* context, const Value& rhs) const {
 	}
 	default:
 		return TypeError::Throw(context, "Division not supported for these Value types");
+	}
+}
+
+Value Value::Modulo(Context* context, const Value& rhs) const {
+	switch (type()) {
+	case ValueType::kFloat64: {
+		switch (rhs.type()) {
+		case ValueType::kFloat64: {
+			return Value(fmod(f64(), rhs.f64()));
+		}
+		case ValueType::kInt64: {
+			return Value(fmod(f64(), double(rhs.i64())));
+		}
+		}
+		break;
+	}
+	case ValueType::kInt64: {
+		switch (rhs.type()) {
+		case ValueType::kFloat64: {
+			return Value(fmod(double(i64()), rhs.f64()));
+		}
+		case ValueType::kInt64: {
+			return Value(i64() % rhs.i64());
+		}
+		}
+		break;
+	}
+	default:
+		return TypeError::Throw(context, "Modulo not supported for these Value types");
 	}
 }
 
@@ -689,6 +801,40 @@ Value Value::Negate(Context* context) const {
 	}
 	default:
 		return TypeError::Throw(context, "Negation not supported for these Value types");
+	}
+}
+
+Value Value::Typeof(Context* context) const {
+	switch (type()) {
+	case ValueType::kUndefined:
+		return Value("undefined");
+	case ValueType::kNull:
+		return Value("object");
+	case ValueType::kBoolean:
+		return Value("boolean");
+	case ValueType::kFloat64:
+	case ValueType::kInt64:
+	case ValueType::kUInt64:
+		return Value("number");
+	case ValueType::kString:
+	case ValueType::kStringView:
+		return Value("string");
+	case ValueType::kObject:
+	case ValueType::kArrayObject:
+	case ValueType::kModuleObject:
+	case ValueType::kCppModuleObject:
+		return Value("object");
+	case ValueType::kFunctionObject:
+	case ValueType::kConstructorObject:
+	case ValueType::kAsyncObject:
+		return Value("function");
+	case ValueType::kGeneratorObject:
+	case ValueType::kPromiseObject:
+		return Value("object");
+	case ValueType::kSymbol:
+		return Value("symbol");
+	default:
+		return Value("unknown");
 	}
 }
 
@@ -1208,6 +1354,14 @@ Value Value::ToUInt64() const {
 	}
 }
 
+Value Value::ToObject() const {
+	switch (type()) {
+	case ValueType::kObject:
+		return Value(this);
+	default:
+		throw TypeError("Incorrect value type");
+	}
+}
 
 
 
@@ -1254,23 +1408,6 @@ FunctionDef& Value::ToFunctionDef() const {
 }
 
 
-bool Value::GetProperty(Context* context, ConstIndex key, Value* value) {
-	switch (type()) {
-	case ValueType::kFloat64:
-	case ValueType::kInt64: {
-		auto& class_def = context->runtime().class_def_table().at(ClassId::kNumberObject);
-		return class_def.prototype().object().GetProperty(context, key, value);
-	}
-	case ValueType::kString:
-	case ValueType::kStringView: {
-		auto& class_def = context->runtime().class_def_table().at(ClassId::kStringObject);
-		return class_def.prototype().object().GetProperty(context, key, value);
-	}
-	default:
-		*value = TypeError::Throw(context, "Incorrect value type.");
-		return false;
-	}
-}
 
 void Value::Clear() {
 	if (IsObject()) {

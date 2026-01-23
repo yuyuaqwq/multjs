@@ -13,7 +13,7 @@ ModuleObject::ModuleObject(Context* context, ModuleDef* module_def)
 
 void ModuleObject::SetProperty(Context* context, ConstIndex key, Value&& value) {
     auto index = shape_->Find(key);
-    if (index == -1) {
+    if (index == kPropertySlotIndexInvalid) {
         // todo: 可能需要异常，这里允许设置是给模块加载时初始化用的，初始化后不允许修改模块的命名空间对象
         FunctionObject::SetProperty(context, key, std::move(value));
         return;

@@ -51,11 +51,18 @@ const std::unordered_map<OpcodeType, OpcodeInfo>& BytecodeTable::opcode_type_map
         {OpcodeType::kSub, {"sub", {}}},
         {OpcodeType::kMul, {"mul", {}}},
         {OpcodeType::kDiv, {"div", {}}},
+        {OpcodeType::kMod, {"mod", {}}},
 
         {OpcodeType::kShl, {"shl", {}}},
         {OpcodeType::kShr, {"shr", {}}},
+        {OpcodeType::kUShr, {"ushr", {}}},
+        {OpcodeType::kBitAnd, {"bitand", {}}},
+        {OpcodeType::kBitOr, {"bitor", {}}},
+        {OpcodeType::kBitXor, {"bitxor", {}}},
+        {OpcodeType::kBitNot, {"bitnot", {}}},
 
         {OpcodeType::kNeg, {"neg", {}}},
+        {OpcodeType::kTypeof, {"typeof", {}}},
 
         {OpcodeType::kEq, {"eq", {}}},
         {OpcodeType::kNe, {"ne", {}}},
@@ -63,8 +70,13 @@ const std::unordered_map<OpcodeType, OpcodeInfo>& BytecodeTable::opcode_type_map
         {OpcodeType::kGe, {"ge", {}}},
         {OpcodeType::kGt, {"gt", {}}},
         {OpcodeType::kLe, {"le", {}}},
+        {OpcodeType::kIn, {"in", {}}},
+        {OpcodeType::kInstanceof, {"instanceof", {}}},
 
+        {OpcodeType::kLogicalAnd, {"logical_and", {}}},
         {OpcodeType::kIfEq, {"ifeq", {2}}},
+        {OpcodeType::kLogicalOr, {"logical_or", {}}},
+        {OpcodeType::kNullishCoalescing, {"nullish_coalescing", {}}},
 
         {OpcodeType::kGoto, {"goto", {2}}},
 

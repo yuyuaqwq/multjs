@@ -282,6 +282,12 @@ public:
 	/** @brief 等于比较 */
 	Value EqualTo(Context* context, const Value& rhs) const;
 
+	/** @brief instanceof 运算 */
+	Value InstanceOf(Context* context, const Value& rhs) const;
+
+	/** @brief in 运算 */
+	Value In(Context* context, const Value& rhs) const;
+
 	/** @brief 加法运算 */
 	Value Add(Context* context, const Value& rhs) const;
 
@@ -293,6 +299,9 @@ public:
 
 	/** @brief 除法运算 */
 	Value Divide(Context* context, const Value& rhs) const;
+
+	/** @brief 取模运算 */
+	Value Modulo(Context* context, const Value& rhs) const;
 
 	/** @brief 左移位运算 */
 	Value LeftShift(Context* context, const Value& rhs) const;
@@ -317,6 +326,9 @@ public:
 
 	/** @brief 取反运算 */
 	Value Negate(Context* context) const;
+
+	/** @brief typeof运算 */
+	Value Typeof(Context* context) const;
 
 	/** @brief 前缀递增运算 */
 	Value Increment(Context* context);
@@ -542,6 +554,9 @@ public:
 	/** @brief 转换为64位无符号整数值 */
 	Value ToUInt64() const;
 
+	/** @brief 转换为对象 */
+	Value ToObject() const;
+
 	
 	/** @brief 转换为函数基类定义引用 */
 	FunctionDefBase& ToFunctionDefBase() const;
@@ -558,14 +573,10 @@ public:
 	/** @brief 设置为异常返回 */
 	Value& SetException() { tag_.exception_ = 1; return *this; }
 
-	/** @brief 获取对象属性 */
-	bool GetProperty(Context* context, ConstIndex key, Value* value);
-
 	/**
 	 * @brief 将值类型转换为字符串表示
 	 * @param type 值类型
 	 * @return 类型名称字符串
-	 * @throw std::runtime_error 当类型无效时抛出
 	 */
 	static std::string TypeToString(ValueType type) {
 		switch (type) {

@@ -18,9 +18,9 @@ namespace mjs {
 class Stack;
 class StackFrame : public noncopyable {
 public:
-	StackFrame(Stack* stack);
+	explicit StackFrame(Stack* stack);
 
-	StackFrame(const StackFrame* upper_stack_frame);
+	explicit StackFrame(const StackFrame* upper_stack_frame);
 
 	void push(const Value& value);
 

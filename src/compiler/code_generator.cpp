@@ -56,13 +56,31 @@ Value CodeGenerator::Generate(std::string&& module_name, std::string_view source
     }
 
     // 处理其他语句
-    for (auto& stat : parser_->statements()) {
-        GenerateStatement(module_def, stat.get());
+    auto& statements = parser_->statements();
+    for (size_t i = 0; i < statements.size(); ++i) {
+        // 最后一个语句如果是表达式语句，需要特殊处理以返回其值
+        if (i == statements.size() - 1 && statements[i]->type() == StatementType::kExpression) {
+            auto& expr_stat = static_cast<ExpressionStatement*>(statements[i].get())->expression();
+            if (expr_stat) {
+                // 生成表达式但不弹出
+                GenerateExpression(module_def, expr_stat.get());
+                // 返回表达式的值
+                module_def->bytecode_table().EmitReturn(module_def);
+            } else {
+                // 空语句，返回undefined
+                module_def->bytecode_table().EmitOpcode(OpcodeType::kUndefined);
+                module_def->bytecode_table().EmitOpcode(OpcodeType::kReturn);
+            }
+        } else {
+            GenerateStatement(module_def, statements[i].get());
+        }
     }
 
-    // 生成返回指令
-    module_def->bytecode_table().EmitOpcode(OpcodeType::kUndefined);
-    module_def->bytecode_table().EmitOpcode(OpcodeType::kReturn);
+    // 如果没有语句，返回undefined
+    if (statements.empty()) {
+        module_def->bytecode_table().EmitOpcode(OpcodeType::kUndefined);
+        module_def->bytecode_table().EmitReturn(module_def);
+    }
 
     scope_manager_.ExitScope();
 

@@ -11,6 +11,7 @@
 #include <mjs/error.h>
 #include <mjs/value.h>
 #include <mjs/function_def.h>
+#include <mjs/module_def.h>
 #include <mjs/string.h>
 #include <mjs/opcode.h>
 
@@ -72,6 +73,11 @@ void ClassExpression::GenerateCode(CodeGenerator* code_generator, FunctionDefBas
         auto& var_info = scope_manager.AllocateVar(id().value(), VarFlags::kConst);
         var_info_ptr = &var_info;
         function_def_base->bytecode_table().EmitVarStore(var_info.var_idx);
+
+        // 如果是导出的类，添加到模块导出
+        if (is_export()) {
+            static_cast<ModuleDef*>(function_def_base)->export_var_def_table().AddExportVar(id().value(), var_info.var_idx);
+        }
     } else if (!elements().empty()) {
         // 匿名类但有类元素（静态字段/方法），需要临时变量存储构造函数对象
         // 这样才能在静态字段/方法中引用构造函数
@@ -190,15 +196,11 @@ void ClassExpression::GenerateCode(CodeGenerator* code_generator, FunctionDefBas
         } else {
             // 实例方法设置到prototype上
             // 加载prototype对象: 构造函数.prototype
-            
-            // 复制构造函数引用
-            function_def_base->bytecode_table().EmitOpcode(OpcodeType::kDump);
 
             // 构造函数.prototype
             auto prototype_key_idx = code_generator->AllocateConst(Value("prototype"));
             function_def_base->bytecode_table().EmitPropertyLoad(prototype_key_idx);
 
-            function_def_base->bytecode_table().EmitOpcode(OpcodeType::kSwap);
             // 构造函数.prototype.key = element
             function_def_base->bytecode_table().EmitPropertyStore(key_const_idx);
         }
@@ -206,7 +208,7 @@ void ClassExpression::GenerateCode(CodeGenerator* code_generator, FunctionDefBas
 
     // 10. 处理继承关系
     if (has_super_class()) {
-        SyntaxError("todo: has_super_class.");
+        throw SyntaxError("todo: has_super_class.");
         //// 设置原型链
         //// 需要: Child.__proto__ = Parent
         ////      Child.prototype.__proto__ = Parent.prototype

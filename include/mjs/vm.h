@@ -109,7 +109,7 @@ private:
 	 * @param idx 变量索引
 	 * @return 变量值的引用
 	 */
-	Value& GetVar(StackFrame* stack_frame, VarIndex idx);
+	Value& GetVar(const StackFrame& stack_frame, VarIndex idx);
 
 	/**
 	 * @brief 设置变量值
@@ -118,7 +118,6 @@ private:
 	 * @param var 变量值
 	 */
 	void SetVar(StackFrame* stack_frame, VarIndex idx, Value&& var);
-
 	/**
 	 * @brief 创建闭包
 	 * @param stack_frame 栈帧指针

@@ -18,6 +18,9 @@ void UnaryExpression::GenerateCode(CodeGenerator* code_generator, FunctionDefBas
     case TokenType::kOpSub:
         function_def_base->bytecode_table().EmitOpcode(OpcodeType::kNeg);
         break;
+    case TokenType::kKwTypeof:
+        function_def_base->bytecode_table().EmitOpcode(OpcodeType::kTypeof);
+        break;
     case TokenType::kOpPrefixInc:
         function_def_base->bytecode_table().EmitOpcode(OpcodeType::kInc);
         code_generator->GenerateLValueStore(function_def_base, unary_exp.argument().get());

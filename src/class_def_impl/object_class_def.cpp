@@ -4,6 +4,7 @@
 #include <mjs/context.h>
 #include <mjs/shape_property.h>
 #include <mjs/object.h>
+#include <mjs/error.h>
 
 namespace mjs {
 
@@ -42,7 +43,10 @@ Value ObjectClassDef::LiteralNew(Context* context, uint32_t par_count, const Sta
 	auto obj = Object::New(context);
 	for (int32_t i = 0; i < par_count; i += 2) {
 		auto key_const_index = stack.get(i).const_index();
-		assert(key_const_index != kConstIndexInvalid);
+		if (key_const_index == kConstIndexInvalid) {
+			return TypeError::Throw(context, "Object property key must be a valid string");
+		}
+
 		obj->SetProperty(context, key_const_index, std::move(stack.get(i + 1)));
 	}
 	return Value(obj);
@@ -50,10 +54,14 @@ Value ObjectClassDef::LiteralNew(Context* context, uint32_t par_count, const Sta
 
 Value ObjectClassDef::SetProperty(Context* context, uint32_t par_count, const StackFrame& stack) {
 	// 参数: obj, key, value
-	assert(par_count == 3);
+	if (par_count != 3) {
+		return TypeError::Throw(context, "Object.setProperty requires exactly 3 arguments");
+	}
 	auto* obj = &stack.get(0).object();
 	auto key_const_index = stack.get(1).const_index();
-	assert(key_const_index != kConstIndexInvalid);
+	if (key_const_index == kConstIndexInvalid) {
+		return TypeError::Throw(context, "Object property key must be a valid string");
+	}
 	obj->SetProperty(context, key_const_index, std::move(stack.get(2)));
 	return Value(obj);
 }
@@ -62,10 +70,15 @@ Value ObjectClassDef::DefineProperty(Context* context, uint32_t par_count, const
 	// 支持两种调用方式:
 	// 1. 标准 JavaScript 语法: Object.defineProperty(obj, prop, descriptor) - 3个参数
 	// 2. 内部 getter/setter 语法: Object.defineProperty(obj, key, accessor, kind) - 4个参数
+	if (!stack.get(0).IsObject()) {
+		return TypeError::Throw(context, "Object.defineProperty requires an object as first argument");
+	}
 
 	auto* obj = &stack.get(0).object();
 	auto key_const_index = stack.get(1).const_index();
-	assert(key_const_index != kConstIndexInvalid);
+	if (key_const_index == kConstIndexInvalid) {
+		return TypeError::Throw(context, "Object property key must be a valid string");
+	}
 
 	if (par_count == 3) {
 		// 标准 JavaScript 语法: Object.defineProperty(obj, prop, descriptor)
@@ -95,7 +108,7 @@ Value ObjectClassDef::DefineProperty(Context* context, uint32_t par_count, const
 		obj->SetPropertyWithFlags(context, key_const_index, Value(&accessor), flags);
 	} else {
 		// 不支持的参数数量
-		assert(false && "Unsupported parameter count for Object.defineProperty");
+		return TypeError::Throw(context, "Object.defineProperty requires 3 or 4 arguments");
 	}
 
 	return Value(obj);
@@ -103,9 +116,12 @@ Value ObjectClassDef::DefineProperty(Context* context, uint32_t par_count, const
 
 Value ObjectClassDef::Freeze(Context* context, uint32_t par_count, const StackFrame& stack) {
 	// TODO: 当前的实现存在缺陷，没有设置属性的writable等描述符
-	
+
 	// 参数: obj
-	assert(par_count == 1);
+	if (par_count < 1 || !stack.get(0).IsObject()) {
+		return TypeError::Throw(context, "Object.freeze requires an object argument");
+	}
+
 	auto* obj = &stack.get(0).object();
 
 	// 冻结对象
@@ -118,8 +134,11 @@ Value ObjectClassDef::Freeze(Context* context, uint32_t par_count, const StackFr
 Value ObjectClassDef::Seal(Context* context, uint32_t par_count, const StackFrame& stack) {
 	// TODO: 当前的实现存在缺陷，没有设置属性的writable等描述符
 
+	if (par_count < 1 || !stack.get(0).IsObject()) {
+		return TypeError::Throw(context, "Object.seal requires an object argument");
+	}
+
 	// 参数: obj
-	assert(par_count == 1);
 	auto* obj = &stack.get(0).object();
 
 	// 密封对象
@@ -131,9 +150,11 @@ Value ObjectClassDef::Seal(Context* context, uint32_t par_count, const StackFram
 
 Value ObjectClassDef::PreventExtensions(Context* context, uint32_t par_count, const StackFrame& stack) {
 	// TODO: 当前的实现存在缺陷，没有设置属性的writable等描述符
-	
+
 	// 参数: obj
-	assert(par_count == 1);
+	if (par_count != 1 || !stack.get(0).IsObject()) {
+		return TypeError::Throw(context, "Object.preventExtensions requires an object argument");
+	}
 	auto* obj = &stack.get(0).object();
 
 	// 阻止对象扩展

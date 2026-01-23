@@ -26,6 +26,7 @@ void VariableDeclaration::GenerateCode(CodeGenerator* code_generator, FunctionDe
     // 如果是导出变量，添加到模块导出
     if (is_export_) {
         static_cast<ModuleDef*>(function_def_base)->export_var_def_table().AddExportVar(name_, var_info.var_idx);
+        // std::cerr << "Added export var: " << name_ << " at index " << var_info.var_idx << std::endl;
     }
 }
 

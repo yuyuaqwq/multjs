@@ -31,7 +31,7 @@ void VM::ModuleInit(Value* module_def_value) {
 	*module_def_value = Value(module_obj);
 
 	for (auto& def : module_obj->module_def().export_var_def_table().export_var_defs()) {
-		module_obj->SetProperty(context_, context_->FindConstOrInsertToGlobal(Value(String::New(def.first))), 
+		module_obj->SetProperty(context_, context_->FindConstOrInsertToGlobal(Value(String::New(def.first))),
 			Value(&module_obj->module_env().export_vars()[def.second.export_var_index])
 		);
 	}
@@ -50,24 +50,28 @@ void VM::BindModuleExportVars(StackFrame* stack_frame) {
 }
 
 
-Value& VM::GetVar(StackFrame* stack_frame, VarIndex idx) {
-	auto* var = &stack_frame->get(idx);
-	if (var->IsClosureVar()) {
-		var = &var->closure_var().value();
-	}
-	else if (var->IsExportVar()) {
-		var = &var->export_var().value();
+Value& VM::GetVar(const StackFrame& stack_frame, VarIndex idx) {
+	auto* var = &stack_frame.get(idx);
+	while (var->IsClosureVar() || var->IsExportVar()) {
+		if (var->IsClosureVar()) {
+			var = &var->closure_var().value();
+		}
+		else if (var->IsExportVar()) {
+			var = &var->export_var().value();
+		}
 	}
 	return *var;
 }
 
 void VM::SetVar(StackFrame* stack_frame, VarIndex idx, Value&& var) {
 	auto* var_ = &stack_frame->get(idx);
-	if (var_->IsClosureVar()) {
-		var_ = &var_->closure_var().value();
-	}
-	else if (var_->IsExportVar()) {
-		var_ = &var_->export_var().value();
+	while (var_->IsClosureVar() || var_->IsExportVar()) {
+		if (var_->IsClosureVar()) {
+			var_ = &var_->closure_var().value();
+		}
+		else if (var_->IsExportVar()) {
+			var_ = &var_->export_var().value();
+		}
 	}
 	*var_ = std::move(var);
 }
@@ -347,7 +351,7 @@ void VM::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 		case OpcodeType::kVLoad: {
 			auto var_idx = func_def->bytecode_table().GetU8(stack_frame->pc());
 			stack_frame->set_pc(stack_frame->pc() + 1);
-			stack_frame->push(GetVar(stack_frame, var_idx));
+			stack_frame->push(GetVar(*stack_frame, var_idx));
 			break;
 		}
 		case OpcodeType::kVLoad_0:
@@ -355,7 +359,7 @@ void VM::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 		case OpcodeType::kVLoad_2:
 		case OpcodeType::kVLoad_3: {
 			auto var_idx = opcode - OpcodeType::kVLoad_0;
-			stack_frame->push(GetVar(stack_frame, var_idx));
+			stack_frame->push(GetVar(*stack_frame, var_idx));
 			break;
 		}
 		case OpcodeType::kPop: {
@@ -411,7 +415,7 @@ void VM::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 				// 非Object类型，根据类型来处理
 				// 如undefined需要报错
 				// number等需要转成临时Number Object
-				success = obj_val.GetProperty(context_, const_idx, &obj_val);
+				success = obj_val.ToObject().object().GetProperty(context_, const_idx, &obj_val);
 			}
 
 			if (!success) {
@@ -492,6 +496,13 @@ void VM::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 			VM_EXCEPTION_CHECK_AND_THROW(b);
 			break;
 		}
+		case OpcodeType::kMod: {
+			auto a = stack_frame->pop();
+			auto& b = stack_frame->get(-1);
+			b = b.Modulo(context_, a);
+			VM_EXCEPTION_CHECK_AND_THROW(b);
+			break;
+		}
 		case OpcodeType::kNeg: {
 			auto& a = stack_frame->get(-1);
 			a = a.Negate(context_);
@@ -544,6 +555,12 @@ void VM::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 		case OpcodeType::kBitNot: {
 			auto& a = stack_frame->get(-1);
 			a = a.BitwiseNot(context_);
+			VM_EXCEPTION_CHECK_AND_THROW(a);
+			break;
+		}
+		case OpcodeType::kTypeof: {
+			auto& a = stack_frame->get(-1);
+			a = a.Typeof(context_);
 			VM_EXCEPTION_CHECK_AND_THROW(a);
 			break;
 		}
@@ -772,6 +789,57 @@ void VM::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 			auto& b = stack_frame->get(-1);
 			b = b.GreaterThanOrEqual(context_, a);
 			VM_EXCEPTION_CHECK_AND_THROW(b);
+			break;
+		}
+		case OpcodeType::kIn: {
+			auto a = stack_frame->pop();
+			auto& b = stack_frame->get(-1);
+			b = b.In(context_, a);
+			VM_EXCEPTION_CHECK_AND_THROW(b);
+			break;
+		}
+		case OpcodeType::kInstanceof: {
+			auto a = stack_frame->pop();
+			auto& b = stack_frame->get(-1);
+			b = b.InstanceOf(context_, a);
+			VM_EXCEPTION_CHECK_AND_THROW(b);
+			break;
+		}
+		case OpcodeType::kLogicalAnd: {
+			// 逻辑与：如果左操作数是 falsy，返回左操作数；否则返回右操作数
+			auto right = stack_frame->pop();
+			auto& left = stack_frame->get(-1);
+			bool left_truthy = left.ToBoolean().boolean();
+			if (!left_truthy) {
+				// 左操作数是 falsy，保留左操作数
+			} else {
+				// 左操作数是 truthy，返回右操作数
+				left = std::move(right);
+			}
+			break;
+		}
+		case OpcodeType::kLogicalOr: {
+			// 逻辑或：如果左操作数是 truthy，返回左操作数；否则返回右操作数
+			auto right = stack_frame->pop();
+			auto& left = stack_frame->get(-1);
+			bool left_truthy = left.ToBoolean().boolean();
+			if (left_truthy) {
+				// 左操作数是 truthy，保留左操作数
+			} else {
+				// 左操作数是 falsy，返回右操作数
+				left = std::move(right);
+			}
+			break;
+		}
+		case OpcodeType::kNullishCoalescing: {
+			// 空值合并：如果左操作数是 null/undefined，返回右操作数；否则返回左操作数
+			auto right = stack_frame->pop();
+			auto& left = stack_frame->get(-1);
+			if (left.IsNull() || left.IsUndefined()) {
+				// 左操作数是 null/undefined，返回右操作数
+				left = std::move(right);
+			}
+			// 否则保留左操作数
 			break;
 		}
 		case OpcodeType::kIfEq: {

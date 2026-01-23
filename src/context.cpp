@@ -132,5 +132,4 @@ const Value& Context::GetConstValue(ConstIndex const_index) {
 	}
 }
 
-
 } // namespace mjs

@@ -91,6 +91,7 @@ enum class OpcodeType : uint8_t {
 	kSub = 0x64, ///< 减法运算
 	kMul = 0x68, ///< 乘法运算
 	kDiv = 0x6c, ///< 除法运算
+	kMod = 0x6d, ///< 取模运算
 
 	// 位运算和移位指令
 	kShl = 0x71,    ///< 左移位运算
@@ -103,6 +104,7 @@ enum class OpcodeType : uint8_t {
 
 	// 取反指令
 	kNeg = 0x70, ///< 取反运算
+	kTypeof = 0x7a, ///< typeof运算
 
 	// 比较指令
 	kEq = 0x99, ///< 等于比较
@@ -111,8 +113,14 @@ enum class OpcodeType : uint8_t {
 	kGe = 0x9c, ///< 大于等于比较
 	kGt = 0x9d, ///< 大于比较
 	kLe = 0x9e, ///< 小于等于比较
+	kIn = 0xa3, ///< in 运算
+	kInstanceof = 0xa4, ///< instanceof 运算
 
+	// 逻辑运算指令
+	kLogicalAnd = 0x9f, ///< 逻辑与运算（短路）
 	kIfEq = 0xa0, ///< 条件跳转（等于）
+	kLogicalOr = 0xa1, ///< 逻辑或运算（短路）
+	kNullishCoalescing = 0xa2, ///< 空值合并运算（短路）
 
 	// 控制流指令
 	kGoto = 0xa7, ///< 无条件跳转

@@ -11,9 +11,9 @@ namespace compiler {
 void BinaryExpression::GenerateCode(CodeGenerator* code_generator, FunctionDefBase* function_def_base) const {
     // 二元表达式代码生成
     auto& binary_exp = const_cast<BinaryExpression&>(*this);
-
+    
     // 左右表达式的值入栈
-    binary_exp.left()->GenerateCode(code_generator, function_def_base);
+	binary_exp.left()->GenerateCode(code_generator, function_def_base);
     binary_exp.right()->GenerateCode(code_generator, function_def_base);
 
     // 生成运算指令
@@ -29,6 +29,9 @@ void BinaryExpression::GenerateCode(CodeGenerator* code_generator, FunctionDefBa
         break;
     case TokenType::kOpDiv:
         function_def_base->bytecode_table().EmitOpcode(OpcodeType::kDiv);
+        break;
+    case TokenType::kOpMod:
+        function_def_base->bytecode_table().EmitOpcode(OpcodeType::kMod);
         break;
     case TokenType::kOpEq:
         function_def_base->bytecode_table().EmitOpcode(OpcodeType::kEq);
@@ -54,7 +57,14 @@ void BinaryExpression::GenerateCode(CodeGenerator* code_generator, FunctionDefBa
     case TokenType::kOpGe:
         function_def_base->bytecode_table().EmitOpcode(OpcodeType::kGe);
         break;
+    case TokenType::kKwIn:
+        function_def_base->bytecode_table().EmitOpcode(OpcodeType::kIn);
+        break;
+    case TokenType::kKwInstanceof:
+        function_def_base->bytecode_table().EmitOpcode(OpcodeType::kInstanceof);
+        break;
     case TokenType::kSepComma:
+        function_def_base->bytecode_table().EmitOpcode(OpcodeType::kPop);
         break;
     case TokenType::kOpShiftLeft:
         function_def_base->bytecode_table().EmitOpcode(OpcodeType::kShl);
@@ -74,6 +84,21 @@ void BinaryExpression::GenerateCode(CodeGenerator* code_generator, FunctionDefBa
     case TokenType::kOpBitXor:
         function_def_base->bytecode_table().EmitOpcode(OpcodeType::kBitXor);
         break;
+    case TokenType::kOpAnd: {
+        // 逻辑与运算
+        function_def_base->bytecode_table().EmitOpcode(OpcodeType::kLogicalAnd);
+        break;
+    }
+    case TokenType::kOpOr: {
+        // 逻辑或运算
+        function_def_base->bytecode_table().EmitOpcode(OpcodeType::kLogicalOr);
+        break;
+    }
+    case TokenType::kOpNullishCoalescing: {
+        // 空值合并运算
+        function_def_base->bytecode_table().EmitOpcode(OpcodeType::kNullishCoalescing);
+        break;
+    }
     default:
         throw SyntaxError("Unsupported binary operator");
     }

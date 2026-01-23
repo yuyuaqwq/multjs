@@ -72,7 +72,7 @@ protected:
     }
 
     Value& GetVar(VM* vm, StackFrame* stack_frame, VarIndex var_index) {
-        return vm->GetVar(stack_frame, var_index);
+        return vm->GetVar(*stack_frame, var_index);
     }
 
     void SetVar(VM* vm, StackFrame* stack_frame, VarIndex var_index, Value&& var) {
