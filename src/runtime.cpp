@@ -41,7 +41,7 @@ public:
 
 Runtime::Runtime() 
 	: shape_manager_(nullptr)
-	, global_this_(Object::New(this))
+    , global_this_(Object::New(this))
 	, class_def_table_(this)
     , module_manager_(std::make_unique<ModuleManager>())
 {

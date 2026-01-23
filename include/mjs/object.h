@@ -206,14 +206,14 @@ public:
 	/**
 	 * @brief 获取对象的原型
 	 * @param runtime 运行时环境指针
-	 * @return 原型对象的常量引用
+	 * @return 原型对象的常量引用，__proto__
 	 */
 	const Value& GetPrototype(Runtime* runtime) const;
 
 	/**
 	 * @brief 设置对象的原型
 	 * @param context 执行上下文指针
-	 * @param prototype 要设置的原型对象
+	 * @param prototype 要设置的原型对象，__proto__
 	 */
 	void SetPrototype(Context* context, Value prototype);
 
@@ -400,6 +400,8 @@ protected:
 		uint64_t full_ = 0;                   ///< 完整64位值
 		struct {
 			uint32_t ref_count_;                ///< 引用计数
+			static_assert(sizeof(uint16_t) == sizeof(ClassId));
+			uint32_t class_id_ : 16;			///< 类id
 			uint32_t gc_mark_ : 1;              ///< 垃圾回收标记位
 			uint32_t is_extensible_ : 1;        ///< 是否可扩展（JS 标准）
 			uint32_t is_frozen_ : 1;            ///< 是否已冻结（JS 标准）

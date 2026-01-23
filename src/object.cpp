@@ -12,8 +12,10 @@ Object::Object(Runtime* runtime, ClassId class_id) {
 	runtime->gc_manager().AddObject(this);
 
 	tag_.is_extensible_ = 1;  // 默认可扩展
-	shape_ = &runtime->shape_manager().empty_shape();
 
+	tag_.class_id_ = static_cast<uint16_t>(class_id);
+
+	shape_ = &runtime->shape_manager().empty_shape();
 	// runtime的对象，只允许在初始化阶段变更，因此引用和解引用不考虑线程安全问题
 	shape_->Reference();
 }
@@ -23,15 +25,15 @@ Object::Object(Context* context, ClassId class_id) {
 	context->gc_manager().AddObject(this);
 
 	tag_.is_extensible_ = 1;  // 默认可扩展
+
+	tag_.class_id_ = static_cast<uint16_t>(class_id);
+
 	shape_ = &context->shape_manager().empty_shape();
 	shape_->Reference();
 }
 
 Object::~Object() {
 	assert(gc_mark() || tag_.ref_count_ == 0);
-	//if (property_map_) {
-	//	delete property_map_;
-	//}
 	shape_->Dereference();
 }
 
@@ -274,7 +276,7 @@ const Value& Object::GetPrototype(Runtime* runtime) const {
 		assert(index != kPropertySlotIndexInvalid);
 		return properties_[index].value;
 	}
-	return shape_->proto();
+	return runtime->class_def_table()[static_cast<ClassId>(tag_.class_id_)].prototype();
 }
 
 void Object::SetPrototype(Context* context, Value prototype) {

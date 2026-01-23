@@ -443,7 +443,7 @@ TEST_F(CsUserModuleIntegrationTest, GetServersResponseWithServers) {
     // 测试 GetServersResponse 设置 servers 数组
     AssertTrue(R"(
         import { GetServersResponse, Server } from './fixtures/modules/cs_user.mjs';
-        const res = new GetServersResponse();
+        const res = new GetServersResponse(111, 111);
         const server1 = new Server().withId(1).withName('Server1').withNumber(100);
         const server2 = new Server().withId(2).withName('Server2').withNumber(200);
         res.withSuccess(true).withServers([server1, server2]);
@@ -505,7 +505,7 @@ TEST_F(CsUserModuleIntegrationTest, GetCreatedPlayersResponseWithEntityIds) {
     AssertTrue(R"(
         import { GetCreatedPlayersResponse } from './fixtures/modules/cs_user.mjs';
         const res = new GetCreatedPlayersResponse();
-        res.withSuccess(true).withEntityIds([1001n, 1002n, 1003n]);
+        res.withSuccess(true).withEntityIds([1001, 1002, 1003]);
         res.success && res.entityIds.length === 3;
     )");
 }
@@ -515,21 +515,21 @@ TEST_F(CsUserModuleIntegrationTest, GetCreatedPlayersResponseEntityIdArrayAccess
     AssertEq(R"(
         import { GetCreatedPlayersResponse } from './fixtures/modules/cs_user.mjs';
         const res = new GetCreatedPlayersResponse();
-        res.withEntityIds([1001n, 1002n, 1003n]);
+        res.withEntityIds([1001, 1002, 1003]);
         res.entityIds[0];
     )", Value(1001));
 
     AssertEq(R"(
         import { GetCreatedPlayersResponse } from './fixtures/modules/cs_user.mjs';
         const res = new GetCreatedPlayersResponse();
-        res.withEntityIds([1001n, 1002n, 1003n]);
+        res.withEntityIds([1001, 1002, 1003]);
         res.entityIds[1];
     )", Value(1002));
 
     AssertEq(R"(
         import { GetCreatedPlayersResponse } from './fixtures/modules/cs_user.mjs';
         const res = new GetCreatedPlayersResponse();
-        res.withEntityIds([1001n, 1002n, 1003n]);
+        res.withEntityIds([1001, 1002, 1003]);
         res.entityIds[2];
     )", Value(1003));
 }
@@ -611,7 +611,7 @@ TEST_F(CsUserModuleIntegrationTest, GetCreatedPlayersScenario) {
 
         // 模拟服务器响应
         const res = new GetCreatedPlayersResponse();
-        res.withSuccess(true).withEntityIds([10001n, 10002n, 10005n, 10008n]);
+        res.withSuccess(true).withEntityIds([10001, 10002, 10005, 10008]);
 
         // 返回角色数量
         res.entityIds.length;
@@ -670,7 +670,7 @@ TEST_F(CsUserModuleIntegrationTest, CompleteGameFlowScenario) {
         const getPlayersReq = new GetCreatedPlayersRequest();
 
         const getPlayersRes = new GetCreatedPlayersResponse();
-        getPlayersRes.withSuccess(true).withEntityIds([50001n, 50002n]);
+        getPlayersRes.withSuccess(true).withEntityIds([50001, 50002]);
 
         // 验证所有步骤
         registerRes.success &&

@@ -49,15 +49,9 @@ public:
     ShapeManager* shape_manager() { return shape_manager_; }
     const ShapeManager* shape_manager() const { return shape_manager_; }
 
-    const Value& proto() const { return proto_; }
-
 private:
     ShapeManager* shape_manager_;
     Shape* parent_shape_;
-
-    Value proto_;   // __proto__
-
-    ClassId class_id_ = ClassId::kInvalid;
 
     uint32_t property_size_;
     ShapePropertyHashTable* property_map_;

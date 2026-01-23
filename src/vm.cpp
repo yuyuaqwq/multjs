@@ -593,11 +593,11 @@ void VM::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 				// 3. 设置新对象的原型
 				obj_val.object().SetPrototype(context_, prototype_val);
 
-				// 弹出函数值
-				stack_frame->pop();
+				auto param_count = stack_frame->pop().u64();
 
 				// 4. 调用构造函数，以新对象为 this
 				auto new_stack_frame = StackFrame(stack_frame);
+				// 参数已经在栈上了，调整bottom
 				new_stack_frame.set_bottom(new_stack_frame.bottom() - param_count);
 				new_stack_frame.set_this_val(Value(obj_val));
 
@@ -608,10 +608,8 @@ void VM::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 				VM_EXCEPTION_CHECK_AND_THROW(ret);
 
 				// 5. 如果构造函数返回对象，则返回该对象；否则返回新创建的对象
-				if (ret.type() != ValueType::kUndefined && ret.IsObject()) {
-					stack_frame->push(ret);
-				} else {
-					stack_frame->push(obj_val);
+				if (ret.type() == ValueType::kUndefined || !ret.IsObject()) {
+					ret = obj_val;
 				}
 			}
 			else {
@@ -629,7 +627,6 @@ void VM::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 			auto param_count = stack_frame->pop().u64();
 				
 			auto new_stack_frame = StackFrame(stack_frame);
-
 			// 参数已经在栈上了，调整bottom
 			new_stack_frame.set_bottom(
 				new_stack_frame.bottom() - param_count

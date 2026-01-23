@@ -27,6 +27,9 @@ void ImportDeclaration::GenerateCode(CodeGenerator* code_generator, FunctionDefB
             // 存储到局部变量
             auto& var_info = code_generator->scope_manager().AllocateVar(spec.local_name, VarFlags::kConst);
             function_def_base->bytecode_table().EmitVarStore(var_info.var_idx);
+
+			// pop掉导出属性
+			function_def_base->bytecode_table().EmitOpcode(OpcodeType::kPop);
         }
 
         // 清理栈上的模块对象

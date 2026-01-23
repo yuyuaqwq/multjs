@@ -17,6 +17,7 @@ ArrayObjectClassDef::ArrayObjectClassDef(Runtime* runtime)
 	forEach_const_index_ = runtime->global_const_pool().insert(Value("forEach"));
 	map_const_index_ = runtime->global_const_pool().insert(Value("map"));
 	filter_const_index_ = runtime->global_const_pool().insert(Value("filter"));
+	reduce_const_index_ = runtime->global_const_pool().insert(Value("reduce"));
 
 	constructor_.object().SetProperty(runtime, of_const_index_, Value([](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
 		return ArrayObjectClassDef::Of(context, par_count, stack);
@@ -109,6 +110,44 @@ ArrayObjectClassDef::ArrayObjectClassDef(Runtime* runtime)
 			}
 		}
 		return Value(result);
+	}));
+
+	// Reduce method
+	prototype_.object().SetProperty(runtime, reduce_const_index_, Value([](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
+		if (par_count < 1) {
+			return TypeError::Throw(context, "reduce requires a callback function");
+		}
+		auto& arr = stack.this_val().array();
+		auto callback = stack.get(0);
+		if (!callback.IsFunctionObject() && !callback.IsFunctionDef()) {
+			return TypeError::Throw(context, "reduce callback must be a function");
+		}
+
+		size_t start_index = 0;
+		Value accumulator;
+
+		if (par_count >= 2) {
+			// 提供了初始值
+			accumulator = stack.get(1);
+		} else {
+			// 没有提供初始值，使用数组第一个元素作为初始值
+			if (arr.length() == 0) {
+				return TypeError::Throw(context, "reduce of empty array with no initial value");
+			}
+			accumulator = arr.At(context, 0);
+			start_index = 1;
+		}
+
+		for (size_t i = start_index; i < arr.length(); ++i) {
+			std::array<Value, 4> args = {
+				accumulator,
+				arr.At(context, i),
+				Value(static_cast<int64_t>(i)),
+				stack.this_val()
+			};
+			accumulator = context->CallFunction(&callback, Value(), args.begin(), args.end());
+		}
+		return accumulator;
 	}));
 }
 
