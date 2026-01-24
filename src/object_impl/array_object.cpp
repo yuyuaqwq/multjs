@@ -16,19 +16,14 @@ void ArrayObject::InitLengthProperty(Context* context) {
     SetLengthValue(context, 0);
 }
 
-ConstIndex ArrayObject::GetLengthConstIndex(Context* context) const {
-    return context->runtime().class_def_table()[ClassId::kArrayObject].get<ArrayObjectClassDef>().length_const_index();
-}
-
 void ArrayObject::SetLengthValue(Context* context, size_t new_length) {
-    auto length_key = GetLengthConstIndex(context);
     uint32_t flags = ShapeProperty::kWritable | ShapeProperty::kConfigurable; // length 不可枚举
 
     // 检查 length 属性是否已存在
-    auto index = shape_->Find(length_key);
+    auto index = shape_->Find(ConstIndexEmbedded::kLength);
     if (index == kPropertySlotIndexInvalid) {
         // 不存在，添加新属性
-        index = shape_->shape_manager()->AddProperty(&shape_, ShapeProperty(length_key));
+        index = shape_->shape_manager()->AddProperty(&shape_, ShapeProperty(ConstIndexEmbedded::kLength));
         AddPropertySlot(index, Value(static_cast<int64_t>(new_length)), flags);
     } else {
         // 已存在，更新值
@@ -52,7 +47,7 @@ bool ArrayObject::ToArrayIndex(const Value& key, uint64_t* out_index) {
 
 bool ArrayObject::GetProperty(Context* context, ConstIndex key, Value* value) {
     // 检查是否访问 length 属性
-    if (key == GetLengthConstIndex(context)) {
+    if (key == ConstIndexEmbedded::kLength) {
         *value = Value(static_cast<int64_t>(length()));
         return true;
     }
@@ -62,7 +57,7 @@ bool ArrayObject::GetProperty(Context* context, ConstIndex key, Value* value) {
 
 void ArrayObject::SetProperty(Context* context, ConstIndex key, Value&& value) {
     // 特殊处理 length 属性的设置
-    if (key == GetLengthConstIndex(context)) {
+    if (key == ConstIndexEmbedded::kLength) {
         // 设置 length 的特殊行为
         if (!value.IsInt64() || value.i64() < 0) {
             // 无效的 length 值，忽略或抛出错误

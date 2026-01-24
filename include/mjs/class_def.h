@@ -18,7 +18,9 @@
 
 #include <mjs/noncopyable.h>
 #include <mjs/error.h>
+#include <mjs/class_id.h>
 #include <mjs/value.h>
+#include <mjs/const_index_embedded.h>
 
 namespace mjs {
 
@@ -53,30 +55,6 @@ enum class FunctionInternalMethods {
 	kCall = 1 << 1,               ///< [[Call]] 内部方法
 };
 
-
-/**
- * @enum ClassId
- * @brief 类标识符枚举
- *
- * 定义了 JavaScript 引擎支持的所有内置类类型标识符。
- */
-enum class ClassId : uint16_t {
-	kInvalid = 0,          ///< 无效类标识符
-	kSymbol,               ///< Symbol 类
-	kObject,               ///< 普通对象类
-	kNumberObject,         ///< 数字对象类
-	kStringObject,         ///< 字符串对象类
-	kArrayObject,          ///< 数组对象类
-	kFunctionObject,       ///< 函数对象类
-	kGeneratorObject,      ///< 生成器对象类
-	kPromiseObject,        ///< Promise 对象类
-	kAsyncObject,          ///< 异步对象类
-	kModuleObject,         ///< 模块对象类
-	kCppModuleObject,      ///< C++ 模块对象类
-
-	kCustom,               ///< 自定义类标识符
-};
-
 class Runtime;
 
 /**
@@ -88,7 +66,7 @@ class Runtime;
  * - 构造函数支持
  * - 原型对象管理
  * - 类名称管理
- * 实际上就是在 C++ 中定义 JavaScript 的构造函数对象
+ * 实际上就是在 C++ 中定义 JavaScript 的构造函数
  *
  * @note 继承自 noncopyable 确保单例特性
  * @see Object 对象基类
@@ -101,7 +79,7 @@ public:
 	 * @param id 类标识符
 	 * @param name 类名称
 	 */
-	ClassDef(Runtime* runtime, ClassId id, const char* name, bool is_constructor_object = true);
+	ClassDef(Runtime* runtime, ClassId id, const char* name);
 
 	/**
 	 * @brief 虚析构函数

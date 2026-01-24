@@ -11,9 +11,10 @@
 
 namespace mjs {
 
-ClassDefTable::ClassDefTable(Runtime* runtime) {
+ClassDefTable::ClassDefTable(Runtime* runtime) {}
+
+void ClassDefTable::Initialize(Runtime* runtime) {
 	// 注册所有内置类定义
-	Register(std::make_unique<SymbolClassDef>(runtime));
 	Register(std::make_unique<ObjectClassDef>(runtime));
 	Register(std::make_unique<ClassDef>(runtime, ClassId::kNumberObject, "Number"));
 	Register(std::make_unique<StringObjectClassDef>(runtime));
@@ -24,6 +25,7 @@ ClassDefTable::ClassDefTable(Runtime* runtime) {
 	Register(std::make_unique<ClassDef>(runtime, ClassId::kAsyncObject, "Async"));
 	Register(std::make_unique<ClassDef>(runtime, ClassId::kModuleObject, "Module"));
 	Register(std::make_unique<ClassDef>(runtime, ClassId::kCppModuleObject, "CppModule"));
+	Register(std::make_unique<SymbolClassDef>(runtime));
 }
 
 void ClassDefTable::Register(ClassDefUnique class_def) {

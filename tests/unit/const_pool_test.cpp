@@ -44,7 +44,7 @@ protected:
  */
 TEST_F(GlobalConstPoolTest, InsertUndefined) {
     Value v; // 默认构造函数创建undefined
-    ConstIndex idx = pool_->insert(v);
+    ConstIndex idx = pool_->Insert(v);
 
     EXPECT_GE(idx, 0);
     // size可能大于1,因为SegmentedArray可能有预分配
@@ -57,7 +57,7 @@ TEST_F(GlobalConstPoolTest, InsertUndefined) {
  */
 TEST_F(GlobalConstPoolTest, InsertNull) {
     Value v(nullptr);
-    ConstIndex idx = pool_->insert(v);
+    ConstIndex idx = pool_->Insert(v);
 
     EXPECT_GE(idx, 0);
     EXPECT_GE(pool_->size(), 1);
@@ -71,8 +71,8 @@ TEST_F(GlobalConstPoolTest, InsertBoolean) {
     Value v_true(true);
     Value v_false(false);
 
-    ConstIndex idx1 = pool_->insert(v_true);
-    ConstIndex idx2 = pool_->insert(v_false);
+    ConstIndex idx1 = pool_->Insert(v_true);
+    ConstIndex idx2 = pool_->Insert(v_false);
 
     EXPECT_GE(idx1, 0);
     EXPECT_GE(idx2, 0);
@@ -86,7 +86,7 @@ TEST_F(GlobalConstPoolTest, InsertBoolean) {
  */
 TEST_F(GlobalConstPoolTest, InsertInt64) {
     Value v(static_cast<int64_t>(42));
-    ConstIndex idx = pool_->insert(v);
+    ConstIndex idx = pool_->Insert(v);
 
     EXPECT_GE(idx, 0);
     EXPECT_GE(pool_->size(), 1);
@@ -98,7 +98,7 @@ TEST_F(GlobalConstPoolTest, InsertInt64) {
  */
 TEST_F(GlobalConstPoolTest, InsertFloat64) {
     Value v(3.14);
-    ConstIndex idx = pool_->insert(v);
+    ConstIndex idx = pool_->Insert(v);
 
     EXPECT_GE(idx, 0);
     EXPECT_GE(pool_->size(), 1);
@@ -110,7 +110,7 @@ TEST_F(GlobalConstPoolTest, InsertFloat64) {
  */
 TEST_F(GlobalConstPoolTest, InsertStringView) {
     Value v("hello world");
-    ConstIndex idx = pool_->insert(v);
+    ConstIndex idx = pool_->Insert(v);
 
     EXPECT_GE(idx, 0);
     EXPECT_GE(pool_->size(), 1);
@@ -125,9 +125,9 @@ TEST_F(GlobalConstPoolTest, DuplicateValuesReturnSameIndex) {
     Value v2(42);
     Value v3(3.14);
 
-    ConstIndex idx1 = pool_->insert(v1);
-    ConstIndex idx2 = pool_->insert(v2);
-    ConstIndex idx3 = pool_->insert(v3);
+    ConstIndex idx1 = pool_->Insert(v1);
+    ConstIndex idx2 = pool_->Insert(v2);
+    ConstIndex idx3 = pool_->Insert(v3);
 
     EXPECT_EQ(idx1, idx2); // 相同值应该返回相同索引
     EXPECT_NE(idx1, idx3); // 不同值返回不同索引
@@ -141,8 +141,8 @@ TEST_F(GlobalConstPoolTest, FloatAndIntNotDeduplicated) {
     Value v_int(42);
     Value v_float(42.0);
 
-    ConstIndex idx_int = pool_->insert(v_int);
-    ConstIndex idx_float = pool_->insert(v_float);
+    ConstIndex idx_int = pool_->Insert(v_int);
+    ConstIndex idx_float = pool_->Insert(v_float);
 
     EXPECT_NE(idx_int, idx_float); // 不同类型,不合并
     EXPECT_GE(pool_->size(), 1);
@@ -153,9 +153,9 @@ TEST_F(GlobalConstPoolTest, FloatAndIntNotDeduplicated) {
  */
 TEST_F(GlobalConstPoolTest, FindExistingConstant) {
     Value v(42);
-    ConstIndex idx = pool_->insert(v);
+    ConstIndex idx = pool_->Insert(v);
 
-    auto found = pool_->find(v);
+    auto found = pool_->Find(v);
     ASSERT_TRUE(found.has_value());
     EXPECT_EQ(*found, idx);
 }
@@ -165,7 +165,7 @@ TEST_F(GlobalConstPoolTest, FindExistingConstant) {
  */
 TEST_F(GlobalConstPoolTest, FindNonExistentConstant) {
     Value v(42);
-    auto found = pool_->find(v);
+    auto found = pool_->Find(v);
 
     EXPECT_FALSE(found.has_value());
 }
@@ -175,7 +175,7 @@ TEST_F(GlobalConstPoolTest, FindNonExistentConstant) {
  */
 TEST_F(GlobalConstPoolTest, SubscriptOperator) {
     Value v(123);
-    ConstIndex idx = pool_->insert(v);
+    ConstIndex idx = pool_->Insert(v);
 
     const Value& retrieved = (*pool_)[idx];
     EXPECT_EQ(retrieved.i64(), 123);
@@ -186,9 +186,9 @@ TEST_F(GlobalConstPoolTest, SubscriptOperator) {
  */
 TEST_F(GlobalConstPoolTest, AtMethodValidIndex) {
     Value v(456);
-    ConstIndex idx = pool_->insert(v);
+    ConstIndex idx = pool_->Insert(v);
 
-    const Value& retrieved = pool_->at(idx);
+    const Value& retrieved = pool_->At(idx);
     EXPECT_EQ(retrieved.i64(), 456);
 }
 
@@ -197,15 +197,15 @@ TEST_F(GlobalConstPoolTest, AtMethodValidIndex) {
  */
 TEST_F(GlobalConstPoolTest, AtMethodInvalidIndexThrows) {
     Value v(42);
-    pool_->insert(v);
+    pool_->Insert(v);
 
     EXPECT_THROW(
-        pool_->at(999),
+        pool_->At(999),
         std::out_of_range
     );
 
     EXPECT_THROW(
-        pool_->at(-1),
+        pool_->At(-1),
         std::out_of_range
     );
 }
@@ -215,7 +215,7 @@ TEST_F(GlobalConstPoolTest, AtMethodInvalidIndexThrows) {
  */
 TEST_F(GlobalConstPoolTest, InsertMoveSemantics) {
     Value v(3.14);
-    ConstIndex idx = pool_->insert(std::move(v));
+    ConstIndex idx = pool_->Insert(std::move(v));
 
     EXPECT_GE(idx, 0);
     EXPECT_GE(pool_->size(), 1);
@@ -226,20 +226,20 @@ TEST_F(GlobalConstPoolTest, InsertMoveSemantics) {
  * @brief 测试clear方法
  */
 TEST_F(GlobalConstPoolTest, ClearMethod) {
-    pool_->insert(Value(42));
-    pool_->insert(Value(3.14));
-    pool_->insert(Value(true));
+    pool_->Insert(Value(42));
+    pool_->Insert(Value(3.14));
+    pool_->Insert(Value(true));
 
     auto size_before = pool_->size();
     EXPECT_GE(size_before, 1);
 
-    pool_->clear();
+    pool_->Clear();
 
     // clear后size应该为1
     EXPECT_EQ(pool_->size(), 1);
 
     // 清空后可以重新插入
-    pool_->insert(Value(100));
+    pool_->Insert(Value(100));
     EXPECT_GE(pool_->size(), 2);
 }
 
@@ -251,7 +251,7 @@ TEST_F(GlobalConstPoolTest, InsertManyConstants) {
 
     for (int i = 0; i < count; i++) {
         Value v(static_cast<int64_t>(i));
-        pool_->insert(v);
+        pool_->Insert(v);
     }
 
     EXPECT_EQ(pool_->size(), count + 1);
@@ -259,7 +259,7 @@ TEST_F(GlobalConstPoolTest, InsertManyConstants) {
     // 验证所有常量都可以正确访问
     for (int i = 0; i < count; i++) {
         Value lookup(static_cast<int64_t>(i));
-        auto found = pool_->find(lookup);
+        auto found = pool_->Find(lookup);
         ASSERT_TRUE(found.has_value());
     }
 }
@@ -269,7 +269,7 @@ TEST_F(GlobalConstPoolTest, InsertManyConstants) {
  */
 TEST_F(GlobalConstPoolTest, InsertNanValue) {
     Value v(std::numeric_limits<double>::quiet_NaN());
-    ConstIndex idx = pool_->insert(v);
+    ConstIndex idx = pool_->Insert(v);
 
     EXPECT_GE(idx, 0);
     EXPECT_TRUE(std::isnan((*pool_)[idx].f64()));
@@ -282,8 +282,8 @@ TEST_F(GlobalConstPoolTest, InsertInfinityValue) {
     Value v_pos(std::numeric_limits<double>::infinity());
     Value v_neg(-std::numeric_limits<double>::infinity());
 
-    ConstIndex idx_pos = pool_->insert(v_pos);
-    ConstIndex idx_neg = pool_->insert(v_neg);
+    ConstIndex idx_pos = pool_->Insert(v_pos);
+    ConstIndex idx_neg = pool_->Insert(v_neg);
 
     EXPECT_TRUE(std::isinf((*pool_)[idx_pos].f64()));
     EXPECT_TRUE(std::isinf((*pool_)[idx_neg].f64()));
@@ -310,7 +310,7 @@ protected:
  */
 TEST_F(LocalConstPoolTest, InsertConstant) {
     Value v(42);
-    ConstIndex idx = pool_->insert(v);
+    ConstIndex idx = pool_->Insert(v);
 
     EXPECT_LE(idx, 0); // LocalConstPool使用负索引
     EXPECT_EQ((*pool_)[idx].i64(), 42);
@@ -323,8 +323,8 @@ TEST_F(LocalConstPoolTest, DuplicateValuesSameIndex) {
     Value v1(42);
     Value v2(42);
 
-    ConstIndex idx1 = pool_->insert(v1);
-    ConstIndex idx2 = pool_->insert(v2);
+    ConstIndex idx1 = pool_->Insert(v1);
+    ConstIndex idx2 = pool_->Insert(v2);
 
     EXPECT_EQ(idx1, idx2);
 }
@@ -334,9 +334,9 @@ TEST_F(LocalConstPoolTest, DuplicateValuesSameIndex) {
  */
 TEST_F(LocalConstPoolTest, FindConstant) {
     Value v(42);
-    pool_->insert(v);
+    pool_->Insert(v);
 
-    auto found = pool_->find(v);
+    auto found = pool_->Find(v);
     ASSERT_TRUE(found.has_value());
     EXPECT_LE(*found, 0); // 负索引
 }
@@ -346,7 +346,7 @@ TEST_F(LocalConstPoolTest, FindConstant) {
  */
 TEST_F(LocalConstPoolTest, FindNonExistentConstant) {
     Value v(42);
-    auto found = pool_->find(v);
+    auto found = pool_->Find(v);
 
     EXPECT_FALSE(found.has_value());
 }
@@ -356,9 +356,9 @@ TEST_F(LocalConstPoolTest, FindNonExistentConstant) {
  */
 TEST_F(LocalConstPoolTest, AtMethod) {
     Value v(3.14);
-    ConstIndex idx = pool_->insert(v);
+    ConstIndex idx = pool_->Insert(v);
 
-    const Value& retrieved = pool_->at(idx);
+    const Value& retrieved = pool_->At(idx);
     EXPECT_DOUBLE_EQ(retrieved.f64(), 3.14);
 }
 
@@ -367,7 +367,7 @@ TEST_F(LocalConstPoolTest, AtMethod) {
  */
 TEST_F(LocalConstPoolTest, SubscriptOperator) {
     Value v(123);
-    ConstIndex idx = pool_->insert(v);
+    ConstIndex idx = pool_->Insert(v);
 
     const Value& retrieved = (*pool_)[idx];
     EXPECT_EQ(retrieved.i64(), 123);
@@ -378,7 +378,7 @@ TEST_F(LocalConstPoolTest, SubscriptOperator) {
  */
 TEST_F(LocalConstPoolTest, ReferenceAndDereference) {
     Value v(42);
-    ConstIndex idx = pool_->insert(v);
+    ConstIndex idx = pool_->Insert(v);
 
     // 增加引用计数
     pool_->ReferenceConst(idx);
@@ -397,10 +397,10 @@ TEST_F(LocalConstPoolTest, ReferenceAndDereference) {
  */
 TEST_F(LocalConstPoolTest, AutoDeleteWhenRefCountZero) {
     Value v(42);
-    ConstIndex idx = pool_->insert(v);
+    ConstIndex idx = pool_->Insert(v);
 
     // 验证常量存在
-    auto found = pool_->find(v);
+    auto found = pool_->Find(v);
     ASSERT_TRUE(found.has_value());
 
     // 增加引用计数到1
@@ -410,7 +410,7 @@ TEST_F(LocalConstPoolTest, AutoDeleteWhenRefCountZero) {
     pool_->DereferenceConst(idx);
 
     // 常量应该被删除
-    found = pool_->find(v);
+    found = pool_->Find(v);
     EXPECT_FALSE(found.has_value());
 }
 
@@ -418,12 +418,12 @@ TEST_F(LocalConstPoolTest, AutoDeleteWhenRefCountZero) {
  * @brief 测试clear方法
  */
 TEST_F(LocalConstPoolTest, ClearMethod) {
-    pool_->insert(Value(42));
-    pool_->insert(Value(3.14));
+    pool_->Insert(Value(42));
+    pool_->Insert(Value(3.14));
 
-    pool_->clear();
+    pool_->Clear();
 
-    auto found = pool_->find(Value(42));
+    auto found = pool_->Find(Value(42));
     EXPECT_FALSE(found.has_value());
 }
 
@@ -432,7 +432,7 @@ TEST_F(LocalConstPoolTest, ClearMethod) {
  */
 TEST_F(LocalConstPoolTest, InsertMoveSemantics) {
     Value v(3.14);
-    ConstIndex idx = pool_->insert(std::move(v));
+    ConstIndex idx = pool_->Insert(std::move(v));
 
     EXPECT_LE(idx, 0);
     EXPECT_DOUBLE_EQ((*pool_)[idx].f64(), 3.14);
@@ -442,12 +442,12 @@ TEST_F(LocalConstPoolTest, InsertMoveSemantics) {
  * @brief 测试多个不同类型的常量
  */
 TEST_F(LocalConstPoolTest, MultipleDifferentTypes) {
-    ConstIndex idx_undefined = pool_->insert(Value());  // 默认构造函数创建undefined
-    ConstIndex idx_null = pool_->insert(Value(nullptr));
-    ConstIndex idx_bool = pool_->insert(Value(true));
-    ConstIndex idx_int = pool_->insert(Value(static_cast<int64_t>(42)));
-    ConstIndex idx_float = pool_->insert(Value(3.14));
-    ConstIndex idx_str = pool_->insert(Value("hello"));
+    ConstIndex idx_undefined = pool_->Insert(Value());  // 默认构造函数创建undefined
+    ConstIndex idx_null = pool_->Insert(Value(nullptr));
+    ConstIndex idx_bool = pool_->Insert(Value(true));
+    ConstIndex idx_int = pool_->Insert(Value(static_cast<int64_t>(42)));
+    ConstIndex idx_float = pool_->Insert(Value(3.14));
+    ConstIndex idx_str = pool_->Insert(Value("hello"));
 
     EXPECT_LE(idx_undefined, 0);
     EXPECT_LE(idx_null, 0);
@@ -470,7 +470,7 @@ TEST_F(LocalConstPoolTest, MultipleDifferentTypes) {
  */
 TEST_F(LocalConstPoolTest, ReferenceCountCorrectness) {
     Value v(42);
-    ConstIndex idx = pool_->insert(v);
+    ConstIndex idx = pool_->Insert(v);
 
     // 插入后引用计数为0
     // 增加引用
@@ -485,14 +485,14 @@ TEST_F(LocalConstPoolTest, ReferenceCountCorrectness) {
     pool_->DereferenceConst(idx);
 
     // 常量应该还存在
-    auto found = pool_->find(v);
+    auto found = pool_->Find(v);
     EXPECT_TRUE(found.has_value());
 
     // 再减少一次,引用计数归零
     pool_->DereferenceConst(idx);
 
     // 常量被删除
-    found = pool_->find(v);
+    found = pool_->Find(v);
     EXPECT_FALSE(found.has_value());
 }
 

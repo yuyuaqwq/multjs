@@ -16,7 +16,7 @@ private:
     ConsoleObject(mjs::Runtime* runtime)
         : Object(runtime, mjs::ClassId::kObject)
     {
-        auto log_const_index = runtime->global_const_pool().insert(mjs::Value("log"));
+        auto log_const_index = runtime->global_const_pool().Insert(mjs::Value("log"));
         SetProperty(runtime, log_const_index, mjs::Value([](mjs::Context* context, uint32_t par_count, const mjs::StackFrame& stack) -> mjs::Value {
             for (size_t i = 0; i < par_count; i++) {
                 auto val = stack.get(i);
@@ -58,7 +58,7 @@ Runtime::Runtime(std::unique_ptr<ModuleManagerBase> module_manager)
 }
 
 Runtime::~Runtime() {
-	global_const_pool_.clear();
+	global_const_pool_.Clear();
 	global_this_ = Value();
 	class_def_table_.Clear();
 	module_manager_->ClearModuleCache();
@@ -66,17 +66,19 @@ Runtime::~Runtime() {
 }
 
 void Runtime::AddPropertyToGlobalThis(const char* property_key, Value&& value) {
-    auto const_idx = global_const_pool_.insert(Value(property_key));
+    auto const_idx = global_const_pool_.Insert(Value(property_key));
     global_this_.object().SetProperty(this, const_idx, std::move(value));
 }
 
 void Runtime::Initialize() {
+    global_const_pool_.Initialize();
+    class_def_table_.Initialize(this);
     GlobalThisInitialize();
     ConsoleInitialize();
 }
 
 void Runtime::GlobalThisInitialize() {
-    auto const_idx = global_const_pool_.insert(Value("globalThis"));
+    auto const_idx = global_const_pool_.Insert(Value("globalThis"));
     auto globalThis = global_this_;
     global_this_.object().SetProperty(this, const_idx, std::move(globalThis));
 }

@@ -154,7 +154,7 @@ TEST_F(RuntimeTest, AddPropertyToGlobalThis) {
     runtime_->AddPropertyToGlobalThis(prop_name, std::move(test_value));
 
     // Assert
-    auto const_idx = runtime_->global_const_pool().find(Value(prop_name));
+    auto const_idx = runtime_->global_const_pool().Find(Value(prop_name));
     EXPECT_TRUE(const_idx.has_value());
 }
 
@@ -173,9 +173,9 @@ TEST_F(RuntimeTest, AddMultiplePropertiesToGlobalThis) {
     runtime_->AddPropertyToGlobalThis("prop3", std::move(value3));
 
     // Assert
-    auto const_idx1 = runtime_->global_const_pool().find(Value("prop1"));
-    auto const_idx2 = runtime_->global_const_pool().find(Value("prop2"));
-    auto const_idx3 = runtime_->global_const_pool().find(Value("prop3"));
+    auto const_idx1 = runtime_->global_const_pool().Find(Value("prop1"));
+    auto const_idx2 = runtime_->global_const_pool().Find(Value("prop2"));
+    auto const_idx3 = runtime_->global_const_pool().Find(Value("prop3"));
 
     EXPECT_TRUE(const_idx1.has_value());
     EXPECT_TRUE(const_idx2.has_value());
@@ -187,7 +187,7 @@ TEST_F(RuntimeTest, AddMultiplePropertiesToGlobalThis) {
  */
 TEST_F(RuntimeTest, ConsoleInitialization) {
     // Arrange & Act
-    auto const_idx = runtime_->global_const_pool().find(Value("console"));
+    auto const_idx = runtime_->global_const_pool().Find(Value("console"));
 
     // Assert
     EXPECT_TRUE(const_idx.has_value());

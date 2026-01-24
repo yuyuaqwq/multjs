@@ -3,6 +3,7 @@
 #include <mjs/object.h>
 #include <mjs/context.h>
 #include <mjs/shape.h>
+#include <mjs/const_index_embedded.h>
 
 namespace mjs {
 
@@ -25,22 +26,20 @@ void FunctionObject::InitPrototypeProperty(Context* context) {
 
 	// 获取 FunctionObjectClassDef 中缓存的常量索引
 	auto& function_object_class_def = context->runtime().class_def_table()[ClassId::kFunctionObject].get<FunctionObjectClassDef>();
-	auto prototype_key = function_object_class_def.prototype_const_index();
-	auto constructor_key = function_object_class_def.constructor_const_index();
 
 	// 创建原型对象
 	auto* prototype_obj = Object::New(context);
 
 	// 在原型对象上设置 constructor 属性指向函数本身
-	prototype_obj->SetProperty(context, constructor_key, Value(this));
+	prototype_obj->SetProperty(context, ConstIndexEmbedded::kConstructor, Value(this));
 
 	// 将 prototype 对象添加到函数对象上
 	// 属性标志: writable, configurable (非 enumerable)
 	uint32_t flags = ShapeProperty::kWritable | ShapeProperty::kConfigurable;
 
-	auto index = shape_->Find(prototype_key);
+	auto index = shape_->Find(ConstIndexEmbedded::kPrototype);
 	if (index == kPropertySlotIndexInvalid) {
-		ShapeProperty prop(prototype_key);
+		ShapeProperty prop(ConstIndexEmbedded::kPrototype);
 		index = shape_->shape_manager()->AddProperty(&shape_, std::move(prop));
 		AddPropertySlot(index, Value(prototype_obj), flags);
 	} else {

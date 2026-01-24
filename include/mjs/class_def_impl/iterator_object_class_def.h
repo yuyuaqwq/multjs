@@ -9,9 +9,6 @@ public:
 	IteratorClassDef(Runtime* runtime);
 
 	virtual void Next();
-
-private:
-	ConstIndex next_const_index_;
 };
 
 } // namespace mjs

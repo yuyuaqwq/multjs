@@ -80,7 +80,7 @@ TEST_F(ObjectTest, ReferenceCount) {
  */
 TEST_F(ObjectTest, SetPropertyWithStringKey) {
     auto* obj = Object::New(runtime_.get());
-    auto index = runtime_->global_const_pool().insert(Value("test_prop"));
+    auto index = runtime_->global_const_pool().Insert(Value("test_prop"));
     obj->SetProperty(runtime_.get(), index, Value(42));
 
     Value retrieved_value;
@@ -97,14 +97,14 @@ TEST_F(ObjectTest, SetPropertyWithStringKey) {
 TEST_F(ObjectTest, SetPropertyWithNumber) {
     auto* obj = Object::New(runtime_.get());
     {
-        auto index = runtime_->global_const_pool().insert(Value("number_prop"));
+        auto index = runtime_->global_const_pool().Insert(Value("number_prop"));
         obj->SetProperty(runtime_.get(), index, Value(100));
         Value num_val;
         obj->GetProperty(runtime_.get(), index, &num_val);
         EXPECT_EQ(num_val.i64(), 100);
     }
     {
-        auto index = runtime_->global_const_pool().insert(Value("float_prop"));
+        auto index = runtime_->global_const_pool().Insert(Value("float_prop"));
         obj->SetProperty(runtime_.get(), index, Value(3.14));
         Value float_val;
         obj->GetProperty(runtime_.get(), index, &float_val);
@@ -119,7 +119,7 @@ TEST_F(ObjectTest, SetPropertyWithNumber) {
 TEST_F(ObjectTest, SetPropertyWithString) {
     auto* obj = Object::New(runtime_.get());
 
-    auto index = runtime_->global_const_pool().insert(Value("string_prop"));
+    auto index = runtime_->global_const_pool().Insert(Value("string_prop"));
     obj->SetProperty(runtime_.get(), index, Value(String::New("hello")));
     Value str_val;
     obj->GetProperty(runtime_.get(), index, &str_val);
@@ -134,7 +134,7 @@ TEST_F(ObjectTest, SetPropertyWithString) {
 TEST_F(ObjectTest, SetPropertyWithBoolean) {
     auto* obj = Object::New(runtime_.get());
     {
-        auto index = runtime_->global_const_pool().insert(Value("bool_prop"));
+        auto index = runtime_->global_const_pool().Insert(Value("bool_prop"));
         obj->SetProperty(runtime_.get(), index, Value(true));
         Value bool_val;
         obj->GetProperty(runtime_.get(), index, &bool_val);
@@ -142,7 +142,7 @@ TEST_F(ObjectTest, SetPropertyWithBoolean) {
     }
 
     {
-        auto index = runtime_->global_const_pool().insert(Value("bool_prop2"));
+        auto index = runtime_->global_const_pool().Insert(Value("bool_prop2"));
         obj->SetProperty(runtime_.get(), index, Value(false));
         Value bool_val2;
         obj->GetProperty(runtime_.get(), index, &bool_val2);
@@ -157,7 +157,7 @@ TEST_F(ObjectTest, SetPropertyWithBoolean) {
 TEST_F(ObjectTest, SetPropertyWithNull) {
     auto* obj = Object::New(runtime_.get());
 
-    auto index = runtime_->global_const_pool().insert(Value("null_prop"));
+    auto index = runtime_->global_const_pool().Insert(Value("null_prop"));
     obj->SetProperty(runtime_.get(), index, Value(nullptr));
     Value null_val;
     obj->GetProperty(runtime_.get(), index, &null_val);
@@ -192,7 +192,7 @@ TEST_F(ObjectTest, GetNonExistentProperty) {
     auto* obj = Object::New(runtime_.get());
     Value retrieved_value(42);  // 初始化为已知值
 
-    auto index = runtime_->global_const_pool().insert(Value("non_existent"));
+    auto index = runtime_->global_const_pool().Insert(Value("non_existent"));
     bool success = obj->GetProperty(runtime_.get(), index, &retrieved_value);
     EXPECT_FALSE(success);
     // 如果失败,retrieved_value应该保持不变
@@ -285,7 +285,7 @@ TEST_F(ObjectTest, GetPrototype) {
 TEST_F(ObjectTest, SetPropertyMultipleTimes) {
     auto* obj = Object::New(runtime_.get());
 
-    auto index = runtime_->global_const_pool().insert(Value("prop"));
+    auto index = runtime_->global_const_pool().Insert(Value("prop"));
     obj->SetProperty(runtime_.get(), index, Value(1));
     Value val1;
     obj->GetProperty(runtime_.get(), index, &val1);

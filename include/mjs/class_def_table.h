@@ -17,11 +17,13 @@ class ClassDefTable : public noncopyable {
 public:
 	ClassDefTable(Runtime* runtime);
 
+	void Initialize(Runtime* runtime);
+
 	void Register(ClassDefUnique class_def);
 
 	void Clear();
 
-	ClassDef& at(ClassId class_id) {
+	ClassDef& At(ClassId class_id) {
 		return *class_def_arr_.at(static_cast<uint32_t>(class_id));
 	}
 
@@ -30,7 +32,7 @@ public:
 	}
 
 private:
-	uint32_t insert(ClassDefUnique class_def) {
+	uint32_t Insert(ClassDefUnique class_def) {
 		auto lock = std::lock_guard(mutex_);
 		return class_def_arr_.insert(std::move(class_def));
 	}

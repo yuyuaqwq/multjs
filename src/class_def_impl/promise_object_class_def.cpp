@@ -9,8 +9,7 @@ namespace mjs {
 PromiseObjectClassDef::PromiseObjectClassDef(Runtime* runtime)
 	: ClassDef(runtime, ClassId::kPromiseObject, "Promise")
 {
-	auto then_const_index = runtime->global_const_pool().insert(Value("then"));
-	prototype_.object().SetProperty(runtime, then_const_index, Value([](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
+	prototype_.object().SetProperty(runtime, ConstIndexEmbedded::kThen, Value([](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
 		auto& promise = stack.this_val().promise();
 		Value on_fulfilled;
 		Value on_rejected;
@@ -23,8 +22,7 @@ PromiseObjectClassDef::PromiseObjectClassDef(Runtime* runtime)
 		return promise.Then(context, on_fulfilled, on_rejected);
 	}));
 
-	auto resolve_const_index = runtime->global_const_pool().insert(Value("resolve"));
-	constructor_.object().SetProperty(runtime, resolve_const_index, Value([](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
+	constructor_.object().SetProperty(runtime, ConstIndexEmbedded::kResolve, Value([](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
 		Value result;
 		if (par_count > 0) {
 			result = stack.get(0);
@@ -32,8 +30,7 @@ PromiseObjectClassDef::PromiseObjectClassDef(Runtime* runtime)
 		return Resolve(context, std::move(result));
 	}));
 
-	auto reject_const_index = runtime->global_const_pool().insert(Value("reject"));
-	constructor_.object().SetProperty(runtime, reject_const_index, Value([](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
+	constructor_.object().SetProperty(runtime, ConstIndexEmbedded::kReject, Value([](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
 		Value reason;
 		if (par_count > 0) {
 			reason = stack.get(0);

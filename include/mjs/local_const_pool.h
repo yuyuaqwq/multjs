@@ -44,35 +44,35 @@ public:
 	 * @param value 常量值
 	 * @return 常量索引
 	 */
-	ConstIndex insert(const Value& value);
+	ConstIndex Insert(const Value& value);
 
 	/**
 	 * @brief 插入常量值（移动语义）
 	 * @param value 常量值
 	 * @return 局部常量索引（负数）
 	 */
-	ConstIndex insert(Value&& value);
+	ConstIndex Insert(Value&& value);
 
 	/**
 	 * @brief 查找常量值
 	 * @param value 常量值
 	 * @return 局部常量索引（负数，如果存在），否则返回空
 	 */
-	std::optional<ConstIndex> find(const Value& value);
+	std::optional<ConstIndex> Find(const Value& value);
 
 	/**
 	 * @brief 安全访问常量值（常量版本）
 	 * @param index 局部常量索引
 	 * @return 常量值常量引用
 	 */
-	const Value& at(ConstIndex index) const;
+	const Value& At(ConstIndex index) const;
 
 	/**
 	 * @brief 安全访问常量值
 	 * @param index 局部常量索引
 	 * @return 常量值引用
 	 */
-	Value& at(ConstIndex index);
+	Value& At(ConstIndex index);
 
 	/**
 	 * @brief 常量索引访问运算符（常量版本）
@@ -111,14 +111,14 @@ public:
 		assert(node.reference_count_ > 0);
 		--node.reference_count_;
 		if (node.reference_count_ == 0) {
-			erase(index);
+			Erase(index);
 		}
 	}
 
 	/**
 	 * @brief 清空常量池
 	 */
-	void clear() {
+	void Clear() {
 		map_.clear();
 		pool_.clear();
 	}
@@ -128,7 +128,7 @@ private:
 	 * @brief 删除常量
 	 * @param index 局部常量索引
 	 */
-	void erase(ConstIndex index);
+	void Erase(ConstIndex index);
 
 private:
 	std::unordered_map<Value, ConstIndex> map_; ///< 值到索引的映射表

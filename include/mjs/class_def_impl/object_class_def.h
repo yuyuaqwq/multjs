@@ -22,10 +22,7 @@ public:
 	
 	static Value PreventExtensions(Context* context, uint32_t par_count, const StackFrame& stack);
 
-	ConstIndex proto_const_index() const { return proto_const_index_; }
-
 private:
-	ConstIndex proto_const_index_;
 };
 
 } // namespace mjs

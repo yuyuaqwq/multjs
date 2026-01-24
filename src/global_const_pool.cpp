@@ -1,13 +1,83 @@
 #include <mjs/global_const_pool.h>
 
+#include <mjs/const_index_embedded.h>
+
 namespace mjs {
 
-ConstIndex GlobalConstPool::insert(const Value& value) {
-	auto value_ = value;
-	return insert(std::move(value_));
+void GlobalConstPool::Initialize() {
+	auto index = Insert(Value("__proto__"));
+	assert(index == ConstIndexEmbedded::kProto);
+	index = Insert(Value("prototype"));
+	assert(index == ConstIndexEmbedded::kPrototype);
+	index = Insert(Value("constructor"));
+	assert(index == ConstIndexEmbedded::kConstructor);
+
+	index = Insert(Value("value"));
+	assert(index == ConstIndexEmbedded::kValue);
+	index = Insert(Value("done"));
+	assert(index == ConstIndexEmbedded::kDone);
+	index = Insert(Value("next"));
+	assert(index == ConstIndexEmbedded::kNext);
+
+	index = Insert(Value("then"));
+	assert(index == ConstIndexEmbedded::kThen);
+	index = Insert(Value("resolve"));
+	assert(index == ConstIndexEmbedded::kResolve);
+	index = Insert(Value("reject"));
+	assert(index == ConstIndexEmbedded::kReject);
+
+	index = Insert(Value("split"));
+	assert(index == ConstIndexEmbedded::kSplit);
+	index = Insert(Value("substring"));
+	assert(index == ConstIndexEmbedded::kSubString);
+	index = Insert(Value("indexoOf"));
+	assert(index == ConstIndexEmbedded::kIndexOf);
+	index = Insert(Value("toLowerCase"));
+	assert(index == ConstIndexEmbedded::kToLowerCase);
+	index = Insert(Value("toUpperCase"));
+	assert(index == ConstIndexEmbedded::kToUpperCase);
+	index = Insert(Value("trim"));
+	assert(index == ConstIndexEmbedded::kTrim);
+	index = Insert(Value("replace"));
+	assert(index == ConstIndexEmbedded::kReplace);
+	index = Insert(Value("for"));
+	assert(index == ConstIndexEmbedded::kFor);
+
+	index = Insert(Value("freeze"));
+	assert(index == ConstIndexEmbedded::kFreeze);
+	index = Insert(Value("seal"));
+	assert(index == ConstIndexEmbedded::kSeal);
+	index = Insert(Value("preventExtensions"));
+	assert(index == ConstIndexEmbedded::kPreventExtensions);
+	index = Insert(Value("defineProperty"));
+	assert(index == ConstIndexEmbedded::kDefineProperty);
+
+	index = Insert(Value("length"));
+	assert(index == ConstIndexEmbedded::kLength);
+	index = Insert(Value("of"));
+	assert(index == ConstIndexEmbedded::kOf);
+	index = Insert(Value("push"));
+	assert(index == ConstIndexEmbedded::kPush);
+	index = Insert(Value("pop"));
+	assert(index == ConstIndexEmbedded::kPop);
+	index = Insert(Value("forEach"));
+	assert(index == ConstIndexEmbedded::kForEach);
+	index = Insert(Value("map"));
+	assert(index == ConstIndexEmbedded::kMap);
+	index = Insert(Value("filter"));
+	assert(index == ConstIndexEmbedded::kFilter);
+	index = Insert(Value("reduce"));
+	assert(index == ConstIndexEmbedded::kReduce);
+
+	assert(size() == ConstIndexEmbedded::kEnd);
 }
 
-ConstIndex GlobalConstPool::insert(Value&& value) {
+ConstIndex GlobalConstPool::Insert(const Value& value) {
+	auto value_ = value;
+	return Insert(std::move(value_));
+}
+
+ConstIndex GlobalConstPool::Insert(Value&& value) {
 	auto lock = std::lock_guard(mutex_);
 
 	auto it = map_.find(value);
@@ -39,7 +109,7 @@ ConstIndex GlobalConstPool::insert(Value&& value) {
 	return idx;
 }
 
-std::optional<ConstIndex> GlobalConstPool::find(const Value& value) {
+std::optional<ConstIndex> GlobalConstPool::Find(const Value& value) {
 	auto lock = std::lock_guard(mutex_);
 	auto it = map_.find(value);
 	if (it != map_.end()) {

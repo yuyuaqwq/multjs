@@ -12,9 +12,6 @@ private:
     // 初始化 length 属性
     void InitLengthProperty(Context* context);
 
-    // 获取 length 属性的键
-    ConstIndex GetLengthConstIndex(Context* context) const;
-
     // 设置 length 属性值（内部使用）
     void SetLengthValue(Context* context, size_t new_length);
 

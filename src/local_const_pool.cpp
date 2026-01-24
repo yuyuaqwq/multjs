@@ -6,12 +6,12 @@ LocalConstPool::LocalConstPool() {
 	pool_.resize(1);
 }
 
-ConstIndex LocalConstPool::insert(const Value& value) {
+ConstIndex LocalConstPool::Insert(const Value& value) {
 	auto value_ = value;
-	return insert(std::move(value_));
+	return Insert(std::move(value_));
 }
 
-ConstIndex LocalConstPool::insert(Value&& value) {
+ConstIndex LocalConstPool::Insert(Value&& value) {
 	auto it = map_.find(value);
 	if (it != map_.end()) {
 		// 常量已存在
@@ -49,7 +49,7 @@ ConstIndex LocalConstPool::insert(Value&& value) {
 	return const_index;
 }
 
-std::optional<ConstIndex> LocalConstPool::find(const Value& value) {
+std::optional<ConstIndex> LocalConstPool::Find(const Value& value) {
 	auto it = map_.find(value);
 	if (it != map_.end()) {
 		return -it->second;
@@ -57,7 +57,7 @@ std::optional<ConstIndex> LocalConstPool::find(const Value& value) {
 	return std::nullopt;
 }
 
-void LocalConstPool::erase(ConstIndex index) {
+void LocalConstPool::Erase(ConstIndex index) {
 	index = -index;
 	auto& val = *pool_[index].value_;
 	map_.erase(val);
@@ -65,11 +65,11 @@ void LocalConstPool::erase(ConstIndex index) {
 	first_ = index;
 }
 
-const Value& LocalConstPool::at(ConstIndex index) const {
-	return const_cast<LocalConstPool*>(this)->at(index);
+const Value& LocalConstPool::At(ConstIndex index) const {
+	return const_cast<LocalConstPool*>(this)->At(index);
 }
 
-Value& LocalConstPool::at(ConstIndex index) {
+Value& LocalConstPool::At(ConstIndex index) {
 	return *pool_.at(-index).value_;
 }
 

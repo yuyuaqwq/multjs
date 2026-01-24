@@ -583,8 +583,7 @@ void VM::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 
 				// 2. 获取构造函数的 prototype 属性
 				Value prototype_val;
-				auto& function_object_class_def = context_->runtime().class_def_table()[ClassId::kFunctionObject].get<FunctionObjectClassDef>();
-				if (!func.GetProperty(context_, function_object_class_def.prototype_const_index(), &prototype_val) || !prototype_val.IsObject()) {
+				if (!func.GetProperty(context_, ConstIndexEmbedded::kPrototype, &prototype_val) || !prototype_val.IsObject()) {
 					// 如果没有 prototype 或不是对象，使用 Object.prototype
 					auto& object_class_def = context_->runtime().class_def_table()[ClassId::kObject];
 					prototype_val = object_class_def.prototype();
@@ -655,9 +654,7 @@ void VM::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 
 			// 获取当前对象的构造函数
 			Value constructor;
-			auto& function_object_class_def = context_->runtime().class_def_table()[ClassId::kFunctionObject].get<FunctionObjectClassDef>();
-	
-			if (!this_val.object().GetProperty(context_, function_object_class_def.constructor_const_index(), &constructor)) {
+			if (!this_val.object().GetProperty(context_, ConstIndexEmbedded::kConstructor, &constructor)) {
 				VM_EXCEPTION_THROW(
 					ReferenceError::Throw(context_, "super requires a constructor")
 				);
@@ -671,7 +668,7 @@ void VM::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 
 			// 获取构造函数的原型 (即当前类的原型)
 			Value current_prototype;
-			if (!constructor.object().GetProperty(context_, function_object_class_def.prototype_const_index(), &current_prototype)) {
+			if (!constructor.object().GetProperty(context_, ConstIndexEmbedded::kPrototype, &current_prototype)) {
 				VM_EXCEPTION_THROW(
 					ReferenceError::Throw(context_, "super requires a valid prototype chain")
 				);

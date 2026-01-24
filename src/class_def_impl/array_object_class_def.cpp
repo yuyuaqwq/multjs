@@ -10,21 +10,17 @@ namespace mjs {
 ArrayObjectClassDef::ArrayObjectClassDef(Runtime* runtime)
 	: ClassDef(runtime, ClassId::kArrayObject, "Array")
 {
-	length_const_index_ = runtime->global_const_pool().insert(Value("length"));
-	of_const_index_ = runtime->global_const_pool().insert(Value("of"));
-	push_const_index_ = runtime->global_const_pool().insert(Value("push"));
-	pop_const_index_ = runtime->global_const_pool().insert(Value("pop"));
-	forEach_const_index_ = runtime->global_const_pool().insert(Value("forEach"));
-	map_const_index_ = runtime->global_const_pool().insert(Value("map"));
-	filter_const_index_ = runtime->global_const_pool().insert(Value("filter"));
-	reduce_const_index_ = runtime->global_const_pool().insert(Value("reduce"));
+	prototype_.object().SetPrototype(runtime, 
+		ConstIndexEmbedded::kProto,
+		runtime->class_def_table()[ClassId::kObject].prototype()
+	);
 
-	constructor_.object().SetProperty(runtime, of_const_index_, Value([](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
+	constructor_.object().SetProperty(runtime, ConstIndexEmbedded::kOf, Value([](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
 		return ArrayObjectClassDef::Of(context, par_count, stack);
 	}));
 
 	// Push method
-	prototype_.object().SetProperty(runtime, push_const_index_, Value([](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
+	prototype_.object().SetProperty(runtime, ConstIndexEmbedded::kPush, Value([](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
 		auto& arr = stack.this_val().array();
 		for (size_t i = 0; i < par_count; ++i) {
 			arr.Push(context, stack.get(i));
@@ -33,7 +29,7 @@ ArrayObjectClassDef::ArrayObjectClassDef(Runtime* runtime)
 	}));
 
 	// Pop method
-	prototype_.object().SetProperty(runtime, pop_const_index_, Value([](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
+	prototype_.object().SetProperty(runtime, ConstIndexEmbedded::kPop, Value([](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
 		auto& arr = stack.this_val().array();
 		if (arr.length() == 0) {
 			return Value();
@@ -42,7 +38,7 @@ ArrayObjectClassDef::ArrayObjectClassDef(Runtime* runtime)
 	}));
 
 	// ForEach method
-	prototype_.object().SetProperty(runtime, forEach_const_index_, Value([](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
+	prototype_.object().SetProperty(runtime, ConstIndexEmbedded::kForEach, Value([](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
 		if (par_count < 1) {
 			return TypeError::Throw(context, "forEach requires a callback function");
 		}
@@ -64,7 +60,7 @@ ArrayObjectClassDef::ArrayObjectClassDef(Runtime* runtime)
 	}));
 
 	// Map method
-	prototype_.object().SetProperty(runtime, map_const_index_, Value([](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
+	prototype_.object().SetProperty(runtime, ConstIndexEmbedded::kMap, Value([](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
 		if (par_count < 1) {
 			return TypeError::Throw(context, "map requires a callback function");
 		}
@@ -87,7 +83,7 @@ ArrayObjectClassDef::ArrayObjectClassDef(Runtime* runtime)
 	}));
 
 	// Filter method
-	prototype_.object().SetProperty(runtime, filter_const_index_, Value([](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
+	prototype_.object().SetProperty(runtime, ConstIndexEmbedded::kFilter, Value([](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
 		if (par_count < 1) {
 			return TypeError::Throw(context, "filter requires a callback function");
 		}
@@ -113,7 +109,7 @@ ArrayObjectClassDef::ArrayObjectClassDef(Runtime* runtime)
 	}));
 
 	// Reduce method
-	prototype_.object().SetProperty(runtime, reduce_const_index_, Value([](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
+	prototype_.object().SetProperty(runtime, ConstIndexEmbedded::kReduce, Value([](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
 		if (par_count < 1) {
 			return TypeError::Throw(context, "reduce requires a callback function");
 		}

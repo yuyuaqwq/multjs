@@ -11,28 +11,20 @@ namespace mjs {
 ObjectClassDef::ObjectClassDef(Runtime* runtime)
 	: ClassDef(runtime, ClassId::kObject, "Object")
 {
-	proto_const_index_ = runtime->global_const_pool().insert(Value("__proto__"));
-
 	// Object.prototype 是一个特殊的对象,它没有原型(原型为null)
-	// 所以我们将prototype_设置为Value() (null/undefined)
-	// 这符合JavaScript规范: Object.prototype.__proto__ === null
-	prototype_ = Value(nullptr);
+	prototype_.object().SetPrototype(runtime, ConstIndexEmbedded::kProto, Value(nullptr));
 
 	// 注册 Object.freeze 静态方法到构造函数对象
-	auto freeze_const_index = runtime->global_const_pool().insert(Value(String::New("freeze")));
-	constructor_.object().SetProperty(runtime, freeze_const_index, Value(Freeze));
+	constructor_.object().SetProperty(runtime, ConstIndexEmbedded::kFreeze, Value(Freeze));
 
 	// 注册 Object.seal 静态方法到构造函数对象
-	auto seal_const_index = runtime->global_const_pool().insert(Value(String::New("seal")));
-	constructor_.object().SetProperty(runtime, seal_const_index, Value(Seal));
+	constructor_.object().SetProperty(runtime, ConstIndexEmbedded::kSeal, Value(Seal));
 
 	// 注册 Object.preventExtensions 静态方法到构造函数对象
-	auto prevent_extensions_const_index = runtime->global_const_pool().insert(Value(String::New("preventExtensions")));
-	constructor_.object().SetProperty(runtime, prevent_extensions_const_index, Value(PreventExtensions));
+	constructor_.object().SetProperty(runtime, ConstIndexEmbedded::kPreventExtensions, Value(PreventExtensions));
 
 	// 注册 Object.defineProperty 静态方法到构造函数对象
-	auto define_property_const_index = runtime->global_const_pool().insert(Value(String::New("defineProperty")));
-	constructor_.object().SetProperty(runtime, define_property_const_index, Value(DefineProperty));
+	constructor_.object().SetProperty(runtime, ConstIndexEmbedded::kDefineProperty, Value(DefineProperty));
 }
 
 Value ObjectClassDef::NewConstructor(Context* context, uint32_t par_count, const StackFrame& stack) const {
@@ -89,7 +81,7 @@ Value ObjectClassDef::DefineProperty(Context* context, uint32_t par_count, const
 			auto& desc_obj = descriptor.object();
 
 			// 尝试获取 value 属性
-			auto value_const_index = context->runtime().global_const_pool().insert(Value("value"));
+			auto value_const_index = context->runtime().global_const_pool().Insert(Value("value"));
 			Value value_value;
 			if (desc_obj.GetProperty(context, value_const_index, &value_value)) {
 				// 如果有 value 属性，设置属性值

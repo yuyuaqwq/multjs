@@ -41,7 +41,7 @@ PropertySlotIndex ShapeManager::AddProperty(Shape** base_shape_ptr, ShapePropert
     if (base_shape->transtion_table().Has()) {
         // 如果过渡表不为空，需要创建一个分支
         if (new_shape->property_map() == base_shape->property_map()) {
-            new_shape->set_property_map(new ShapePropertyHashTable);
+            new_shape->set_property_map(new ShapePropertyHashTable());
         }
         for (int32_t i = 0; i < base_shape->property_size(); ++i) {
             ShapeProperty property = base_shape->GetProperty(i);

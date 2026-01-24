@@ -34,10 +34,8 @@ Value GeneratorObject::MakeReturnObject(Context* context, Value&& ret_value) {
 
     auto ret_obj = Value(Object::New(context));
 
-    auto& class_def = context->runtime().class_def_table()[ClassId::kGeneratorObject].get<GeneratorObjectClassDef>();
-
-    ret_obj.object().SetProperty(context, class_def.value_const_index(), std::move(ret_value));
-    ret_obj.object().SetProperty(context, class_def.done_const_index(), Value(IsClosed()));
+    ret_obj.object().SetProperty(context, ConstIndexEmbedded::kValue, std::move(ret_value));
+    ret_obj.object().SetProperty(context, ConstIndexEmbedded::kDone, Value(IsClosed()));
     return ret_obj;
 }
 

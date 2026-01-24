@@ -215,6 +215,13 @@ public:
 	 * @param context 执行上下文指针
 	 * @param prototype 要设置的原型对象，__proto__
 	 */
+	void SetPrototype(Runtime* runtime, ConstIndex key, Value prototype);
+
+	/**
+	 * @brief 设置对象的原型
+	 * @param context 执行上下文指针
+	 * @param prototype 要设置的原型对象，__proto__
+	 */
 	void SetPrototype(Context* context, Value prototype);
 
 	/**

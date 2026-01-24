@@ -24,7 +24,7 @@ Context::~Context() {
 	//assert(runtime_->stack().size() == 0);
 	runtime_->stack().clear();
 	microtask_queue_.clear();
-	local_const_pool_.clear();
+	local_const_pool_.Clear();
 	gc_manager_.GC(this);
 }
 
@@ -96,17 +96,17 @@ ConstIndex Context::FindConstOrInsertToLocal(const Value& value) {
 	// 先查Local，再查Global，最后插入Local，可以保证要么从当前时间开始，使用的都是Global的，要么使用的都是Local的
 	// 即使未来Global被插入了相同的Value，也不会使用Global的Value
 
-	auto local_res = local_const_pool_.find(value);
+	auto local_res = local_const_pool_.Find(value);
 	if (local_res) {
 		return *local_res;
 	}
 
-	auto global_res = runtime_->global_const_pool().find(value);
+	auto global_res = runtime_->global_const_pool().Find(value);
 	if (global_res) {
 		return *global_res;
 	}
 
-	return local_const_pool_.insert(value);
+	return local_const_pool_.Insert(value);
 }
 
 // 代码生成用，主要是为了减少重复的内存占用，Global是不会被回收的
@@ -115,12 +115,12 @@ ConstIndex Context::FindConstOrInsertToGlobal(const Value& value) {
 		return value.const_index();
 	}
 
-	auto local_res = local_const_pool_.find(value);
+	auto local_res = local_const_pool_.Find(value);
 	if (local_res) {
 		return *local_res;
 	}
 
-	return runtime_->global_const_pool().insert(value);
+	return runtime_->global_const_pool().Insert(value);
 }
 
 const Value& Context::GetConstValue(ConstIndex const_index) {

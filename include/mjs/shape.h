@@ -20,7 +20,7 @@ namespace mjs {
  * @class Shape
  * @brief 形状类
  *
- * 表示对象的形状信息，包括父形状、原型、类ID、属性大小和过渡表等。
+ * 表示对象的形状信息，包括父形状、原型、属性大小和过渡表等。
  * 继承自 ReferenceCounter，支持引用计数管理。
  *
  * @see ReferenceCounter 引用计数基类
@@ -28,26 +28,33 @@ namespace mjs {
 class ShapeManager;
 class Shape : public ReferenceCounter<Shape> {
 public:
-    Shape(ShapeManager* shape_manager);
+    explicit Shape(ShapeManager* shape_manager);
+
     Shape(Shape* parent_shape, uint32_t property_size);
+
     ~Shape();
 
     const PropertySlotIndex Find(ConstIndex const_index) const;
+
     void Add(ShapeProperty&& prop);
+
     const ShapeProperty& GetProperty(PropertySlotIndex idx) const;
 
+    ShapeManager* shape_manager() { return shape_manager_; }
+
+    const ShapeManager* shape_manager() const { return shape_manager_; }
+
     Shape* parent_shape() const { return parent_shape_; }
+
     void set_parent_shape(Shape* parent_shape) { parent_shape_ = parent_shape; }
 
     ShapePropertyHashTable* property_map() const { return property_map_; }
+
     void set_property_map(ShapePropertyHashTable* property_map) { property_map_ = property_map; }
 
     auto& transtion_table() { return transtion_table_; }
 
     uint32_t property_size() const { return property_size_; }
-
-    ShapeManager* shape_manager() { return shape_manager_; }
-    const ShapeManager* shape_manager() const { return shape_manager_; }
 
 private:
     ShapeManager* shape_manager_;

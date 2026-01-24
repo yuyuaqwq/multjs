@@ -58,7 +58,7 @@ public:
 	}
 
 	/**
-	 * @brief 插入元素（移动语义版本）
+	 * @brief 插入元素（移动语义版本），多线程使用insert需要加锁
 	 * @param value 要插入的元素
 	 * @return 插入位置的索引
 	 * @throw std::overflow_error 当常量数量超过上限时抛出
@@ -91,7 +91,7 @@ public:
 	}
 
 	/**
-	 * @brief 下标访问运算符
+	 * @brief 下标访问运算符，多线程访问可以不加锁
 	 * @param index 索引位置
 	 * @return 元素引用
 	 */

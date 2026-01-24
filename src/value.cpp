@@ -3,6 +3,7 @@
 #include <cmath>
 #include <format>
 
+#include <mjs/const_index_embedded.h>
 #include <mjs/context.h>
 #include <mjs/error.h>
 #include <mjs/class_def_impl/function_object_class_def.h>
@@ -348,8 +349,7 @@ Value Value::InstanceOf(Context* context, const Value& rhs) const {
 	Value prototype_value;
 
 	auto& function_object_class_def = context->runtime().class_def_table()[ClassId::kFunctionObject].get<FunctionObjectClassDef>();
-	auto prototype_key = function_object_class_def.prototype_const_index();
-	constructor_func->GetProperty(context, prototype_key, &prototype_value);
+	constructor_func->GetProperty(context, ConstIndexEmbedded::kPrototype, &prototype_value);
 
 	// 如果构造函数没有 prototype 属性或 prototype 不是对象，返回 false
 	if (!prototype_value.IsObject()) {

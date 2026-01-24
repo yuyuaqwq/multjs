@@ -41,26 +41,28 @@ private:
 	using Base = SegmentedArray<Value, ConstIndex, 1024>;
 
 public:
+	void Initialize();
+
 	/**
 	 * @brief 插入常量值
 	 * @param value 常量值
 	 * @return 全局常量索引
 	 */
-	ConstIndex insert(const Value& value);
+	ConstIndex Insert(const Value& value);
 
 	/**
 	 * @brief 插入常量值（移动语义）
 	 * @param value 常量值
 	 * @return 全局常量索引
 	 */
-	ConstIndex insert(Value&& value);
+	ConstIndex Insert(Value&& value);
 
 	/**
 	 * @brief 查找常量值
 	 * @param value 常量值
 	 * @return 全局常量索引（如果存在），否则返回空
 	 */
-	std::optional<ConstIndex> find(const Value& value);
+	std::optional<ConstIndex> Find(const Value& value);
 
 	/**
 	 * @brief 常量索引访问运算符（常量版本）
@@ -87,7 +89,7 @@ public:
 	 * @return 常量值常量引用
 	 * @throw std::out_of_range 当索引超出范围时抛出
 	 */
-	const Value& at(ConstIndex index) const {
+	const Value& At(ConstIndex index) const {
 		if (index < 0 || index >= size()) {
 			throw std::out_of_range("Index out of range");
 		}
@@ -100,7 +102,7 @@ public:
 	 * @return 常量值引用
 	 * @throw std::out_of_range 当索引超出范围时抛出
 	 */
-	Value& at(ConstIndex index) {
+	Value& At(ConstIndex index) {
 		if (index < 0 || index >= size()) {
 			throw std::out_of_range("Index out of range");
 		}
@@ -110,7 +112,7 @@ public:
 	/**
 	 * @brief 清空常量池
 	 */
-	void clear() {
+	void Clear() {
 		map_.clear();
 		Base::clear();
 	}

@@ -3,6 +3,7 @@
 #include <mjs/context.h>
 #include <mjs/runtime.h>
 #include <mjs/shape.h>
+#include <mjs/const_index_embedded.h>
 #include <mjs/class_def_impl/object_class_def.h>
 
 namespace mjs {
@@ -50,7 +51,7 @@ void Object::SetProperty(Runtime* runtime, ConstIndex key, Value&& value) {
 bool Object::GetProperty(Runtime* runtime, ConstIndex key, Value* value) {
 	// 如果配置了exotic，需要先查找(也就是class_def中的GetProperty等方法)
 
-	if (key == runtime->class_def_table()[ClassId::kObject].get<ObjectClassDef>().proto_const_index()) {
+	if (key == ConstIndexEmbedded::kProto) {
 		*value = GetPrototype(runtime);
 		return true;
 	}
@@ -272,11 +273,20 @@ Value Object::ToString(Context* context) {
 
 const Value& Object::GetPrototype(Runtime* runtime) const {
 	if (tag_.set_proto_) {
-		auto index = shape_->Find(runtime->class_def_table()[ClassId::kObject].get<ObjectClassDef>().proto_const_index());
+		auto index = shape_->Find(ConstIndexEmbedded::kProto);
 		assert(index != kPropertySlotIndexInvalid);
 		return properties_[index].value;
 	}
 	return runtime->class_def_table()[static_cast<ClassId>(tag_.class_id_)].prototype();
+}
+
+
+void Object::SetPrototype(Runtime* runtime, ConstIndex proto_key, Value prototype) {
+	if (!tag_.set_proto_) {
+		tag_.set_proto_ = true;
+	}
+	SetProperty(runtime, proto_key, std::move(prototype)
+	);
 }
 
 void Object::SetPrototype(Context* context, Value prototype) {
@@ -284,11 +294,10 @@ void Object::SetPrototype(Context* context, Value prototype) {
 		tag_.set_proto_ = true;
 	}
 	SetProperty(context, 
-		context->runtime().class_def_table()[ClassId::kObject].get<ObjectClassDef>().proto_const_index(), 
+		ConstIndexEmbedded::kProto,
 		std::move(prototype)
 	);
 }
-
 
 void Object::Reference() {
 	++tag_.ref_count_;
