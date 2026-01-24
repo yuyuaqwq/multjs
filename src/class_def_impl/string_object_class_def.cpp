@@ -12,6 +12,11 @@ namespace mjs {
 StringObjectClassDef::StringObjectClassDef(Runtime* runtime)
 	: ClassDef(runtime, ClassId::kStringObject, "String")
 {
+	// String.prototype.__proto__ = Object.prototype
+	prototype_.object().SetPrototype(runtime, runtime->class_def_table()[ClassId::kObject].prototype());
+	// String.__proto = Function.prototype
+	constructor_.object().SetPrototype(runtime, runtime->class_def_table()[ClassId::kFunctionObject].prototype());
+
 	// Split method
 	prototype_.object().SetProperty(runtime, ConstIndexEmbedded::kSplit, Value([](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
 		if (par_count < 1) {

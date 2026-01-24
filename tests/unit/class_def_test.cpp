@@ -218,7 +218,7 @@ TEST_F(ClassDefTableTest, ClassDefTableAtAccess) {
 
     // Act & Assert
     EXPECT_NO_THROW({
-        auto& object_class = class_def_table.at(ClassId::kObject);
+        auto& object_class = class_def_table.At(ClassId::kObject);
         EXPECT_EQ(object_class.id(), ClassId::kObject);
     });
 }

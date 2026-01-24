@@ -130,6 +130,12 @@ public:
 	const Value& prototype() const { return prototype_; }
 
 	/**
+	 * @brief 获取构造函数
+	 * @return 构造函数常量引用
+	 */
+	Value& constructor() { return constructor_; }
+
+	/**
 	 * @brief 获取指定类型的类定义引用
 	 * @tparam ClassDefT 类定义类型
 	 * @return 指定类型的类定义引用

@@ -14,12 +14,12 @@ namespace mjs {
 ClassDefTable::ClassDefTable(Runtime* runtime) {}
 
 void ClassDefTable::Initialize(Runtime* runtime) {
-	// 注册所有内置类定义
+	// 注册所有内置类定义，顺序重要，先Object，再Function，再是其他对象
 	Register(std::make_unique<ObjectClassDef>(runtime));
+	Register(std::make_unique<FunctionObjectClassDef>(runtime));
 	Register(std::make_unique<ClassDef>(runtime, ClassId::kNumberObject, "Number"));
 	Register(std::make_unique<StringObjectClassDef>(runtime));
 	Register(std::make_unique<ArrayObjectClassDef>(runtime));
-	Register(std::make_unique<FunctionObjectClassDef>(runtime));
 	Register(std::make_unique<GeneratorObjectClassDef>(runtime));
 	Register(std::make_unique<PromiseObjectClassDef>(runtime));
 	Register(std::make_unique<ClassDef>(runtime, ClassId::kAsyncObject, "Async"));
@@ -30,7 +30,7 @@ void ClassDefTable::Initialize(Runtime* runtime) {
 
 void ClassDefTable::Register(ClassDefUnique class_def) {
 	auto id = class_def->id();
-	auto idx = insert(std::move(class_def));
+	auto idx = Insert(std::move(class_def));
 	if (idx != static_cast<uint32_t>(id)) {
 		// 必须按枚举定义顺序插入，以确保高效查找
 		throw InternalError("Class id mismatch.");

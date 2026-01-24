@@ -281,22 +281,18 @@ const Value& Object::GetPrototype(Runtime* runtime) const {
 }
 
 
-void Object::SetPrototype(Runtime* runtime, ConstIndex proto_key, Value prototype) {
+void Object::SetPrototype(Runtime* runtime, Value prototype) {
 	if (!tag_.set_proto_) {
 		tag_.set_proto_ = true;
 	}
-	SetProperty(runtime, proto_key, std::move(prototype)
-	);
+	SetProperty(runtime, ConstIndexEmbedded::kProto, std::move(prototype));
 }
 
 void Object::SetPrototype(Context* context, Value prototype) {
 	if (!tag_.set_proto_) {
 		tag_.set_proto_ = true;
 	}
-	SetProperty(context, 
-		ConstIndexEmbedded::kProto,
-		std::move(prototype)
-	);
+	SetProperty(context, ConstIndexEmbedded::kProto, std::move(prototype));
 }
 
 void Object::Reference() {

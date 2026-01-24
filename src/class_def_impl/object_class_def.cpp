@@ -12,7 +12,7 @@ ObjectClassDef::ObjectClassDef(Runtime* runtime)
 	: ClassDef(runtime, ClassId::kObject, "Object")
 {
 	// Object.prototype 是一个特殊的对象,它没有原型(原型为null)
-	prototype_.object().SetPrototype(runtime, ConstIndexEmbedded::kProto, Value(nullptr));
+	prototype_.object().SetPrototype(runtime, Value(nullptr));
 
 	// 注册 Object.freeze 静态方法到构造函数对象
 	constructor_.object().SetProperty(runtime, ConstIndexEmbedded::kFreeze, Value(Freeze));

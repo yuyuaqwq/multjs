@@ -21,10 +21,10 @@ namespace mjs {
 enum class ClassId : uint16_t {
 	kInvalid = 0,          ///< 无效类标识符
 	kObject,               ///< 普通对象类
+	kFunctionObject,       ///< 函数对象类
 	kNumberObject,         ///< 数字对象类
 	kStringObject,         ///< 字符串对象类
 	kArrayObject,          ///< 数组对象类
-	kFunctionObject,       ///< 函数对象类
 	kGeneratorObject,      ///< 生成器对象类
 	kPromiseObject,        ///< Promise 对象类
 	kAsyncObject,          ///< 异步对象类

@@ -10,10 +10,10 @@ namespace mjs {
 ArrayObjectClassDef::ArrayObjectClassDef(Runtime* runtime)
 	: ClassDef(runtime, ClassId::kArrayObject, "Array")
 {
-	prototype_.object().SetPrototype(runtime, 
-		ConstIndexEmbedded::kProto,
-		runtime->class_def_table()[ClassId::kObject].prototype()
-	);
+	// Array.prototype.__proto__ = Object.prototype
+	prototype_.object().SetPrototype(runtime, runtime->class_def_table()[ClassId::kObject].prototype());
+	// Array.__proto = Function.prototype
+	constructor_.object().SetPrototype(runtime, runtime->class_def_table()[ClassId::kFunctionObject].prototype());
 
 	constructor_.object().SetProperty(runtime, ConstIndexEmbedded::kOf, Value([](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
 		return ArrayObjectClassDef::Of(context, par_count, stack);
