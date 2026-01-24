@@ -6,7 +6,7 @@
 namespace mjs {
 
 GeneratorObjectClassDef::GeneratorObjectClassDef(Runtime* runtime)
-	: ClassDef(runtime, ClassId::kGeneratorObject, "Generator")
+	: ClassDef(runtime, ClassId::kGeneratorObject, nullptr)
 {
 	prototype_.object().SetProperty(runtime, ConstIndexEmbedded::kNext, Value(ValueType::kGeneratorNext));
 }

@@ -77,7 +77,7 @@ public:
 	 * @brief 构造函数
 	 * @param runtime 运行时环境指针
 	 * @param id 类标识符
-	 * @param name 类名称
+	 * @param name 类名称，为nullptr则不创建构造函数
 	 */
 	ClassDef(Runtime* runtime, ClassId id, const char* name);
 
