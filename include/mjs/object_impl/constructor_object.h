@@ -6,8 +6,8 @@ namespace mjs {
 
 class ConstructorObject : public Object {
 private:
-	ConstructorObject(Runtime* runtime, ClassId target_class_id) 
-		: Object(runtime, ClassId::kFunctionObject)
+	ConstructorObject(Context* context, ClassId target_class_id) 
+		: Object(context, ClassId::kFunctionObject)
 		, target_class_id_(target_class_id) {}
 
 public:
@@ -17,8 +17,8 @@ public:
 
 	ClassId target_class_id() const { return target_class_id_; }
 
-	static ConstructorObject* New(Runtime* runtime, ClassId target_class_id) {
-		return new ConstructorObject(runtime, target_class_id);
+	static ConstructorObject* New(Context* context, ClassId target_class_id) {
+		return new ConstructorObject(context, target_class_id);
 	}
 
 protected:

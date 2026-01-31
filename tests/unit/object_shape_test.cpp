@@ -47,7 +47,7 @@ protected:
  * @test 测试对象创建
  */
 TEST_F(ObjectTest, CreateObject) {
-    auto* obj = Object::New(runtime_.get());
+    auto* obj = Object::New(&runtime_->default_context());
     ASSERT_NE(obj, nullptr);
     EXPECT_EQ(obj->ref_count(), 0);
     // GC will clean up
@@ -57,7 +57,7 @@ TEST_F(ObjectTest, CreateObject) {
  * @test 测试对象引用计数
  */
 TEST_F(ObjectTest, ReferenceCount) {
-    auto* obj = Object::New(runtime_.get());
+    auto* obj = Object::New(&runtime_->default_context());
     EXPECT_EQ(obj->ref_count(), 0);
 
     obj->Reference();
@@ -79,12 +79,12 @@ TEST_F(ObjectTest, ReferenceCount) {
  * @test 测试设置和获取字符串键属性
  */
 TEST_F(ObjectTest, SetPropertyWithStringKey) {
-    auto* obj = Object::New(runtime_.get());
-    auto index = runtime_->global_const_pool().Insert(Value("test_prop"));
-    obj->SetProperty(runtime_.get(), index, Value(42));
+    auto* obj = Object::New(&runtime_->default_context());
+    auto index = runtime_->global_const_pool().FindOrInsert(Value("test_prop"));
+    obj->SetProperty(&runtime_->default_context(), index, Value(42));
 
     Value retrieved_value;
-    bool success = obj->GetProperty(runtime_.get(), index, &retrieved_value);
+    bool success = obj->GetProperty(&runtime_->default_context(), index, &retrieved_value);
     ASSERT_TRUE(success);
     EXPECT_EQ(retrieved_value.i64(), 42);
 
@@ -95,19 +95,19 @@ TEST_F(ObjectTest, SetPropertyWithStringKey) {
  * @test 测试设置和获取数字属性
  */
 TEST_F(ObjectTest, SetPropertyWithNumber) {
-    auto* obj = Object::New(runtime_.get());
+    auto* obj = Object::New(&runtime_->default_context());
     {
-        auto index = runtime_->global_const_pool().Insert(Value("number_prop"));
-        obj->SetProperty(runtime_.get(), index, Value(100));
+        auto index = runtime_->global_const_pool().FindOrInsert(Value("number_prop"));
+        obj->SetProperty(&runtime_->default_context(), index, Value(100));
         Value num_val;
-        obj->GetProperty(runtime_.get(), index, &num_val);
+        obj->GetProperty(&runtime_->default_context(), index, &num_val);
         EXPECT_EQ(num_val.i64(), 100);
     }
     {
-        auto index = runtime_->global_const_pool().Insert(Value("float_prop"));
-        obj->SetProperty(runtime_.get(), index, Value(3.14));
+        auto index = runtime_->global_const_pool().FindOrInsert(Value("float_prop"));
+        obj->SetProperty(&runtime_->default_context(), index, Value(3.14));
         Value float_val;
-        obj->GetProperty(runtime_.get(), index, &float_val);
+        obj->GetProperty(&runtime_->default_context(), index, &float_val);
         EXPECT_DOUBLE_EQ(float_val.f64(), 3.14);
     }
     // GC will clean up
@@ -117,12 +117,12 @@ TEST_F(ObjectTest, SetPropertyWithNumber) {
  * @test 测试设置和获取字符串属性
  */
 TEST_F(ObjectTest, SetPropertyWithString) {
-    auto* obj = Object::New(runtime_.get());
+    auto* obj = Object::New(&runtime_->default_context());
 
-    auto index = runtime_->global_const_pool().Insert(Value("string_prop"));
-    obj->SetProperty(runtime_.get(), index, Value(String::New("hello")));
+    auto index = runtime_->global_const_pool().FindOrInsert(Value("string_prop"));
+    obj->SetProperty(&runtime_->default_context(), index, Value(String::New("hello")));
     Value str_val;
-    obj->GetProperty(runtime_.get(), index, &str_val);
+    obj->GetProperty(&runtime_->default_context(), index, &str_val);
     EXPECT_STREQ(str_val.string_view(), "hello");
 
     // GC will clean up
@@ -132,20 +132,20 @@ TEST_F(ObjectTest, SetPropertyWithString) {
  * @test 测试设置和获取布尔属性
  */
 TEST_F(ObjectTest, SetPropertyWithBoolean) {
-    auto* obj = Object::New(runtime_.get());
+    auto* obj = Object::New(&runtime_->default_context());
     {
-        auto index = runtime_->global_const_pool().Insert(Value("bool_prop"));
-        obj->SetProperty(runtime_.get(), index, Value(true));
+        auto index = runtime_->global_const_pool().FindOrInsert(Value("bool_prop"));
+        obj->SetProperty(&runtime_->default_context(), index, Value(true));
         Value bool_val;
-        obj->GetProperty(runtime_.get(), index, &bool_val);
+        obj->GetProperty(&runtime_->default_context(), index, &bool_val);
         EXPECT_EQ(bool_val.boolean(), true);
     }
 
     {
-        auto index = runtime_->global_const_pool().Insert(Value("bool_prop2"));
-        obj->SetProperty(runtime_.get(), index, Value(false));
+        auto index = runtime_->global_const_pool().FindOrInsert(Value("bool_prop2"));
+        obj->SetProperty(&runtime_->default_context(), index, Value(false));
         Value bool_val2;
-        obj->GetProperty(runtime_.get(), index, &bool_val2);
+        obj->GetProperty(&runtime_->default_context(), index, &bool_val2);
         EXPECT_EQ(bool_val2.boolean(), false);
     }
     // GC will clean up
@@ -155,12 +155,12 @@ TEST_F(ObjectTest, SetPropertyWithBoolean) {
  * @test 测试设置和获取null属性
  */
 TEST_F(ObjectTest, SetPropertyWithNull) {
-    auto* obj = Object::New(runtime_.get());
+    auto* obj = Object::New(&runtime_->default_context());
 
-    auto index = runtime_->global_const_pool().Insert(Value("null_prop"));
-    obj->SetProperty(runtime_.get(), index, Value(nullptr));
+    auto index = runtime_->global_const_pool().FindOrInsert(Value("null_prop"));
+    obj->SetProperty(&runtime_->default_context(), index, Value(nullptr));
     Value null_val;
-    obj->GetProperty(runtime_.get(), index, &null_val);
+    obj->GetProperty(&runtime_->default_context(), index, &null_val);
     // 注意: 由于实现细节,null可能存储为其他类型
     EXPECT_TRUE(null_val.IsNull() || null_val.IsUndefined());
 
@@ -189,11 +189,11 @@ TEST_F(ObjectTest, SetPropertyWithConstIndex) {
  * @note 这个测试暂时跳过,因为GetProperty的实现可能在属性不存在时抛出异常
  */
 TEST_F(ObjectTest, GetNonExistentProperty) {
-    auto* obj = Object::New(runtime_.get());
+    auto* obj = Object::New(&runtime_->default_context());
     Value retrieved_value(42);  // 初始化为已知值
 
-    auto index = runtime_->global_const_pool().Insert(Value("non_existent"));
-    bool success = obj->GetProperty(runtime_.get(), index, &retrieved_value);
+    auto index = runtime_->global_const_pool().FindOrInsert(Value("non_existent"));
+    bool success = obj->GetProperty(&runtime_->default_context(), index, &retrieved_value);
     EXPECT_FALSE(success);
     // 如果失败,retrieved_value应该保持不变
 
@@ -270,9 +270,9 @@ TEST_F(ObjectTest, ObjectToString) {
  * @note 原型可能不是普通对象类型,而是其他类型
  */
 TEST_F(ObjectTest, GetPrototype) {
-    auto* obj = Object::New(runtime_.get());
+    auto* obj = Object::New(&runtime_->default_context());
 
-    const Value& prototype = obj->GetPrototype(runtime_.get());
+    const Value& prototype = obj->GetPrototype(&runtime_->default_context());
     // 原型应该是某种有效的值类型
     EXPECT_TRUE(prototype.IsObject() || prototype.IsNull() || prototype.IsUndefined());
 
@@ -283,17 +283,17 @@ TEST_F(ObjectTest, GetPrototype) {
  * @test 测试多次设置同一属性
  */
 TEST_F(ObjectTest, SetPropertyMultipleTimes) {
-    auto* obj = Object::New(runtime_.get());
+    auto* obj = Object::New(&runtime_->default_context());
 
-    auto index = runtime_->global_const_pool().Insert(Value("prop"));
-    obj->SetProperty(runtime_.get(), index, Value(1));
+    auto index = runtime_->global_const_pool().FindOrInsert(Value("prop"));
+    obj->SetProperty(&runtime_->default_context(), index, Value(1));
     Value val1;
-    obj->GetProperty(runtime_.get(), index, &val1);
+    obj->GetProperty(&runtime_->default_context(), index, &val1);
     EXPECT_EQ(val1.i64(), 1);
 
-    obj->SetProperty(runtime_.get(), index, Value(2));
+    obj->SetProperty(&runtime_->default_context(), index, Value(2));
     Value val2;
-    obj->GetProperty(runtime_.get(), index, &val2);
+    obj->GetProperty(&runtime_->default_context(), index, &val2);
     EXPECT_EQ(val2.i64(), 2);
 
     // GC will clean up
@@ -303,7 +303,7 @@ TEST_F(ObjectTest, SetPropertyMultipleTimes) {
  * @test 测试垃圾回收标记
  */
 TEST_F(ObjectTest, GCMark) {
-    auto* obj = Object::New(runtime_.get());
+    auto* obj = Object::New(&runtime_->default_context());
 
     EXPECT_FALSE(obj->gc_mark());
     obj->set_gc_mark(true);

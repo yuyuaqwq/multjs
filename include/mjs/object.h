@@ -50,13 +50,6 @@ class Object
 protected:
 	/**
 	 * @brief 受保护构造函数
-	 * @param runtime 运行时环境指针
-	 * @param class_id 类标识符
-	 */
-	Object(Runtime* runtime, ClassId class_id);
-
-	/**
-	 * @brief 受保护构造函数
 	 * @param context 执行上下文指针
 	 * @param class_id 类标识符
 	 */
@@ -98,23 +91,6 @@ public:
 	virtual void GCForEachChild(Context* context, intrusive_list<Object>* list, void(*callback)(Context* context, intrusive_list<Object>* list, const Value& child));
 
 	/**
-	 * @brief 设置对象属性（字符串键）
-	 * @param runtime 运行时环境指针
-	 * @param key 属性键名（字符串）
-	 * @param value 属性值
-	 */
-	void SetProperty(Runtime* runtime, ConstIndex key, Value&& value);
-
-	/**
-	 * @brief 获取对象属性（字符串键）
-	 * @param runtime 运行时环境指针
-	 * @param key 属性键名（字符串）
-	 * @param value 输出参数，存储获取的属性值
-	 * @return 是否成功获取属性
-	 */
-	bool GetProperty(Runtime* runtime, ConstIndex key, Value* value);
-
-	/**
 	 * @brief 设置对象属性（常量索引键）
 	 * @param context 执行上下文指针
 	 * @param key 属性键索引
@@ -143,8 +119,9 @@ public:
 	 * @brief 删除对象属性
 	 * @param context 执行上下文指针
 	 * @param key 属性键索引
+	 * @return 返回属性值
 	 */
-	virtual void DelProperty(Context* context, ConstIndex key);
+	virtual bool DelProperty(Context* context, ConstIndex key, Value* value);
 
 	/**
 	 * @brief 设置带标志的属性（用于 getter/setter）
@@ -172,6 +149,7 @@ public:
 	                              FunctionObject* setter,
 	                              uint32_t flags = ShapeProperty::kDefault);
 
+
 	/**
 	 * @brief 设置计算属性（动态键）
 	 * @param context 执行上下文指针
@@ -194,7 +172,7 @@ public:
 	 * @param context 执行上下文指针
 	 * @param key 属性键值
 	 */
-	virtual void DelComputedProperty(Context* context, const Value& key);
+	virtual bool DelComputedProperty(Context* context, const Value& key, Value* value);
 
 	/**
 	 * @brief 将对象转换为字符串表示
@@ -205,17 +183,11 @@ public:
 
 	/**
 	 * @brief 获取对象的原型
-	 * @param runtime 运行时环境指针
-	 * @return 原型对象的常量引用，__proto__
-	 */
-	const Value& GetPrototype(Runtime* runtime) const;
-
-	/**
-	 * @brief 设置对象的原型
 	 * @param context 执行上下文指针
-	 * @param prototype 要设置的原型对象，__proto__
+	 * @return 对象的原型引用
 	 */
-	void SetPrototype(Runtime* runtime, Value prototype);
+	const Value& GetPrototype(Context* context) const;
+
 
 	/**
 	 * @brief 设置对象的原型
@@ -261,15 +233,6 @@ public:
 	 * @param flag 标记状态
 	 */
 	void set_gc_mark(bool flag) { tag_.gc_mark_ = flag; }
-
-	/**
-	 * @brief 创建新的普通对象
-	 * @param runtime 运行时环境指针
-	 * @return 新创建的对象指针
-	 */
-	static Object* New(Runtime* runtime) {
-		return new Object(runtime, ClassId::kObject);
-	}
 
 	/**
 	 * @brief 创建新的普通对象
@@ -414,7 +377,7 @@ protected:
 			uint32_t is_frozen_ : 1;            ///< 是否已冻结（JS 标准）
 			uint32_t is_sealed_ : 1;            ///< 是否已密封（JS 标准）
 			uint32_t set_proto_ : 1;			///< 是否设置了__proto__
-			uint32_t reserved_ : 27;            ///< 保留位
+			// uint32_t reserved_ : 27;            ///< 保留位
 		};
 	} tag_;
 	Shape* shape_;                          ///< 形状指针（对象布局描述，包含原型信息）

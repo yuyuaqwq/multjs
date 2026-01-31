@@ -6,13 +6,11 @@ namespace mjs {
 
 class CppModuleObject : public Object {
 protected:
-	CppModuleObject(Runtime* runtime);
+	CppModuleObject(Context* context);
 
 public:
-	void AddExportMethod(Runtime* runtime, const char* name, CppFunction function);
-
-	static CppModuleObject* New(Runtime* runtime) {
-		return new CppModuleObject(runtime);
+	static CppModuleObject* New(Context* context) {
+		return new CppModuleObject(context);
     }
 };
 

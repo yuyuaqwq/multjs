@@ -2,6 +2,7 @@
 
 #include <mjs/shape.h>
 #include <mjs/context.h>
+#include <mjs/shape_manager.h>
 
 namespace mjs {
 

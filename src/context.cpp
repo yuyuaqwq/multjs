@@ -106,7 +106,7 @@ ConstIndex Context::FindConstOrInsertToLocal(const Value& value) {
 		return *global_res;
 	}
 
-	return local_const_pool_.Insert(value);
+	return local_const_pool_.FindOrInsert(value);
 }
 
 // 代码生成用，主要是为了减少重复的内存占用，Global是不会被回收的
@@ -120,7 +120,7 @@ ConstIndex Context::FindConstOrInsertToGlobal(const Value& value) {
 		return *local_res;
 	}
 
-	return runtime_->global_const_pool().Insert(value);
+	return runtime_->global_const_pool().FindOrInsert(value);
 }
 
 const Value& Context::GetConstValue(ConstIndex const_index) {

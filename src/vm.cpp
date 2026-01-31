@@ -681,7 +681,7 @@ void VM::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 			}
 
 			// 获取原型的原型 (即父类原型)
-			auto& super_prototype = current_prototype.object().GetPrototype(&context_->runtime());
+			auto& super_prototype = current_prototype.object().GetPrototype(context_);
 
 			// 如果父类原型是 null 或对象，push 到栈上
 			// 在方法调用时，这个值会被用于属性访问

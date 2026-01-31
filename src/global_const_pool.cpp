@@ -5,79 +5,79 @@
 namespace mjs {
 
 void GlobalConstPool::Initialize() {
-	auto index = Insert(Value("__proto__"));
+	auto index = FindOrInsert(Value("__proto__"));
 	assert(index == ConstIndexEmbedded::kProto);
-	index = Insert(Value("prototype"));
+	index = FindOrInsert(Value("prototype"));
 	assert(index == ConstIndexEmbedded::kPrototype);
-	index = Insert(Value("constructor"));
+	index = FindOrInsert(Value("constructor"));
 	assert(index == ConstIndexEmbedded::kConstructor);
 
-	index = Insert(Value("value"));
+	index = FindOrInsert(Value("value"));
 	assert(index == ConstIndexEmbedded::kValue);
-	index = Insert(Value("done"));
+	index = FindOrInsert(Value("done"));
 	assert(index == ConstIndexEmbedded::kDone);
-	index = Insert(Value("next"));
+	index = FindOrInsert(Value("next"));
 	assert(index == ConstIndexEmbedded::kNext);
 
-	index = Insert(Value("then"));
+	index = FindOrInsert(Value("then"));
 	assert(index == ConstIndexEmbedded::kThen);
-	index = Insert(Value("resolve"));
+	index = FindOrInsert(Value("resolve"));
 	assert(index == ConstIndexEmbedded::kResolve);
-	index = Insert(Value("reject"));
+	index = FindOrInsert(Value("reject"));
 	assert(index == ConstIndexEmbedded::kReject);
 
-	index = Insert(Value("split"));
+	index = FindOrInsert(Value("split"));
 	assert(index == ConstIndexEmbedded::kSplit);
-	index = Insert(Value("substring"));
+	index = FindOrInsert(Value("substring"));
 	assert(index == ConstIndexEmbedded::kSubString);
-	index = Insert(Value("indexoOf"));
+	index = FindOrInsert(Value("indexoOf"));
 	assert(index == ConstIndexEmbedded::kIndexOf);
-	index = Insert(Value("toLowerCase"));
+	index = FindOrInsert(Value("toLowerCase"));
 	assert(index == ConstIndexEmbedded::kToLowerCase);
-	index = Insert(Value("toUpperCase"));
+	index = FindOrInsert(Value("toUpperCase"));
 	assert(index == ConstIndexEmbedded::kToUpperCase);
-	index = Insert(Value("trim"));
+	index = FindOrInsert(Value("trim"));
 	assert(index == ConstIndexEmbedded::kTrim);
-	index = Insert(Value("replace"));
+	index = FindOrInsert(Value("replace"));
 	assert(index == ConstIndexEmbedded::kReplace);
-	index = Insert(Value("for"));
+	index = FindOrInsert(Value("for"));
 	assert(index == ConstIndexEmbedded::kFor);
 
-	index = Insert(Value("freeze"));
+	index = FindOrInsert(Value("freeze"));
 	assert(index == ConstIndexEmbedded::kFreeze);
-	index = Insert(Value("seal"));
+	index = FindOrInsert(Value("seal"));
 	assert(index == ConstIndexEmbedded::kSeal);
-	index = Insert(Value("preventExtensions"));
+	index = FindOrInsert(Value("preventExtensions"));
 	assert(index == ConstIndexEmbedded::kPreventExtensions);
-	index = Insert(Value("defineProperty"));
+	index = FindOrInsert(Value("defineProperty"));
 	assert(index == ConstIndexEmbedded::kDefineProperty);
 
-	index = Insert(Value("length"));
+	index = FindOrInsert(Value("length"));
 	assert(index == ConstIndexEmbedded::kLength);
-	index = Insert(Value("of"));
+	index = FindOrInsert(Value("of"));
 	assert(index == ConstIndexEmbedded::kOf);
-	index = Insert(Value("push"));
+	index = FindOrInsert(Value("push"));
 	assert(index == ConstIndexEmbedded::kPush);
-	index = Insert(Value("pop"));
+	index = FindOrInsert(Value("pop"));
 	assert(index == ConstIndexEmbedded::kPop);
-	index = Insert(Value("forEach"));
+	index = FindOrInsert(Value("forEach"));
 	assert(index == ConstIndexEmbedded::kForEach);
-	index = Insert(Value("map"));
+	index = FindOrInsert(Value("map"));
 	assert(index == ConstIndexEmbedded::kMap);
-	index = Insert(Value("filter"));
+	index = FindOrInsert(Value("filter"));
 	assert(index == ConstIndexEmbedded::kFilter);
-	index = Insert(Value("reduce"));
+	index = FindOrInsert(Value("reduce"));
 	assert(index == ConstIndexEmbedded::kReduce);
 
 	assert(size() == ConstIndexEmbedded::kEnd);
 }
 
-ConstIndex GlobalConstPool::Insert(const Value& value) {
+ConstIndex GlobalConstPool::FindOrInsert(const Value& value) {
 	auto value_ = value;
-	return Insert(std::move(value_));
+	return FindOrInsert(std::move(value_));
 }
 
-ConstIndex GlobalConstPool::Insert(Value&& value) {
+ConstIndex GlobalConstPool::FindOrInsert(Value&& value) {
 	auto lock = std::lock_guard(mutex_);
 
 	auto it = map_.find(value);

@@ -2,6 +2,7 @@
 
 #include <mjs/stack_frame.h>
 #include <mjs/context.h>
+#include <mjs/runtime.h>
 #include <mjs/object_impl/array_object.h>
 #include <mjs/object_impl/function_object.h>
 
@@ -11,34 +12,34 @@ ArrayObjectClassDef::ArrayObjectClassDef(Runtime* runtime)
 	: ClassDef(runtime, ClassId::kArrayObject, "Array")
 {
 	// Array.prototype.__proto__ = Object.prototype
-	prototype_.object().SetPrototype(runtime, runtime->class_def_table()[ClassId::kObject].prototype());
+	prototype_.object().SetPrototype(&runtime->default_context(), runtime->class_def_table()[ClassId::kObject].prototype());
 	// Array.__proto = Function.prototype
-	constructor_.object().SetPrototype(runtime, runtime->class_def_table()[ClassId::kFunctionObject].prototype());
+	constructor_.object().SetPrototype(&runtime->default_context(), runtime->class_def_table()[ClassId::kFunctionObject].prototype());
 
-	constructor_.object().SetProperty(runtime, ConstIndexEmbedded::kOf, Value([](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
+	constructor_.object().SetProperty(&runtime->default_context(), ConstIndexEmbedded::kOf, Value([](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
 		return ArrayObjectClassDef::Of(context, par_count, stack);
 	}));
 
 	// Push method
-	prototype_.object().SetProperty(runtime, ConstIndexEmbedded::kPush, Value([](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
+	prototype_.object().SetProperty(&runtime->default_context(), ConstIndexEmbedded::kPush, Value([](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
 		auto& arr = stack.this_val().array();
 		for (size_t i = 0; i < par_count; ++i) {
 			arr.Push(context, stack.get(i));
 		}
-		return Value(static_cast<int64_t>(arr.length()));
+		return Value(static_cast<int64_t>(arr.GetLength()));
 	}));
 
 	// Pop method
-	prototype_.object().SetProperty(runtime, ConstIndexEmbedded::kPop, Value([](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
+	prototype_.object().SetProperty(&runtime->default_context(), ConstIndexEmbedded::kPop, Value([](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
 		auto& arr = stack.this_val().array();
-		if (arr.length() == 0) {
+		if (arr.GetLength() == 0) {
 			return Value();
 		}
 		return arr.Pop(context);
 	}));
 
 	// ForEach method
-	prototype_.object().SetProperty(runtime, ConstIndexEmbedded::kForEach, Value([](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
+	prototype_.object().SetProperty(&runtime->default_context(), ConstIndexEmbedded::kForEach, Value([](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
 		if (par_count < 1) {
 			return TypeError::Throw(context, "forEach requires a callback function");
 		}
@@ -48,7 +49,7 @@ ArrayObjectClassDef::ArrayObjectClassDef(Runtime* runtime)
 			return TypeError::Throw(context, "forEach callback must be a function");
 		}
 
-		for (size_t i = 0; i < arr.length(); ++i) {
+		for (size_t i = 0; i < arr.GetLength(); ++i) {
 			std::array<Value, 3> args = {
 				arr.At(context, i),
 				Value(static_cast<int64_t>(i)),
@@ -60,7 +61,7 @@ ArrayObjectClassDef::ArrayObjectClassDef(Runtime* runtime)
 	}));
 
 	// Map method
-	prototype_.object().SetProperty(runtime, ConstIndexEmbedded::kMap, Value([](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
+	prototype_.object().SetProperty(&runtime->default_context(), ConstIndexEmbedded::kMap, Value([](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
 		if (par_count < 1) {
 			return TypeError::Throw(context, "map requires a callback function");
 		}
@@ -70,8 +71,8 @@ ArrayObjectClassDef::ArrayObjectClassDef(Runtime* runtime)
 			return TypeError::Throw(context, "forEach callback must be a function");
 		}
 
-		auto result = ArrayObject::New(context, arr.length());
-		for (size_t i = 0; i < arr.length(); ++i) {
+		auto result = ArrayObject::New(context, arr.GetLength());
+		for (size_t i = 0; i < arr.GetLength(); ++i) {
 			std::array<Value, 3> args = {
 				arr.At(context, i),
 				Value(static_cast<int64_t>(i)),
@@ -83,7 +84,7 @@ ArrayObjectClassDef::ArrayObjectClassDef(Runtime* runtime)
 	}));
 
 	// Filter method
-	prototype_.object().SetProperty(runtime, ConstIndexEmbedded::kFilter, Value([](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
+	prototype_.object().SetProperty(&runtime->default_context(), ConstIndexEmbedded::kFilter, Value([](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
 		if (par_count < 1) {
 			return TypeError::Throw(context, "filter requires a callback function");
 		}
@@ -94,7 +95,7 @@ ArrayObjectClassDef::ArrayObjectClassDef(Runtime* runtime)
 		}
 
 		auto result = ArrayObject::New(context, 0);
-		for (size_t i = 0; i < arr.length(); ++i) {
+		for (size_t i = 0; i < arr.GetLength(); ++i) {
 			std::array<Value, 3> args = {
 				arr.At(context, i),
 				Value(static_cast<int64_t>(i)),
@@ -109,7 +110,7 @@ ArrayObjectClassDef::ArrayObjectClassDef(Runtime* runtime)
 	}));
 
 	// Reduce method
-	prototype_.object().SetProperty(runtime, ConstIndexEmbedded::kReduce, Value([](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
+	prototype_.object().SetProperty(&runtime->default_context(), ConstIndexEmbedded::kReduce, Value([](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
 		if (par_count < 1) {
 			return TypeError::Throw(context, "reduce requires a callback function");
 		}
@@ -127,14 +128,14 @@ ArrayObjectClassDef::ArrayObjectClassDef(Runtime* runtime)
 			accumulator = stack.get(1);
 		} else {
 			// 没有提供初始值，使用数组第一个元素作为初始值
-			if (arr.length() == 0) {
+			if (arr.GetLength() == 0) {
 				return TypeError::Throw(context, "reduce of empty array with no initial value");
 			}
 			accumulator = arr.At(context, 0);
 			start_index = 1;
 		}
 
-		for (size_t i = start_index; i < arr.length(); ++i) {
+		for (size_t i = start_index; i < arr.GetLength(); ++i) {
 			std::array<Value, 4> args = {
 				accumulator,
 				arr.At(context, i),
@@ -194,7 +195,7 @@ Value ArrayObjectClassDef::Of(Context* context, uint32_t par_count, const StackF
 Value ArrayObjectClassDef::LiteralNew(Context* context, uint32_t par_count, const StackFrame& stack) {
 	auto arr = ArrayObject::New(context, par_count);
 	for (size_t i = 0; i < par_count; ++i) {
-		arr->At(context, i) = std::move(stack.get(i));
+		arr->SetComputedProperty(context, Value(static_cast<int64_t>(i)), std::move(stack.get(i)));
 	}
 	return Value(arr);
 }

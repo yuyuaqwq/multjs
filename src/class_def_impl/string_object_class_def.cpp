@@ -1,11 +1,13 @@
 #include <mjs/class_def_impl/string_object_class_def.h>
 
-#include <mjs/stack_frame.h>
-#include <mjs/context.h>
-#include <mjs/object_impl/array_object.h>
 #include <string>
 #include <vector>
 #include <algorithm>
+
+#include <mjs/stack_frame.h>
+#include <mjs/context.h>
+#include <mjs/runtime.h>
+#include <mjs/object_impl/array_object.h>
 
 namespace mjs {
 
@@ -13,12 +15,12 @@ StringObjectClassDef::StringObjectClassDef(Runtime* runtime)
 	: ClassDef(runtime, ClassId::kStringObject, "String")
 {
 	// String.prototype.__proto__ = Object.prototype
-	prototype_.object().SetPrototype(runtime, runtime->class_def_table()[ClassId::kObject].prototype());
+	prototype_.object().SetPrototype(&runtime->default_context(), runtime->class_def_table()[ClassId::kObject].prototype());
 	// String.__proto = Function.prototype
-	constructor_.object().SetPrototype(runtime, runtime->class_def_table()[ClassId::kFunctionObject].prototype());
+	constructor_.object().SetPrototype(&runtime->default_context(), runtime->class_def_table()[ClassId::kFunctionObject].prototype());
 
 	// Split method
-	prototype_.object().SetProperty(runtime, ConstIndexEmbedded::kSplit, Value([](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
+	prototype_.object().SetProperty(&runtime->default_context(), ConstIndexEmbedded::kSplit, Value([](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
 		if (par_count < 1) {
 			return Value(ArrayObject::New(context, {}));
 		}
@@ -42,7 +44,7 @@ StringObjectClassDef::StringObjectClassDef(Runtime* runtime)
 	}));
 
 	// Substring method
-	prototype_.object().SetProperty(runtime, ConstIndexEmbedded::kSubString, Value([](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
+	prototype_.object().SetProperty(&runtime->default_context(), ConstIndexEmbedded::kSubString, Value([](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
 		std::string str = stack.this_val().ToString(context).string_view();
 		int start = 0;
 		int end = str.length();
@@ -64,7 +66,7 @@ StringObjectClassDef::StringObjectClassDef(Runtime* runtime)
 	}));
 
 	// IndexOf method
-	prototype_.object().SetProperty(runtime, ConstIndexEmbedded::kIndexOf, Value([](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
+	prototype_.object().SetProperty(&runtime->default_context(), ConstIndexEmbedded::kIndexOf, Value([](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
 		if (par_count < 1) return Value(-1);
 		
 		std::string str = stack.this_val().ToString(context).string_view();
@@ -81,7 +83,7 @@ StringObjectClassDef::StringObjectClassDef(Runtime* runtime)
 	}));
 
 	// ToLowerCase method
-	prototype_.object().SetProperty(runtime, ConstIndexEmbedded::kToLowerCase, Value([](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
+	prototype_.object().SetProperty(&runtime->default_context(), ConstIndexEmbedded::kToLowerCase, Value([](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
 		std::string str = stack.this_val().ToString(context).string_view();
 		std::string result;
 		result.reserve(str.length());
@@ -92,7 +94,7 @@ StringObjectClassDef::StringObjectClassDef(Runtime* runtime)
 	}));
 
 	// ToUpperCase method
-	prototype_.object().SetProperty(runtime, ConstIndexEmbedded::kToUpperCase, Value([](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
+	prototype_.object().SetProperty(&runtime->default_context(), ConstIndexEmbedded::kToUpperCase, Value([](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
 		std::string str = stack.this_val().ToString(context).string_view();
 		std::string result;
 		result.reserve(str.length());
@@ -103,7 +105,7 @@ StringObjectClassDef::StringObjectClassDef(Runtime* runtime)
 	}));
 
 	// Trim method
-	prototype_.object().SetProperty(runtime, ConstIndexEmbedded::kTrim, Value([](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
+	prototype_.object().SetProperty(&runtime->default_context(), ConstIndexEmbedded::kTrim, Value([](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
 		std::string str = stack.this_val().ToString(context).string_view();
 		auto start = str.find_first_not_of(" \t\n\r\f\v");
 		if (start == std::string::npos) return Value("");
@@ -112,7 +114,7 @@ StringObjectClassDef::StringObjectClassDef(Runtime* runtime)
 	}));
 
 	// Replace method
-	prototype_.object().SetProperty(runtime, ConstIndexEmbedded::kReplace, Value([](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
+	prototype_.object().SetProperty(&runtime->default_context(), ConstIndexEmbedded::kReplace, Value([](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
 		if (par_count < 2) return stack.this_val();
 		
 		std::string str = stack.this_val().ToString(context).string_view();
@@ -124,12 +126,6 @@ StringObjectClassDef::StringObjectClassDef(Runtime* runtime)
 		
 		return Value(String::New(str.substr(0, pos) + replaceStr + str.substr(pos + searchStr.length())));
 	}));
-
-	// Length property
-	//auto length_index = runtime->const_pool().insert(Value("length"));
-	//prototype_.object().SetProperty(nullptr, length_index, Value([](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
-	//	return Value(static_cast<int64_t>(stack.this_val().ToString(context).string_view().length()));
-	//}));
 }
 
 } // namespace mjs

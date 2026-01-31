@@ -2,6 +2,7 @@
 
 #include <mjs/stack_frame.h>
 #include <mjs/context.h>
+#include <mjs/runtime.h>
 #include <mjs/shape_property.h>
 #include <mjs/object.h>
 #include <mjs/error.h>
@@ -12,19 +13,19 @@ ObjectClassDef::ObjectClassDef(Runtime* runtime)
 	: ClassDef(runtime, ClassId::kObject, "Object")
 {
 	// Object.prototype 是一个特殊的对象,它没有原型(原型为null)
-	prototype_.object().SetPrototype(runtime, Value(nullptr));
+	prototype_.object().SetPrototype(&runtime->default_context(), Value(nullptr));
 
 	// 注册 Object.freeze 静态方法到构造函数对象
-	constructor_.object().SetProperty(runtime, ConstIndexEmbedded::kFreeze, Value(Freeze));
+	constructor_.object().SetProperty(&runtime->default_context(), ConstIndexEmbedded::kFreeze, Value(Freeze));
 
 	// 注册 Object.seal 静态方法到构造函数对象
-	constructor_.object().SetProperty(runtime, ConstIndexEmbedded::kSeal, Value(Seal));
+	constructor_.object().SetProperty(&runtime->default_context(), ConstIndexEmbedded::kSeal, Value(Seal));
 
 	// 注册 Object.preventExtensions 静态方法到构造函数对象
-	constructor_.object().SetProperty(runtime, ConstIndexEmbedded::kPreventExtensions, Value(PreventExtensions));
+	constructor_.object().SetProperty(&runtime->default_context(), ConstIndexEmbedded::kPreventExtensions, Value(PreventExtensions));
 
 	// 注册 Object.defineProperty 静态方法到构造函数对象
-	constructor_.object().SetProperty(runtime, ConstIndexEmbedded::kDefineProperty, Value(DefineProperty));
+	constructor_.object().SetProperty(&runtime->default_context(), ConstIndexEmbedded::kDefineProperty, Value(DefineProperty));
 }
 
 Value ObjectClassDef::NewConstructor(Context* context, uint32_t par_count, const StackFrame& stack) const {
@@ -34,12 +35,12 @@ Value ObjectClassDef::NewConstructor(Context* context, uint32_t par_count, const
 Value ObjectClassDef::LiteralNew(Context* context, uint32_t par_count, const StackFrame& stack) {
 	auto obj = Object::New(context);
 	for (int32_t i = 0; i < par_count; i += 2) {
-		auto key_const_index = stack.get(i).const_index();
-		if (key_const_index == kConstIndexInvalid) {
-			return TypeError::Throw(context, "Object property key must be a valid string");
-		}
-
-		obj->SetProperty(context, key_const_index, std::move(stack.get(i + 1)));
+		//auto key_const_index = stack.get(i).const_index();
+		//if (key_const_index == kConstIndexInvalid) {
+		//	return TypeError::Throw(context, "Object property key must be a valid string");
+		//}
+		//obj->SetProperty(context, key_const_index, std::move(stack.get(i + 1)));
+		obj->SetComputedProperty(context, stack.get(i), std::move(stack.get(i + 1)));
 	}
 	return Value(obj);
 }
@@ -50,11 +51,12 @@ Value ObjectClassDef::SetProperty(Context* context, uint32_t par_count, const St
 		return TypeError::Throw(context, "Object.setProperty requires exactly 3 arguments");
 	}
 	auto* obj = &stack.get(0).object();
-	auto key_const_index = stack.get(1).const_index();
-	if (key_const_index == kConstIndexInvalid) {
-		return TypeError::Throw(context, "Object property key must be a valid string");
-	}
-	obj->SetProperty(context, key_const_index, std::move(stack.get(2)));
+	//auto key_const_index = stack.get(1).const_index();
+	//if (key_const_index == kConstIndexInvalid) {
+	//	return TypeError::Throw(context, "Object property key must be a valid string");
+	//}
+	//obj->SetProperty(context, key_const_index, std::move(stack.get(2)));
+	obj->SetComputedProperty(context, stack.get(1), std::move(stack.get(2)));
 	return Value(obj);
 }
 
@@ -79,11 +81,9 @@ Value ObjectClassDef::DefineProperty(Context* context, uint32_t par_count, const
 
 		if (descriptor.IsObject()) {
 			auto& desc_obj = descriptor.object();
-
 			// 尝试获取 value 属性
-			auto value_const_index = context->runtime().global_const_pool().Insert(Value("value"));
 			Value value_value;
-			if (desc_obj.GetProperty(context, value_const_index, &value_value)) {
+			if (desc_obj.GetProperty(context, ConstIndexEmbedded::kValue, &value_value)) {
 				// 如果有 value 属性，设置属性值
 				obj->SetProperty(context, key_const_index, std::move(value_value));
 			}

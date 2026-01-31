@@ -6,12 +6,12 @@ LocalConstPool::LocalConstPool() {
 	pool_.resize(1);
 }
 
-ConstIndex LocalConstPool::Insert(const Value& value) {
+ConstIndex LocalConstPool::FindOrInsert(const Value& value) {
 	auto value_ = value;
-	return Insert(std::move(value_));
+	return FindOrInsert(std::move(value_));
 }
 
-ConstIndex LocalConstPool::Insert(Value&& value) {
+ConstIndex LocalConstPool::FindOrInsert(Value&& value) {
 	auto it = map_.find(value);
 	if (it != map_.end()) {
 		// 常量已存在

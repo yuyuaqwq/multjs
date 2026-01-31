@@ -48,6 +48,7 @@ public:
 	}
 
 	void SetProperty(Context* context, ConstIndex key, Value&& value) override;
+
 	bool GetProperty(Context* context, ConstIndex key, Value* value) override;
 
     ModuleDef& module_def() const { return static_cast<ModuleDef&>(*function_def_); }

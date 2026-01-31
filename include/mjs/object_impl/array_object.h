@@ -10,10 +10,10 @@ private:
     ArrayObject(Context* context);
 
     // 初始化 length 属性
-    void InitLengthProperty(Context* context);
+    void InitLengthProperty();
 
     // 设置 length 属性值（内部使用）
-    void SetLengthValue(Context* context, size_t new_length);
+    void SetLengthValue(size_t new_length);
 
     // 检查是否是有效的数组索引（符合 JS 规范：32位无符号整数）
     static bool IsValidArrayIndex(uint64_t index) {
@@ -28,25 +28,23 @@ private:
 
 public:
     bool GetProperty(Context* context, ConstIndex key, Value* value) override;
-    void SetProperty(Context* context, ConstIndex key, Value&& value) override;
-    void DelProperty(Context* context, ConstIndex key) override;
 
-    bool GetComputedProperty(Context* context, const Value& key, Value* value) override;
-    void SetComputedProperty(Context* context, const Value& key, Value&& value) override;
-    void DelComputedProperty(Context* context, const Value& key) override;
+    void SetProperty(Context* context, ConstIndex key, Value&& value) override;
 
     void Push(Context* context, Value val);
+
     Value Pop(Context* context);
 
     void ForEach(Context* context, Value callback);
 
     // 获取数组长度
-    size_t length() const;
+    size_t GetLength() const;
 
     // 数组元素访问
     Value& At(Context* context, size_t index);
 
     static ArrayObject* New(Context* context, std::initializer_list<Value> values);
+
     static ArrayObject* New(Context* context, size_t count);
 };
 

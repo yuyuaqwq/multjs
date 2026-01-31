@@ -69,8 +69,8 @@ TEST_F(FunctionObjectTest, FunctionInheritsFromObject) {
     auto* func_obj = FunctionObject::New(context.get(), func_def);
 
     // 测试继承自Object
-    EXPECT_TRUE(func_obj->GetPrototype(test_env->runtime()).IsObject() ||
-                func_obj->GetPrototype(test_env->runtime()).IsNull());
+    EXPECT_TRUE(func_obj->GetPrototype(context.get()).IsObject() ||
+                func_obj->GetPrototype(context.get()).IsNull());
 }
 
 TEST_F(FunctionObjectTest, FunctionWithBytecode) {

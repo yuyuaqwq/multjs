@@ -16,11 +16,11 @@
 #include <initializer_list>
 
 #include <mjs/noncopyable.h>
-#include <mjs/runtime.h>
 #include <mjs/vm.h>
 #include <mjs/job_queue.h>
 #include <mjs/object.h>
 #include <mjs/shape.h>
+#include <mjs/shape_manager.h>
 #include <mjs/gc_manager.h>
 #include <mjs/local_const_pool.h>
 
@@ -42,6 +42,9 @@ namespace mjs {
  * @see Runtime 运行时环境
  * @see VM 虚拟机
  */
+
+class Runtime;
+
 class Context : public noncopyable {
 public:
 	/**
@@ -104,10 +107,7 @@ public:
 	 * @throw RuntimeError 运行时错误时抛出
 	 */
 	template<typename It>
-	Value CallFunction(Value* func_val, Value this_val, It begin, It end) {
-        auto stack_frame = StackFrame(&runtime().stack());
-		return vm_.CallFunction(&stack_frame, *func_val, std::move(this_val), begin, end);
-	}
+	Value CallFunction(Value* func_val, Value this_val, It begin, It end);
 
 	/**
 	 * @brief 执行微任务队列

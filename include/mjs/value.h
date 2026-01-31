@@ -101,6 +101,7 @@ enum class ValueType : uint32_t {
 	kPromiseReject,
 };
 
+class Runtime;
 class Context;
 class StackFrame;
 
@@ -535,9 +536,6 @@ public:
 
 	/** @brief 检查是否为生成器下一个值类型 */
 	bool IsGeneratorNext() const;
-
-	/** @brief 检查是否为迭代器对象类型 */
-	bool IsIteratorObject() const;
 
 	/** @brief 转换为字符串表示 */
 	Value ToString(Context* context) const;

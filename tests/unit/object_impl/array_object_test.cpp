@@ -29,7 +29,7 @@ protected:
 TEST_F(ArrayObjectTest, CreateEmptyArray) {
     auto* arr = ArrayObject::New(context.get(), 0);
     ASSERT_NE(arr, nullptr);
-    EXPECT_EQ(arr->length(), 0);
+    EXPECT_EQ(arr->GetLength(), 0);
 }
 
 TEST_F(ArrayObjectTest, CreateArrayWithInitializerList) {
@@ -39,7 +39,7 @@ TEST_F(ArrayObjectTest, CreateArrayWithInitializerList) {
         Value(3)
     });
     ASSERT_NE(arr, nullptr);
-    EXPECT_EQ(arr->length(), 3);
+    EXPECT_EQ(arr->GetLength(), 3);
 
     // 使用新的 operator[] 语法
     EXPECT_EQ((*arr).At(context.get(), 0).i64(), 1);
@@ -51,7 +51,7 @@ TEST_F(ArrayObjectTest, CreateArrayWithSize_SparseArray) {
     // 测试稀疏数组：创建长度为 5 但没有元素的数组
     auto* arr = ArrayObject::New(context.get(), 5);
     ASSERT_NE(arr, nullptr);
-    EXPECT_EQ(arr->length(), 5);
+    EXPECT_EQ(arr->GetLength(), 5);
 
     // 稀疏数组访问不存在的元素应该返回 undefined
     // 但不应该自动创建元素
@@ -94,11 +94,11 @@ TEST_F(ArrayObjectTest, ArraySetElementBeyondLength) {
         Value(1),
         Value(2)
     });
-    EXPECT_EQ(arr->length(), 2);
+    EXPECT_EQ(arr->GetLength(), 2);
 
     // 设置超出当前 length 的元素应该自动扩展 length
     arr->At(context.get(), 5) = Value(100);
-    EXPECT_EQ(arr->length(), 6);
+    EXPECT_EQ(arr->GetLength(), 6);
     EXPECT_EQ(arr->At(context.get(), 5).i64(), 100);
 }
 
@@ -108,15 +108,15 @@ TEST_F(ArrayObjectTest, ArrayPush) {
     auto* arr = ArrayObject::New(context.get(), 0);
 
     arr->Push(context.get(), Value(1));
-    EXPECT_EQ(arr->length(), 1);
+    EXPECT_EQ(arr->GetLength(), 1);
     EXPECT_EQ(arr->At(context.get(), 0).i64(), 1);
 
     arr->Push(context.get(), Value(2));
-    EXPECT_EQ(arr->length(), 2);
+    EXPECT_EQ(arr->GetLength(), 2);
     EXPECT_EQ(arr->At(context.get(), 1).i64(), 2);
 
     arr->Push(context.get(), Value(3));
-    EXPECT_EQ(arr->length(), 3);
+    EXPECT_EQ(arr->GetLength(), 3);
     EXPECT_EQ(arr->At(context.get(), 2).i64(), 3);
 }
 
@@ -130,15 +130,15 @@ TEST_F(ArrayObjectTest, ArrayPop) {
     // 测试 pop
     Value val = arr->Pop(context.get());
     EXPECT_EQ(val.i64(), 3);
-    EXPECT_EQ(arr->length(), 2);
+    EXPECT_EQ(arr->GetLength(), 2);
 
     val = arr->Pop(context.get());
     EXPECT_EQ(val.i64(), 2);
-    EXPECT_EQ(arr->length(), 1);
+    EXPECT_EQ(arr->GetLength(), 1);
 
     val = arr->Pop(context.get());
     EXPECT_EQ(val.i64(), 1);
-    EXPECT_EQ(arr->length(), 0);
+    EXPECT_EQ(arr->GetLength(), 0);
 }
 
 TEST_F(ArrayObjectTest, ArrayPopFromEmpty) {
@@ -147,7 +147,7 @@ TEST_F(ArrayObjectTest, ArrayPopFromEmpty) {
     // 从空数组 pop 应该返回 undefined
     Value val = arr->Pop(context.get());
     EXPECT_TRUE(val.IsUndefined());
-    EXPECT_EQ(arr->length(), 0);
+    EXPECT_EQ(arr->GetLength(), 0);
 }
 
 // ==================== Length 属性测试 ====================
@@ -175,13 +175,13 @@ TEST_F(ArrayObjectTest, ArraySetLengthSmaller) {
         Value(4),
         Value(5)
     });
-    EXPECT_EQ(arr->length(), 5);
+    EXPECT_EQ(arr->GetLength(), 5);
 
     // 设置更小的 length 应该删除超出部分
     auto length_key = context->FindConstOrInsertToLocal(Value("length"));
     arr->SetProperty(context.get(), length_key, Value(static_cast<int64_t>(3)));
 
-    EXPECT_EQ(arr->length(), 3);
+    EXPECT_EQ(arr->GetLength(), 3);
 
     // 检查元素是否被删除
     Value val;
@@ -194,13 +194,13 @@ TEST_F(ArrayObjectTest, ArraySetLengthLarger) {
         Value(1),
         Value(2)
     });
-    EXPECT_EQ(arr->length(), 2);
+    EXPECT_EQ(arr->GetLength(), 2);
 
     // 设置更大的 length 应该扩展数组（稀疏）
     auto length_key = context->FindConstOrInsertToLocal(Value("length"));
     arr->SetProperty(context.get(), length_key, Value(static_cast<int64_t>(10)));
 
-    EXPECT_EQ(arr->length(), 10);
+    EXPECT_EQ(arr->GetLength(), 10);
     // 之前存在的元素应该还在
     EXPECT_EQ(arr->At(context.get(), 0).i64(), 1);
     EXPECT_EQ(arr->At(context.get(), 1).i64(), 2);
@@ -211,11 +211,11 @@ TEST_F(ArrayObjectTest, ArrayAutoUpdateLength) {
         Value(1),
         Value(2)
     });
-    EXPECT_EQ(arr->length(), 2);
+    EXPECT_EQ(arr->GetLength(), 2);
 
     // 添加超出 length 的元素应该自动更新 length
     arr->At(context.get(), 10) = Value(100);
-    EXPECT_EQ(arr->length(), 11);
+    EXPECT_EQ(arr->GetLength(), 11);
     EXPECT_EQ(arr->At(context.get(), 10).i64(), 100);
 }
 
@@ -252,11 +252,11 @@ TEST_F(ArrayObjectTest, ArraySetComputedPropertyBeyondLength) {
         Value(1),
         Value(2)
     });
-    EXPECT_EQ(arr->length(), 2);
+    EXPECT_EQ(arr->GetLength(), 2);
 
     // 设置超出 length 的元素
     arr->SetComputedProperty(context.get(), Value(5), Value(100));
-    EXPECT_EQ(arr->length(), 6); // length 应该自动更新为 6
+    EXPECT_EQ(arr->GetLength(), 6); // length 应该自动更新为 6
     EXPECT_EQ(arr->At(context.get(), 5).i64(), 100);
 }
 
@@ -268,10 +268,11 @@ TEST_F(ArrayObjectTest, ArrayDelComputedProperty) {
     });
 
     // 删除中间元素
-    arr->DelComputedProperty(context.get(), Value(1));
+    Value del_val;
+    arr->DelComputedProperty(context.get(), Value(1), &del_val);
 
     // length 不应该改变
-    EXPECT_EQ(arr->length(), 3);
+    EXPECT_EQ(arr->GetLength(), 3);
 
     // 元素应该被删除
     Value val;
@@ -290,7 +291,7 @@ TEST_F(ArrayObjectTest, ArrayMixedTypes) {
         Value()                       // undefined
     });
 
-    EXPECT_EQ(arr->length(), 4);
+    EXPECT_EQ(arr->GetLength(), 4);
     EXPECT_EQ(arr->At(context.get(), 0).i64(), 42);
     EXPECT_EQ(std::string_view(arr->At(context.get(), 1).string_view()), "hello");
     EXPECT_EQ(arr->At(context.get(), 2).boolean(), true);
@@ -302,7 +303,7 @@ TEST_F(ArrayObjectTest, ArrayMixedTypes) {
 TEST_F(ArrayObjectTest, SparseArray) {
     // 创建稀疏数组
     auto* arr = ArrayObject::New(context.get(), 100);
-    EXPECT_EQ(arr->length(), 100);
+    EXPECT_EQ(arr->GetLength(), 100);
 
     // 只设置几个元素
     arr->At(context.get(), 0) = Value(1);
@@ -321,14 +322,14 @@ TEST_F(ArrayObjectTest, SparseArray) {
 TEST_F(ArrayObjectTest, VerySparseArray) {
     // 创建非常大的稀疏数组
     auto* arr = ArrayObject::New(context.get(), 10000);
-    EXPECT_EQ(arr->length(), 10000);
+    EXPECT_EQ(arr->GetLength(), 10000);
 
     // 只在最后设置一个元素
     arr->At(context.get(), 9999) = Value(42);
     EXPECT_EQ(arr->At(context.get(), 9999).i64(), 42);
 
     // length 应该保持为 10000
-    EXPECT_EQ(arr->length(), 10000);
+    EXPECT_EQ(arr->GetLength(), 10000);
 }
 
 // ==================== 边界情况测试 ====================
@@ -337,7 +338,7 @@ TEST_F(ArrayObjectTest, LargeArray) {
     // 测试较大的数组
     size_t size = 1000;
     auto* arr = ArrayObject::New(context.get(), size);
-    EXPECT_EQ(arr->length(), size);
+    EXPECT_EQ(arr->GetLength(), size);
 
     // 修改几个元素
     arr->At(context.get(), 0) = Value(100);
@@ -355,10 +356,10 @@ TEST_F(ArrayObjectTest, ArrayIndexLimit) {
     // 测试接近 2^32-1 的索引（不实际创建，只测试边界）
     // 正常范围内的索引
     arr->At(context.get(), 0) = Value(1);
-    EXPECT_EQ(arr->length(), 1);
+    EXPECT_EQ(arr->GetLength(), 1);
 
     arr->At(context.get(), 1000) = Value(2);
-    EXPECT_EQ(arr->length(), 1001);
+    EXPECT_EQ(arr->GetLength(), 1001);
 }
 
 // ==================== 继承测试 ====================
@@ -367,8 +368,8 @@ TEST_F(ArrayObjectTest, ArrayInheritsFromObject) {
     auto* arr = ArrayObject::New(context.get(), {Value(1), Value(2)});
 
     // 测试继承自 Object
-    EXPECT_TRUE(arr->GetPrototype(test_env->runtime()).IsObject() ||
-                arr->GetPrototype(test_env->runtime()).IsNull());
+    EXPECT_TRUE(arr->GetPrototype(context.get()).IsObject() ||
+                arr->GetPrototype(context.get()).IsNull());
 }
 
 TEST_F(ArrayObjectTest, ArrayHasOwnProperty) {

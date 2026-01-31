@@ -5,6 +5,7 @@
 
 #include <mjs/const_index_embedded.h>
 #include <mjs/context.h>
+#include <mjs/runtime.h>
 #include <mjs/error.h>
 #include <mjs/class_def_impl/function_object_class_def.h>
 #include <mjs/object.h>
@@ -369,7 +370,7 @@ Value Value::InstanceOf(Context* context, const Value& rhs) const {
 		}
 
 		// 获取下一个原型
-		const Value& prototype_ref = current_obj->GetPrototype(&runtime);
+		const Value& prototype_ref = current_obj->GetPrototype(context);
 		if (!prototype_ref.IsObject()) {
 			break;
 		}

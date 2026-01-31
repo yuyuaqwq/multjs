@@ -48,14 +48,14 @@ public:
 	 * @param value 常量值
 	 * @return 全局常量索引
 	 */
-	ConstIndex Insert(const Value& value);
+	ConstIndex FindOrInsert(const Value& value);
 
 	/**
 	 * @brief 插入常量值（移动语义）
 	 * @param value 常量值
 	 * @return 全局常量索引
 	 */
-	ConstIndex Insert(Value&& value);
+	ConstIndex FindOrInsert(Value&& value);
 
 	/**
 	 * @brief 查找常量值

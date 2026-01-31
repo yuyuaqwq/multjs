@@ -44,7 +44,7 @@ TEST_F(ObjectIntegrationTest, ArrayAndFunctionInterop) {
     });
     auto arr_value = Value(arr);
 
-    EXPECT_EQ(arr->length(), 3);
+    EXPECT_EQ(arr->GetLength(), 3);
     EXPECT_TRUE((*arr).At(context.get(), 1).IsObject());
 }
 
@@ -85,7 +85,7 @@ TEST_F(ObjectIntegrationTest, GeneratorAndArray) {
     });
     auto arr_value = Value(arr);
 
-    EXPECT_EQ(arr->length(), 3);
+    EXPECT_EQ(arr->GetLength(), 3);
 }
 
 } // namespace mjs::test

@@ -17,9 +17,8 @@
 #include <mjs/class_def_table.h>
 #include <mjs/module_manager.h>
 #include <mjs/value.h>
-#include <mjs/shape_manager.h>
-#include <mjs/gc_manager.h>
 #include <mjs/error.h>
+#include <mjs/context.h>
 
 namespace mjs {
 
@@ -79,12 +78,6 @@ public:
 	auto& global_const_pool() { return global_const_pool_; }
 
 	/**
-	 * @brief 获取垃圾回收管理器引用
-	 * @return 垃圾回收管理器引用
-	 */
-	auto& gc_manager() { return gc_manager_; }
-
-	/**
 	 * @brief 获取线程本地栈引用
 	 * @return 线程本地栈引用
 	 * @note 每个线程有独立的栈实例
@@ -93,12 +86,6 @@ public:
 		static thread_local auto stack = Stack(1024);
 		return stack;
 	}
-
-	/**
-	 * @brief 获取形状管理器引用
-	 * @return 形状管理器引用
-	 */
-	auto& shape_manager() { return shape_manager_; }
 
 	/**
 	 * @brief 获取全局 this 对象引用
@@ -124,6 +111,12 @@ public:
 	 */
 	auto& module_manager() { return *module_manager_; }
 
+	/**
+	 * @brief 获取默认上下文引用，通常仅初始化运行时，需要创建多上下文共享对象时使用
+	 * @return 默认上下文引用
+	 */
+	auto& default_context() { return default_context_; }
+
 private:
 	/**
 	 * @brief 初始化运行时环境
@@ -145,11 +138,17 @@ private:
 
 private:
 	GlobalConstPool global_const_pool_;              ///< 全局常量池
-	GCManager gc_manager_;                    ///< 垃圾回收管理器
-	ShapeManager shape_manager_;              ///< 形状管理器（对象布局优化）
+	Context default_context_;			      ///< 默认上下文
 	Value global_this_;                       ///< 全局 this 对象
 	ClassDefTable class_def_table_;           ///< 类定义表
 	std::unique_ptr<ModuleManagerBase> module_manager_; ///< 模块管理器
 };
+
+template<typename It>
+Value Context::CallFunction(Value* func_val, Value this_val, It begin, It end) {
+	auto stack_frame = StackFrame(&runtime_->stack());
+	return vm_.CallFunction(&stack_frame, *func_val, std::move(this_val), begin, end);
+}
+
 
 } // namespace mjs

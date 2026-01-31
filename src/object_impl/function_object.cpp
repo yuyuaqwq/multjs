@@ -2,6 +2,7 @@
 #include <mjs/class_def_impl/function_object_class_def.h>
 #include <mjs/object.h>
 #include <mjs/context.h>
+#include <mjs/runtime.h>
 #include <mjs/shape.h>
 #include <mjs/const_index_embedded.h>
 

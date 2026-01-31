@@ -110,28 +110,6 @@ TEST_F(RuntimeTest, ModuleManagerAccess) {
 }
 
 /**
- * @brief 测试Runtime形状管理器访问
- */
-TEST_F(RuntimeTest, ShapeManagerAccess) {
-    // Arrange & Act
-    auto& shape_manager = runtime_->shape_manager();
-
-    // Assert
-    EXPECT_NE(&shape_manager, nullptr);
-}
-
-/**
- * @brief 测试Runtime垃圾回收管理器访问
- */
-TEST_F(RuntimeTest, GCManagerAccess) {
-    // Arrange & Act
-    auto& gc_manager = runtime_->gc_manager();
-
-    // Assert
-    EXPECT_NE(&gc_manager, nullptr);
-}
-
-/**
  * @brief 测试Runtime线程本地栈访问
  */
 TEST_F(RuntimeTest, StackAccess) {

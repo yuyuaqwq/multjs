@@ -8,19 +8,6 @@
 
 namespace mjs {
 
-Object::Object(Runtime* runtime, ClassId class_id) {
-	// 挂入gc链表
-	runtime->gc_manager().AddObject(this);
-
-	tag_.is_extensible_ = 1;  // 默认可扩展
-
-	tag_.class_id_ = static_cast<uint16_t>(class_id);
-
-	shape_ = &runtime->shape_manager().empty_shape();
-	// runtime的对象，只允许在初始化阶段变更，因此引用和解引用不考虑线程安全问题
-	shape_->Reference();
-}
-
 Object::Object(Context* context, ClassId class_id) {
 	// 挂入gc链表
 	context->gc_manager().AddObject(this);
@@ -30,6 +17,7 @@ Object::Object(Context* context, ClassId class_id) {
 	tag_.class_id_ = static_cast<uint16_t>(class_id);
 
 	shape_ = &context->shape_manager().empty_shape();
+
 	shape_->Reference();
 }
 
@@ -44,29 +32,42 @@ void Object::GCForEachChild(Context* context, intrusive_list<Object>* list, void
 	}
 }
 
-void Object::SetProperty(Runtime* runtime, ConstIndex key, Value&& value) {
-	SetProperty(static_cast<Context*>(nullptr), key, std::move(value));
-}
-
-bool Object::GetProperty(Runtime* runtime, ConstIndex key, Value* value) {
+bool Object::GetProperty(Context* context, ConstIndex key, Value* value) {
 	// 如果配置了exotic，需要先查找(也就是class_def中的GetProperty等方法)
 
 	if (key == ConstIndexEmbedded::kProto) {
-		*value = GetPrototype(runtime);
+		*value = GetPrototype(context);
 		return true;
 	}
 
 	// 1. 查找自身属性
 	auto index = shape_->Find(key);
 	if (index != kPropertySlotIndexInvalid) {
+		uint32_t prop_flags = GetPropertyFlags(index);
+
+		// 检查是否是 getter
+		if (prop_flags & ShapeProperty::kIsGetter) {
+			// 自动调用 getter，this 绑定到当前对象，无参数
+			// 这符合 JavaScript 规范：访问 getter 属性时自动调用
+			*value = context->CallFunction(&GetPropertyValue(index), Value(this), static_cast<Value*>(nullptr), static_cast<Value*>(nullptr));
+			return true;
+		}
+
+		// 检查是否是 setter（只有 setter 的属性，读取时返回 undefined）
+		if (prop_flags & ShapeProperty::kIsSetter) {
+			*value = Value();  // 返回 undefined
+			return true;
+		}
+
+		// 普通数据属性，直接返回值
 		*value = GetPropertyValue(index);
 		return true;
 	}
 
 	// 2. 原型链查找
-	auto& prototype = GetPrototype(runtime);
+	auto& prototype = GetPrototype(context);
 	if (prototype.IsObject()) {
-		auto success = prototype.object().GetProperty(runtime, key, value);
+		auto success = prototype.object().GetProperty(context, key, value);
 		if (success) return true;
 	}
 
@@ -117,6 +118,32 @@ void Object::SetProperty(Context* context, ConstIndex key, Value&& value) {
 	uint32_t default_flags = ShapeProperty::kDefault;
 	index = shape_->shape_manager()->AddProperty(&shape_, ShapeProperty(key));
 	AddPropertySlot(index, std::move(value), default_flags);
+}
+
+bool Object::HasProperty(Context* context, ConstIndex key) {
+	Value value;
+	return GetProperty(context, key, &value);
+}
+
+bool Object::DelProperty(Context* context, ConstIndex key, Value* value) {
+	// 检查属性是否存在且可配置
+	auto index = shape_->Find(key);
+	if (index == kPropertySlotIndexInvalid) {
+		// 属性不存在,无需删除
+		return false;
+	}
+
+	uint32_t prop_flags = GetPropertyFlags(index);
+	// 只有可配置的属性才能被删除
+	if (!(prop_flags & ShapeProperty::kConfigurable)) {
+		return false;
+	}
+
+	// TODO: 实现属性删除逻辑
+	throw InternalError("DelProperty error.");
+
+	*value = GetPropertyValue(index);
+	return true;
 }
 
 void Object::SetPropertyWithFlags(Context* context, ConstIndex key, Value&& value, uint32_t flags) {
@@ -175,79 +202,19 @@ void Object::DefineAccessorProperty(Context* context, ConstIndex key,
 	// else: 既没有 getter 也没有 setter，不做任何操作
 }
 
-bool Object::GetProperty(Context* context, ConstIndex key, Value* value) {
-	// 如果配置了exotic，需要先查找(也就是class_def中的GetProperty等方法)
-
-	// 1. 查找自身属性
-	auto index = shape_->Find(key);
-	if (index != kPropertySlotIndexInvalid) {
-		uint32_t prop_flags = GetPropertyFlags(index);
-
-		// 检查是否是 getter
-		if (prop_flags & ShapeProperty::kIsGetter) {
-			// 自动调用 getter，this 绑定到当前对象，无参数
-			// 这符合 JavaScript 规范：访问 getter 属性时自动调用
-			*value = context->CallFunction(&GetPropertyValue(index), Value(this), static_cast<Value*>(nullptr), static_cast<Value*>(nullptr));
-			return true;
-		}
-
-		// 检查是否是 setter（只有 setter 的属性，读取时返回 undefined）
-		if (prop_flags & ShapeProperty::kIsSetter) {
-			*value = Value();  // 返回 undefined
-			return true;
-		}
-
-		// 普通数据属性，直接返回值
-		*value = GetPropertyValue(index);
-		return true;
-	}
-
-	// 2. 原型链查找
-	auto& prototype = GetPrototype(&context->runtime());
-	if (prototype.IsObject()) {
-		auto success = prototype.object().GetProperty(context, key, value);
-		if (success) return true;
-	}
-
-	return false;
-}
-
-bool Object::HasProperty(Context* context, ConstIndex key) {
-	Value value;
-	return GetProperty(context, key, &value);
-}
-
-void Object::DelProperty(Context* context, ConstIndex key) {
-	// 检查属性是否存在且可配置
-	auto index = shape_->Find(key);
-	if (index == kPropertySlotIndexInvalid) {
-		// 属性不存在,无需删除
-		return;
-	}
-
-	uint32_t prop_flags = GetPropertyFlags(index);
-	// 只有可配置的属性才能被删除
-	if (!(prop_flags & ShapeProperty::kConfigurable)) {
-		return;
-	}
-
-	// TODO: 实现属性删除逻辑
-	throw InternalError("DelProperty error.");
-}
-
 void Object::SetComputedProperty(Context* context, const Value& key, Value&& val) {
-	auto idx = context->FindConstOrInsertToLocal(key);
+	auto idx = context->FindConstOrInsertToLocal(key.ToString(context));
 	return SetProperty(context, idx, std::move(val));
 }
 
 bool Object::GetComputedProperty(Context* context, const Value& key, Value* value) {
-	auto idx = context->FindConstOrInsertToLocal(key);
+	auto idx = context->FindConstOrInsertToLocal(key.ToString(context));
 	return GetProperty(context, idx, value);
 }
 
-void Object::DelComputedProperty(Context* context, const Value& key) {
-	auto idx = context->FindConstOrInsertToLocal(key);
-	return DelProperty(context, key.const_index());
+bool Object::DelComputedProperty(Context* context, const Value& key, Value* value) {
+	auto idx = context->FindConstOrInsertToLocal(key.ToString(context));
+	return DelProperty(context, key.const_index(), value);
 }
 
 Value Object::ToString(Context* context) {
@@ -271,21 +238,13 @@ Value Object::ToString(Context* context) {
 	return Value(String::New(str));
 }
 
-const Value& Object::GetPrototype(Runtime* runtime) const {
+const Value& Object::GetPrototype(Context* context) const {
 	if (tag_.set_proto_) {
 		auto index = shape_->Find(ConstIndexEmbedded::kProto);
 		assert(index != kPropertySlotIndexInvalid);
 		return properties_[index].value;
 	}
-	return runtime->class_def_table()[static_cast<ClassId>(tag_.class_id_)].prototype();
-}
-
-
-void Object::SetPrototype(Runtime* runtime, Value prototype) {
-	if (!tag_.set_proto_) {
-		tag_.set_proto_ = true;
-	}
-	SetProperty(runtime, ConstIndexEmbedded::kProto, std::move(prototype));
+	return context->runtime().class_def_table()[static_cast<ClassId>(tag_.class_id_)].prototype();
 }
 
 void Object::SetPrototype(Context* context, Value prototype) {

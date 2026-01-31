@@ -150,8 +150,8 @@ TEST_F(GeneratorObjectTest, GeneratorInheritsFromObject) {
     auto generator_value = Value(generator);
 
     // 测试继承自Object
-    EXPECT_TRUE(generator->GetPrototype(test_env->runtime()).IsObject() ||
-                generator->GetPrototype(test_env->runtime()).IsNull());
+    EXPECT_TRUE(generator->GetPrototype(context.get()).IsObject() ||
+                generator->GetPrototype(context.get()).IsNull());
 }
 
 } // namespace mjs::test

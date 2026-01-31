@@ -2,6 +2,7 @@
 
 #include <mjs/stack_frame.h>
 #include <mjs/context.h>
+#include <mjs/runtime.h>
 
 namespace mjs {
 
@@ -11,7 +12,7 @@ SymbolClassDef::SymbolClassDef(Runtime* runtime)
 	//auto iter = property_map_.insert(runtime, "iterator", Value());
 	//iter.first->second = Value(iter.first->first);
 
-	constructor_.object().SetProperty(runtime, ConstIndexEmbedded::kFor, Value([](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
+	constructor_.object().SetProperty(&runtime->default_context(), ConstIndexEmbedded::kFor, Value([](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
 		if (par_count < 1) {
 			return Value("Parameter count mismatch.").SetException();
 		}

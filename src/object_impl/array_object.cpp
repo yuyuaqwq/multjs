@@ -1,6 +1,9 @@
 #include <mjs/object_impl/array_object.h>
 
+#include <array>
+
 #include <mjs/context.h>
+#include <mjs/runtime.h>
 #include <mjs/error.h>
 
 namespace mjs {
@@ -8,15 +11,15 @@ namespace mjs {
 ArrayObject::ArrayObject(Context* context)
     : Object(context, ClassId::kArrayObject)
     , length_slot_index_(kPropertySlotIndexInvalid) {
-    InitLengthProperty(context);
+    InitLengthProperty();
 }
 
-void ArrayObject::InitLengthProperty(Context* context) {
+void ArrayObject::InitLengthProperty() {
     // 数组创建时，length 属性初始化为 0
-    SetLengthValue(context, 0);
+    SetLengthValue(0);
 }
 
-void ArrayObject::SetLengthValue(Context* context, size_t new_length) {
+void ArrayObject::SetLengthValue(size_t new_length) {
     uint32_t flags = ShapeProperty::kWritable | ShapeProperty::kConfigurable; // length 不可枚举
 
     // 检查 length 属性是否已存在
@@ -48,7 +51,7 @@ bool ArrayObject::ToArrayIndex(const Value& key, uint64_t* out_index) {
 bool ArrayObject::GetProperty(Context* context, ConstIndex key, Value* value) {
     // 检查是否访问 length 属性
     if (key == ConstIndexEmbedded::kLength) {
-        *value = Value(static_cast<int64_t>(length()));
+        *value = Value(static_cast<int64_t>(GetLength()));
         return true;
     }
     // 其他属性通过父类处理
@@ -65,96 +68,86 @@ void ArrayObject::SetProperty(Context* context, ConstIndex key, Value&& value) {
         }
 
         size_t new_length = static_cast<size_t>(value.i64());
-        size_t current_length = length();
+        size_t current_length = GetLength();
 
         if (new_length < current_length) {
             // 删除超出新 length 的元素
             for (size_t i = new_length; i < current_length; i++) {
                 auto index_key = context->FindConstOrInsertToLocal(Value(static_cast<int64_t>(i)));
-                DelProperty(context, index_key);
+                Value result;
+                DelProperty(context, index_key, &result);
             }
         }
 
         // 更新 length 值
-        SetLengthValue(context, new_length);
+        SetLengthValue(new_length);
         return;
     }
 
     // 检查是否是数组索引属性
     // 如果键是 "0", "1", "2" 等数字字符串
     // 需要检查是否需要更新 length
-    // 这里简化处理：假设数字字符串键会通过 SetComputedProperty 处理
+    uint64_t array_index;
+    auto key_value = context->GetConstValue(key);
+    if (ToArrayIndex(key_value, &array_index) && IsValidArrayIndex(array_index)) {
+        // 检查是否需要更新 length
+        size_t current_length = GetLength();
+        if (array_index >= current_length) {
+            // 设置元素时，如果索引 >= length，需要更新 length
+            SetLengthValue(array_index + 1);
+        }
+    }
 
     // 其他属性通过父类处理
     Object::SetProperty(context, key, std::move(value));
 }
 
-void ArrayObject::DelProperty(Context* context, ConstIndex key) {
-    // 删除属性不会改变 length（JS 标准行为）
-    Object::DelProperty(context, key);
-}
-
-bool ArrayObject::GetComputedProperty(Context* context, const Value& key, Value* value) {
-    // 统一转换为 ConstIndex 并调用 GetProperty
-    auto const_key = context->FindConstOrInsertToLocal(key);
-    return GetProperty(context, const_key, value);
-}
-
-void ArrayObject::SetComputedProperty(Context* context, const Value& key, Value&& value) {
-    // 尝试转换为数组索引
-    uint64_t array_index;
-    if (ToArrayIndex(key, &array_index) && IsValidArrayIndex(array_index)) {
-        // 检查是否需要更新 length
-        size_t current_length = length();
-        if (array_index >= current_length) {
-            // 设置元素时，如果索引 >= length，需要更新 length
-            SetLengthValue(context, array_index + 1);
-        }
-    }
-
-    // 统一转换为 ConstIndex 并调用 SetProperty
-    auto const_key = context->FindConstOrInsertToLocal(key);
-    SetProperty(context, const_key, std::move(value));
-}
-
-void ArrayObject::DelComputedProperty(Context* context, const Value& key) {
-    // 统一转换为 ConstIndex 并调用 DelProperty
-    auto const_key = context->FindConstOrInsertToLocal(key);
-    DelProperty(context, const_key);
-}
-
 void ArrayObject::Push(Context* context, Value val) {
-    size_t len = length();
-    auto index_key = context->FindConstOrInsertToLocal(Value(static_cast<int64_t>(len)));
-    SetProperty(context, index_key, std::move(val));
-    SetLengthValue(context, len + 1);
+    size_t len = GetLength();
+    SetComputedProperty(context, Value(static_cast<int64_t>(len)), std::move(val));
+    SetLengthValue(len + 1);
 }
 
 Value ArrayObject::Pop(Context* context) {
-    size_t len = length();
+    size_t len = GetLength();
     if (len == 0) {
         return Value(); // 返回 undefined
     }
 
     // 获取最后一个元素
     size_t last_index = len - 1;
-    auto index_key = context->FindConstOrInsertToLocal(Value(static_cast<int64_t>(last_index)));
-    Value result;
-    GetProperty(context, index_key, &result);
+    Value result; 
 
     // 删除最后一个元素并更新 length
-    DelProperty(context, index_key);
-    SetLengthValue(context, last_index);
+    DelComputedProperty(context, Value(static_cast<int64_t>(last_index)), &result);
+    SetLengthValue(last_index);
 
     return result;
 }
 
 void ArrayObject::ForEach(Context* context, Value callback) {
-    // TODO: 实现 forEach 逻辑
-    // 需要遍历 0 到 length-1 的所有索引
+    size_t len = GetLength();
+
+    // 准备回调参数：element, index, array
+    std::array<Value, 3> args;
+    args[2] = Value(this); // 第三个参数是数组本身
+
+    for (size_t i = 0; i < len; i++) {
+        // 检查索引处是否有属性
+        auto index_key = context->FindConstOrInsertToLocal(Value(static_cast<int64_t>(i)));
+        auto slot_index = shape_->Find(index_key);
+
+        if (slot_index != kPropertySlotIndexInvalid) {
+            // 存在属性，获取元素值并调用回调
+            args[0] = GetPropertyValue(slot_index); // element
+            args[1] = Value(static_cast<int64_t>(i)); // index
+            context->CallFunction(&callback, Value(), args.begin(), args.end());
+        }
+        // 稀疏数组：跳过不存在的索引
+    }
 }
 
-size_t ArrayObject::length() const {
+size_t ArrayObject::GetLength() const {
     // 使用缓存的 slot 索引快速访问 length 属性
     if (length_slot_index_ != kPropertySlotIndexInvalid &&
         length_slot_index_ < static_cast<PropertySlotIndex>(properties_.size())) {
@@ -169,7 +162,7 @@ size_t ArrayObject::length() const {
 }
 
 Value& ArrayObject::At(Context* context, size_t index) {
-    auto index_key = context->FindConstOrInsertToLocal(Value(static_cast<int64_t>(index)));
+    auto index_key = context->FindConstOrInsertToLocal(Value(static_cast<int64_t>(index)).ToString(context));
 
     auto slot_index = shape_->Find(index_key);
     if (slot_index != kPropertySlotIndexInvalid) {
@@ -177,8 +170,8 @@ Value& ArrayObject::At(Context* context, size_t index) {
     }
 
     // 如果属性不存在，创建它
-    if (index >= length()) {
-        SetLengthValue(context, index + 1);
+    if (index >= GetLength()) {
+        SetLengthValue(index + 1);
     }
 
     SetProperty(context, index_key, Value());
@@ -188,19 +181,18 @@ Value& ArrayObject::At(Context* context, size_t index) {
 
 ArrayObject* ArrayObject::New(Context* context, std::initializer_list<Value> values) {
     auto arr_obj = new ArrayObject(context);
-    arr_obj->SetLengthValue(context, values.size());
+    arr_obj->SetLengthValue(values.size());
 
     size_t i = 0;
     for (auto& value : values) {
-        auto index_key = context->FindConstOrInsertToLocal(Value(static_cast<int64_t>(i++)));
-        arr_obj->SetProperty(context, index_key, Value(value));
+        arr_obj->SetComputedProperty(context, Value(static_cast<int64_t>(i++)), Value(value));
     }
     return arr_obj;
 }
 
 ArrayObject* ArrayObject::New(Context* context, size_t count) {
     auto arr_obj = new ArrayObject(context);
-    arr_obj->SetLengthValue(context, count);
+    arr_obj->SetLengthValue(count);
 
     // 注意：稀疏数组，不创建中间元素，只设置 length
     // JS 标准：new Array(10) 创建一个长度为 10 但没有元素的数组

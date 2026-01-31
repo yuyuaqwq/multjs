@@ -115,8 +115,8 @@ TEST_F(PromiseObjectTest, PromiseInheritsFromObject) {
     auto* promise = PromiseObject::New(context.get(), executor);
 
     // 测试继承自Object
-    EXPECT_TRUE(promise->GetPrototype(test_env->runtime()).IsObject() ||
-                promise->GetPrototype(test_env->runtime()).IsNull());
+    EXPECT_TRUE(promise->GetPrototype(context.get()).IsObject() ||
+                promise->GetPrototype(context.get()).IsNull());
 }
 
 } // namespace mjs::test

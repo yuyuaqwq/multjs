@@ -2,6 +2,7 @@
 
 #include <mjs/stack_frame.h>
 #include <mjs/context.h>
+#include <mjs/runtime.h>
 #include <mjs/object_impl/promise_object.h>
 
 namespace mjs {
@@ -9,7 +10,7 @@ namespace mjs {
 PromiseObjectClassDef::PromiseObjectClassDef(Runtime* runtime)
 	: ClassDef(runtime, ClassId::kPromiseObject, "Promise")
 {
-	prototype_.object().SetProperty(runtime, ConstIndexEmbedded::kThen, Value([](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
+	prototype_.object().SetProperty(&runtime->default_context(), ConstIndexEmbedded::kThen, Value([](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
 		auto& promise = stack.this_val().promise();
 		Value on_fulfilled;
 		Value on_rejected;
@@ -22,7 +23,7 @@ PromiseObjectClassDef::PromiseObjectClassDef(Runtime* runtime)
 		return promise.Then(context, on_fulfilled, on_rejected);
 	}));
 
-	constructor_.object().SetProperty(runtime, ConstIndexEmbedded::kResolve, Value([](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
+	constructor_.object().SetProperty(&runtime->default_context(), ConstIndexEmbedded::kResolve, Value([](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
 		Value result;
 		if (par_count > 0) {
 			result = stack.get(0);
@@ -30,7 +31,7 @@ PromiseObjectClassDef::PromiseObjectClassDef(Runtime* runtime)
 		return Resolve(context, std::move(result));
 	}));
 
-	constructor_.object().SetProperty(runtime, ConstIndexEmbedded::kReject, Value([](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
+	constructor_.object().SetProperty(&runtime->default_context(), ConstIndexEmbedded::kReject, Value([](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
 		Value reason;
 		if (par_count > 0) {
 			reason = stack.get(0);

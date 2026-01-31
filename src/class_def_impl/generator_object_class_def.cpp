@@ -2,13 +2,14 @@
 
 #include <mjs/stack_frame.h>
 #include <mjs/context.h>
+#include <mjs/runtime.h>
 
 namespace mjs {
 
 GeneratorObjectClassDef::GeneratorObjectClassDef(Runtime* runtime)
 	: ClassDef(runtime, ClassId::kGeneratorObject, nullptr)
 {
-	prototype_.object().SetProperty(runtime, ConstIndexEmbedded::kNext, Value(ValueType::kGeneratorNext));
+	prototype_.object().SetProperty(&runtime->default_context(), ConstIndexEmbedded::kNext, Value(ValueType::kGeneratorNext));
 }
 
 } // namespace mjs
