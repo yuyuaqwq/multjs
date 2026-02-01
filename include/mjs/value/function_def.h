@@ -16,11 +16,11 @@
 #include <optional>
 
 #include <mjs/reference_counter.h>
-#include <mjs/exception.h>
 #include <mjs/variable.h>
 #include <mjs/bytecode_table.h>
 #include <mjs/debug.h>
 #include <mjs/value/closure.h>
+#include <mjs/value/exception.h>
 
 namespace mjs {
 

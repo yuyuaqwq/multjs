@@ -34,9 +34,9 @@
 #include <mjs/value/object/async_object.h>
 #include <mjs/value/object/promise_object.h>
 #include <mjs/value/object/constructor_object.h>
+#include <mjs/value/exception.h>
 #include <mjs/bytecode_table.h>
 #include <mjs/variable.h>
-#include <mjs/exception.h>
 
 #include "tests/unit/test_helpers.h"
 

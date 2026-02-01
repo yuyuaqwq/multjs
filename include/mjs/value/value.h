@@ -19,7 +19,7 @@
 #include <functional>
 
 #include <mjs/constant.h>
-#include <mjs/exception.h>
+#include <mjs/value/exception.h>
 #include <mjs/value/string.h>
 #include <mjs/value/symbol.h>
 
