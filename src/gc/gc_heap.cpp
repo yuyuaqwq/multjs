@@ -344,7 +344,7 @@ bool GCHeap::Scavenge() {
     CollectRoots();
     
     // 转发指针（用于处理对象移动）
-
+    forward_map_.clear();
 
     // 处理根中的新生代对象
 
