@@ -42,14 +42,7 @@ private:
     ModuleObject(Context* context, ModuleDef* module_def);
 
 public:
-	void GCForEachChild(Context* context, intrusive_list<Object>* list, void(*callback)(Context* context, intrusive_list<Object>* list, const Value& child)) override {
-		FunctionObject::GCForEachChild(context, list, callback);
-		for (auto& var : module_env_.export_vars()) {
-			callback(context, list, var.value());
-		}
-	}
-
-	void GCTraverse(Context* context, std::function<void(Context* ctx, Value& value)> callback) override {
+	void GCTraverse(Context* context, GCTraverseCallback callback) override {
 		// 先调用父类方法遍历属性
 		FunctionObject::GCTraverse(context, callback);
 

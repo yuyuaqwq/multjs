@@ -29,7 +29,7 @@ Context::~Context() {
 	runtime_->stack().clear();
 	microtask_queue_.clear();
 	local_const_pool_.Clear();
-	gc_manager_.GC(this);
+	gc_manager_.CollectGarbage(this);
 }
 
 Value Context::CompileModule(std::string module_name, std::string_view script) {

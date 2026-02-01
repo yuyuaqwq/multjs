@@ -49,7 +49,7 @@ void FunctionObject::InitPrototypeProperty(Context* context) {
 	}
 }
 
-void FunctionObject::GCTraverse(Context* context, std::function<void(Context* ctx, Value& value)> callback) {
+void FunctionObject::GCTraverse(Context* context, GCTraverseCallback callback) {
 	// 先调用父类方法遍历属性
 	Object::GCTraverse(context, callback);
 

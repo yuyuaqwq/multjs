@@ -24,6 +24,8 @@ class Context;
 class Value;
 class GCHeap;
 
+using GCTraverseCallback = void(*)(Context* context, Value& child);
+
 /**
  * @enum GCGeneration
  * @brief GC对象所处代际枚举
@@ -164,7 +166,7 @@ public:
      * @param callback 回调函数，用于处理每个子引用
      * @note 所有包含引用的子对象必须实现此方法
      */
-    virtual void GCTraverse(Context* context, std::function<void(Context* ctx, Value& value)> callback);
+    virtual void GCTraverse(Context* context, GCTraverseCallback callback);
 
     /**
      * @brief 对象被移动后的回调（用于标记-压缩算法）

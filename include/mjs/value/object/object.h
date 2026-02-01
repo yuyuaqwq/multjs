@@ -44,9 +44,7 @@ class Shape;
  * @see Value JavaScript 值类型
  * @see ClassDef 类定义
  */
-class Object
-	: public GCObject
-	, public intrusive_list<Object>::node {
+class Object : public GCObject {
 
 protected:
 	/**
@@ -64,19 +62,6 @@ public:
 	virtual ~Object();
 
 	/**
-	 * @brief 垃圾回收遍历子对象（旧接口）
-	 *
-	 * 遍历对象中所有包含的 Value 子对象，用于垃圾回收标记阶段。
-	 *
-	 * @param context 执行上下文指针
-	 * @param list 对象链表
-	 * @param callback 回调函数，用于标记子对象
-	 * @note 数据成员中有 Value，必须重写此方法，否则会导致内存泄漏
-	 * @deprecated 推荐使用GCTraverse方法
-	 */
-	virtual void GCForEachChild(Context* context, intrusive_list<Object>* list, void(*callback)(Context* context, intrusive_list<Object>* list, const Value& child));
-
-	/**
 	 * @brief 垃圾回收遍历子对象（新接口）
 	 *
 	 * 遍历对象中所有包含的 Value 子对象，用于分代垃圾回收。
@@ -85,7 +70,7 @@ public:
 	 * @param callback 回调函数，用于处理每个子对象引用
 	 * @note 数据成员中有 Value，必须重写此方法，否则会导致内存泄漏
 	 */
-	virtual void GCTraverse(Context* context, std::function<void(Context* ctx, Value& value)> callback);
+	virtual void GCTraverse(Context* context, GCTraverseCallback callback);
 
 	/**
 	 * @brief 设置对象属性（常量索引键）

@@ -178,7 +178,7 @@ bool PromiseObject::UnwrapPromise(Context* context, Value* result) {
     return true;
 }
 
-void PromiseObject::GCTraverse(Context* context, std::function<void(Context* ctx, Value& value)> callback) {
+void PromiseObject::GCTraverse(Context* context, GCTraverseCallback callback) {
     // 先调用父类方法遍历属性
     Object::GCTraverse(context, callback);
 

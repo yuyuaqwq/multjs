@@ -9,15 +9,7 @@ GeneratorObject::GeneratorObject(Context* context, const Value& function, GCObje
     , function_(function)
     , stack_(0) {}
 
-void GeneratorObject::GCForEachChild(Context* context, intrusive_list<Object>* list, void(*callback)(Context* context, intrusive_list<Object>* list, const Value& child)) {
-    Object::GCForEachChild(context, list, callback);
-    callback(context, list, function_);
-    for (auto& val : stack_.vector()) {
-        callback(context, list, val);
-    }
-}
-
-void GeneratorObject::GCTraverse(Context* context, std::function<void(Context* ctx, Value& value)> callback) {
+void GeneratorObject::GCTraverse(Context* context, GCTraverseCallback callback) {
     // 先调用父类方法遍历属性
     Object::GCTraverse(context, callback);
 

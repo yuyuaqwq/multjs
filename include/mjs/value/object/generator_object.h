@@ -18,9 +18,7 @@ protected:
 public:
     ~GeneratorObject() override = default;
 
-    void GCForEachChild(Context* context, intrusive_list<Object>* list, void(*callback)(Context* context, intrusive_list<Object>* list, const Value& child)) override;
-
-    void GCTraverse(Context* context, std::function<void(Context* ctx, Value& value)> callback) override;
+    void GCTraverse(Context* context, GCTraverseCallback callback) override;
 
     Value ToString(Context* context) override {
         return Value(String::Format("generator_object:{}", function_def().name()));

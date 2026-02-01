@@ -17,7 +17,7 @@ GCObject::GCObject(GCObjectType type, size_t size) {
     header_.ClearAge();
 }
 
-void GCObject::GCTraverse(Context* context, std::function<void(Context* ctx, Value& value)> callback) {
+void GCObject::GCTraverse(Context* context, GCTraverseCallback callback) {
     // 基类默认不遍历任何内容
     // 子类需要重写此方法
 }

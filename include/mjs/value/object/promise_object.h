@@ -14,14 +14,7 @@ private:
     PromiseObject(Context* context, Value executor, GCObjectType gc_type = GCObjectType::kOther);
 
 public:
-    void GCForEachChild(Context* context, intrusive_list<Object>* list, void(*callback)(Context* context, intrusive_list<Object>* list, const Value& child)) override {
-        Object::GCForEachChild(context, list, callback);
-        on_fulfill_callbacks_.ForEachChild(context, list, callback);
-        on_reject_callbacks_.ForEachChild(context, list, callback);
-        callback(context, list, result_or_reason_);
-    }
-
-    void GCTraverse(Context* context, std::function<void(Context* ctx, Value& value)> callback) override;
+    void GCTraverse(Context* context, GCTraverseCallback callback) override;
 
     void Resolve(Context* context, Value result);
     void Reject(Context* context, Value reason);

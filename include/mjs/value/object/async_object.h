@@ -18,12 +18,7 @@ private:
     }
 
 public:
-    void GCForEachChild(Context* context, intrusive_list<Object>* list, void(*callback)(Context* context, intrusive_list<Object>* list, const Value& child)) override {
-        GeneratorObject::GCForEachChild(context, list, callback);
-        callback(context, list, res_promise_);
-    }
-
-    void GCTraverse(Context* context, std::function<void(Context* ctx, Value& value)> callback) override {
+    void GCTraverse(Context* context, GCTraverseCallback callback) override {
         // 先调用父类方法遍历属性
         GeneratorObject::GCTraverse(context, callback);
 

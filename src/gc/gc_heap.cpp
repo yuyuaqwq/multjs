@@ -344,46 +344,20 @@ bool GCHeap::Scavenge() {
     CollectRoots();
     
     // 转发指针（用于处理对象移动）
-    std::unordered_map<GCObject*, GCObject*> forward_map;
-    
+
+
     // 处理根中的新生代对象
-    auto process_root = [&](Value* value) {
-        if (!value || !value->IsObject()) return;
 
-        Object* obj = &value->object();
-        GCObject* gc_obj = static_cast<GCObject*>(obj);
-
-        if (gc_obj->header()->generation() == GCGeneration::kNew) {
-            GCObject* new_obj = nullptr;
-
-            if (gc_obj->header()->IsForwarded()) {
-                // 已经复制过，更新引用
-                new_obj = forward_map[gc_obj];
-            } else if (gc_obj->header()->age() >= kTenureAgeThreshold) {
-                // 晋升到老年代
-                new_obj = PromoteObject(gc_obj);
-            } else {
-                // 复制到To空间
-                new_obj = CopyObject(gc_obj);
-            }
-
-            if (new_obj) {
-                forward_map[gc_obj] = new_obj;
-                // 更新Value中的引用
-                *value = Value(reinterpret_cast<Object*>(new_obj->data()));
-            }
-        }
-    };
     
     // 处理所有根
     for (auto* root : root_set_.stack_roots) {
-        process_root(root);
+        ProcessRoot(root);
     }
     for (auto* root : root_set_.global_roots) {
-        process_root(root);
+        ProcessRoot(root);
     }
     for (auto* root : root_set_.const_pool_roots) {
-        process_root(root);
+        ProcessRoot(root);
     }
     
     // 遍历To空间，复制其引用的对象
@@ -394,7 +368,7 @@ bool GCHeap::Scavenge() {
         GCObject* obj = reinterpret_cast<GCObject*>(scan);
         
         // 遍历对象的子引用
-        obj->GCTraverse(context_, [&](Context* ctx, Value& value) {
+        obj->GCTraverse(context_, [](Context* ctx, Value& value) {
             if (!value.IsObject()) return;
 
             Object* child_obj = &value.object();
@@ -404,15 +378,15 @@ bool GCHeap::Scavenge() {
                 GCObject* new_child = nullptr;
 
                 if (child_gc_obj->header()->IsForwarded()) {
-                    new_child = forward_map[child_gc_obj];
+                    new_child = ctx->gc_manager().heap()->forward_map_[child_gc_obj];
                 } else if (child_gc_obj->header()->age() >= kTenureAgeThreshold) {
-                    new_child = PromoteObject(child_gc_obj);
+                    new_child = ctx->gc_manager().heap()->PromoteObject(child_gc_obj);
                 } else {
-                    new_child = CopyObject(child_gc_obj);
+                    new_child = ctx->gc_manager().heap()->CopyObject(child_gc_obj);
                 }
 
                 if (new_child) {
-                    forward_map[child_gc_obj] = new_child;
+                    ctx->gc_manager().heap()->forward_map_[child_gc_obj] = new_child;
                     value = Value(reinterpret_cast<Object*>(new_child->data()));
                 }
             }
@@ -538,11 +512,11 @@ void GCHeap::MarkObject(GCObject* obj) {
     obj->header()->SetMarked(true);
     
     // 递归标记子对象
-    obj->GCTraverse(context_, [&](Context* ctx, Value& value) {
+    obj->GCTraverse(context_, [](Context* ctx, Value& value) {
         if (value.IsObject()) {
             Object* child_obj = &value.object();
             GCObject* child_gc_obj = static_cast<GCObject*>(child_obj);
-            MarkObject(child_gc_obj);
+            ctx->gc_manager().heap()->MarkObject(child_gc_obj);
         }
     });
 }
@@ -552,19 +526,21 @@ void GCHeap::CompactPhase() {
     uint8_t* new_top = old_space_->ComputeCompactTop();
     
     // 第一遍：计算转发地址
-    std::unordered_map<GCObject*, GCObject*> forward_map;
+    
+    forward_map_.clear();
+
     uint8_t* new_pos = old_space_->space_start();
     
     old_space_->IterateObjects([&](GCObject* obj) {
         if (obj->header()->IsMarked()) {
-            forward_map[obj] = reinterpret_cast<GCObject*>(new_pos);
+            forward_map_[obj] = reinterpret_cast<GCObject*>(new_pos);
             new_pos += obj->gc_size();
         }
     });
     
     // 第二遍：移动对象
     old_space_->IterateLiveObjects([&](GCObject* obj) {
-        GCObject* new_addr = forward_map[obj];
+        GCObject* new_addr = forward_map_[obj];
         if (new_addr != obj) {
             size_t size = obj->gc_size();
             std::memmove(new_addr, obj, size);
@@ -574,38 +550,23 @@ void GCHeap::CompactPhase() {
         }
     });
     
-    // 更新引用
-    auto update_refs = [&](Value* value) {
-        if (!value || !value->IsObject()) return;
-
-        Object* obj = &value->object();
-        GCObject* gc_obj = static_cast<GCObject*>(obj);
-
-        if (gc_obj->header()->generation() == GCGeneration::kOld) {
-            auto it = forward_map.find(gc_obj);
-            if (it != forward_map.end() && it->second != gc_obj) {
-                *value = Value(reinterpret_cast<Object*>(it->second->data()));
-            }
-        }
-    };
-    
     // 更新根引用
     for (auto* root : root_set_.stack_roots) {
-        update_refs(root);
+        UpdateRefs(root);
     }
     for (auto* root : root_set_.global_roots) {
-        update_refs(root);
+        UpdateRefs(root);
     }
     for (auto* root : root_set_.const_pool_roots) {
-        update_refs(root);
+        UpdateRefs(root);
     }
     
     // 更新对象内部引用
     uint8_t* current = old_space_->space_start();
     while (current < new_pos) {
         GCObject* obj = reinterpret_cast<GCObject*>(current);
-        obj->GCTraverse(context_, [&](Context* ctx, Value& value) {
-            update_refs(&value);
+        obj->GCTraverse(context_, [](Context* ctx, Value& value) {
+            ctx->gc_manager().heap()->UpdateRefs(&value);
         });
         current += obj->gc_size();
     }
@@ -671,6 +632,50 @@ void GCHeap::AddRoot(Value* value) {
 
 void GCHeap::RemoveRoot(Value* value) {
     // 从永久根集合移除
+}
+
+void GCHeap::ProcessRoot(Value* value) {
+    if (!value || !value->IsObject()) return;
+
+    Object* obj = &value->object();
+    GCObject* gc_obj = static_cast<GCObject*>(obj);
+
+    if (gc_obj->header()->generation() == GCGeneration::kNew) {
+        GCObject* new_obj = nullptr;
+
+        if (gc_obj->header()->IsForwarded()) {
+            // 已经复制过，更新引用
+            new_obj = forward_map_[gc_obj];
+        }
+        else if (gc_obj->header()->age() >= kTenureAgeThreshold) {
+            // 晋升到老年代
+            new_obj = PromoteObject(gc_obj);
+        }
+        else {
+            // 复制到To空间
+            new_obj = CopyObject(gc_obj);
+        }
+
+        if (new_obj) {
+            forward_map_[gc_obj] = new_obj;
+            // 更新Value中的引用
+            *value = Value(reinterpret_cast<Object*>(new_obj->data()));
+        }
+    }
+};
+
+void GCHeap::UpdateRefs(Value* value) {
+    if (!value || !value->IsObject()) return;
+
+    Object* obj = &value->object();
+    GCObject* gc_obj = static_cast<GCObject*>(obj);
+
+    if (gc_obj->header()->generation() == GCGeneration::kOld) {
+        auto it = forward_map_.find(gc_obj);
+        if (it != forward_map_.end() && it->second != gc_obj) {
+            *value = Value(reinterpret_cast<Object*>(it->second->data()));
+        }
+    }
 }
 
 } // namespace mjs

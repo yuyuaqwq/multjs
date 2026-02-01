@@ -11,10 +11,8 @@
 namespace mjs {
 
 Object::Object(Context* context, ClassId class_id, GCObjectType gc_type)
-	: GCObject(gc_type, sizeof(Object)) {
-	// 挂入gc链表
-	context->gc_manager().AddObject(this);
-
+	: GCObject(gc_type, sizeof(Object))
+{
 	tag_.is_extensible_ = 1;  // 默认可扩展
 
 	tag_.class_id_ = static_cast<uint16_t>(class_id);
@@ -30,13 +28,7 @@ Object::~Object() {
 	shape_->Dereference();
 }
 
-void Object::GCForEachChild(Context* context, intrusive_list<Object>* list, void(*callback)(Context* context, intrusive_list<Object>* list, const Value& child)) {
-	for (auto& slot : properties_) {
-		callback(context, list, slot.value);
-	}
-}
-
-void Object::GCTraverse(Context* context, std::function<void(Context* ctx, Value& value)> callback) {
+void Object::GCTraverse(Context* context, GCTraverseCallback callback) {
 	// 遍历所有属性
 	for (auto& slot : properties_) {
 		callback(context, slot.value);

@@ -151,27 +151,13 @@ public:
      */
     void RemoveRoot(Value* value);
 
-    // ========== 兼容性接口（旧API）==========
-
-    /**
-     * @brief 添加对象到垃圾回收管理器（旧API，已弃用）
-     * @param object 对象指针
-     * @note 新GC系统中对象自动管理，此方法仅用于兼容
-     */
-    void AddObject(Object* object);
-
-    /**
-     * @brief 执行垃圾回收（旧API）
-     * @param context 执行上下文指针
-     * @note 新GC系统不需要context参数，使用新的CollectGarbage方法
-     */
-    void GC(Context* context);
-
     /**
      * @brief 打印对象树结构
      * @param context 执行上下文指针
      */
     void PrintObjectTree(Context* context);
+
+    GCHeap* heap() { return heap_.get(); }
 
 private:
     Context* context_ = nullptr;               ///< 所属上下文

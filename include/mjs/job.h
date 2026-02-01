@@ -67,7 +67,7 @@ public:
 	 * @param context 执行上下文指针
 	 * @param callback 回调函数，用于处理每个子对象引用
 	 */
-	void GCTraverse(Context* context, std::function<void(Context* ctx, Value& value)> callback) {
+	void GCTraverse(Context* context, GCTraverseCallback callback) {
 		callback(context, func_);
 		callback(context, this_val_);
 		for (auto& val : argv_) {

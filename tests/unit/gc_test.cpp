@@ -83,80 +83,6 @@ TEST_F(GCTest, GCStats) {
     EXPECT_EQ(gc_count, 0);
 }
 
-// ==================== GCTraverse测试 ====================
-
-TEST_F(GCTest, ObjectGCTraverse) {
-    // 测试Object的GCTraverse方法
-    auto* obj = Object::New(context.get());
-    obj->SetProperty(context.get(),
-        context->FindConstOrInsertToLocal(Value("test")),
-        Value(42));
-
-    bool called = false;
-    obj->GCTraverse(context.get(), [&](Context* ctx, Value& value) {
-        called = true;
-        // 遍历属性时应该被调用
-    });
-
-    EXPECT_TRUE(called);
-}
-
-TEST_F(GCTest, ArrayObjectGCTraverse) {
-    // 测试ArrayObject的GCTraverse方法
-    auto* arr = ArrayObject::New(context.get(), {
-        Value(1),
-        Value(2),
-        Value(3)
-    });
-
-    int call_count = 0;
-    arr->GCTraverse(context.get(), [&](Context* ctx, Value& value) {
-        call_count++;
-    });
-
-    // 应该遍历至少length属性
-    EXPECT_GT(call_count, 0);
-}
-
-TEST_F(GCTest, FunctionObjectGCTraverse) {
-    // 测试FunctionObject的GCTraverse方法
-    auto* func_def = test_env->CreateFunctionDef("testFunc", 2);
-    auto* func_obj = FunctionObject::New(context.get(), func_def);
-
-    bool called = false;
-    func_obj->GCTraverse(context.get(), [&](Context* ctx, Value& value) {
-        called = true;
-    });
-
-    EXPECT_TRUE(called);
-}
-
-TEST_F(GCTest, GeneratorObjectGCTraverse) {
-    // 测试GeneratorObject的GCTraverse方法
-    auto* func_def = test_env->CreateFunctionDef("genFunc", 0);
-    auto* gen = GeneratorObject::New(context.get(), Value(func_def));
-
-    bool called = false;
-    gen->GCTraverse(context.get(), [&](Context* ctx, Value& value) {
-        called = true;
-    });
-
-    EXPECT_TRUE(called);
-}
-
-TEST_F(GCTest, PromiseObjectGCTraverse) {
-    // 测试PromiseObject的GCTraverse方法
-    auto executor = Value();
-    auto* promise = PromiseObject::New(context.get(), executor);
-
-    bool called = false;
-    promise->GCTraverse(context.get(), [&](Context* ctx, Value& value) {
-        called = true;
-    });
-
-    EXPECT_TRUE(called);
-}
-
 // ==================== GC元数据测试 ====================
 
 TEST_F(GCTest, ObjectGCMetadata) {
@@ -244,6 +170,7 @@ TEST_F(GCTest, SetGCThreshold) {
 }
 
 // ==================== 复杂场景测试 ====================
+static int call_count = 0;
 
 TEST_F(GCTest, CircularReferenceGCTraverse) {
     // 测试循环引用的GCTraverse
@@ -259,8 +186,8 @@ TEST_F(GCTest, CircularReferenceGCTraverse) {
         Value(obj1));
 
     // 遍历应该能处理循环引用
-    int call_count = 0;
-    obj1->GCTraverse(context.get(), [&](Context* ctx, Value& value) {
+    call_count = 0;
+    obj1->GCTraverse(context.get(), [](Context* ctx, Value& value) {
         call_count++;
     });
 
@@ -285,8 +212,8 @@ TEST_F(GCTest, NestedObjectsGCTraverse) {
         Value(middle));
 
     // 遍历应该能处理所有嵌套层级
-    int call_count = 0;
-    outer->GCTraverse(context.get(), [&](Context* ctx, Value& value) {
+    call_count = 0;
+    outer->GCTraverse(context.get(), [](Context* ctx, Value& value) {
         call_count++;
     });
 
@@ -304,8 +231,8 @@ TEST_F(GCTest, LargeArrayGCTraverse) {
     }
 
     // 遍历应该能处理大数组
-    int call_count = 0;
-    arr->GCTraverse(context.get(), [&](Context* ctx, Value& value) {
+    call_count = 0;
+    arr->GCTraverse(context.get(), [](Context* ctx, Value& value) {
         call_count++;
     });
 

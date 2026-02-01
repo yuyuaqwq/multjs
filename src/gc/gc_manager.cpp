@@ -92,18 +92,6 @@ void GCManager::RemoveRoot(Value* value) {
     }
 }
 
-// ========== 兼容性接口 ==========
-
-void GCManager::AddObject(Object* object) {
-    // 新GC系统中，对象在分配时自动管理
-    // 此方法仅用于兼容旧代码，不做实际操作
-}
-
-void GCManager::GC(Context* context) {
-    // 调用新的GC方法
-    CollectGarbage(true);
-}
-
 void GCManager::PrintObjectTree(Context* context) {
     std::cout << "GC Object Tree:\n";
     // 可以通过GCHeap遍历所有对象

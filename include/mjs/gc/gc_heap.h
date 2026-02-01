@@ -381,6 +381,12 @@ public:
      */
     void RemoveRoot(Value* value);
 
+
+private:
+    void ProcessRoot(Value* value);
+
+    void UpdateRefs(Value* value);
+
 private:
     /**
      * @brief 新生代GC（复制算法）
@@ -457,6 +463,8 @@ private:
     // GC配置
     uint8_t gc_threshold_ = 80;            ///< GC触发阈值（百分比）
     bool in_gc_ = false;                   ///< 是否正在进行GC
+
+    std::unordered_map<GCObject*, GCObject*> forward_map_;
 };
 
 } // namespace mjs
