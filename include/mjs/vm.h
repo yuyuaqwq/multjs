@@ -18,7 +18,7 @@
 #include <memory>
 #include <optional>
 
-#include <mjs/value.h>
+#include <mjs/value/value.h>
 #include <mjs/variable.h>
 #include <mjs/stack_frame.h>
 

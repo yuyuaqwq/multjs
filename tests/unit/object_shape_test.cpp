@@ -11,12 +11,12 @@
 #include <gtest/gtest.h>
 #include <mjs/runtime.h>
 #include <mjs/context.h>
-#include <mjs/object.h>
-#include <mjs/shape.h>
-#include <mjs/shape_manager.h>
-#include <mjs/shape_property.h>
-#include <mjs/class_def.h>
-#include <mjs/value.h>
+#include <mjs/shape/shape.h>
+#include <mjs/shape/shape_manager.h>
+#include <mjs/shape/shape_property.h>
+#include <mjs/class_def/class_def.h>
+#include <mjs/value/value.h>
+#include <mjs/value/object/object.h>
 
 namespace mjs {
 namespace test {
@@ -49,30 +49,7 @@ protected:
 TEST_F(ObjectTest, CreateObject) {
     auto* obj = Object::New(&runtime_->default_context());
     ASSERT_NE(obj, nullptr);
-    EXPECT_EQ(obj->ref_count(), 0);
     // GC will clean up
-}
-
-/**
- * @test 测试对象引用计数
- */
-TEST_F(ObjectTest, ReferenceCount) {
-    auto* obj = Object::New(&runtime_->default_context());
-    EXPECT_EQ(obj->ref_count(), 0);
-
-    obj->Reference();
-    EXPECT_EQ(obj->ref_count(), 1);
-
-    obj->Reference();
-    EXPECT_EQ(obj->ref_count(), 2);
-
-    obj->WeakDereference();
-    EXPECT_EQ(obj->ref_count(), 1);
-
-    obj->WeakDereference();
-    EXPECT_EQ(obj->ref_count(), 0);
-
-    // 不再调用Dereference(),因为引用计数已经是0
 }
 
 /**

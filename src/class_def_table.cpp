@@ -1,13 +1,13 @@
 #include <mjs/class_def_table.h>
 
 #include <mjs/runtime.h>
-#include <mjs/class_def_impl/string_object_class_def.h>
-#include <mjs/class_def_impl/symbol_class_def.h>
-#include <mjs/class_def_impl/array_object_class_def.h>
-#include <mjs/class_def_impl/object_class_def.h>
-#include <mjs/class_def_impl/function_object_class_def.h>
-#include <mjs/class_def_impl/generator_object_class_def.h>
-#include <mjs/class_def_impl/promise_object_class_def.h>
+#include <mjs/class_def/string_object_class_def.h>
+#include <mjs/class_def/symbol_class_def.h>
+#include <mjs/class_def/array_object_class_def.h>
+#include <mjs/class_def/object_class_def.h>
+#include <mjs/class_def/function_object_class_def.h>
+#include <mjs/class_def/generator_object_class_def.h>
+#include <mjs/class_def/promise_object_class_def.h>
 
 namespace mjs {
 

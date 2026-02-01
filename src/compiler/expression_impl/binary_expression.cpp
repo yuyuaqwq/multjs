@@ -1,5 +1,7 @@
 #include "src/compiler/expression_impl/binary_expression.h"
 
+#include <mjs/value/function_def.h>
+
 #include "src/compiler/statement.h"
 #include "src/compiler/expression_impl/yield_expression.h"
 #include "src/compiler/expression_impl/assignment_expression.h"

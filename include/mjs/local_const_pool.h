@@ -16,7 +16,7 @@
 
 #include <mjs/noncopyable.h>
 #include <mjs/constant.h>
-#include <mjs/value.h>
+#include <mjs/value/value.h>
 
 namespace mjs {
 

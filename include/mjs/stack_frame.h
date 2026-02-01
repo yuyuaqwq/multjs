@@ -5,8 +5,8 @@
 #include <memory>
 
 #include <mjs/noncopyable.h>
-#include <mjs/value.h>
 #include <mjs/opcode.h>
+#include <mjs/value/value.h>
 
 namespace mjs {
 

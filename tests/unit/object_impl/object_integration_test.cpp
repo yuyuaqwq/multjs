@@ -1,15 +1,15 @@
 #include <gtest/gtest.h>
 #include <mjs/context.h>
 #include <mjs/runtime.h>
-#include <mjs/value.h>
-#include <mjs/object.h>
-#include <mjs/object_impl/array_object.h>
-#include <mjs/object_impl/function_object.h>
-#include <mjs/object_impl/module_object.h>
-#include <mjs/object_impl/promise_object.h>
-#include <mjs/object_impl/generator_object.h>
-#include <mjs/function_def.h>
-#include <mjs/module_def.h>
+#include <mjs/value/value.h>
+#include <mjs/value/object/object.h>
+#include <mjs/value/object/array_object.h>
+#include <mjs/value/object/function_object.h>
+#include <mjs/value/object/module_object.h>
+#include <mjs/value/object/promise_object.h>
+#include <mjs/value/object/generator_object.h>
+#include <mjs/value/function_def.h>
+#include <mjs/value/module_def.h>
 #include "tests/unit/test_helpers.h"
 
 namespace mjs::test {

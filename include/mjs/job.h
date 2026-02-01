@@ -11,9 +11,11 @@
 
 #pragma once
 
+#include <functional>
+
 #include <mjs/noncopyable.h>
-#include <mjs/value.h>
-#include <mjs/object.h>
+#include <mjs/value/value.h>
+#include <mjs/value/object/object.h>
 
 namespace mjs {
 
@@ -47,7 +49,7 @@ public:
 	}
 
 	/**
-	 * @brief 垃圾回收遍历子对象
+	 * @brief 垃圾回收遍历子对象（旧接口）
 	 * @param context 执行上下文指针
 	 * @param list 对象链表
 	 * @param callback 回调函数，用于标记子对象
@@ -57,6 +59,19 @@ public:
 		callback(context, list, this_val_);
 		for (auto& val : argv_) {
 			callback(context, list, val);
+		}
+	}
+
+	/**
+	 * @brief 垃圾回收遍历子对象（新接口）
+	 * @param context 执行上下文指针
+	 * @param callback 回调函数，用于处理每个子对象引用
+	 */
+	void GCTraverse(Context* context, std::function<void(Context* ctx, Value& value)> callback) {
+		callback(context, func_);
+		callback(context, this_val_);
+		for (auto& val : argv_) {
+			callback(context, val);
 		}
 	}
 

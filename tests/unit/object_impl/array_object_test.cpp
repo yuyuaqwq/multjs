@@ -1,10 +1,10 @@
 #include <gtest/gtest.h>
 #include <mjs/context.h>
 #include <mjs/runtime.h>
-#include <mjs/value.h>
-#include <mjs/object.h>
-#include <mjs/object_impl/array_object.h>
-#include <mjs/string.h>
+#include <mjs/value/value.h>
+#include <mjs/value/object/object.h>
+#include <mjs/value/object/array_object.h>
+#include <mjs/value/string.h>
 #include "tests/unit/test_helpers.h"
 
 namespace mjs::test {

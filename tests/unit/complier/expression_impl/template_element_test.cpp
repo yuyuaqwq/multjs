@@ -16,12 +16,13 @@
 #include <memory>
 #include <string>
 
+#include <mjs/value/function_def.h>
+#include <mjs/bytecode_table.h>
+
 #include "src/compiler/expression_impl/template_element.h"
 #include "src/compiler/expression_impl/template_literal.h"
 #include "src/compiler/lexer.h"
 #include "src/compiler/code_generator.h"
-#include <mjs/function_def.h>
-#include <mjs/bytecode_table.h>
 
 namespace mjs {
 namespace compiler {

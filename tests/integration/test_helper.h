@@ -15,9 +15,6 @@
 #include <fstream>
 
 #include <mjs/runtime.h>
-#include <mjs/context.h>
-#include <mjs/value.h>
-#include <mjs/object.h>
 
 namespace mjs::test {
 

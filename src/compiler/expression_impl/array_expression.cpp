@@ -1,6 +1,6 @@
 #include "src/compiler/expression_impl/array_expression.h"
 
-#include <mjs/object_impl/array_object.h>
+#include <mjs/value/object/array_object.h>
 
 #include "src/compiler/parser.h"
 #include "src/compiler/code_generator.h"

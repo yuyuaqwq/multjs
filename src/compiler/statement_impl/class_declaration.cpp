@@ -9,9 +9,7 @@
 #include "src/compiler/statement_impl/class_declaration.h"
 
 #include <mjs/error.h>
-#include <mjs/value.h>
-#include <mjs/function_def.h>
-#include <mjs/string.h>
+#include <mjs/value/function_def.h>
 #include <mjs/opcode.h>
 
 #include "src/compiler/code_generator.h"

@@ -26,10 +26,6 @@
 #include <string>
 
 #include <mjs/runtime.h>
-#include <mjs/context.h>
-#include <mjs/function_def.h>
-#include <mjs/module_def.h>
-#include <mjs/value.h>
 #include "src/compiler/code_generator.h"
 #include "src/compiler/lexer.h"
 #include "src/compiler/parser.h"

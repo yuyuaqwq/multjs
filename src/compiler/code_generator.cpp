@@ -5,8 +5,8 @@
 
 #include <mjs/error.h>
 #include <mjs/context.h>
-#include <mjs/class_def_impl/object_class_def.h>
-#include <mjs/class_def_impl/array_object_class_def.h>
+#include <mjs/class_def/object_class_def.h>
+#include <mjs/class_def/array_object_class_def.h>
 
 #include "src/compiler/statement_impl/block_statement.h"
 #include "src/compiler/statement_impl/expression_statement.h"

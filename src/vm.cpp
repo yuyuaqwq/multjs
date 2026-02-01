@@ -6,15 +6,15 @@
 #include <mjs/runtime.h>
 #include <mjs/context.h>
 #include <mjs/opcode.h>
-#include <mjs/object_impl/array_object.h>
-#include <mjs/object_impl/function_object.h>
-#include <mjs/object_impl/generator_object.h>
-#include <mjs/object_impl/async_object.h>
-#include <mjs/object_impl/promise_object.h>
-#include <mjs/object_impl/module_object.h>
-#include <mjs/object_impl/constructor_object.h>
-#include <mjs/class_def_impl/promise_object_class_def.h>
-#include <mjs/class_def_impl/function_object_class_def.h>
+#include <mjs/value/object/array_object.h>
+#include <mjs/value/object/function_object.h>
+#include <mjs/value/object/generator_object.h>
+#include <mjs/value/object/async_object.h>
+#include <mjs/value/object/promise_object.h>
+#include <mjs/value/object/module_object.h>
+#include <mjs/value/object/constructor_object.h>
+#include <mjs/class_def/promise_object_class_def.h>
+#include <mjs/class_def/function_object_class_def.h>
 
 namespace mjs {
 

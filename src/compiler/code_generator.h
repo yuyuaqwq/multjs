@@ -14,9 +14,9 @@
 #include <stdexcept>
 
 #include <mjs/noncopyable.h>
-#include <mjs/value.h>
-#include <mjs/object_impl/module_object.h>
-#include <mjs/object_impl/function_object.h>
+#include <mjs/value/value.h>
+#include <mjs/value/object/module_object.h>
+#include <mjs/value/object/function_object.h>
 
 #include "src/compiler/parser.h"
 #include "src/compiler/scope_manager.h"

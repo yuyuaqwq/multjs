@@ -13,8 +13,7 @@
 #include <string>
 
 #include <mjs/noncopyable.h>
-#include <mjs/function_def.h>
-#include <mjs/class_def.h>
+#include <mjs/class_def/class_def.h>
 #include <mjs/token.h>
 
 namespace mjs {

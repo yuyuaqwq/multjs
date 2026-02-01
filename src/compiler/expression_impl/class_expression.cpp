@@ -9,11 +9,11 @@
 #include "src/compiler/expression_impl/class_expression.h"
 
 #include <mjs/error.h>
-#include <mjs/value.h>
-#include <mjs/function_def.h>
-#include <mjs/module_def.h>
-#include <mjs/string.h>
 #include <mjs/opcode.h>
+#include <mjs/value/function_def.h>
+#include <mjs/value/module_def.h>
+#include <mjs/value/string.h>
+#include <mjs/value/value.h>
 
 #include "src/compiler/code_generator.h"
 #include "src/compiler/lexer.h"

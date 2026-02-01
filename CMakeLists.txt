@@ -4,7 +4,7 @@ project(multjs)
 set(CMAKE_CXX_STANDARD 20)
 
 if(MSVC)
-    add_compile_options(/utf-8)
+    add_compile_options(/utf-8 /FS)
 endif()
 
 set(MJS_LIB_TARGET mjs)

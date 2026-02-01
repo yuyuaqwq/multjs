@@ -5,7 +5,7 @@
 
 #include <mjs/runtime.h>
 #include <mjs/error.h>
-#include <mjs/object_impl/module_object.h>
+#include <mjs/value/object/module_object.h>
 #include <mjs/line_table.h>
 
 #include "compiler/lexer.h"
@@ -16,9 +16,13 @@ namespace mjs {
 	
 Context::Context(Runtime* runtime)
 	: runtime_(runtime)
+	, gc_manager_(this)
 	, vm_(this)
 	, shape_manager_(this)
-	/* , symbol_table_(this)*/ {}
+	/* , symbol_table_(this)*/ {
+	// 初始化GC管理器
+	gc_manager_.Initialize();
+}
 
 Context::~Context() {
 	//assert(runtime_->stack().size() == 0);

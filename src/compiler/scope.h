@@ -2,11 +2,15 @@
 
 #include <string>
 #include <optional>
+#include <unordered_map>
 
 #include <mjs/noncopyable.h>
-#include <mjs/function_def.h>
+#include <mjs/variable.h>
 
 namespace mjs {
+
+class FunctionDefBase;
+
 namespace compiler {
 
 enum class ScopeType {

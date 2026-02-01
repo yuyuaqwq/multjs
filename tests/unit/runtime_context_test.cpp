@@ -14,9 +14,9 @@
 
 #include <mjs/runtime.h>
 #include <mjs/context.h>
-#include <mjs/value.h>
-#include <mjs/object.h>
-#include <mjs/string.h>
+#include <mjs/value/value.h>
+#include <mjs/value/object/object.h>
+#include <mjs/value/string.h>
 
 namespace mjs {
 namespace test {

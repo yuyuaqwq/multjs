@@ -13,13 +13,13 @@
 #include <vector>
 
 #include <mjs/stack_frame.h>
-#include <mjs/value.h>
+#include <mjs/value/value.h>
 #include <mjs/runtime.h>
 #include <mjs/context.h>
-#include <mjs/function_def.h>
-#include <mjs/module_def.h>
-#include <mjs/object.h>
-#include <mjs/object_impl/function_object.h>
+#include <mjs/value/function_def.h>
+#include <mjs/value/module_def.h>
+#include <mjs/value/object/object.h>
+#include <mjs/value/object/function_object.h>
 #include "tests/unit/test_helpers.h"
 
 namespace mjs {

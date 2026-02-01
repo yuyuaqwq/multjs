@@ -1,7 +1,7 @@
 #include "src/compiler/jump_manager.h"
 
 #include <mjs/error.h>
-#include <mjs/function_def.h>
+#include <mjs/value/function_def.h>
 
 namespace mjs {
 namespace compiler {

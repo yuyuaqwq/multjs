@@ -18,10 +18,9 @@
 #include <mjs/noncopyable.h>
 #include <mjs/vm.h>
 #include <mjs/job_queue.h>
-#include <mjs/object.h>
-#include <mjs/shape.h>
-#include <mjs/shape_manager.h>
-#include <mjs/gc_manager.h>
+#include <mjs/shape/shape.h>
+#include <mjs/shape/shape_manager.h>
+#include <mjs/gc/gc_manager.h>
 #include <mjs/local_const_pool.h>
 
 namespace mjs {

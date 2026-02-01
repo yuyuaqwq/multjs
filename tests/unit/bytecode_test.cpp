@@ -14,9 +14,10 @@
 #include <mjs/bytecode_table.h>
 #include <mjs/opcode.h>
 #include <mjs/runtime.h>
-#include <mjs/function_def.h>
-#include <mjs/module_def.h>
 #include <mjs/context.h>
+#include <mjs/value/function_def.h>
+#include <mjs/value/module_def.h>
+
 #include "tests/unit/test_helpers.h"
 
 namespace mjs {

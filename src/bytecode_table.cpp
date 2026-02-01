@@ -2,7 +2,7 @@
 
 #include <mjs/context.h>
 #include <mjs/runtime.h>
-#include <mjs/function_def.h>
+#include <mjs/value/function_def.h>
 
 namespace mjs {
 

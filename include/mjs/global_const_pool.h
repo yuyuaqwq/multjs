@@ -19,7 +19,7 @@
 #include <mjs/noncopyable.h>
 #include <mjs/segmented_array.h>
 #include <mjs/constant.h>
-#include <mjs/value.h>
+#include <mjs/value/value.h>
 
 namespace mjs {
 

@@ -16,9 +16,9 @@
 #include <mjs/stack_frame.h>
 #include <mjs/class_def_table.h>
 #include <mjs/module_manager.h>
-#include <mjs/value.h>
 #include <mjs/error.h>
 #include <mjs/context.h>
+#include <mjs/value/value.h>
 
 namespace mjs {
 

@@ -17,8 +17,8 @@
 #include <gtest/gtest.h>
 
 #include <mjs/runtime.h>
-#include <mjs/module_def.h>
-#include <mjs/function_def.h>
+#include <mjs/value/module_def.h>
+#include <mjs/value/function_def.h>
 
 namespace mjs {
 namespace test {

@@ -3,6 +3,8 @@
 #include <string>
 #include <vector>
 
+#include <cassert>
+
 namespace mjs {
 
 using VarIndex = uint32_t;

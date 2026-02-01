@@ -6,8 +6,8 @@
 #include <unordered_map>
 
 #include <mjs/noncopyable.h>
-#include <mjs/value.h>
-#include <mjs/class_def.h>
+#include <mjs/value/value.h>
+#include <mjs/class_def/class_def.h>
 #include <mjs/segmented_array.h>
 
 namespace mjs {

@@ -5,7 +5,7 @@
 #include <utility>
 #include <exception>
 
-#include <mjs/value.h>
+#include <mjs/value/value.h>
 
 namespace mjs {
 

@@ -1,6 +1,6 @@
 #include "src/compiler/expression_impl/object_expression.h"
 
-#include <mjs/class_def_impl/object_class_def.h>
+#include <mjs/class_def/object_class_def.h>
 #include <mjs/error.h>
 
 #include "src/compiler/statement.h"

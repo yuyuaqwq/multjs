@@ -1,6 +1,7 @@
 #include "src/compiler/scope.h"
 
 #include <mjs/error.h>
+#include <mjs/value/function_def.h>
 
 namespace mjs {
 namespace compiler {

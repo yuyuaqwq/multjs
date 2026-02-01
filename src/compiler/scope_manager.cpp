@@ -1,5 +1,7 @@
 #include "src/compiler/scope_manager.h"
 
+#include <mjs/value/function_def.h>
+
 #include "src/compiler/expression_impl/identifier.h"
 
 namespace mjs {

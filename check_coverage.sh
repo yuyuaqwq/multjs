@@ -57,7 +57,7 @@ done
 
 echo ""
 echo "检查src/object_impl目录下缺少测试的.cpp文件:"
-for src in src/object_impl/*.cpp 2>/dev/null; do
+for src in src/value/object/*.cpp 2>/dev/null; do
     if [ -f "$src" ]; then
         base=$(basename "$src" .cpp)
         test="tests/unit/${base}_test.cpp"

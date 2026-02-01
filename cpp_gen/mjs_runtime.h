@@ -19,7 +19,7 @@
 
 #include <mjs/value.h>
 #include <mjs/object.h>
-#include <mjs/object_impl/array_object.h>
+#include <mjs/value/object/array_object.h>
 
 namespace mjs {
 namespace generated {
