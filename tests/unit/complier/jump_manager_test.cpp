@@ -14,7 +14,7 @@
 
 #include <gtest/gtest.h>
 
-#include <mjs/function_def.h>
+#include <mjs/value/function_def.h>
 
 #include "src/compiler/jump_manager.h"
 #include "src/compiler/repair_def.h"

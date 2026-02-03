@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 #include <mjs/context.h>
 #include <mjs/runtime.h>
+#include <mjs/gc/handle.h>
 #include <mjs/value/value.h>
 #include <mjs/value/object/object.h>
 #include <mjs/value/object/array_object.h>
@@ -34,15 +35,17 @@ TEST_F(ObjectIntegrationTest, ArrayAndFunctionInterop) {
     // 创建一个包含函数的数组
     auto* func_def = FunctionDef::New(test_env->module_def(), "arrayFunc", 0);
     auto func_def_value = Value(func_def);
-    auto* func_obj = FunctionObject::New(context.get(), func_def);
-    auto func_obj_value = Value(func_obj);
 
-    auto* arr = ArrayObject::New(context.get(), {
+    GCHandleScope<2> scope(context.get());
+    auto func_obj = scope.New<FunctionObject>(func_def);
+    auto func_obj_value = func_obj.ToValue();
+
+    auto arr = scope.New<ArrayObject>(std::initializer_list<Value>{
         Value(1),
-        Value(func_obj),
+        func_obj_value,
         Value(2)
     });
-    auto arr_value = Value(arr);
+    auto arr_value = arr.ToValue();
 
     EXPECT_EQ(arr->GetLength(), 3);
     EXPECT_TRUE((*arr).At(context.get(), 1).IsObject());
@@ -52,8 +55,10 @@ TEST_F(ObjectIntegrationTest, ModuleWithExports) {
     // 创建一个带有导出的模块
     auto* module_def = ModuleDef::New(test_env->runtime(), "exportModule", "", 0);
     auto module_def_value = Value(module_def);
-    auto* module_obj = ModuleObject::New(context.get(), module_def);
-    auto module_obj_value = Value(module_obj);
+
+    GCHandleScope<1> scope(context.get());
+    auto module_obj = scope.New<ModuleObject>(module_def);
+    auto module_obj_value = module_obj.ToValue();
 
     // 模块应该有导出变量环境
     EXPECT_EQ(module_obj->module_def().name(), "exportModule");
@@ -62,8 +67,10 @@ TEST_F(ObjectIntegrationTest, ModuleWithExports) {
 TEST_F(ObjectIntegrationTest, PromiseChaining) {
     // 测试Promise链(基础测试)
     auto executor = Value();
-    auto* promise1 = PromiseObject::New(context.get(), executor);
-    auto promise1_value = Value(promise1);
+
+    GCHandleScope<1> scope(context.get());
+    auto promise1 = scope.New<PromiseObject>(executor);
+    auto promise1_value = promise1.ToValue();
 
     promise1->Resolve(context.get(), Value(1));
 
@@ -75,15 +82,17 @@ TEST_F(ObjectIntegrationTest, GeneratorAndArray) {
     // 创建生成器
     auto* func_def = FunctionDef::New(test_env->module_def(), "arrayGen", 0);
     Value func_value = Value(func_def);
-    auto* generator = GeneratorObject::New(context.get(), func_value);
+
+    GCHandleScope<2> scope(context.get());
+    auto generator = scope.New<GeneratorObject>(func_value);
 
     // 创建数组存储生成器
-    auto* arr = ArrayObject::New(context.get(), {
+    auto arr = scope.New<ArrayObject>(std::initializer_list<Value>{
         Value(1),
-        Value(generator),
+        generator.ToValue(),
         Value(2)
     });
-    auto arr_value = Value(arr);
+    auto arr_value = arr.ToValue();
 
     EXPECT_EQ(arr->GetLength(), 3);
 }

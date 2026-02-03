@@ -4,8 +4,8 @@
 
 namespace mjs {
 
-PromiseObject::PromiseObject(Context* context, Value executor, GCObjectType gc_type)
-    : Object(context, ClassId::kPromiseObject, gc_type)
+PromiseObject::PromiseObject(Context* context, Value executor)
+    : Object(context, ClassId::kPromiseObject)
 {
     if (executor.IsUndefined()) return;
 
@@ -187,25 +187,7 @@ void PromiseObject::GCTraverse(Context* context, GCTraverseCallback callback) {
     on_reject_callbacks_.GCTraverse(context, callback);
 
     // 遍历结果或原因
-    callback(context, result_or_reason_);
-}
-
-PromiseObject* PromiseObject::New(Context* context, Value executor) {
-    // 使用 GCHeap 分配内存
-    GCHeap* heap = context->gc_manager().heap();
-
-    // 计算需要分配的总大小
-    size_t total_size = sizeof(PromiseObject);
-
-    // 分配原始内存，不构造 GCObject
-    void* mem = heap->AllocateRaw(GCObjectType::kOther, total_size);
-    if (!mem) {
-        return nullptr;
-    }
-
-    // 使用 placement new 在分配的内存中构造 PromiseObject
-    // 这会先构造 GCObject 基类，然后构造 PromiseObject 派生类
-    return new (mem) PromiseObject(context, std::move(executor));
+    callback(context, &result_or_reason_);
 }
 
 } // namespace mjs

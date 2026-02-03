@@ -6,6 +6,7 @@
 #include <mjs/runtime.h>
 #include <mjs/context.h>
 #include <mjs/opcode.h>
+#include <mjs/gc/handle.h>
 #include <mjs/value/object/array_object.h>
 #include <mjs/value/object/function_object.h>
 #include <mjs/value/object/generator_object.h>
@@ -27,13 +28,13 @@ void VM::ModuleInit(Value* module_def_value) {
 		return;
 	}
 
-	auto module_obj = ModuleObject::New(context_, &module_def);
-	*module_def_value = Value(module_obj);
+	GCHandleScope<4> scope(context_);
+	auto module_obj = scope.New<ModuleObject>(&module_def);
+	*module_def_value = Value(module_obj.ToValue());
 
 	for (auto& def : module_obj->module_def().export_var_def_table().export_var_defs()) {
-		module_obj->SetProperty(context_, context_->FindConstOrInsertToGlobal(Value(String::New(def.first))),
-			Value(&module_obj->module_env().export_vars()[def.second.export_var_index])
-		);
+		auto index = context_->FindConstOrInsertToGlobal(Value(String::New(def.first)));
+		module_obj->SetProperty(context_, index, Value(&module_obj->module_env().export_vars()[def.second.export_var_index]));
 	}
 }
 
@@ -80,9 +81,10 @@ void VM::SetVar(StackFrame* stack_frame, VarIndex idx, Value&& var) {
 void VM::Closure(const StackFrame& stack_frame, Value* func_def_val) {
 	auto& func_def = func_def_val->function_def();
 	assert(!func_def.closure_var_table().closure_var_defs().empty() || func_def.has_this() && func_def.is_normal());
-	
-	*func_def_val = Value(FunctionObject::New(context_, &func_def));
-	auto* func_obj = &func_def_val->function();
+
+	GCHandleScope<2> scope(context_);
+	auto func_obj = scope.New<FunctionObject>(&func_def);
+	*func_def_val = Value(func_obj.ToValue());
 
 	auto& env = func_obj->closure_env();
 
@@ -153,12 +155,15 @@ bool VM::FunctionScheduling(StackFrame* stack_frame, uint32_t par_count) {
 		}
 
 		if (function_def->is_generator() || function_def->is_async()) {
+			GCHandleScope<1> scope(context_);
 			GeneratorObject* generator;
 			if (function_def->is_generator()) {
-				generator = GeneratorObject::New(context_, stack_frame->function_val());
+				auto handle = scope.New<GeneratorObject>(stack_frame->function_val());
+				generator = static_cast<GeneratorObject*>(handle.gc_obj());
 			}
 			else {
-				generator = AsyncObject::New(context_, stack_frame->function_val());
+				auto handle = scope.New<AsyncObject>(stack_frame->function_val());
+				generator = static_cast<GeneratorObject*>(handle.gc_obj());
 			}
 
 			// 提前分配参数和局部变量栈空间
@@ -181,7 +186,7 @@ bool VM::FunctionScheduling(StackFrame* stack_frame, uint32_t par_count) {
 			else {
 				// 是异步函数
 				// 开始执行
-				stack_frame->set_function_val(Value(static_cast<AsyncObject*>(generator)));
+				stack_frame->set_function_val(Value(generator));
 			}
 		}
 		return true;
@@ -579,7 +584,9 @@ void VM::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 				auto& func = func_val.function();
 
 				// 1. 创建新对象
-				auto obj_val = Value(Object::New(context_));
+				GCHandleScope<1> scope(context_);
+				auto obj = scope.New<Object>();
+				auto obj_val = obj.ToValue();
 
 				// 2. 获取构造函数的 prototype 属性
 				Value prototype_val;
@@ -613,7 +620,7 @@ void VM::CallInternal(StackFrame* stack_frame, Value func_val, Value this_val, u
 			}
 			else {
 				VM_EXCEPTION_THROW(
-					TypeError::Throw(context_, "Not a type that can be instantiated: '{}'.", 
+					TypeError::Throw(context_, "Not a type that can be instantiated: '{}'.",
 						Value::TypeToString(stack_frame->function_val().type())
 					)
 				);

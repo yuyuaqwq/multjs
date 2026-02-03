@@ -13,8 +13,9 @@ namespace mjs {
 
 class FunctionObject : public Object {
 protected:
-	FunctionObject(Context* context, FunctionDefBase* function_def, GCObjectType gc_type = GCObjectType::kFunction) noexcept;
-	FunctionObject(Context* context, FunctionDefBase* function_def, ClassId class_id, GCObjectType gc_type = GCObjectType::kFunction) noexcept;
+	FunctionObject(Context* context, FunctionDefBase* function_def) noexcept;
+
+	FunctionObject(Context* context, FunctionDefBase* function_def, ClassId class_id) noexcept;
 
 public:
 	~FunctionObject() = default;
@@ -28,17 +29,17 @@ public:
 	FunctionDef& function_def() const { return static_cast<FunctionDef&>(*function_def_); }
 
 	const auto& closure_env() const { return closure_env_; }
+
 	auto& closure_env() { return closure_env_; }
 
-	static FunctionObject* New(Context* context, FunctionDef* function_def);
-
 protected:
+	friend class GCManager;
+
 	void InitPrototypeProperty(Context* context);
 
 	FunctionDefBase* function_def_;
 
-	// 闭包
-	ClosureEnvironment closure_env_;
+	ClosureEnvironment closure_env_;		///< 闭包
 };
 
 } // namespace mjs

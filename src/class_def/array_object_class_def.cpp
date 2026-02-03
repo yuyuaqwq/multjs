@@ -3,6 +3,7 @@
 #include <mjs/stack_frame.h>
 #include <mjs/context.h>
 #include <mjs/runtime.h>
+#include <mjs/gc/handle.h>
 #include <mjs/value/object/array_object.h>
 #include <mjs/value/object/function_object.h>
 
@@ -71,7 +72,8 @@ ArrayObjectClassDef::ArrayObjectClassDef(Runtime* runtime)
 			return TypeError::Throw(context, "forEach callback must be a function");
 		}
 
-		auto result = ArrayObject::New(context, arr.GetLength());
+		GCHandleScope<1> scope(context);
+		auto result = scope.New<ArrayObject>(arr.GetLength());
 		for (size_t i = 0; i < arr.GetLength(); ++i) {
 			std::array<Value, 3> args = {
 				arr.At(context, i),
@@ -80,7 +82,7 @@ ArrayObjectClassDef::ArrayObjectClassDef(Runtime* runtime)
 			};
 			context->CallFunction(&(*result).At(context, i), Value(), args.begin(), args.end());
 		}
-		return Value(result);
+		return scope.Close(result);
 	}));
 
 	// Filter method
@@ -94,7 +96,8 @@ ArrayObjectClassDef::ArrayObjectClassDef(Runtime* runtime)
 			return TypeError::Throw(context, "filter callback must be a function");
 		}
 
-		auto result = ArrayObject::New(context, 0);
+		GCHandleScope<1> scope(context);
+		auto result = scope.New<ArrayObject>();
 		for (size_t i = 0; i < arr.GetLength(); ++i) {
 			std::array<Value, 3> args = {
 				arr.At(context, i),
@@ -106,7 +109,7 @@ ArrayObjectClassDef::ArrayObjectClassDef(Runtime* runtime)
 				result->Push(context, arr.At(context, i));
 			}
 		}
-		return Value(result);
+		return scope.Close(result);
 	}));
 
 	// Reduce method
@@ -156,8 +159,11 @@ Value ArrayObjectClassDef::NewConstructor(Context* context, uint32_t par_count, 
 
 	if (par_count == 0) {
 		// new Array()
-		return Value(ArrayObject::New(context, 0));
-	} else if (par_count == 1) {
+		GCHandleScope<1> scope(context);
+		auto arr = scope.New<ArrayObject>(0);
+		return scope.Close(arr);
+	}
+	else if (par_count == 1) {
 		// new Array(x)
 		auto& arg = stack.get(0);
 		if (arg.type() == ValueType::kInt64 || arg.type() == ValueType::kFloat64) {
@@ -175,12 +181,15 @@ Value ArrayObjectClassDef::NewConstructor(Context* context, uint32_t par_count, 
 				}
 				len = static_cast<uint64_t>(fval);
 			}
-			return Value(ArrayObject::New(context, len));
+			GCHandleScope<1> scope(context);
+			auto arr = scope.New<ArrayObject>(len);
+			return scope.Close(arr);
 		} else {
 			// 非数字参数: 创建包含该元素的数组
-			auto arr = ArrayObject::New(context, 1);
+			GCHandleScope<1> scope(context);
+			auto arr = scope.New<ArrayObject>(1);
 			arr->At(context, 0) = arg;
-			return Value(arr);
+			return scope.Close(arr);
 		}
 	} else {
 		// 多个参数: new Array(1, 2, 3)
@@ -193,11 +202,12 @@ Value ArrayObjectClassDef::Of(Context* context, uint32_t par_count, const StackF
 }
 
 Value ArrayObjectClassDef::LiteralNew(Context* context, uint32_t par_count, const StackFrame& stack) {
-	auto arr = ArrayObject::New(context, par_count);
+	GCHandleScope<1> scope(context);
+	auto arr = scope.New<ArrayObject>(par_count);
 	for (size_t i = 0; i < par_count; ++i) {
 		arr->SetComputedProperty(context, Value(static_cast<int64_t>(i)), std::move(stack.get(i)));
 	}
-	return Value(arr);
+	return scope.Close(arr);
 }
 
 } // namespace mjs

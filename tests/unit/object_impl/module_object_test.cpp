@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 #include <mjs/context.h>
 #include <mjs/runtime.h>
+#include <mjs/gc/handle.h>
 #include <mjs/value/value.h>
 #include <mjs/value/object/object.h>
 #include <mjs/value/object/module_object.h>
@@ -28,15 +29,17 @@ protected:
 TEST_F(ModuleObjectTest, CreateModuleObject) {
     auto* module_def = ModuleDef::New(test_env->runtime(), "testModule", "", 0);
 
-    auto* module_obj = ModuleObject::New(context.get(), module_def);
-    ASSERT_NE(module_obj, nullptr);
+    GCHandleScope<1> scope(context.get());
+    auto module_obj = scope.New<ModuleObject>(module_def);
+    ASSERT_NE(module_obj.operator->(), nullptr);
     EXPECT_EQ(module_obj->module_def().name(), "testModule");
 }
 
 TEST_F(ModuleObjectTest, ModuleDefAccess) {
     auto* module_def = ModuleDef::New(test_env->runtime(), "myModule", "", 0);
 
-    auto* module_obj = ModuleObject::New(context.get(), module_def);
+    GCHandleScope<1> scope(context.get());
+    auto module_obj = scope.New<ModuleObject>(module_def);
 
     // 测试访问module_def
     EXPECT_EQ(module_obj->module_def().name(), "myModule");
@@ -44,7 +47,8 @@ TEST_F(ModuleObjectTest, ModuleDefAccess) {
 
 TEST_F(ModuleObjectTest, ModuleEnvironmentAccess) {
     auto* module_def = ModuleDef::New(test_env->runtime(), "test", "", 0);
-    auto* module_obj = ModuleObject::New(context.get(), module_def);
+    GCHandleScope<1> scope(context.get());
+    auto module_obj = scope.New<ModuleObject>(module_def);
 
     // 测试访问模块环境
     auto& module_env = module_obj->module_env();
@@ -54,7 +58,8 @@ TEST_F(ModuleObjectTest, ModuleEnvironmentAccess) {
 
 TEST_F(ModuleObjectTest, ModuleExportVars) {
     auto* module_def = ModuleDef::New(test_env->runtime(), "test", "", 0);
-    auto* module_obj = ModuleObject::New(context.get(), module_def);
+    GCHandleScope<1> scope(context.get());
+    auto module_obj = scope.New<ModuleObject>(module_def);
 
     // 测试导出变量
     auto& export_vars = module_obj->module_env().export_vars();
@@ -64,7 +69,8 @@ TEST_F(ModuleObjectTest, ModuleExportVars) {
 
 TEST_F(ModuleObjectTest, ModuleInheritsFromFunctionObject) {
     auto* module_def = ModuleDef::New(test_env->runtime(), "test", "", 0);
-    auto* module_obj = ModuleObject::New(context.get(), module_def);
+    GCHandleScope<1> scope(context.get());
+    auto module_obj = scope.New<ModuleObject>(module_def);
 }
 
 } // namespace mjs::test

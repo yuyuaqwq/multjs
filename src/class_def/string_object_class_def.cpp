@@ -7,6 +7,7 @@
 #include <mjs/stack_frame.h>
 #include <mjs/context.h>
 #include <mjs/runtime.h>
+#include <mjs/gc/handle.h>
 #include <mjs/value/object/array_object.h>
 
 namespace mjs {
@@ -22,17 +23,21 @@ StringObjectClassDef::StringObjectClassDef(Runtime* runtime)
 	// Split method
 	prototype_.object().SetProperty(&runtime->default_context(), ConstIndexEmbedded::kSplit, Value([](Context* context, uint32_t par_count, const StackFrame& stack) -> Value {
 		if (par_count < 1) {
-			return Value(ArrayObject::New(context, {}));
+			GCHandleScope<1> scope(context);
+			auto array = scope.New<ArrayObject>();
+			return scope.Close(array);
 		}
 		std::string str = stack.this_val().ToString(context).string_view();
 		std::string delimiter = stack.get(0).ToString(context).string_view();
-		
-		auto array = ArrayObject::New(context, 0);
+
+		GCHandleScope<1> scope(context);
+		auto array = scope.New<ArrayObject>(0);
 		if (delimiter.empty()) {
 			for (char c : str) {
 				array->Push(context, Value(String::New(std::string(1, c))));
 			}
-		} else {
+		}
+		else {
 			size_t pos = 0;
 			while ((pos = str.find(delimiter)) != std::string::npos) {
 				array->Push(context, Value(String::New(str.begin(), str.begin() + pos)));
@@ -40,7 +45,7 @@ StringObjectClassDef::StringObjectClassDef(Runtime* runtime)
 			}
 			array->Push(context, Value(String::New(str)));
 		}
-		return Value(array);
+		return scope.Close(array);
 	}));
 
 	// Substring method

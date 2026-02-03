@@ -7,10 +7,11 @@ namespace mjs {
 
 class ArrayObject : public Object {
 private:
-    ArrayObject(Context* context, GCObjectType gc_type = GCObjectType::kArray);
+    ArrayObject(Context* context);
 
-    // 初始化 length 属性
-    void InitLengthProperty();
+    ArrayObject(Context* context, size_t count);
+
+    ArrayObject(Context* context, std::initializer_list<Value> values);
 
     // 设置 length 属性值（内部使用）
     void SetLengthValue(size_t new_length);
@@ -24,7 +25,7 @@ private:
     static bool ToArrayIndex(const Value& key, uint64_t* out_index);
 
     // 缓存 length 属性的 slot 索引（用于快速访问）
-    mutable PropertySlotIndex length_slot_index_;
+    mutable PropertySlotIndex length_slot_index_ = kPropertySlotIndexInvalid;
 
 public:
     bool GetProperty(Context* context, ConstIndex key, Value* value) override;
@@ -43,9 +44,8 @@ public:
     // 数组元素访问
     Value& At(Context* context, size_t index);
 
-    static ArrayObject* New(Context* context, std::initializer_list<Value> values);
-
-    static ArrayObject* New(Context* context, size_t count);
+private:
+    friend class GCManager;
 };
 
 } // namespace mjs

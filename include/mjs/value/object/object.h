@@ -53,7 +53,7 @@ protected:
 	 * @param class_id 类标识符
 	 * @param gc_type GC对象类型（默认为kObject）
 	 */
-	Object(Context* context, ClassId class_id, GCObjectType gc_type = GCObjectType::kObject);
+	explicit Object(Context* context, ClassId class_id = ClassId::kObject);
 
 public:
 	/**
@@ -199,92 +199,6 @@ public:
 	}
 
 	/**
-	 * @brief 获取垃圾回收标记状态
-	 * @return 垃圾回收标记状态
-	 */
-	bool gc_mark() { return header()->IsMarked(); }
-
-	/**
-	 * @brief 设置垃圾回收标记状态
-	 * @param flag 标记状态
-	 */
-	void set_gc_mark(bool flag) { header()->SetMarked(flag); }
-
-	// ========== 新GC系统接口（使用GCObject的header）==========
-
-	/**
-	 * @brief 获取GC代际
-	 */
-	uint32_t gc_generation() const { return static_cast<uint32_t>(header()->generation()); }
-
-	/**
-	 * @brief 设置GC代际
-	 */
-	void set_gc_generation(uint32_t gen) { header()->set_generation(static_cast<GCGeneration>(gen)); }
-
-	/**
-	 * @brief 检查是否已转发
-	 */
-	bool gc_forwarded() const { return header()->IsForwarded(); }
-
-	/**
-	 * @brief 设置转发标记
-	 */
-	void set_gc_forwarded(bool f) { header()->SetForwarded(f); }
-
-	/**
-	 * @brief 检查是否固定
-	 */
-	bool gc_pinned() const { return header()->IsPinned(); }
-
-	/**
-	 * @brief 设置固定标记
-	 */
-	void set_gc_pinned(bool p) { header()->SetPinned(p); }
-
-	/**
-	 * @brief 获取GC年龄
-	 */
-	uint8_t gc_age() const { return header()->age(); }
-
-	/**
-	 * @brief 增加GC年龄
-	 */
-	void gc_increment_age() { header()->IncrementAge(); }
-
-	/**
-	 * @brief 清空GC年龄
-	 */
-	void gc_clear_age() { header()->ClearAge(); }
-
-	/**
-	 * @brief 获取GC转发指针（从外部map获取，不在对象中存储）
-	 * @note 这个方法保留用于兼容，但转发指针现在存储在GCHeap的forward_map中
-	 */
-	Object* gc_forwarding_ptr() const { return nullptr; }
-
-	/**
-	 * @brief 设置GC转发指针（现在由GCHeap管理）
-	 * @note 这个方法保留用于兼容，实际转发指针由GCHeap管理
-	 */
-	void set_gc_forwarding_ptr(Object* ptr) { /* 转发指针由GCHeap管理 */ }
-
-	/**
-	 * @brief 创建新的普通对象（使用GCHeap分配）
-	 * @param context 执行上下文指针
-	 * @return 新创建的对象指针
-	 */
-	static Object* New(Context* context);
-
-	/**
-	 * @brief 创建新的普通对象（指定GC类型，使用GCHeap分配）
-	 * @param context 执行上下文指针
-	 * @param gc_type GC对象类型
-	 * @return 新创建的对象指针
-	 */
-	static Object* New(Context* context, GCObjectType gc_type);
-
-	/**
 	 * @brief 冻结对象，使其不可修改（符合 JavaScript 标准）
 	 *
 	 * 冻结后的对象：
@@ -407,6 +321,8 @@ protected:
 	}
 
 protected:
+	friend class GCManager;
+
 	union {
 		uint64_t full_ = 0;                   ///< 完整64位值
 		struct {

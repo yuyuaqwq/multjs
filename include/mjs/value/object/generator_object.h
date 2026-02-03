@@ -13,7 +13,7 @@ namespace mjs {
 class Context;
 class GeneratorObject : public Object {
 protected:
-    GeneratorObject(Context* context, const Value& function, GCObjectType gc_type = GCObjectType::kOther);
+    GeneratorObject(Context* context, const Value& function);
 
 public:
     ~GeneratorObject() override = default;
@@ -25,7 +25,9 @@ public:
     }
 
     bool IsSuspended() const { return state_ == State::kSuspended; }
+
     bool IsExecuting() const { return state_ == State::kExecuting; }
+
     bool IsClosed() const { return state_ == State::kClosed; }
 
     void SetExecuting() {
@@ -41,8 +43,6 @@ public:
 
     void Next(Context* context);
 
-    static GeneratorObject* New(Context* context, const Value& function);
-
     auto& stack() { return stack_; }
 
     FunctionDef& function_def() { 
@@ -55,9 +55,12 @@ public:
     auto function() { return function_; }
 
     auto pc() const { return pc_; }
+
     void set_pc(Pc pc) { pc_ = pc; }
 
 private:
+    friend class GCManager;
+
     Value function_;        // 生成器函数定义/函数对象
     Pc pc_ = 0;         // 当前pc
     Stack stack_;       // 保存的栈

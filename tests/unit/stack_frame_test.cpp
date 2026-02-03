@@ -16,6 +16,7 @@
 #include <mjs/value/value.h>
 #include <mjs/runtime.h>
 #include <mjs/context.h>
+#include <mjs/gc/handle.h>
 #include <mjs/value/function_def.h>
 #include <mjs/value/module_def.h>
 #include <mjs/value/object/object.h>
@@ -411,8 +412,9 @@ protected:
 TEST_F(StackFrameFunctionTest, SetFunctionVal) {
     // Arrange - 创建一个FunctionObject并包装为Value
     Context context(runtime_.get());
-    FunctionObject* func_obj = FunctionObject::New(&context, function_def_.get());
-    Value func_val(func_obj);
+    GCHandleScope<1> scope(&context);
+    auto func_obj = scope.New<FunctionObject>(function_def_.get());
+    Value func_val = func_obj.ToValue();
 
     // Act
     stack_frame_->set_function_val(std::move(func_val));
@@ -438,8 +440,9 @@ TEST_F(StackFrameFunctionTest, SetFunctionDef) {
 TEST_F(StackFrameFunctionTest, SetThisVal) {
     // Arrange - 创建一个Object并包装为Value
     Context context(runtime_.get());
-    Object* obj = Object::New(&context);
-    Value this_val(obj);
+    GCHandleScope<1> scope(&context);
+    auto obj = scope.New<Object>();
+    Value this_val = obj.ToValue();
 
     // Act
     stack_frame_->set_this_val(std::move(this_val));

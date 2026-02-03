@@ -3,6 +3,7 @@
 #include <mjs/stack_frame.h>
 #include <mjs/context.h>
 #include <mjs/runtime.h>
+#include <mjs/gc/handle.h>
 #include <mjs/value/object/promise_object.h>
 
 namespace mjs {
@@ -45,19 +46,23 @@ Value PromiseObjectClassDef::NewConstructor(Context* context, uint32_t par_count
 	if (par_count > 0) {
 		executor = stack.get(0);
 	}
-	return Value(PromiseObject::New(context, std::move(executor)));
+	GCHandleScope<1> scope(context);
+	auto promise = scope.New<PromiseObject>(std::move(executor));
+	return scope.Close(promise);
 }
 
 Value PromiseObjectClassDef::Resolve(Context* context, Value result) {
-	auto promise = PromiseObject::New(context, Value());
+	GCHandleScope<1> scope(context);
+	auto promise = scope.New<PromiseObject>(Value());
 	promise->Resolve(context, result);
-	return Value(promise);
+	return scope.Close(promise);
 }
 
 Value PromiseObjectClassDef::Reject(Context* context, Value reason) {
-	auto promise = PromiseObject::New(context, Value());
+	GCHandleScope<1> scope(context);
+	auto promise = scope.New<PromiseObject>(Value());
 	promise->Reject(context, reason);
-	return Value(promise);
+	return scope.Close(promise);
 }
 
 } // namespace mjs

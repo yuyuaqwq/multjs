@@ -1,11 +1,12 @@
 #include <mjs/value/object/generator_object.h>
 
 #include <mjs/context.h>
+#include <mjs/gc/handle.h>
 
 namespace mjs {
 
-GeneratorObject::GeneratorObject(Context* context, const Value& function, GCObjectType gc_type)
-    : Object(context, ClassId::kGeneratorObject, gc_type)
+GeneratorObject::GeneratorObject(Context* context, const Value& function)
+    : Object(context, ClassId::kGeneratorObject)
     , function_(function)
     , stack_(0) {}
 
@@ -14,11 +15,11 @@ void GeneratorObject::GCTraverse(Context* context, GCTraverseCallback callback) 
     Object::GCTraverse(context, callback);
 
     // 遍历function_引用
-    callback(context, function_);
+    callback(context, &function_);
 
     // 遍历栈中的所有值
     for (auto& val : stack_.vector()) {
-        callback(context, val);
+        callback(context, &val);
     }
 }
 
@@ -37,35 +38,18 @@ Value GeneratorObject::MakeReturnObject(Context* context, Value&& ret_value) {
     // 这里的ret value，可能需要保存到GeneratorObject里
     // set的时候再提升为object
 
-    auto ret_obj = Value(Object::New(context));
+    GCHandleScope<1> scope(context);
+    auto ret_obj = scope.New<Object>();
 
-    ret_obj.object().SetProperty(context, ConstIndexEmbedded::kValue, std::move(ret_value));
-    ret_obj.object().SetProperty(context, ConstIndexEmbedded::kDone, Value(IsClosed()));
-    return ret_obj;
+    ret_obj->SetProperty(context, ConstIndexEmbedded::kValue, std::move(ret_value));
+    ret_obj->SetProperty(context, ConstIndexEmbedded::kDone, Value(IsClosed()));
+    return scope.Close(ret_obj);
 }
 
 void GeneratorObject::Next(Context* context) {
     auto func = Value(ValueType::kGeneratorNext);
     std::initializer_list<Value> args = {};
     context->CallFunction(&func, Value(this), args.begin(), args.end());
-}
-
-GeneratorObject* GeneratorObject::New(Context* context, const Value& function) {
-    // 使用 GCHeap 分配内存
-    GCHeap* heap = context->gc_manager().heap();
-
-    // 计算需要分配的总大小
-    size_t total_size = sizeof(GeneratorObject);
-
-    // 分配原始内存，不构造 GCObject
-    void* mem = heap->AllocateRaw(GCObjectType::kOther, total_size);
-    if (!mem) {
-        return nullptr;
-    }
-
-    // 使用 placement new 在分配的内存中构造 GeneratorObject
-    // 这会先构造 GCObject 基类，然后构造 GeneratorObject 派生类
-    return new (mem) GeneratorObject(context, function);
 }
 
 } // namespace mjs

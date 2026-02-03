@@ -22,6 +22,7 @@
 #include <mjs/vm.h>
 #include <mjs/context.h>
 #include <mjs/runtime.h>
+#include <mjs/gc/handle.h>
 #include <mjs/stack_frame.h>
 #include <mjs/value/value.h>
 #include <mjs/value/function_def.h>
@@ -297,12 +298,13 @@ TEST_F(VMModuleTest, BindModuleExportVars) {
     export_table.AddExportVar("export1", 0);
     export_table.AddExportVar("export2", 1);
 
-    auto* module_obj = ModuleObject::New(context_.get(), module_def_.get());
+    GCHandleScope<1> scope(context_.get());
+    auto module_obj = scope.New<ModuleObject>(module_def_.get());
     module_obj->module_env().export_vars().resize(2);
     module_obj->module_env().export_vars()[0] = ExportVar(Value(42));
     module_obj->module_env().export_vars()[1] = ExportVar(Value(100));
 
-    stack_frame_->set_function_val(Value(module_obj));
+    stack_frame_->set_function_val(module_obj.ToValue());
     stack_frame_->upgrade(2);  // 为2个导出变量预留空间
 
     // Act
@@ -368,7 +370,10 @@ TEST_F(VMClosureTest, Closure_CreateWithCapturedVars) {
     function_def_->set_is_arrow();
 
     stack_frame_->push(Value(42));  // 要捕获的变量
-    stack_frame_->set_this_val(Value(Object::New(context_.get())));
+
+    GCHandleScope<1> scope(context_.get());
+    auto obj = scope.New<Object>();
+    stack_frame_->set_this_val(obj.ToValue());
 
     Value func_val(function_def_.get());
 
@@ -390,11 +395,12 @@ TEST_F(VMClosureTest, BindClosureVars) {
     function_def_->var_def_table().AddVar("local");
     function_def_->closure_var_table().AddClosureVar(0, 0);
 
-    auto* func_obj = FunctionObject::New(context_.get(), function_def_.get());
+    GCHandleScope<1> scope(context_.get());
+    auto func_obj = scope.New<FunctionObject>(function_def_.get());
     // FunctionObject构造函数已经自动resize了closure_var_refs,现在只需设置值
     func_obj->closure_env().closure_var_refs()[0] = Value(new ClosureVar(Value(42)));
 
-    stack_frame_->set_function_val(Value(func_obj));
+    stack_frame_->set_function_val(func_obj.ToValue());
     stack_frame_->set_function_def(function_def_.get());
     stack_frame_->upgrade(1);
 
@@ -802,13 +808,14 @@ protected:
 TEST_F(VMGeneratorTest, GeneratorSaveContext_SaveState) {
     // Arrange
     VM vm(context_.get());
-    auto* generator = GeneratorObject::New(context_.get(), Value(function_def_.get()));
+    GCHandleScope<1> scope(context_.get());
+    auto generator = scope.New<GeneratorObject>(Value(function_def_.get()));
     stack_frame_->set_pc(100);
     stack_frame_->push(Value(42));
     generator->stack().resize(1);  // 调整generator的stack大小以匹配stack_frame
 
     // Act
-    GeneratorSaveContext(&vm, stack_frame_.get(), generator);
+    GeneratorSaveContext(&vm, stack_frame_.get(), generator.operator->());
 
     // Assert
     EXPECT_EQ(generator->pc(), 100);
@@ -822,12 +829,13 @@ TEST_F(VMGeneratorTest, GeneratorSaveContext_SaveState) {
 TEST_F(VMGeneratorTest, GeneratorRestoreContext_RestoreState) {
     // Arrange
     VM vm(context_.get());
-    auto* generator = GeneratorObject::New(context_.get(), Value(function_def_.get()));
+    GCHandleScope<1> scope(context_.get());
+    auto generator = scope.New<GeneratorObject>(Value(function_def_.get()));
     generator->set_pc(100);
     generator->stack().push(Value(42));
 
     // Act
-    GeneratorRestoreContext(&vm, stack_frame_.get(), generator);
+    GeneratorRestoreContext(&vm, stack_frame_.get(), generator.operator->());
 
     // Assert
     EXPECT_EQ(stack_frame_->pc(), 100);

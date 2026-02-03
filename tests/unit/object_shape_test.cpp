@@ -11,6 +11,7 @@
 #include <gtest/gtest.h>
 #include <mjs/runtime.h>
 #include <mjs/context.h>
+#include <mjs/gc/handle.h>
 #include <mjs/shape/shape.h>
 #include <mjs/shape/shape_manager.h>
 #include <mjs/shape/shape_property.h>
@@ -47,8 +48,9 @@ protected:
  * @test 测试对象创建
  */
 TEST_F(ObjectTest, CreateObject) {
-    auto* obj = Object::New(&runtime_->default_context());
-    ASSERT_NE(obj, nullptr);
+    GCHandleScope<1> scope(&runtime_->default_context());
+    auto obj = scope.New<Object>();
+    ASSERT_NE(obj.operator->(), nullptr);
     // GC will clean up
 }
 
@@ -56,7 +58,8 @@ TEST_F(ObjectTest, CreateObject) {
  * @test 测试设置和获取字符串键属性
  */
 TEST_F(ObjectTest, SetPropertyWithStringKey) {
-    auto* obj = Object::New(&runtime_->default_context());
+    GCHandleScope<1> scope(&runtime_->default_context());
+    auto obj = scope.New<Object>();
     auto index = runtime_->global_const_pool().FindOrInsert(Value("test_prop"));
     obj->SetProperty(&runtime_->default_context(), index, Value(42));
 
@@ -72,7 +75,8 @@ TEST_F(ObjectTest, SetPropertyWithStringKey) {
  * @test 测试设置和获取数字属性
  */
 TEST_F(ObjectTest, SetPropertyWithNumber) {
-    auto* obj = Object::New(&runtime_->default_context());
+    GCHandleScope<1> scope(&runtime_->default_context());
+    auto obj = scope.New<Object>();
     {
         auto index = runtime_->global_const_pool().FindOrInsert(Value("number_prop"));
         obj->SetProperty(&runtime_->default_context(), index, Value(100));
@@ -94,7 +98,8 @@ TEST_F(ObjectTest, SetPropertyWithNumber) {
  * @test 测试设置和获取字符串属性
  */
 TEST_F(ObjectTest, SetPropertyWithString) {
-    auto* obj = Object::New(&runtime_->default_context());
+    GCHandleScope<1> scope(&runtime_->default_context());
+    auto obj = scope.New<Object>();
 
     auto index = runtime_->global_const_pool().FindOrInsert(Value("string_prop"));
     obj->SetProperty(&runtime_->default_context(), index, Value(String::New("hello")));
@@ -109,7 +114,8 @@ TEST_F(ObjectTest, SetPropertyWithString) {
  * @test 测试设置和获取布尔属性
  */
 TEST_F(ObjectTest, SetPropertyWithBoolean) {
-    auto* obj = Object::New(&runtime_->default_context());
+    GCHandleScope<1> scope(&runtime_->default_context());
+    auto obj = scope.New<Object>();
     {
         auto index = runtime_->global_const_pool().FindOrInsert(Value("bool_prop"));
         obj->SetProperty(&runtime_->default_context(), index, Value(true));
@@ -132,7 +138,8 @@ TEST_F(ObjectTest, SetPropertyWithBoolean) {
  * @test 测试设置和获取null属性
  */
 TEST_F(ObjectTest, SetPropertyWithNull) {
-    auto* obj = Object::New(&runtime_->default_context());
+    GCHandleScope<1> scope(&runtime_->default_context());
+    auto obj = scope.New<Object>();
 
     auto index = runtime_->global_const_pool().FindOrInsert(Value("null_prop"));
     obj->SetProperty(&runtime_->default_context(), index, Value(nullptr));
@@ -148,7 +155,8 @@ TEST_F(ObjectTest, SetPropertyWithNull) {
  * @test 测试设置和获取常量索引键属性
  */
 TEST_F(ObjectTest, SetPropertyWithConstIndex) {
-    auto* obj = Object::New(context_.get());
+    GCHandleScope<1> scope(context_.get());
+    auto obj = scope.New<Object>();
     ConstIndex key_idx = context_->FindConstOrInsertToLocal(Value("my_key"));
 
     obj->SetProperty(context_.get(), key_idx, Value(123));
@@ -166,7 +174,8 @@ TEST_F(ObjectTest, SetPropertyWithConstIndex) {
  * @note 这个测试暂时跳过,因为GetProperty的实现可能在属性不存在时抛出异常
  */
 TEST_F(ObjectTest, GetNonExistentProperty) {
-    auto* obj = Object::New(&runtime_->default_context());
+    GCHandleScope<1> scope(&runtime_->default_context());
+    auto obj = scope.New<Object>();
     Value retrieved_value(42);  // 初始化为已知值
 
     auto index = runtime_->global_const_pool().FindOrInsert(Value("non_existent"));
@@ -181,7 +190,8 @@ TEST_F(ObjectTest, GetNonExistentProperty) {
  * @test 测试检查属性是否存在
  */
 TEST_F(ObjectTest, HasProperty) {
-    auto* obj = Object::New(context_.get());
+    GCHandleScope<1> scope(context_.get());
+    auto obj = scope.New<Object>();
     ConstIndex key_idx = context_->FindConstOrInsertToLocal(Value("exists"));
 
     EXPECT_EQ(obj->HasProperty(context_.get(), key_idx), false);
@@ -197,7 +207,8 @@ TEST_F(ObjectTest, HasProperty) {
  * @test 测试设置计算属性
  */
 TEST_F(ObjectTest, SetComputedProperty) {
-    auto* obj = Object::New(context_.get());
+    GCHandleScope<1> scope(context_.get());
+    auto obj = scope.New<Object>();
     Value key_value(String::New("computed_key"));
     Value property_value(999);
 
@@ -215,7 +226,8 @@ TEST_F(ObjectTest, SetComputedProperty) {
  * @test 测试获取不存在的计算属性
  */
 TEST_F(ObjectTest, GetComputedPropertyNotExists) {
-    auto* obj = Object::New(context_.get());
+    GCHandleScope<1> scope(context_.get());
+    auto obj = scope.New<Object>();
     Value key_value(String::New("non_existent_key"));
     Value retrieved_value;
 
@@ -229,7 +241,8 @@ TEST_F(ObjectTest, GetComputedPropertyNotExists) {
  * @test 测试对象转换为字符串
  */
 TEST_F(ObjectTest, ObjectToString) {
-    auto* obj = Object::New(context_.get());
+    GCHandleScope<1> scope(context_.get());
+    auto obj = scope.New<Object>();
     obj->SetProperty(context_.get(),
                      context_->FindConstOrInsertToLocal(Value("prop1")),
                      Value(42));
@@ -247,7 +260,8 @@ TEST_F(ObjectTest, ObjectToString) {
  * @note 原型可能不是普通对象类型,而是其他类型
  */
 TEST_F(ObjectTest, GetPrototype) {
-    auto* obj = Object::New(&runtime_->default_context());
+    GCHandleScope<1> scope(&runtime_->default_context());
+    auto obj = scope.New<Object>();
 
     const Value& prototype = obj->GetPrototype(&runtime_->default_context());
     // 原型应该是某种有效的值类型
@@ -260,7 +274,8 @@ TEST_F(ObjectTest, GetPrototype) {
  * @test 测试多次设置同一属性
  */
 TEST_F(ObjectTest, SetPropertyMultipleTimes) {
-    auto* obj = Object::New(&runtime_->default_context());
+    GCHandleScope<1> scope(&runtime_->default_context());
+    auto obj = scope.New<Object>();
 
     auto index = runtime_->global_const_pool().FindOrInsert(Value("prop"));
     obj->SetProperty(&runtime_->default_context(), index, Value(1));
@@ -272,21 +287,6 @@ TEST_F(ObjectTest, SetPropertyMultipleTimes) {
     Value val2;
     obj->GetProperty(&runtime_->default_context(), index, &val2);
     EXPECT_EQ(val2.i64(), 2);
-
-    // GC will clean up
-}
-
-/**
- * @test 测试垃圾回收标记
- */
-TEST_F(ObjectTest, GCMark) {
-    auto* obj = Object::New(&runtime_->default_context());
-
-    EXPECT_FALSE(obj->gc_mark());
-    obj->set_gc_mark(true);
-    EXPECT_TRUE(obj->gc_mark());
-    obj->set_gc_mark(false);
-    EXPECT_FALSE(obj->gc_mark());
 
     // GC will clean up
 }
@@ -447,7 +447,8 @@ protected:
  * @test 测试对象添加多个属性
  */
 TEST_F(ObjectShapeIntegrationTest, AddMultipleProperties) {
-    auto* obj = Object::New(context_.get());
+    GCHandleScope<1> scope(context_.get());
+    auto obj = scope.New<Object>();
 
     obj->SetProperty(context_.get(),
                      context_->FindConstOrInsertToLocal(Value("a")),
@@ -480,8 +481,9 @@ TEST_F(ObjectShapeIntegrationTest, AddMultipleProperties) {
  * @test 测试对象形状共享(间接验证)
  */
 TEST_F(ObjectShapeIntegrationTest, ShapeSharingIndirect) {
-    auto* obj1 = Object::New(context_.get());
-    auto* obj2 = Object::New(context_.get());
+    GCHandleScope<2> scope(context_.get());
+    auto obj1 = scope.New<Object>();
+    auto obj2 = scope.New<Object>();
 
     obj1->SetProperty(context_.get(),
                       context_->FindConstOrInsertToLocal(Value("x")),
@@ -508,7 +510,8 @@ TEST_F(ObjectShapeIntegrationTest, ShapeSharingIndirect) {
  * @test 测试对象形状转换(间接验证)
  */
 TEST_F(ObjectShapeIntegrationTest, ShapeTransitionIndirect) {
-    auto* obj = Object::New(context_.get());
+    GCHandleScope<1> scope(context_.get());
+    auto obj = scope.New<Object>();
 
     obj->SetProperty(context_.get(),
                      context_->FindConstOrInsertToLocal(Value("new_prop")),

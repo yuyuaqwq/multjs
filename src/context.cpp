@@ -7,6 +7,7 @@
 #include <mjs/error.h>
 #include <mjs/value/object/module_object.h>
 #include <mjs/line_table.h>
+#include <mjs/gc/handle.h>
 
 #include "compiler/lexer.h"
 #include "compiler/parser.h"
@@ -29,7 +30,7 @@ Context::~Context() {
 	runtime_->stack().clear();
 	microtask_queue_.clear();
 	local_const_pool_.Clear();
-	gc_manager_.CollectGarbage(this);
+	gc_manager_.CollectGarbage(true);
 }
 
 Value Context::CompileModule(std::string module_name, std::string_view script) {
@@ -134,6 +135,17 @@ const Value& Context::GetConstValue(ConstIndex const_index) {
 	else {
 		return runtime_->global_const_pool()[const_index];
 	}
+}
+
+void Context::PushHandleScope(GCHandleScopeBase* scope) {
+    scope->set_prev(current_handle_scope_);
+    current_handle_scope_ = scope;
+}
+
+void Context::PopHandleScope() {
+    if (current_handle_scope_) {
+        current_handle_scope_ = current_handle_scope_->prev();
+    }
 }
 
 } // namespace mjs

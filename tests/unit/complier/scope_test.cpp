@@ -16,7 +16,7 @@
 #include <gtest/gtest.h>
 #include <memory>
 
-#include <mjs/function_def.h>
+#include <mjs/value/function_def.h>
 #include "src/compiler/scope.h"
 #include "tests/unit/test_helpers.h"
 

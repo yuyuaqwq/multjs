@@ -3,6 +3,7 @@
 #include <mjs/stack_frame.h>
 #include <mjs/context.h>
 #include <mjs/runtime.h>
+#include <mjs/gc/handle.h>
 #include <mjs/shape/shape_property.h>
 #include <mjs/value/object/object.h>
 #include <mjs/error.h>
@@ -29,11 +30,14 @@ ObjectClassDef::ObjectClassDef(Runtime* runtime)
 }
 
 Value ObjectClassDef::NewConstructor(Context* context, uint32_t par_count, const StackFrame& stack) const {
-	return Value(Object::New(context));
+	GCHandleScope<1> scope(context);
+	auto obj = scope.New<Object>();
+	return scope.Close(obj);
 }
 
 Value ObjectClassDef::LiteralNew(Context* context, uint32_t par_count, const StackFrame& stack) {
-	auto obj = Object::New(context);
+	GCHandleScope<1> scope(context);
+	auto obj = scope.New<Object>();
 	for (int32_t i = 0; i < par_count; i += 2) {
 		//auto key_const_index = stack.get(i).const_index();
 		//if (key_const_index == kConstIndexInvalid) {
@@ -42,7 +46,7 @@ Value ObjectClassDef::LiteralNew(Context* context, uint32_t par_count, const Sta
 		//obj->SetProperty(context, key_const_index, std::move(stack.get(i + 1)));
 		obj->SetComputedProperty(context, stack.get(i), std::move(stack.get(i + 1)));
 	}
-	return Value(obj);
+	return scope.Close(obj);
 }
 
 Value ObjectClassDef::SetProperty(Context* context, uint32_t par_count, const StackFrame& stack) {

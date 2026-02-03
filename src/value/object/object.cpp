@@ -10,8 +10,8 @@
 
 namespace mjs {
 
-Object::Object(Context* context, ClassId class_id, GCObjectType gc_type)
-	: GCObject(gc_type, sizeof(Object))
+Object::Object(Context* context, ClassId class_id)
+	: GCObject()
 {
 	tag_.is_extensible_ = 1;  // 默认可扩展
 
@@ -24,21 +24,20 @@ Object::Object(Context* context, ClassId class_id, GCObjectType gc_type)
 
 Object::~Object() {
 	// 对于 GC 管理的对象，析构函数由 GC 系统在清理时调用
-	// 此时不需要检查引用计数
 	shape_->Dereference();
 }
 
 void Object::GCTraverse(Context* context, GCTraverseCallback callback) {
 	// 遍历所有属性
 	for (auto& slot : properties_) {
-		callback(context, slot.value);
+		callback(context, &slot.value);
 	}
 
 	// 遍历原型对象
 	if (tag_.set_proto_) {
 		auto index = shape_->Find(ConstIndexEmbedded::kProto);
 		if (index != kPropertySlotIndexInvalid) {
-			callback(context, properties_[index].value);
+			callback(context, &properties_[index].value);
 		}
 	}
 }
@@ -225,7 +224,7 @@ bool Object::GetComputedProperty(Context* context, const Value& key, Value* valu
 
 bool Object::DelComputedProperty(Context* context, const Value& key, Value* value) {
 	auto idx = context->FindConstOrInsertToLocal(key.ToString(context));
-	return DelProperty(context, key.const_index(), value);
+	return DelProperty(context, idx, value);
 }
 
 Value Object::ToString(Context* context) {
@@ -318,31 +317,6 @@ void Object::PreventExtensions() {
 
 bool Object::IsExtensible() const {
 	return tag_.is_extensible_;
-}
-
-Object* Object::New(Context* context) {
-	return New(context, GCObjectType::kObject);
-}
-
-Object* Object::New(Context* context, GCObjectType gc_type) {
-	// 使用 GCHeap 分配内存
-	GCHeap* heap = context->gc_manager().heap();
-
-	// 计算需要分配的总大小（Object 已经包含 GCObject 子对象）
-	size_t total_size = sizeof(Object);
-
-	// 分配原始内存，不构造 GCObject
-	// Object 构造函数会初始化 GCObject 基类部分
-	void* mem = heap->AllocateRaw(gc_type, total_size);
-	if (!mem) {
-		return nullptr;
-	}
-
-	// 使用 placement new 在分配的内存中构造 Object
-	// 这会先构造 GCObject 基类，然后构造 Object 派生类
-	Object* obj = new (mem) Object(context, ClassId::kObject, gc_type);
-
-	return obj;
 }
 
 } // namespace mjs

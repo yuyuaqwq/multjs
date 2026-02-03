@@ -1,6 +1,7 @@
 #include "src/compiler/expression_impl/import_expression.h"
 
-#include <mjs/function_def.h>
+#include <mjs/value/function_def.h>
+
 #include "src/compiler/lexer.h"
 #include "src/compiler/parser.h"
 

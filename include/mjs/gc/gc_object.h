@@ -23,8 +23,9 @@ namespace mjs {
 class Context;
 class Value;
 class GCHeap;
+class GCObject;
 
-using GCTraverseCallback = void(*)(Context* context, Value& child);
+using GCTraverseCallback = void(*)(Context* context, Value* child);
 
 /**
  * @enum GCGeneration
@@ -40,39 +41,19 @@ enum class GCGeneration : uint8_t {
  * @brief GC对象类型枚举
  */
 enum class GCObjectType : uint8_t {
-    kObject = 0,           ///< 普通对象
-    kArray,                ///< 数组对象
-    kFunction,             ///< 函数对象
-    kString,               ///< 字符串对象
-    kShape,                ///< 形状对象
-    kModuleDef,            ///< 模块定义
-    kFunctionDef,          ///< 函数定义
-    kClosureVar,           ///< 闭包变量
+    kNone = 0,
+    kObject,               ///< 对象
     kOther,                ///< 其他类型
 };
 
 /**
  * @struct GCObjectHeader
  * @brief GC对象头部结构
- * 
+ *
  * 每个GC对象在内存中的头部信息，用于GC管理和追踪
  */
-struct GCObjectHeader {
-    union {
-        uint32_t word_ = 0;     ///< 完整32位值
-        struct {
-            uint32_t type_ : 8;          ///< 对象类型 (GCObjectType)
-            uint32_t generation_ : 1;    ///< 所在代际 (0=新生代, 1=老年代)
-            uint32_t marked_ : 1;        ///< 标记位（用于标记-清除/标记-压缩）
-            uint32_t forwarded_ : 1;     ///< 转发位（用于复制算法）
-            uint32_t pinned_ : 1;        ///< 固定标记（不移动）
-            uint32_t age_ : 4;           ///< 年龄（用于晋升判断）
-            uint32_t size_class_ : 8;    ///< 大小类别（用于快速分配）
-            uint32_t reserved_ : 8;      ///< 保留位
-        };
-    };
-    uint32_t size_ = 0;              ///< 对象总大小（包含头部）
-    
+class GCObjectHeader {
+public:
     /**
      * @brief 获取对象类型
      */
@@ -93,6 +74,10 @@ struct GCObjectHeader {
      */
     void set_generation(GCGeneration g) { generation_ = static_cast<uint8_t>(g); }
     
+    size_t size() const { return size_; }
+
+    void set_size(size_t size) { size_ = size; }
+
     /**
      * @brief 检查是否已标记
      */
@@ -102,17 +87,31 @@ struct GCObjectHeader {
      * @brief 设置标记
      */
     void SetMarked(bool m) { marked_ = m; }
-    
+
     /**
      * @brief 检查是否已转发（复制算法中使用）
+     * @return 如果已转发返回true
+     * @note 直接通过 forwarding_address_ != nullptr 判断
      */
-    bool IsForwarded() const { return forwarded_; }
-    
+    bool IsForwarded() const { return forwarding_address_ != nullptr; }
+
     /**
-     * @brief 设置转发标记
+     * @brief 获取转发地址（Scavenge时使用）
+     * @return 转发后的新地址，如果未转发则返回nullptr
+     * @note 使用内联转发指针，避免哈希表查找，提升性能
      */
-    void SetForwarded(bool f) { forwarded_ = f; }
-    
+    GCObject* GetForwardingAddress() const {
+        return forwarding_address_;
+    }
+
+    /**
+     * @brief 设置转发地址（Scavenge时使用）
+     * @param addr 转发后的新地址
+     */
+    void SetForwardingAddress(GCObject* addr) {
+        forwarding_address_ = addr;
+    }
+
     /**
      * @brief 检查是否固定
      */
@@ -137,6 +136,33 @@ struct GCObjectHeader {
      * @brief 清空年龄
      */
     void ClearAge() { age_ = 0; }
+
+    /**
+     * @brief 检查析构函数是否已调用
+     */
+    bool IsDestructed() const { return destructed_; }
+
+    /**
+     * @brief 设置析构标记
+     */
+    void SetDestructed(bool d) { destructed_ = d; }
+
+private:
+    union {
+        uint64_t word_ = 0;     ///< 完整32位值
+        struct {
+            uint32_t type_ : 8;          ///< 对象类型 (GCObjectType)
+            uint32_t generation_ : 1;    ///< 所在代际 (0=新生代, 1=老年代)
+            uint32_t marked_ : 1;        ///< 标记位（用于标记-清除/标记-压缩）
+            uint32_t pinned_ : 1;        ///< 固定标记（不移动）
+            uint32_t destructed_ : 1;    ///< 析构标记（析构函数已调用）
+            uint32_t age_ : 4;           ///< 年龄（用于晋升判断）
+            uint32_t size_class_ : 8;    ///< 大小类别（用于快速分配）
+            uint32_t reserved_ : 8;      ///< 保留位
+            uint32_t size_;          ///< 对象总大小（包含头部）
+        };
+    };
+    GCObject* forwarding_address_ = nullptr;   ///< 转发地址（Scavenge期间使用，避免哈希表查找）
 };
 
 /**
@@ -153,7 +179,7 @@ public:
      * @param type 对象类型
      * @param size 对象大小（包含头部）
      */
-    explicit GCObject(GCObjectType type, size_t size);
+    GCObject();
     
     /**
      * @brief 虚析构函数
@@ -185,45 +211,6 @@ public:
      */
     const GCObjectHeader* header() const { return &header_; }
 
-    /**
-     * @brief 获取对象类型
-     */
-    GCObjectType gc_type() const { return header_.type(); }
-    
-    /**
-     * @brief 获取对象大小
-     */
-    size_t gc_size() const { return header_.size_; }
-
-    /**
-     * @brief 获取对象数据区域起始地址
-     */
-    void* data() { return reinterpret_cast<uint8_t*>(this) + sizeof(GCObjectHeader); }
-    
-    /**
-     * @brief 获取对象数据区域起始地址（常量）
-     */
-    const void* data() const { return reinterpret_cast<const uint8_t*>(this) + sizeof(GCObjectHeader); }
-
-    /**
-     * @brief 从数据指针获取GCObject
-     * @param data 数据区域指针
-     * @return GCObject指针
-     */
-    static GCObject* FromData(void* data) {
-        return reinterpret_cast<GCObject*>(
-            reinterpret_cast<uint8_t*>(data) - sizeof(GCObjectHeader));
-    }
-
-    /**
-     * @brief 从GCObject指针获取数据指针
-     * @param obj GCObject指针
-     * @return 数据区域指针
-     */
-    static void* ToData(GCObject* obj) {
-        return reinterpret_cast<uint8_t*>(obj) + sizeof(GCObjectHeader);
-    }
-
 protected:
     GCObjectHeader header_;     ///< 对象头部
 };
@@ -240,15 +227,6 @@ constexpr size_t kGCObjectAlignment = 8;
  */
 inline size_t AlignGCObjectSize(size_t size) {
     return (size + kGCObjectAlignment - 1) & ~(kGCObjectAlignment - 1);
-}
-
-/**
- * @brief 计算包含头部的总大小
- * @param data_size 数据区域大小
- * @return 总大小（包含头部和对齐）
- */
-inline size_t GCObjectTotalSize(size_t data_size) {
-    return AlignGCObjectSize(sizeof(GCObjectHeader) + data_size);
 }
 
 } // namespace mjs

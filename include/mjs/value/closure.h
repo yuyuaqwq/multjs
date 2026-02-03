@@ -93,9 +93,9 @@ public:
 	 */
 	void GCTraverse(Context* context, GCTraverseCallback callback) {
 		for (auto& var : closure_var_refs_) {
-			callback(context, var);
+			callback(context, &var);
 		}
-		callback(context, lexical_this_);
+		callback(context, &lexical_this_);
 	}
 
 	/**

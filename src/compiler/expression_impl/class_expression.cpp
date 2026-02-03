@@ -198,8 +198,7 @@ void ClassExpression::GenerateCode(CodeGenerator* code_generator, FunctionDefBas
             // 加载prototype对象: 构造函数.prototype
 
             // 构造函数.prototype
-            auto prototype_key_idx = code_generator->AllocateConst(Value("prototype"));
-            function_def_base->bytecode_table().EmitPropertyLoad(prototype_key_idx);
+            function_def_base->bytecode_table().EmitPropertyLoad(ConstIndexEmbedded::kPrototype);
 
             // 构造函数.prototype.key = element
             function_def_base->bytecode_table().EmitPropertyStore(key_const_idx);

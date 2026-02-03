@@ -19,13 +19,6 @@ bool GCManager::Initialize() {
     return heap_->Initialize();
 }
 
-GCObject* GCManager::Allocate(GCObjectType gc_type, size_t size) {
-    if (!heap_) {
-        return nullptr;
-    }
-    return heap_->Allocate(gc_type, size);
-}
-
 bool GCManager::CollectGarbage(bool full_gc) {
     if (!heap_) {
         return false;

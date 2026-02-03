@@ -12,12 +12,12 @@
 #include <memory>
 #include <stdexcept>
 
-#include <mjs/class_def.h>
+#include <mjs/class_def/class_def.h>
 #include <mjs/class_def_table.h>
 #include <mjs/runtime.h>
 #include <mjs/context.h>
-#include <mjs/value.h>
-#include <mjs/object.h>
+#include <mjs/value/value.h>
+#include <mjs/value/object/object.h>
 #include "../tests/unit/test_helpers.h"
 
 namespace mjs {

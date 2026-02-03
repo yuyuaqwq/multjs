@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 #include <mjs/context.h>
 #include <mjs/runtime.h>
+#include <mjs/gc/handle.h>
 #include <mjs/value/value.h>
 #include <mjs/value/object/object.h>
 #include <mjs/value/object/promise_object.h>
@@ -29,8 +30,9 @@ TEST_F(PromiseObjectTest, CreatePromise) {
     // 创建一个简单的executor函数
     auto executor = Value(); // 占位符
 
-    auto* promise = PromiseObject::New(context.get(), executor);
-    ASSERT_NE(promise, nullptr);
+    GCHandleScope<1> scope(context.get());
+    auto promise = scope.New<PromiseObject>(executor);
+    ASSERT_NE(promise.operator->(), nullptr);
 
     // 初始状态应该是pending
     EXPECT_TRUE(promise->IsPending());
@@ -40,7 +42,8 @@ TEST_F(PromiseObjectTest, CreatePromise) {
 
 TEST_F(PromiseObjectTest, PromiseStateTransitions) {
     auto executor = Value();
-    auto* promise = PromiseObject::New(context.get(), executor);
+    GCHandleScope<1> scope(context.get());
+    auto promise = scope.New<PromiseObject>(executor);
 
     // 初始状态
     EXPECT_TRUE(promise->IsPending());
@@ -55,7 +58,8 @@ TEST_F(PromiseObjectTest, PromiseStateTransitions) {
 
 TEST_F(PromiseObjectTest, PromiseReject) {
     auto executor = Value();
-    auto* promise = PromiseObject::New(context.get(), executor);
+    GCHandleScope<1> scope(context.get());
+    auto promise = scope.New<PromiseObject>(executor);
 
     // Reject
     auto* error_str = String::New("error");
@@ -70,7 +74,8 @@ TEST_F(PromiseObjectTest, PromiseReject) {
 
 TEST_F(PromiseObjectTest, PromiseThen) {
     auto executor = Value();
-    auto* promise = PromiseObject::New(context.get(), executor);
+    GCHandleScope<1> scope(context.get());
+    auto promise = scope.New<PromiseObject>(executor);
 
     // 创建on_fulfilled和on_rejected回调
     Value on_fulfilled; // 占位符
@@ -85,7 +90,8 @@ TEST_F(PromiseObjectTest, PromiseThen) {
 
 TEST_F(PromiseObjectTest, PromiseSetResult) {
     auto executor = Value();
-    auto* promise = PromiseObject::New(context.get(), executor);
+    GCHandleScope<1> scope(context.get());
+    auto promise = scope.New<PromiseObject>(executor);
 
     // 先resolve
     promise->Resolve(context.get(), Value(100));
@@ -97,7 +103,8 @@ TEST_F(PromiseObjectTest, PromiseSetResult) {
 
 TEST_F(PromiseObjectTest, PromiseSetReason) {
     auto executor = Value();
-    auto* promise = PromiseObject::New(context.get(), executor);
+    GCHandleScope<1> scope(context.get());
+    auto promise = scope.New<PromiseObject>(executor);
 
     // 先reject
     auto* error_str = String::New("failure");
@@ -112,7 +119,8 @@ TEST_F(PromiseObjectTest, PromiseSetReason) {
 
 TEST_F(PromiseObjectTest, PromiseInheritsFromObject) {
     auto executor = Value();
-    auto* promise = PromiseObject::New(context.get(), executor);
+    GCHandleScope<1> scope(context.get());
+    auto promise = scope.New<PromiseObject>(executor);
 
     // 测试继承自Object
     EXPECT_TRUE(promise->GetPrototype(context.get()).IsObject() ||

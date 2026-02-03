@@ -8,15 +8,26 @@
 
 namespace mjs {
 
-ArrayObject::ArrayObject(Context* context, GCObjectType gc_type)
-    : Object(context, ClassId::kArrayObject, gc_type)
-    , length_slot_index_(kPropertySlotIndexInvalid) {
-    InitLengthProperty();
+ArrayObject::ArrayObject(Context* context)
+    : Object(context, ClassId::kArrayObject)
+{
+    SetLengthValue(0);
 }
 
-void ArrayObject::InitLengthProperty() {
-    // 数组创建时，length 属性初始化为 0
-    SetLengthValue(0);
+ArrayObject::ArrayObject(Context* context, size_t count)
+    : Object(context, ClassId::kArrayObject) 
+{
+    SetLengthValue(count);
+}
+
+ArrayObject::ArrayObject(Context* context, std::initializer_list<Value> values)
+    : Object(context, ClassId::kArrayObject)
+{
+    SetLengthValue(values.size());
+    size_t i = 0;
+    for (auto& value : values) {
+        SetComputedProperty(context, Value(static_cast<int64_t>(i++)), Value(value));
+    }
 }
 
 void ArrayObject::SetLengthValue(size_t new_length) {
@@ -177,54 +188,6 @@ Value& ArrayObject::At(Context* context, size_t index) {
     SetProperty(context, index_key, Value());
     slot_index = shape_->Find(index_key);
     return GetPropertyValue(slot_index);
-}
-
-ArrayObject* ArrayObject::New(Context* context, std::initializer_list<Value> values) {
-    // 使用 GCHeap 分配内存
-    GCHeap* heap = context->gc_manager().heap();
-
-    // 计算需要分配的总大小
-    size_t total_size = sizeof(ArrayObject);
-
-    // 分配原始内存，不构造 GCObject
-    void* mem = heap->AllocateRaw(GCObjectType::kArray, total_size);
-    if (!mem) {
-        return nullptr;
-    }
-
-    // 使用 placement new 在分配的内存中构造 ArrayObject
-    // 这会先构造 GCObject 基类，然后构造 ArrayObject 派生类
-    auto arr_obj = new (mem) ArrayObject(context);
-    arr_obj->SetLengthValue(values.size());
-
-    size_t i = 0;
-    for (auto& value : values) {
-        arr_obj->SetComputedProperty(context, Value(static_cast<int64_t>(i++)), Value(value));
-    }
-    return arr_obj;
-}
-
-ArrayObject* ArrayObject::New(Context* context, size_t count) {
-    // 使用 GCHeap 分配内存
-    GCHeap* heap = context->gc_manager().heap();
-
-    // 计算需要分配的总大小
-    size_t total_size = sizeof(ArrayObject);
-
-    // 分配原始内存，不构造 GCObject
-    void* mem = heap->AllocateRaw(GCObjectType::kArray, total_size);
-    if (!mem) {
-        return nullptr;
-    }
-
-    // 使用 placement new 在分配的内存中构造 ArrayObject
-    // 这会先构造 GCObject 基类，然后构造 ArrayObject 派生类
-    auto arr_obj = new (mem) ArrayObject(context);
-    arr_obj->SetLengthValue(count);
-
-    // 注意：稀疏数组，不创建中间元素，只设置 length
-    // JS 标准：new Array(10) 创建一个长度为 10 但没有元素的数组
-    return arr_obj;
 }
 
 } // namespace mjs

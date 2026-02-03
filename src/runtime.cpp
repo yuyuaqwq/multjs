@@ -4,6 +4,7 @@
 
 #include <mjs/context.h>
 #include <mjs/runtime.h>
+#include <mjs/gc/handle.h>
 #include <mjs/class_def/symbol_class_def.h>
 #include <mjs/class_def/array_object_class_def.h>
 #include <mjs/class_def/object_class_def.h>
@@ -40,28 +41,34 @@ public:
     }
 };
 
-Runtime::Runtime() 
+Runtime::Runtime()
 	: default_context_(this)
-    , global_this_(Object::New(&default_context_))
+    , global_this_()
     , class_def_table_(this)
     , module_manager_(std::make_unique<ModuleManager>())
 {
-    
     Initialize();
 }
 
 Runtime::Runtime(std::unique_ptr<ModuleManagerBase> module_manager)
     : default_context_(this)
-    , global_this_(Object::New(&default_context_))
+    , global_this_()
     , class_def_table_(this)
     , module_manager_(std::move(module_manager))
 {
+    // 创建全局对象
+    GCHandleScope<1> scope(&default_context_);
+    auto global_obj = scope.New<Object>();
+    global_this_ = global_obj.ToValue();
+
     Initialize();
 }
 
 Runtime::~Runtime() {
 	global_const_pool_.Clear();
 	global_this_ = Value();
+    default_context_.gc_manager().RemoveRoot(&global_this_);
+
 	class_def_table_.Clear();
 	module_manager_->ClearModuleCache();
 }
@@ -72,6 +79,11 @@ void Runtime::AddPropertyToGlobalThis(const char* property_key, Value&& value) {
 }
 
 void Runtime::Initialize() {
+    // 创建全局对象
+    GCHandleScope<1> scope(&default_context_);
+    global_this_ = scope.New<Object>().ToValue();
+    default_context_.gc_manager().AddRoot(&global_this_);
+
     global_const_pool_.Initialize();
     class_def_table_.Initialize(this);
     GlobalThisInitialize();

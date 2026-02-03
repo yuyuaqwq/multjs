@@ -2,6 +2,7 @@
 
 #include <mjs/context.h>
 #include <mjs/runtime.h>
+#include <mjs/gc/handle.h>
 #include <mjs/value/object/constructor_object.h>
 
 namespace mjs {
@@ -16,25 +17,26 @@ ClassDef::ClassDef(Runtime* runtime, ClassId id, const char* name)
 	else {
 		name_ = kConstIndexInvalid;
 	}
-	
+
 	// Debug: 检查prototype_是否正确初始化
 	// printf("ClassDef %s: prototype_.type() = %d, IsObject() = %d\n",
 	//        name, static_cast<int>(prototype_.type()), prototype_.IsObject());
 
-	prototype_ = Value(Object::New(&runtime->default_context()));
+	GCHandleScope<2> scope(&runtime->default_context());
+	auto prototype_obj = scope.New<Object>();
+	prototype_ = prototype_obj.ToValue();
 
 	if (name_ != kConstIndexInvalid) {
-		constructor_ = Value(ConstructorObject::New(&runtime->default_context(), id_));
+		auto constructor_obj = scope.New<ConstructorObject>(id_);
+		constructor_ = constructor_obj.ToValue();
 
-		auto prototype = prototype_;
-		constructor_.object().SetProperty(&runtime->default_context(), ConstIndexEmbedded::kPrototype, std::move(prototype));
+		// 挂载prototype到构造函数对象
+		constructor_obj->SetProperty(&runtime->default_context(), ConstIndexEmbedded::kPrototype, Value(prototype_));
 
 		// 挂载构造函数到全局对象
-		Value constructor = constructor_;
-		runtime->global_this().object().SetProperty(&runtime->default_context(), name_, std::move(constructor));
+		runtime->global_this().object().SetProperty(&runtime->default_context(), name_, Value(constructor_));
 
-		constructor = constructor_;
-		prototype_.object().SetProperty(&runtime->default_context(), ConstIndexEmbedded::kConstructor, std::move(constructor));
+		prototype_.object().SetProperty(&runtime->default_context(), ConstIndexEmbedded::kConstructor, Value(constructor_));
 	}
 }
 

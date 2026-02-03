@@ -1,4 +1,4 @@
-#include <mjs/module_def.h>
+#include <mjs/value/module_def.h>
 
 #include <mjs/runtime.h>
 

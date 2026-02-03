@@ -64,35 +64,6 @@ public:
     bool Initialize();
 
     /**
-     * @brief 分配对象内存
-     * @tparam ObjectT 对象类型
-     * @tparam Args 构造函数参数类型
-     * @param gc_type GC对象类型
-     * @param args 构造函数参数
-     * @return 分配的对象指针，失败返回nullptr
-     */
-    template<typename ObjectT, typename... Args>
-    ObjectT* AllocateObject(GCObjectType gc_type, Args&&... args) {
-        size_t data_size = sizeof(ObjectT);
-        GCObject* gc_obj = heap_->AllocateObject(gc_type, data_size);
-        if (!gc_obj) {
-            return nullptr;
-        }
-        
-        // 在GCObject的数据区域构造对象
-        void* data = gc_obj->data();
-        return new (data) ObjectT(std::forward<Args>(args)...);
-    }
-
-    /**
-     * @brief 分配指定大小的内存
-     * @param gc_type GC对象类型
-     * @param size 大小（包含头部）
-     * @return GCObject指针，失败返回nullptr
-     */
-    GCObject* Allocate(GCObjectType gc_type, size_t size);
-
-    /**
      * @brief 执行垃圾回收
      * @param full_gc 是否执行完整GC（包括老年代）
      * @return 是否回收成功
@@ -134,6 +105,24 @@ public:
     void SetGCThreshold(uint8_t threshold);
 
     /**
+     * @brief 分配指定大小的内存（用于特定类型）
+     * @param type 对象类型
+     * @param total_size 总大小（包含头部）
+     * @return GCObject指针，失败返回nullptr
+     */
+    template <typename ObjectT, typename...Args>
+    ObjectT* AllocateObject(Args&&... args) {
+        GCGeneration generation;
+        auto size = sizeof(ObjectT);
+        auto* mem = heap_->Allocate(&size, &generation);
+        ObjectT* obj = new (mem) ObjectT(context_, std::forward<Args>(args)...);
+        obj->header()->set_type(GCObjectType::kObject);
+        obj->header()->set_generation(generation);
+        obj->header()->set_size(size);
+        return obj;
+    }
+
+    /**
      * @brief 获取GC堆
      * @return GC堆指针
      */
@@ -156,8 +145,6 @@ public:
      * @param context 执行上下文指针
      */
     void PrintObjectTree(Context* context);
-
-    GCHeap* heap() { return heap_.get(); }
 
 private:
     Context* context_ = nullptr;               ///< 所属上下文

@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 #include <mjs/context.h>
 #include <mjs/runtime.h>
+#include <mjs/gc/handle.h>
 #include <mjs/value/value.h>
 #include <mjs/value/object/object.h>
 #include <mjs/value/object/array_object.h>
@@ -27,18 +28,20 @@ protected:
 // ==================== 基础创建测试 ====================
 
 TEST_F(ArrayObjectTest, CreateEmptyArray) {
-    auto* arr = ArrayObject::New(context.get(), 0);
-    ASSERT_NE(arr, nullptr);
+    GCHandleScope<1> scope(context.get());
+    auto arr = scope.New<ArrayObject>(0);
+    ASSERT_NE(arr.operator->(), nullptr);
     EXPECT_EQ(arr->GetLength(), 0);
 }
 
 TEST_F(ArrayObjectTest, CreateArrayWithInitializerList) {
-    auto* arr = ArrayObject::New(context.get(), {
+    GCHandleScope<1> scope(context.get());
+    auto arr = scope.New<ArrayObject>(std::initializer_list<Value>{
         Value(1),
         Value(2),
         Value(3)
     });
-    ASSERT_NE(arr, nullptr);
+    ASSERT_NE(arr.operator->(), nullptr);
     EXPECT_EQ(arr->GetLength(), 3);
 
     // 使用新的 operator[] 语法
@@ -49,8 +52,9 @@ TEST_F(ArrayObjectTest, CreateArrayWithInitializerList) {
 
 TEST_F(ArrayObjectTest, CreateArrayWithSize_SparseArray) {
     // 测试稀疏数组：创建长度为 5 但没有元素的数组
-    auto* arr = ArrayObject::New(context.get(), 5);
-    ASSERT_NE(arr, nullptr);
+    GCHandleScope<1> scope(context.get());
+    auto arr = scope.New<ArrayObject>(5);
+    ASSERT_NE(arr.operator->(), nullptr);
     EXPECT_EQ(arr->GetLength(), 5);
 
     // 稀疏数组访问不存在的元素应该返回 undefined
@@ -60,7 +64,8 @@ TEST_F(ArrayObjectTest, CreateArrayWithSize_SparseArray) {
 // ==================== 元素访问测试 ====================
 
 TEST_F(ArrayObjectTest, ArrayElementAccess) {
-    auto* arr = ArrayObject::New(context.get(), {
+    GCHandleScope<1> scope(context.get());
+    auto arr = scope.New<ArrayObject>(std::initializer_list<Value>{
         Value(10),
         Value(20),
         Value(30)
@@ -77,7 +82,8 @@ TEST_F(ArrayObjectTest, ArrayElementAccess) {
 }
 
 TEST_F(ArrayObjectTest, ArrayElementAccessOutOfBounds) {
-    auto* arr = ArrayObject::New(context.get(), {
+    GCHandleScope<1> scope(context.get());
+    auto arr = scope.New<ArrayObject>(std::initializer_list<Value>{
         Value(1),
         Value(2)
     });
@@ -90,7 +96,8 @@ TEST_F(ArrayObjectTest, ArrayElementAccessOutOfBounds) {
 }
 
 TEST_F(ArrayObjectTest, ArraySetElementBeyondLength) {
-    auto* arr = ArrayObject::New(context.get(), {
+    GCHandleScope<1> scope(context.get());
+    auto arr = scope.New<ArrayObject>(std::initializer_list<Value>{
         Value(1),
         Value(2)
     });
@@ -105,7 +112,8 @@ TEST_F(ArrayObjectTest, ArraySetElementBeyondLength) {
 // ==================== Push/Pop 测试 ====================
 
 TEST_F(ArrayObjectTest, ArrayPush) {
-    auto* arr = ArrayObject::New(context.get(), 0);
+    GCHandleScope<1> scope(context.get());
+    auto arr = scope.New<ArrayObject>(0);
 
     arr->Push(context.get(), Value(1));
     EXPECT_EQ(arr->GetLength(), 1);
@@ -121,7 +129,8 @@ TEST_F(ArrayObjectTest, ArrayPush) {
 }
 
 TEST_F(ArrayObjectTest, ArrayPop) {
-    auto* arr = ArrayObject::New(context.get(), {
+    GCHandleScope<1> scope(context.get());
+    auto arr = scope.New<ArrayObject>(std::initializer_list<Value>{
         Value(1),
         Value(2),
         Value(3)
@@ -142,7 +151,8 @@ TEST_F(ArrayObjectTest, ArrayPop) {
 }
 
 TEST_F(ArrayObjectTest, ArrayPopFromEmpty) {
-    auto* arr = ArrayObject::New(context.get(), 0);
+    GCHandleScope<1> scope(context.get());
+    auto arr = scope.New<ArrayObject>(0);
 
     // 从空数组 pop 应该返回 undefined
     Value val = arr->Pop(context.get());
@@ -153,7 +163,8 @@ TEST_F(ArrayObjectTest, ArrayPopFromEmpty) {
 // ==================== Length 属性测试 ====================
 
 TEST_F(ArrayObjectTest, ArrayLengthProperty) {
-    auto* arr = ArrayObject::New(context.get(), {
+    GCHandleScope<1> scope(context.get());
+    auto arr = scope.New<ArrayObject>(std::initializer_list<Value>{
         Value(1),
         Value(2),
         Value(3)
@@ -168,7 +179,8 @@ TEST_F(ArrayObjectTest, ArrayLengthProperty) {
 }
 
 TEST_F(ArrayObjectTest, ArraySetLengthSmaller) {
-    auto* arr = ArrayObject::New(context.get(), {
+    GCHandleScope<1> scope(context.get());
+    auto arr = scope.New<ArrayObject>(std::initializer_list<Value>{
         Value(1),
         Value(2),
         Value(3),
@@ -190,7 +202,8 @@ TEST_F(ArrayObjectTest, ArraySetLengthSmaller) {
 }
 
 TEST_F(ArrayObjectTest, ArraySetLengthLarger) {
-    auto* arr = ArrayObject::New(context.get(), {
+    GCHandleScope<1> scope(context.get());
+    auto arr = scope.New<ArrayObject>(std::initializer_list<Value>{
         Value(1),
         Value(2)
     });
@@ -207,7 +220,8 @@ TEST_F(ArrayObjectTest, ArraySetLengthLarger) {
 }
 
 TEST_F(ArrayObjectTest, ArrayAutoUpdateLength) {
-    auto* arr = ArrayObject::New(context.get(), {
+    GCHandleScope<1> scope(context.get());
+    auto arr = scope.New<ArrayObject>(std::initializer_list<Value>{
         Value(1),
         Value(2)
     });
@@ -222,7 +236,8 @@ TEST_F(ArrayObjectTest, ArrayAutoUpdateLength) {
 // ==================== 计算属性测试 ====================
 
 TEST_F(ArrayObjectTest, ArrayGetComputedProperty) {
-    auto* arr = ArrayObject::New(context.get(), {
+    GCHandleScope<1> scope(context.get());
+    auto arr = scope.New<ArrayObject>(std::initializer_list<Value>{
         Value(10),
         Value(20),
         Value(30)
@@ -236,7 +251,8 @@ TEST_F(ArrayObjectTest, ArrayGetComputedProperty) {
 }
 
 TEST_F(ArrayObjectTest, ArraySetComputedProperty) {
-    auto* arr = ArrayObject::New(context.get(), {
+    GCHandleScope<1> scope(context.get());
+    auto arr = scope.New<ArrayObject>(std::initializer_list<Value>{
         Value(1),
         Value(2),
         Value(3)
@@ -248,7 +264,8 @@ TEST_F(ArrayObjectTest, ArraySetComputedProperty) {
 }
 
 TEST_F(ArrayObjectTest, ArraySetComputedPropertyBeyondLength) {
-    auto* arr = ArrayObject::New(context.get(), {
+    GCHandleScope<1> scope(context.get());
+    auto arr = scope.New<ArrayObject>(std::initializer_list<Value>{
         Value(1),
         Value(2)
     });
@@ -261,7 +278,8 @@ TEST_F(ArrayObjectTest, ArraySetComputedPropertyBeyondLength) {
 }
 
 TEST_F(ArrayObjectTest, ArrayDelComputedProperty) {
-    auto* arr = ArrayObject::New(context.get(), {
+    GCHandleScope<1> scope(context.get());
+    auto arr = scope.New<ArrayObject>(std::initializer_list<Value>{
         Value(1),
         Value(2),
         Value(3)
@@ -284,7 +302,8 @@ TEST_F(ArrayObjectTest, ArrayDelComputedProperty) {
 
 TEST_F(ArrayObjectTest, ArrayMixedTypes) {
     auto* str = String::New("hello");
-    auto* arr = ArrayObject::New(context.get(), {
+    GCHandleScope<1> scope(context.get());
+    auto arr = scope.New<ArrayObject>(std::initializer_list<Value>{
         Value(42),                    // 数字
         Value(str),                   // 字符串
         Value(true),                  // 布尔
@@ -302,7 +321,8 @@ TEST_F(ArrayObjectTest, ArrayMixedTypes) {
 
 TEST_F(ArrayObjectTest, SparseArray) {
     // 创建稀疏数组
-    auto* arr = ArrayObject::New(context.get(), 100);
+    GCHandleScope<1> scope(context.get());
+    auto arr = scope.New<ArrayObject>(100);
     EXPECT_EQ(arr->GetLength(), 100);
 
     // 只设置几个元素
@@ -321,7 +341,8 @@ TEST_F(ArrayObjectTest, SparseArray) {
 
 TEST_F(ArrayObjectTest, VerySparseArray) {
     // 创建非常大的稀疏数组
-    auto* arr = ArrayObject::New(context.get(), 10000);
+    GCHandleScope<1> scope(context.get());
+    auto arr = scope.New<ArrayObject>(10000);
     EXPECT_EQ(arr->GetLength(), 10000);
 
     // 只在最后设置一个元素
@@ -337,7 +358,8 @@ TEST_F(ArrayObjectTest, VerySparseArray) {
 TEST_F(ArrayObjectTest, LargeArray) {
     // 测试较大的数组
     size_t size = 1000;
-    auto* arr = ArrayObject::New(context.get(), size);
+    GCHandleScope<1> scope(context.get());
+    auto arr = scope.New<ArrayObject>(size);
     EXPECT_EQ(arr->GetLength(), size);
 
     // 修改几个元素
@@ -351,7 +373,8 @@ TEST_F(ArrayObjectTest, LargeArray) {
 }
 
 TEST_F(ArrayObjectTest, ArrayIndexLimit) {
-    auto* arr = ArrayObject::New(context.get(), 0);
+    GCHandleScope<1> scope(context.get());
+    auto arr = scope.New<ArrayObject>(0);
 
     // 测试接近 2^32-1 的索引（不实际创建，只测试边界）
     // 正常范围内的索引
@@ -365,7 +388,8 @@ TEST_F(ArrayObjectTest, ArrayIndexLimit) {
 // ==================== 继承测试 ====================
 
 TEST_F(ArrayObjectTest, ArrayInheritsFromObject) {
-    auto* arr = ArrayObject::New(context.get(), {Value(1), Value(2)});
+    GCHandleScope<1> scope(context.get());
+    auto arr = scope.New<ArrayObject>(std::initializer_list<Value>{Value(1), Value(2)});
 
     // 测试继承自 Object
     EXPECT_TRUE(arr->GetPrototype(context.get()).IsObject() ||
@@ -373,7 +397,8 @@ TEST_F(ArrayObjectTest, ArrayInheritsFromObject) {
 }
 
 TEST_F(ArrayObjectTest, ArrayHasOwnProperty) {
-    auto* arr = ArrayObject::New(context.get(), {
+    GCHandleScope<1> scope(context.get());
+    auto arr = scope.New<ArrayObject>(std::initializer_list<Value>{
         Value(1),
         Value(2)
     });
@@ -391,7 +416,8 @@ TEST_F(ArrayObjectTest, ArrayHasOwnProperty) {
 // ==================== Length 属性特征测试 ====================
 
 TEST_F(ArrayObjectTest, LengthPropertyNotEnumerable) {
-    auto* arr = ArrayObject::New(context.get(), {Value(1), Value(2)});
+    GCHandleScope<1> scope(context.get());
+    auto arr = scope.New<ArrayObject>(std::initializer_list<Value>{Value(1), Value(2)});
 
     // length 属性应该是不可枚举的
     auto length_key = context->FindConstOrInsertToLocal(Value("length"));

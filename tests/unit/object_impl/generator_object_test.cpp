@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 #include <mjs/context.h>
 #include <mjs/runtime.h>
+#include <mjs/gc/handle.h>
 #include <mjs/value/value.h>
 #include <mjs/value/object/object.h>
 #include <mjs/value/object/generator_object.h>
@@ -31,9 +32,10 @@ TEST_F(GeneratorObjectTest, CreateGenerator) {
     auto* func_def = FunctionDef::New(test_env->module_def(), "myGenerator", 0);
     Value func_value = Value(func_def);
 
-    auto* generator = GeneratorObject::New(context.get(), func_value);
-    ASSERT_NE(generator, nullptr);
-    auto generator_value = Value(generator);
+    GCHandleScope<1> scope(context.get());
+    auto generator = scope.New<GeneratorObject>(func_value);
+    ASSERT_NE(generator.operator->(), nullptr);
+    auto generator_value = generator.ToValue();
 
     // 初始状态应该是suspended
     EXPECT_TRUE(generator->IsSuspended());
@@ -45,8 +47,9 @@ TEST_F(GeneratorObjectTest, GeneratorStateTransitions) {
     auto* func_def = FunctionDef::New(test_env->module_def(), "stateTest", 0);
     Value func_value = Value(func_def);
 
-    auto* generator = GeneratorObject::New(context.get(), func_value);
-    auto generator_value = Value(generator);
+    GCHandleScope<1> scope(context.get());
+    auto generator = scope.New<GeneratorObject>(func_value);
+    auto generator_value = generator.ToValue();
 
     // 初始状态: suspended
     EXPECT_TRUE(generator->IsSuspended());
@@ -66,8 +69,9 @@ TEST_F(GeneratorObjectTest, GeneratorFunctionDefAccess) {
     auto* func_def = FunctionDef::New(test_env->module_def(), "generatorFunction", 2);
     Value func_value = Value(func_def);
 
-    auto* generator = GeneratorObject::New(context.get(), func_value);
-    auto generator_value = Value(generator);
+    GCHandleScope<1> scope(context.get());
+    auto generator = scope.New<GeneratorObject>(func_value);
+    auto generator_value = generator.ToValue();
 
     // 测试访问function_def
     EXPECT_EQ(generator->function_def().name(), "generatorFunction");
@@ -78,8 +82,9 @@ TEST_F(GeneratorObjectTest, GeneratorPcAccess) {
     auto* func_def = FunctionDef::New(test_env->module_def(), "", 0);
     Value func_value = Value(func_def);
 
-    auto* generator = GeneratorObject::New(context.get(), func_value);
-    auto generator_value = Value(generator);
+    GCHandleScope<1> scope(context.get());
+    auto generator = scope.New<GeneratorObject>(func_value);
+    auto generator_value = generator.ToValue();
 
     // 测试pc访问
     EXPECT_EQ(generator->pc(), 0);
@@ -92,8 +97,9 @@ TEST_F(GeneratorObjectTest, GeneratorStackAccess) {
     auto* func_def = FunctionDef::New(test_env->module_def(), "", 0);
     Value func_value = Value(func_def);
 
-    auto* generator = GeneratorObject::New(context.get(), func_value);
-    auto generator_value = Value(generator);
+    GCHandleScope<1> scope(context.get());
+    auto generator = scope.New<GeneratorObject>(func_value);
+    auto generator_value = generator.ToValue();
 
     // 测试栈访问
     auto& stack = generator->stack();
@@ -105,8 +111,9 @@ TEST_F(GeneratorObjectTest, GeneratorMakeReturnObject) {
     auto* func_def = FunctionDef::New(test_env->module_def(), "", 0);
     auto func_value = Value(func_def);
 
-    auto* generator = GeneratorObject::New(context.get(), func_value);
-    auto generator_value = Value(generator);
+    GCHandleScope<1> scope(context.get());
+    auto generator = scope.New<GeneratorObject>(func_value);
+    auto generator_value = generator.ToValue();
 
     // 测试创建返回对象
     Value ret_value = Value(42);
@@ -120,8 +127,9 @@ TEST_F(GeneratorObjectTest, GeneratorNext) {
     auto* func_def = FunctionDef::New(test_env->module_def(), "", 0);
     Value func_value = Value(func_def);
 
-    auto* generator = GeneratorObject::New(context.get(), func_value);
-    auto generator_value = Value(generator);
+    GCHandleScope<1> scope(context.get());
+    auto generator = scope.New<GeneratorObject>(func_value);
+    auto generator_value = generator.ToValue();
 
     // 测试Next方法，这里实际上会异常，因为Generator没有任何
     generator->Next(context.get());
@@ -133,8 +141,9 @@ TEST_F(GeneratorObjectTest, GeneratorToString) {
     auto* func_def = FunctionDef::New(test_env->module_def(), "toStringGen", 0);
     Value func_value = Value(func_def);
 
-    auto* generator = GeneratorObject::New(context.get(), func_value);
-    auto generator_value = Value(generator);
+    GCHandleScope<1> scope(context.get());
+    auto generator = scope.New<GeneratorObject>(func_value);
+    auto generator_value = generator.ToValue();
 
     // 测试ToString方法
     Value str_val = generator->ToString(context.get());
@@ -147,8 +156,9 @@ TEST_F(GeneratorObjectTest, GeneratorInheritsFromObject) {
     auto* func_def = FunctionDef::New(test_env->module_def(), "", 0);
     Value func_value = Value(func_def);
 
-    auto* generator = GeneratorObject::New(context.get(), func_value);
-    auto generator_value = Value(generator);
+    GCHandleScope<1> scope(context.get());
+    auto generator = scope.New<GeneratorObject>(func_value);
+    auto generator_value = generator.ToValue();
 
     // 测试继承自Object
     EXPECT_TRUE(generator->GetPrototype(context.get()).IsObject() ||

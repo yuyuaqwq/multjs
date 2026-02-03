@@ -68,10 +68,10 @@ public:
 	 * @param callback 回调函数，用于处理每个子对象引用
 	 */
 	void GCTraverse(Context* context, GCTraverseCallback callback) {
-		callback(context, func_);
-		callback(context, this_val_);
+		callback(context, &func_);
+		callback(context, &this_val_);
 		for (auto& val : argv_) {
-			callback(context, val);
+			callback(context, &val);
 		}
 	}
 

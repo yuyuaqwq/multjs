@@ -15,9 +15,9 @@
 
 #include <gtest/gtest.h>
 
-#include <mjs/value.h>
-#include <mjs/string.h>
-#include <mjs/symbol.h>
+#include <mjs/value/value.h>
+#include <mjs/value/string.h>
+#include <mjs/value/symbol.h>
 #include <mjs/context.h>
 #include <mjs/runtime.h>
 

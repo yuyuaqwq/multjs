@@ -34,18 +34,6 @@ public:
     using Base::Base;
 
     /**
-     * @brief 垃圾回收遍历子对象（旧接口）
-     * @param context 执行上下文指针
-     * @param list 对象链表
-     * @param callback 回调函数，用于标记子对象
-     */
-    void ForEachChild(Context* context, intrusive_list<Object>* list, void(*callback)(Context* context, intrusive_list<Object>* list, const Value& child)) {
-        for (auto& job : *this) {
-            job.ForEachChild(context, list, callback);
-        }
-    }
-
-    /**
      * @brief 垃圾回收遍历子对象（新接口）
      * @param context 执行上下文指针
      * @param callback 回调函数，用于处理每个子对象引用

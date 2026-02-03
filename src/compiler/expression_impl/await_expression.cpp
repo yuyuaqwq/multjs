@@ -1,6 +1,6 @@
 #include "src/compiler/expression_impl/await_expression.h"
 
-#include <mjs/function_def.h>
+#include <mjs/value/function_def.h>
 
 #include "src/compiler/statement.h"
 

@@ -10,7 +10,7 @@ protected:
 
 public:
 	static CppModuleObject* New(Context* context) {
-		return new CppModuleObject(context);
+		return nullptr;
     }
 };
 

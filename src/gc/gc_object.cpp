@@ -7,13 +7,11 @@
 
 namespace mjs {
 
-GCObject::GCObject(GCObjectType type, size_t size) {
-    header_.set_type(type);
-    header_.size_ = static_cast<uint32_t>(size);
+GCObject::GCObject() {
     header_.set_generation(GCGeneration::kNew);
     header_.SetMarked(false);
-    header_.SetForwarded(false);
     header_.SetPinned(false);
+    header_.SetDestructed(false);
     header_.ClearAge();
 }
 

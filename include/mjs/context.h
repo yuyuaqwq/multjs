@@ -43,6 +43,7 @@ namespace mjs {
  */
 
 class Runtime;
+class GCHandleScopeBase;
 
 class Context : public noncopyable {
 public:
@@ -187,22 +188,41 @@ public:
      * @brief 获取形状管理器引用
      * @return 形状管理器引用
      */
-    auto& shape_manager() { return shape_manager_; }
+    ShapeManager& shape_manager() { return shape_manager_; }
 
 	/**
 	 * @brief 获取垃圾回收管理器引用
 	 * @return 垃圾回收管理器引用
 	 */
-	auto& gc_manager() { return gc_manager_; }
+	GCManager& gc_manager() { return gc_manager_; }
+
+    /**
+     * @brief 推入 HandleScope
+     * @param scope HandleScope 指针
+     */
+    void PushHandleScope(GCHandleScopeBase* scope);
+
+    /**
+     * @brief 弹出 HandleScope
+     */
+    void PopHandleScope();
+
+    /**
+     * @brief 获取当前 HandleScope 栈顶
+     * @return HandleScopeBase 指针，如果没有则返回 nullptr
+     */
+    GCHandleScopeBase* current_handle_scope() const {
+        return current_handle_scope_;
+    }
 
 private:
     Runtime* runtime_;                    ///< 运行时环境指针
 	LocalConstPool local_const_pool_;      ///< 本地常量池
+	GCManager gc_manager_;                 ///< 垃圾回收管理器
 	VM vm_;                                ///< 虚拟机实例
 	JobQueue microtask_queue_;             ///< 微任务队列
-    // PropertyMap symbol_table_;        ///< 符号表（已注释）
     ShapeManager shape_manager_;          ///< 形状管理器
-	GCManager gc_manager_;                 ///< 垃圾回收管理器
+    GCHandleScopeBase* current_handle_scope_ = nullptr;  ///< 当前 HandleScope 栈顶
 };
 
 } // namespace mjs

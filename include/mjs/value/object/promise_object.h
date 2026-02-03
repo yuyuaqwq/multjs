@@ -11,13 +11,15 @@ namespace mjs {
 class Context;
 class PromiseObject : public Object {
 private:
-    PromiseObject(Context* context, Value executor, GCObjectType gc_type = GCObjectType::kOther);
+    PromiseObject(Context* context, Value executor);
 
 public:
     void GCTraverse(Context* context, GCTraverseCallback callback) override;
 
     void Resolve(Context* context, Value result);
+
     void Reject(Context* context, Value reason);
+
     Value Then(Context* context, Value on_fulfilled, Value on_rejected);
 
     bool IsPending() const {
@@ -33,17 +35,19 @@ public:
     }
 
     const auto& result() const { assert(IsFulfilled()); return result_or_reason_; }
+
     void set_result(Value result) { assert(IsFulfilled()); result_or_reason_ = std::move(result); }
     
     const auto& reason() const { assert(IsRejected());  return result_or_reason_; }
-    void set_reason(Value reason) { assert(IsRejected()); result_or_reason_ = std::move(reason); }
 
-    static PromiseObject* New(Context* context, Value executor);
+    void set_reason(Value reason) { assert(IsRejected()); result_or_reason_ = std::move(reason); }
 
 private:
     bool UnwrapPromise(Context* context, Value* result);
 
 private:
+    friend class GCManager;
+
     enum class State {
         kPending = 0,
         kFulfilled = 1,

@@ -12,12 +12,12 @@
 #include <memory>
 #include <string>
 
-#include <mjs/function_def.h>
-#include <mjs/module_def.h>
+#include <mjs/value/function_def.h>
+#include <mjs/value/module_def.h>
 #include <mjs/module_manager.h>
 #include <mjs/runtime.h>
 #include <mjs/context.h>
-#include <mjs/value.h>
+#include <mjs/value/value.h>
 #include <mjs/bytecode_table.h>
 #include "tests/unit/test_helpers.h"
 

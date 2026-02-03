@@ -1,6 +1,7 @@
 #include <mjs/value/object/module_object.h>
 
 #include <mjs/shape/shape.h>
+#include <mjs/context.h>
 
 namespace mjs {
 
