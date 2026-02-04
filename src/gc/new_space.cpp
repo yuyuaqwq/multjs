@@ -41,7 +41,7 @@ bool NewSpace::Initialize() {
 
     eden_top_ = eden_space_;
     survivor_from_top_ = survivor_from_;
-    survivor_to_top_ = survivo r_to_;
+    survivor_to_top_ = survivor_to_;
 
     return true;
 }

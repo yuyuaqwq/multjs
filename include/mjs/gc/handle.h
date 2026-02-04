@@ -115,7 +115,7 @@ public:
      * @brief 转换为 Value
      */
     Value ToValue() const {
-        return Value(static_cast<Object*>(obj_));
+        return Value(static_cast<T*>(obj_));
     }
 
     /**

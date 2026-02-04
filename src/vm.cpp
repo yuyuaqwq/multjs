@@ -30,7 +30,7 @@ void VM::ModuleInit(Value* module_def_value) {
 
 	GCHandleScope<4> scope(context_);
 	auto module_obj = scope.New<ModuleObject>(&module_def);
-	*module_def_value = Value(module_obj.ToValue());
+	*module_def_value = module_obj.ToValue();
 
 	for (auto& def : module_obj->module_def().export_var_def_table().export_var_defs()) {
 		auto index = context_->FindConstOrInsertToGlobal(Value(String::New(def.first)));
