@@ -83,17 +83,19 @@ protected:
  */
 TEST_F(NewSpaceTest, Initialize) {
     // 在 SetUp 中已经测试了基本初始化
-    EXPECT_NE(new_space_->from_space(), nullptr);
-    EXPECT_NE(new_space_->to_space(), nullptr);
-    EXPECT_EQ(new_space_->top(), new_space_->from_space());
-    EXPECT_EQ(new_space_->to_space_top(), new_space_->to_space());
+    EXPECT_NE(new_space_->eden_space(), nullptr);
+    EXPECT_NE(new_space_->survivor_from(), nullptr);
+    EXPECT_NE(new_space_->survivor_to(), nullptr);
+    EXPECT_EQ(new_space_->eden_top(), new_space_->eden_space());
+    EXPECT_EQ(new_space_->survivor_from_top(), new_space_->survivor_from());
+    EXPECT_EQ(new_space_->survivor_to_top(), new_space_->survivor_to());
 }
 
 /**
  * @test 测试容量常量
  */
 TEST_F(NewSpaceTest, CapacityConstant) {
-    EXPECT_EQ(NewSpace::capacity(), kNewSpaceSemiSize);
+    EXPECT_EQ(NewSpace::capacity(), kNewSpaceTotalSize);
     EXPECT_GT(NewSpace::capacity(), 0);
 }
 
@@ -107,7 +109,7 @@ TEST_F(NewSpaceTest, AllocateSmallObject) {
     void* ptr = new_space_->Allocate(&size);
 
     ASSERT_NE(ptr, nullptr);
-    EXPECT_EQ(ptr, new_space_->from_space());  // 第一个对象应该在起始位置
+    EXPECT_EQ(ptr, new_space_->eden_space());  // 第一个对象应该在Eden区起始位置
     EXPECT_EQ(new_space_->used_size(), size);
 }
 
@@ -140,6 +142,7 @@ TEST_F(NewSpaceTest, UsedSizeAfterAllocation) {
     new_space_->Allocate(&size);
 
     size_t aligned_size = AlignGCObjectSize(sizeof(TestGCObject));
+    // used_size 现在是 Eden + Survivor From 的大小
     EXPECT_EQ(new_space_->used_size(), aligned_size);
 }
 
@@ -158,19 +161,20 @@ TEST_F(NewSpaceTest, AllocateLargeObject) {
  * @test 测试空间不足时的分配
  */
 TEST_F(NewSpaceTest, AllocateWhenInsufficientSpace) {
-    // 分配一个接近容量的对象
-    size_t large_size = NewSpace::capacity();
+    // Eden区的容量是 kEdenSpaceSize，分配时会进行对齐
+    // 所以分配一个对齐后小于等于Eden区容量的大对象
+    size_t large_size = kEdenSpaceSize - kGCObjectAlignment;
     void* ptr1 = new_space_->Allocate(&large_size);
     ASSERT_NE(ptr1, nullptr);
 
-    // 再次分配应该失败
+    // 再次分配应该失败（因为剩余空间不足）
     size_t small_size = sizeof(TestGCObject);
     void* ptr2 = new_space_->Allocate(&small_size);
     EXPECT_EQ(ptr2, nullptr);
 }
 
 /**
- * @test 测试填满整个空间
+ * @test 测试填满整个Eden空间
  */
 TEST_F(NewSpaceTest, FillEntireSpace) {
     size_t total_allocated = 0;
@@ -191,9 +195,9 @@ TEST_F(NewSpaceTest, FillEntireSpace) {
     EXPECT_GT(total_allocated, 0);
     EXPECT_NE(last_ptr, nullptr);
 
-    // 使用的空间应该接近或等于容量
-    size_t used = new_space_->used_size();
-    EXPECT_LE(used, NewSpace::capacity());
+    // 使用的Eden空间应该接近或等于Eden区容量
+    size_t eden_used = static_cast<size_t>(new_space_->eden_top() - new_space_->eden_space());
+    EXPECT_LE(eden_used, kEdenSpaceSize);
 }
 
 // ==================== HasSpace 测试 ====================
@@ -211,8 +215,8 @@ TEST_F(NewSpaceTest, HasSpaceForSmallObject) {
  * @test 测试 HasSpace 对于超大对象
  */
 TEST_F(NewSpaceTest, HasSpaceForLargeObject) {
-    EXPECT_FALSE(new_space_->HasSpace(NewSpace::capacity() + 1));
-    EXPECT_FALSE(new_space_->HasSpace(NewSpace::capacity() * 2));
+    EXPECT_FALSE(new_space_->HasSpace(kEdenSpaceSize + 1));
+    EXPECT_FALSE(new_space_->HasSpace(kEdenSpaceSize * 2));
 }
 
 /**
@@ -222,24 +226,30 @@ TEST_F(NewSpaceTest, HasSpaceAfterAllocation) {
     size_t size = sizeof(TestGCObject);
     new_space_->Allocate(&size);
 
-    // 空间应该减少
-    size_t remaining = NewSpace::capacity() - new_space_->used_size();
-    EXPECT_TRUE(new_space_->HasSpace(remaining));
-    EXPECT_FALSE(new_space_->HasSpace(remaining + 1));
+    // Eden空间应该减少
+    size_t eden_used = static_cast<size_t>(new_space_->eden_top() - new_space_->eden_space());
+    size_t eden_remaining = kEdenSpaceSize - eden_used;
+
+    // HasSpace 会进行对齐检查，所以检查的是对齐后的大小
+    size_t aligned_remaining = eden_remaining - (eden_remaining % kGCObjectAlignment);
+    EXPECT_TRUE(new_space_->HasSpace(aligned_remaining));
+
+    // 检查超过剩余空间的情况
+    EXPECT_FALSE(new_space_->HasSpace(eden_remaining + 1));
 }
 
 // ==================== To空间分配测试 ====================
 
 /**
- * @test 测试在To空间分配
+ * @test 测试在Survivor To空间分配
  */
 TEST_F(NewSpaceTest, AllocateInToSpace) {
     size_t size = sizeof(TestGCObject);
     void* ptr = new_space_->AllocateInToSpace(&size);
 
     ASSERT_NE(ptr, nullptr);
-    EXPECT_EQ(ptr, new_space_->to_space());  // 第一个对象应该在To空间起始位置
-    EXPECT_EQ(new_space_->to_space_top(), new_space_->to_space() + size);
+    EXPECT_EQ(ptr, new_space_->survivor_to());  // 第一个对象应该在Survivor To区起始位置
+    EXPECT_EQ(new_space_->survivor_to_top(), new_space_->survivor_to() + size);
 }
 
 /**
@@ -260,15 +270,15 @@ TEST_F(NewSpaceTest, AllocateMultipleInToSpace) {
 }
 
 /**
- * @test 测试To空间不足时的分配
+ * @test 测试Survivor To空间不足时的分配
  */
 TEST_F(NewSpaceTest, AllocateInToSpaceWhenInsufficient) {
-    // 分配一个接近容量的对象
-    size_t large_size = NewSpace::capacity();
+    // 分配一个接近Survivor To容量的对象（考虑对齐）
+    size_t large_size = kSurvivorSpaceSize - kGCObjectAlignment;
     void* ptr1 = new_space_->AllocateInToSpace(&large_size);
     ASSERT_NE(ptr1, nullptr);
 
-    // 再次分配应该失败
+    // 再次分配应该失败（剩余空间不足）
     size_t small_size = sizeof(TestGCObject);
     void* ptr2 = new_space_->AllocateInToSpace(&small_size);
     EXPECT_EQ(ptr2, nullptr);
@@ -277,53 +287,80 @@ TEST_F(NewSpaceTest, AllocateInToSpaceWhenInsufficient) {
 // ==================== 空间交换测试 ====================
 
 /**
- * @test 测试交换From和To空间
+ * @test 测试交换Survivor From和To空间
  */
 TEST_F(NewSpaceTest, SwapSpaces) {
-    // 在From空间分配一些对象
-    size_t size = sizeof(TestGCObject);
-    void* from_ptr = new_space_->Allocate(&size);
-    ASSERT_NE(from_ptr, nullptr);
+    // 在Eden空间分配一些对象
+    size_t eden_size = sizeof(TestGCObject);
+    void* eden_ptr = new_space_->Allocate(&eden_size);
+    ASSERT_NE(eden_ptr, nullptr);
 
-    uint8_t* original_from = new_space_->from_space();
-    uint8_t* original_to = new_space_->to_space();
-    uint8_t* original_top = new_space_->top();
+    // 在Survivor To空间分配一些对象
+    size_t to_size = sizeof(TestGCObject);
+    void* to_ptr = new_space_->AllocateInToSpace(&to_size);
+    ASSERT_NE(to_ptr, nullptr);
 
-    // 交换空间
-    new_space_->SwapSpaces();
+    uint8_t* original_survivor_from = new_space_->survivor_from();
+    uint8_t* original_survivor_to = new_space_->survivor_to();
+    uint8_t* original_survivor_from_top = new_space_->survivor_from_top();
+    uint8_t* original_survivor_to_top = new_space_->survivor_to_top();
+    uint8_t* original_eden_top = new_space_->eden_top();
 
-    // 验证空间已交换
-    EXPECT_EQ(new_space_->from_space(), original_to);
-    EXPECT_EQ(new_space_->to_space(), original_from);
-    // top 应该被交换到 to_space_top
-    EXPECT_EQ(new_space_->top(), original_to);  // 新的 From 空间应该是原来的 To 空间
+    // 交换Survivor空间
+    new_space_->SwapSurvivorSpaces();
+
+    // 验证Survivor空间已交换
+    EXPECT_EQ(new_space_->survivor_from(), original_survivor_to);
+    EXPECT_EQ(new_space_->survivor_to(), original_survivor_from);
+    EXPECT_EQ(new_space_->survivor_from_top(), original_survivor_to_top);
+    EXPECT_EQ(new_space_->survivor_to_top(), original_survivor_from_top);
+
+    // Eden空间应该不变
+    EXPECT_EQ(new_space_->eden_top(), original_eden_top);
 }
 
 /**
  * @test 测试交换后分配
  */
 TEST_F(NewSpaceTest, AllocateAfterSwap) {
-    // 在From空间分配
+    // 在Eden空间分配
     size_t size1 = sizeof(TestGCObject);
     void* ptr1 = new_space_->Allocate(&size1);
     ASSERT_NE(ptr1, nullptr);
 
-    // 交换空间
-    new_space_->SwapSpaces();
+    // 在Survivor To空间分配
+    size_t to_size1 = sizeof(TestGCObject);
+    void* to_ptr1 = new_space_->AllocateInToSpace(&to_size1);
+    ASSERT_NE(to_ptr1, nullptr);
 
-    // 在新的From空间（原来的To空间）分配
+    // 记录原始指针
+    uint8_t* original_survivor_from = new_space_->survivor_from();
+    uint8_t* original_survivor_to = new_space_->survivor_to();
+
+    // 交换Survivor空间
+    new_space_->SwapSurvivorSpaces();
+
+    // 在新的Survivor To空间（原来的Survivor From空间）分配
+    size_t to_size2 = sizeof(TestGCObject);
+    void* to_ptr2 = new_space_->AllocateInToSpace(&to_size2);
+    ASSERT_NE(to_ptr2, nullptr);
+
+    // 验证新的分配在原始的Survivor From空间中
+    EXPECT_GE(static_cast<uint8_t*>(to_ptr2), original_survivor_from);
+    EXPECT_LT(static_cast<uint8_t*>(to_ptr2), original_survivor_from + kSurvivorSpaceSize);
+
+    // Eden空间继续分配，应该在Eden区
     size_t size2 = sizeof(TestGCObject);
     void* ptr2 = new_space_->Allocate(&size2);
     ASSERT_NE(ptr2, nullptr);
-
-    // ptr1 和 ptr2 应该在不同的原始空间
-    EXPECT_NE(static_cast<void*>(ptr1), static_cast<void*>(ptr2));
+    EXPECT_GE(static_cast<uint8_t*>(ptr2), new_space_->eden_space());
+    EXPECT_LT(static_cast<uint8_t*>(ptr2), new_space_->eden_space() + kEdenSpaceSize);
 }
 
 // ==================== Reset 测试 ====================
 
 /**
- * @test 测试重置 top 指针
+ * @test 测试重置 Eden top 指针
  */
 TEST_F(NewSpaceTest, ResetTop) {
     // 分配一些对象
@@ -331,24 +368,27 @@ TEST_F(NewSpaceTest, ResetTop) {
     new_space_->Allocate(&size);
     EXPECT_GT(new_space_->used_size(), 0);
 
-    // 重置到起始位置
-    new_space_->Reset(new_space_->from_space());
-    EXPECT_EQ(new_space_->used_size(), 0);
-    EXPECT_EQ(new_space_->top(), new_space_->from_space());
+    // 重置Eden区到起始位置
+    new_space_->ResetEden();
+    EXPECT_EQ(new_space_->eden_top(), new_space_->eden_space());
+
+    // Survivor From区大小不变
+    size_t from_used = static_cast<size_t>(new_space_->survivor_from_top() - new_space_->survivor_from());
+    EXPECT_EQ(new_space_->used_size(), from_used);
 }
 
 /**
- * @test 测试重置To空间
+ * @test 测试重置Survivor To空间
  */
 TEST_F(NewSpaceTest, ResetToSpace) {
-    // 在To空间分配
+    // 在Survivor To空间分配
     size_t size = sizeof(TestGCObject);
     new_space_->AllocateInToSpace(&size);
-    EXPECT_GT(new_space_->to_space_top() - new_space_->to_space(), 0);
+    EXPECT_GT(new_space_->survivor_to_top() - new_space_->survivor_to(), 0);
 
-    // 重置To空间
+    // 重置Survivor To空间
     new_space_->ResetToSpace();
-    EXPECT_EQ(new_space_->to_space_top(), new_space_->to_space());
+    EXPECT_EQ(new_space_->survivor_to_top(), new_space_->survivor_to());
 }
 
 // ==================== 对象遍历测试 ====================
@@ -433,12 +473,14 @@ TEST_F(NewSpaceTest, IterateMultipleObjects) {
  * @test 测试分配恰好剩余空间大小的对象
  */
 TEST_F(NewSpaceTest, AllocateExactRemainingSpace) {
-    size_t remaining = NewSpace::capacity();
+    // 分配对齐后恰好填满Eden区的大小
+    size_t remaining = kEdenSpaceSize - kGCObjectAlignment;
     void* ptr = new_space_->Allocate(&remaining);
     ASSERT_NE(ptr, nullptr);
-    EXPECT_EQ(new_space_->used_size(), NewSpace::capacity());
+    // remaining 会被对齐到 kGCObjectAlignment 的倍数
+    EXPECT_EQ(new_space_->eden_top() - new_space_->eden_space(), AlignGCObjectSize(kEdenSpaceSize - kGCObjectAlignment));
 
-    // 不应该再有空间
+    // 不应该再有空间（剩余空间不足一个对齐单位）
     size_t tiny_size = 8;
     void* ptr2 = new_space_->Allocate(&tiny_size);
     EXPECT_EQ(ptr2, nullptr);
@@ -473,16 +515,16 @@ TEST_F(NewSpaceTest, SizeAlignment) {
 }
 
 /**
- * @test 测试top指针边界
+ * @test 测试Eden top指针边界
  */
 TEST_F(NewSpaceTest, TopPointerBoundaries) {
-    EXPECT_EQ(new_space_->top(), new_space_->from_space());
+    EXPECT_EQ(new_space_->eden_top(), new_space_->eden_space());
 
     size_t size = sizeof(TestGCObject);
     new_space_->Allocate(&size);
 
-    EXPECT_EQ(new_space_->top(), new_space_->from_space() + size);
-    EXPECT_LE(new_space_->top(), new_space_->from_space_end());
+    EXPECT_EQ(new_space_->eden_top(), new_space_->eden_space() + size);
+    EXPECT_LE(new_space_->eden_top(), new_space_->eden_space_end());
 }
 
 // ==================== 连续分配测试 ====================

@@ -18,25 +18,31 @@ namespace mjs {
 NewSpace::NewSpace() = default;
 
 NewSpace::~NewSpace() {
-    if (from_space_) {
-        delete[] from_space_;
+    if (eden_space_) {
+        delete[] eden_space_;
     }
-    if (to_space_) {
-        delete[] to_space_;
+    if (survivor_from_) {
+        delete[] survivor_from_;
+    }
+    if (survivor_to_) {
+        delete[] survivor_to_;
     }
 }
 
 bool NewSpace::Initialize() {
-    // 分配两个半区
-    from_space_ = new uint8_t[kNewSpaceSemiSize];
-    to_space_ = new uint8_t[kNewSpaceSemiSize];
+    // 分配三个区域：Eden、Survivor From、Survivor To
+    eden_space_ = new uint8_t[kEdenSpaceSize];
+    survivor_from_ = new uint8_t[kSurvivorSpaceSize];
+    survivor_to_ = new uint8_t[kSurvivorSpaceSize];
 
-    if (!from_space_ || !to_space_) {
+    if (!eden_space_ || !survivor_from_ || !survivor_to_) {
         return false;
     }
 
-    top_ = from_space_;
-    to_space_top_ = to_space_;  // 初始化To空间分配指针
+    eden_top_ = eden_space_;
+    survivor_from_top_ = survivor_from_;
+    survivor_to_top_ = survivo r_to_;
+
     return true;
 }
 
@@ -48,8 +54,8 @@ void* NewSpace::Allocate(size_t* size) {
         return nullptr;
     }
 
-    void* result = top_;
-    top_ += *size;
+    void* result = eden_top_;
+    eden_top_ += *size;
 
     // 清零内存
     // std::memset(result, 0, size);
@@ -60,13 +66,13 @@ void* NewSpace::AllocateInToSpace(size_t* size) {
     // 对齐大小
     *size = AlignGCObjectSize(*size);
 
-    // 检查To空间是否有足够空间
-    if (to_space_top_ + *size > to_space_ + kNewSpaceSemiSize) {
+    // 检查Survivor To空间是否有足够空间
+    if (survivor_to_top_ + *size > survivor_to_ + kSurvivorSpaceSize) {
         return nullptr;
     }
 
-    void* result = to_space_top_;
-    to_space_top_ += *size;
+    void* result = survivor_to_top_;
+    survivor_to_top_ += *size;
 
     // 清零内存
     // std::memset(result, 0, size);
@@ -74,21 +80,26 @@ void* NewSpace::AllocateInToSpace(size_t* size) {
 }
 
 bool NewSpace::HasSpace(size_t size) const {
-    return top_ + AlignGCObjectSize(size) <= from_space_ + kNewSpaceSemiSize;
+    return eden_top_ + size <= eden_space_ + kEdenSpaceSize;
 }
 
-void NewSpace::SwapSpaces() {
-    std::swap(from_space_, to_space_);
-    std::swap(top_, to_space_top_);
-}
-
-void NewSpace::Reset(uint8_t* new_top) {
-    top_ = new_top;
+void NewSpace::SwapSurvivorSpaces() {
+    std::swap(survivor_from_, survivor_to_);
+    std::swap(survivor_from_top_, survivor_to_top_);
 }
 
 void NewSpace::IterateObjects(ObjectCallback callback, void* data) {
-    uint8_t* current = from_space_;
-    while (current < top_) {
+    // 遍历Eden区中的所有对象
+    uint8_t* current = eden_space_;
+    while (current < eden_top_) {
+        GCObject* obj = reinterpret_cast<GCObject*>(current);
+        callback(obj, data);
+        current += obj->header()->size();
+    }
+
+    // 遍历Survivor From区中的所有对象
+    current = survivor_from_;
+    while (current < survivor_from_top_) {
         GCObject* obj = reinterpret_cast<GCObject*>(current);
         callback(obj, data);
         current += obj->header()->size();

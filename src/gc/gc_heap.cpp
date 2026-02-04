@@ -54,7 +54,7 @@ bool GCHeap::Initialize() {
 
 void* GCHeap::Allocate(size_t* total_size, GCGeneration* generation) {
     // 检查是否需要GC
-    if (!in_gc_ && new_space_->used_size() > kNewSpaceSemiSize * gc_threshold_ / 100) {
+    if (!in_gc_ && new_space_->used_size() > kEdenSpaceSize * gc_threshold_ / 100) {
         CollectGarbage(false);
     }
 
@@ -92,6 +92,8 @@ void* GCHeap::Allocate(size_t* total_size, GCGeneration* generation) {
     if (mem) {
         total_allocated_ += *total_size;
     }
+
+    // std::cout << "alloc: " << mem << std::endl;
 
     return mem;
 }
@@ -212,19 +214,19 @@ void GCHeap::IterateRoots(RootCallback callback, void* data) {
 bool GCHeap::Scavenge() {
     ++gc_count_;
 
-    // 重置To空间分配指针
+    // 重置Survivor To空间分配指针
     new_space_->ResetToSpace();
 
-    // 遍历所有根对象，将其复制到To空间
+    // 遍历所有根对象，将其复制到Survivor To空间
     IterateRoots([](Value* root, void* data) {
         GCHeap* heap = static_cast<GCHeap*>(data);
         heap->ProcessCopyOrReference(root);
     }, this);
 
-    // Cheney扫描算法：遍历To空间中已复制的对象，处理其引用，这个时候遍历的就是从根向下找的可达对象
-    // 扫描同时会持续将To中找到的对象的子对象复制到To区后，直到所有对象都被处理完毕
-    uint8_t* scan = new_space_->to_space();
-    while (scan < new_space_->to_space_top()) {
+    // Cheney扫描算法：遍历Survivor To空间中已复制的对象，处理其引用
+    // 扫描同时会持续将To中找到的对象的子对象复制到Survivor To区，直到所有对象都被处理完毕
+    uint8_t* scan = new_space_->survivor_to();
+    while (scan < new_space_->survivor_to_top()) {
         GCObject* obj = reinterpret_cast<GCObject*>(scan);
 
         // 遍历对象的子对象，处理引用指针
@@ -236,11 +238,12 @@ bool GCHeap::Scavenge() {
         scan += obj->header()->size();
     }
 
-    // 在交换空间前，遍历From空间（当前空间），调用死亡对象的析构函数
+    // 在交换空间前，遍历Eden区和Survivor From区，调用死亡对象的析构函数
     // 死亡对象是未被转发的对象
-    uint8_t* current = new_space_->from_space();
-    uint8_t* end = new_space_->top();
-    int i = 0;
+
+    // 遍历Eden区
+    uint8_t* current = new_space_->eden_space();
+    uint8_t* end = new_space_->eden_top();
     while (current < end) {
         GCObject* obj = reinterpret_cast<GCObject*>(current);
         // 在调用析构函数前先记录大小，因为调用后虚函数表可能被破坏
@@ -250,18 +253,41 @@ bool GCHeap::Scavenge() {
             // 标记为已析构，避免重复调用
             obj->header()->SetDestructed(true);
             // 调用虚析构函数
+            // std::cout << "sfree eden: " << obj << std::endl;
             obj->~GCObject();
         }
         current += obj_size;
-        ++i;
     }
 
-    // 交换From和To空间
-    size_t survived = static_cast<size_t>(new_space_->top() - new_space_->from_space());
-    new_space_->SwapSpaces();
+    // 遍历Survivor From区
+    current = new_space_->survivor_from();
+    end = new_space_->survivor_from_top();
+    while (current < end) {
+        GCObject* obj = reinterpret_cast<GCObject*>(current);
+        // 在调用析构函数前先记录大小，因为调用后虚函数表可能被破坏
+        size_t obj_size = obj->header()->size();
+        // 如果对象没有被转发，说明它是死亡对象
+        if (!obj->header()->IsForwarded() && !obj->header()->IsDestructed()) {
+            // 标记为已析构，避免重复调用
+            obj->header()->SetDestructed(true);
+            // 调用虚析构函数
+            // std::cout << "sfree survivor: " << obj << std::endl;
+            obj->~GCObject();
+        }
+        current += obj_size;
+    }
+
+    // 计算存活对象大小（Survivor To区中的对象）
+    size_t survived = static_cast<size_t>(new_space_->survivor_to_top() - new_space_->survivor_to());
+
+    // 交换Survivor From和To空间
+    new_space_->SwapSurvivorSpaces();
+
+    // 重置Eden区（清空）
+    new_space_->ResetEden();
 
     // 计算回收的内存
-    size_t collected = kNewSpaceSemiSize - survived;
+    size_t collected = kEdenSpaceSize + kSurvivorSpaceSize - survived;
     total_collected_ += collected;
 
     return true;
@@ -409,6 +435,8 @@ void GCHeap::CompactPhase() {
             // 标记为已析构，避免重复调用
             obj->header()->SetDestructed(true);
             // 对象未标记，是死亡对象，调用析构函数
+
+            // std::cout << "cfree: " << obj << std::endl;
             obj->~GCObject();
         }
     }, nullptr);

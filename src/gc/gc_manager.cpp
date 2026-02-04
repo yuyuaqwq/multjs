@@ -42,7 +42,7 @@ void GCManager::GetHeapStats(size_t& new_space_used, size_t& new_space_capacity,
     
     // 通过GCHeap获取统计信息
     // 这些需要通过新增API暴露
-    new_space_capacity = kNewSpaceSize;
+    new_space_capacity = kNewSpaceTotalSize;
     old_space_capacity = kOldSpaceInitialSize;
     new_space_used = old_space_used = 0;  // 需要GCHeap暴露
 }

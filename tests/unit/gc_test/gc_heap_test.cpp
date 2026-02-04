@@ -190,13 +190,14 @@ TEST_F(GCHeapTest, SetGCThreshold) {
     uint32_t gc_count_before;
     gc_heap_->GetStats(total_allocated_before, total_collected_before, gc_count_before);
 
-    // 设置较低的GC阈值（50%）
-    gc_heap_->set_gc_threshold(50);
+    // 设置较低的GC阈值（20%）
+    gc_heap_->set_gc_threshold(20);
 
     // 分配对象直到触发GC
-    // 新生代半区256KB，50%阈值即128KB时会触发GC
-    // 每个TestHeapObject32字节，分配5000个对象约160KB，足以触发GC
-    const int kNumObjects = 5000;
+    // 新生代Eden区大小为 kEdenSpaceSize = 512KB * 8/10 = 409.6KB
+    // 20%阈值即约82KB时会触发GC
+    // 每个TestHeapObject约32字节，分配3000个对象约96KB，足以触发GC
+    const int kNumObjects = 3000;
     for (int i = 0; i < kNumObjects; i++) {
         size_t size = sizeof(TestHeapObject);
         GCGeneration generation;

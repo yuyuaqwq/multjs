@@ -28,11 +28,6 @@ namespace mjs {
 class Context;
 
 /**
- * @brief 新生代总大小（512KB）
- */
-constexpr size_t kNewSpaceSize = kNewSpaceSemiSize * 2;
-
-/**
  * @brief 对象晋升年龄阈值
  */
 constexpr uint8_t kTenureAgeThreshold = 3;
@@ -40,7 +35,7 @@ constexpr uint8_t kTenureAgeThreshold = 3;
 /**
  * @brief 大对象阈值（直接在老年代分配）
  */
-constexpr size_t kLargeObjectThreshold = kNewSpaceSemiSize / 4;
+constexpr size_t kLargeObjectThreshold = kEdenSpaceSize / 64;
 
 /**
  * @struct GCRootSet
