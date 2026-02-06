@@ -44,6 +44,10 @@ class VMIntegrationTest;
 
 class Context;
 
+namespace jit {
+struct JitStubs;
+}
+
 /**
  * @class VM
  * @brief JavaScript虚拟机核心类
@@ -54,6 +58,7 @@ class Context;
 class VM : public noncopyable {
 public:
 	friend class CodeGenerator;
+	friend struct jit::JitStubs;
 	friend class ::mjs::test::VMTest;
 	friend class ::mjs::test::VMModuleTest;
 	friend class ::mjs::test::VMClosureTest;

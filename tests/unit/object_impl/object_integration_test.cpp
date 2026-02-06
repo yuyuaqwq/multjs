@@ -48,7 +48,9 @@ TEST_F(ObjectIntegrationTest, ArrayAndFunctionInterop) {
     auto arr_value = arr.ToValue();
 
     EXPECT_EQ(arr->GetLength(), 3);
-    EXPECT_TRUE((*arr).At(context.get(), 1).IsObject());
+    Value val;
+    arr->GetComputedProperty(context.get(), Value(static_cast<int64_t>(1)), &val);
+    EXPECT_TRUE(val.IsObject());
 }
 
 TEST_F(ObjectIntegrationTest, ModuleWithExports) {

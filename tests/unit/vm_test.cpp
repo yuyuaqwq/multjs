@@ -59,16 +59,16 @@ protected:
         context_ = std::make_unique<Context>(runtime_.get());
         stack_ = std::make_unique<Stack>(1024);
         stack_frame_ = std::make_unique<StackFrame>(stack_.get());
-        module_def_ = TestModuleDef::CreateShared(runtime_.get(), "test_module");
-        function_def_ = TestFunctionDef::CreateShared(module_def_.get(), "test_function", 2);
+        module_def_ = TestModuleDef::CreateValue(runtime_.get(), "test_module");
+        function_def_ = TestFunctionDef::CreateValue(&module_def_.module_def(), "test_function", 2);
     }
 
     void TearDown() override {
         stack_frame_.reset();
         stack_.reset();
         context_.reset();
-        module_def_.reset();
-        function_def_.reset();
+        function_def_ = Value(); // 释放引用
+        module_def_ = Value(); // 释放引用
         runtime_.reset();
     }
 
@@ -104,8 +104,8 @@ protected:
     std::unique_ptr<Context> context_;
     std::unique_ptr<Stack> stack_;
     std::unique_ptr<StackFrame> stack_frame_;
-    std::shared_ptr<ModuleDef> module_def_;
-    std::shared_ptr<FunctionDef> function_def_;
+    Value module_def_;
+    Value function_def_;
 };
 
 /**
@@ -230,14 +230,14 @@ protected:
         context_ = std::make_unique<Context>(runtime_.get());
         stack_ = std::make_unique<Stack>(1024);
         stack_frame_ = std::make_unique<StackFrame>(stack_.get());
-        module_def_ = TestModuleDef::CreateShared(runtime_.get(), "test_module");
+        module_def_ = TestModuleDef::CreateValue(runtime_.get(), "test_module");
     }
 
     void TearDown() override {
         stack_frame_.reset();
         stack_.reset();
         context_.reset();
-        module_def_.reset();
+        module_def_ = Value();
         runtime_.reset();
     }
 
@@ -245,7 +245,7 @@ protected:
     std::unique_ptr<Context> context_;
     std::unique_ptr<Stack> stack_;
     std::unique_ptr<StackFrame> stack_frame_;
-    std::shared_ptr<ModuleDef> module_def_;
+    Value module_def_;
 };
 
 /**
@@ -254,7 +254,7 @@ protected:
 TEST_F(VMModuleTest, ModuleInit_NoExports) {
     // Arrange
     VM vm(context_.get());
-    Value module_val(module_def_.get());
+    Value module_val(&module_def_.module_def());
 
     // Act
     vm.ModuleInit(&module_val);
@@ -269,11 +269,11 @@ TEST_F(VMModuleTest, ModuleInit_NoExports) {
 TEST_F(VMModuleTest, ModuleInit_WithExports) {
     // Arrange
     VM vm(context_.get());
-    auto& export_table = module_def_->export_var_def_table();
+    auto& export_table = module_def_.module_def().export_var_def_table();
     export_table.AddExportVar("export1", 0);
     export_table.AddExportVar("export2", 1);
 
-    Value module_val(module_def_.get());
+    Value module_val(&module_def_.module_def());
 
     // Act
     vm.ModuleInit(&module_val);
@@ -294,12 +294,12 @@ TEST_F(VMModuleTest, ModuleInit_WithExports) {
 TEST_F(VMModuleTest, BindModuleExportVars) {
     // Arrange
     VM vm(context_.get());
-    auto& export_table = module_def_->export_var_def_table();
+    auto& export_table = module_def_.module_def().export_var_def_table();
     export_table.AddExportVar("export1", 0);
     export_table.AddExportVar("export2", 1);
 
     GCHandleScope<1> scope(context_.get());
-    auto module_obj = scope.New<ModuleObject>(module_def_.get());
+    auto module_obj = scope.New<ModuleObject>(&module_def_.module_def());
     module_obj->module_env().export_vars().resize(2);
     module_obj->module_env().export_vars()[0] = ExportVar(Value(42));
     module_obj->module_env().export_vars()[1] = ExportVar(Value(100));
@@ -330,16 +330,16 @@ protected:
         context_ = std::make_unique<Context>(runtime_.get());
         stack_ = std::make_unique<Stack>(1024);
         stack_frame_ = std::make_unique<StackFrame>(stack_.get());
-        module_def_ = TestModuleDef::CreateShared(runtime_.get(), "test_module");
-        function_def_ = TestFunctionDef::CreateShared(module_def_.get(), "test_function", 0);
+        module_def_ = TestModuleDef::CreateValue(runtime_.get(), "test_module");
+        function_def_ = TestFunctionDef::CreateValue(&module_def_.module_def(), "test_function", 0);
     }
 
     void TearDown() override {
         stack_frame_.reset();
         stack_.reset();
         context_.reset();
-        function_def_.reset();
-        module_def_.reset();
+        function_def_ = Value();
+        module_def_ = Value();
         runtime_.reset();
     }
 
@@ -355,8 +355,8 @@ protected:
     std::unique_ptr<Context> context_;
     std::unique_ptr<Stack> stack_;
     std::unique_ptr<StackFrame> stack_frame_;
-    std::shared_ptr<ModuleDef> module_def_;
-    std::shared_ptr<FunctionDef> function_def_;
+    Value module_def_;
+    Value function_def_;
 };
 
 /**
@@ -365,9 +365,9 @@ protected:
 TEST_F(VMClosureTest, Closure_CreateWithCapturedVars) {
     // Arrange
     VM vm(context_.get());
-    function_def_->closure_var_table().AddClosureVar(0, 0);
-    function_def_->set_has_this(true);
-    function_def_->set_is_arrow();
+    function_def_.function_def().closure_var_table().AddClosureVar(0, 0);
+    function_def_.function_def().set_has_this(true);
+    function_def_.function_def().set_is_arrow();
 
     stack_frame_->push(Value(42));  // 要捕获的变量
 
@@ -375,7 +375,7 @@ TEST_F(VMClosureTest, Closure_CreateWithCapturedVars) {
     auto obj = scope.New<Object>();
     stack_frame_->set_this_val(obj.ToValue());
 
-    Value func_val(function_def_.get());
+    Value func_val(&function_def_.function_def());
 
     // Act
     Closure(&vm, *stack_frame_, &func_val);
@@ -392,16 +392,16 @@ TEST_F(VMClosureTest, BindClosureVars) {
     // Arrange
     VM vm(context_.get());
     // 添加局部变量定义和闭包变量定义(必须在创建FunctionObject之前)
-    function_def_->var_def_table().AddVar("local");
-    function_def_->closure_var_table().AddClosureVar(0, 0);
+    function_def_.function_def().var_def_table().AddVar("local");
+    function_def_.function_def().closure_var_table().AddClosureVar(0, 0);
 
     GCHandleScope<1> scope(context_.get());
-    auto func_obj = scope.New<FunctionObject>(function_def_.get());
+    auto func_obj = scope.New<FunctionObject>(&function_def_.function_def());
     // FunctionObject构造函数已经自动resize了closure_var_refs,现在只需设置值
     func_obj->closure_env().closure_var_refs()[0] = Value(new ClosureVar(Value(42)));
 
     stack_frame_->set_function_val(func_obj.ToValue());
-    stack_frame_->set_function_def(function_def_.get());
+    stack_frame_->set_function_def(&function_def_.function_def());
     stack_frame_->upgrade(1);
 
     // Act
@@ -426,16 +426,16 @@ protected:
         context_ = std::make_unique<Context>(runtime_.get());
         stack_ = std::make_unique<Stack>(1024);
         stack_frame_ = std::make_unique<StackFrame>(stack_.get());
-        module_def_ = TestModuleDef::CreateShared(runtime_.get(), "test_module");
-        function_def_ = TestFunctionDef::CreateShared(module_def_.get(), "test_function", 2);
+        module_def_ = TestModuleDef::CreateValue(runtime_.get(), "test_module");
+        function_def_ = TestFunctionDef::CreateValue(&module_def_.module_def(), "test_function", 2);
     }
 
     void TearDown() override {
         stack_frame_.reset();
         stack_.reset();
         context_.reset();
-        function_def_.reset();
-        module_def_.reset();
+        function_def_ = Value();
+        module_def_ = Value();
         runtime_.reset();
     }
 
@@ -447,8 +447,8 @@ protected:
     std::unique_ptr<Context> context_;
     std::unique_ptr<Stack> stack_;
     std::unique_ptr<StackFrame> stack_frame_;
-    std::shared_ptr<ModuleDef> module_def_;
-    std::shared_ptr<FunctionDef> function_def_;
+    Value module_def_;
+    Value function_def_;
 };
 
 /**
@@ -457,7 +457,7 @@ protected:
 TEST_F(VMFunctionSchedulingTest, FunctionScheduling_FunctionDef) {
     // Arrange
     VM vm(context_.get());
-    stack_frame_->set_function_val(Value(function_def_.get()));
+    stack_frame_->set_function_val(Value(&function_def_.function_def()));
     stack_frame_->push(Value(1));  // 参数1
     stack_frame_->push(Value(2));  // 参数2
 
@@ -466,7 +466,7 @@ TEST_F(VMFunctionSchedulingTest, FunctionScheduling_FunctionDef) {
 
     // Assert
     EXPECT_TRUE(continue_exec);
-    EXPECT_EQ(stack_frame_->function_def(), function_def_.get());
+    EXPECT_EQ(stack_frame_->function_def(), &function_def_.function_def());
 }
 
 /**
@@ -475,7 +475,7 @@ TEST_F(VMFunctionSchedulingTest, FunctionScheduling_FunctionDef) {
 TEST_F(VMFunctionSchedulingTest, FunctionScheduling_NotEnoughParameters) {
     // Arrange
     VM vm(context_.get());
-    stack_frame_->set_function_val(Value(function_def_.get()));
+    stack_frame_->set_function_val(Value(&function_def_.function_def()));
     stack_frame_->push(Value(1));  // 只有1个参数，但需要2个
 
     // Act
@@ -492,8 +492,8 @@ TEST_F(VMFunctionSchedulingTest, FunctionScheduling_NotEnoughParameters) {
 TEST_F(VMFunctionSchedulingTest, FunctionScheduling_GeneratorFunction) {
     // Arrange
     VM vm(context_.get());
-    function_def_->set_is_generator();
-    stack_frame_->set_function_val(Value(function_def_.get()));
+    function_def_.function_def().set_is_generator();
+    stack_frame_->set_function_val(Value(&function_def_.function_def()));
     stack_frame_->push(Value(1));
     stack_frame_->push(Value(2));
 
@@ -511,8 +511,8 @@ TEST_F(VMFunctionSchedulingTest, FunctionScheduling_GeneratorFunction) {
 TEST_F(VMFunctionSchedulingTest, FunctionScheduling_AsyncFunction) {
     // Arrange
     VM vm(context_.get());
-    function_def_->set_is_async();
-    stack_frame_->set_function_val(Value(function_def_.get()));
+    function_def_.function_def().set_is_async();
+    stack_frame_->set_function_val(Value(&function_def_.function_def()));
     stack_frame_->push(Value(1));
     stack_frame_->push(Value(2));
 
@@ -559,19 +559,19 @@ protected:
         context_ = std::make_unique<Context>(runtime_.get());
         stack_ = std::make_unique<Stack>(1024);
         stack_frame_ = std::make_unique<StackFrame>(stack_.get());
-        module_def_ = TestModuleDef::CreateShared(runtime_.get(), "test_module");
-        function_def_ = TestFunctionDef::CreateShared(module_def_.get(), "test_function", 0);
+        module_def_ = TestModuleDef::CreateValue(runtime_.get(), "test_module");
+        function_def_ = TestFunctionDef::CreateValue(&module_def_.module_def(), "test_function", 0);
 
         // 设置函数定义的字节码
-        function_def_->bytecode_table().EmitOpcode(OpcodeType::kReturn);
+        function_def_.function_def().bytecode_table().EmitOpcode(OpcodeType::kReturn);
     }
 
     void TearDown() override {
         stack_frame_.reset();
         stack_.reset();
         context_.reset();
-        function_def_.reset();
-        module_def_.reset();
+        function_def_ = Value();
+        module_def_ = Value();
         runtime_.reset();
     }
 
@@ -598,8 +598,8 @@ protected:
     std::unique_ptr<Context> context_;
     std::unique_ptr<Stack> stack_;
     std::unique_ptr<StackFrame> stack_frame_;
-    std::shared_ptr<ModuleDef> module_def_;
-    std::shared_ptr<FunctionDef> function_def_;
+    Value module_def_;
+    Value function_def_;
 };
 
 /**
@@ -623,7 +623,7 @@ TEST_F(VMBytecodeExecutionTest, LoadConst_Operation) {
 TEST_F(VMBytecodeExecutionTest, CallFunction_SimpleCall) {
     // Arrange
     VM vm(context_.get());
-    auto* simple_func = TestFunctionDef::Create(module_def_.get(), "simple", 0);
+    auto* simple_func = TestFunctionDef::Create(&module_def_.module_def(), "simple", 0);
 
     Value const_val(42);
     ConstIndex const_idx = AddConstant(const_val);
@@ -654,7 +654,7 @@ TEST_F(VMBytecodeExecutionTest, CallFunction_SimpleCall) {
 TEST_F(VMBytecodeExecutionTest, CallFunction_WithParameters) {
     // Arrange
     VM vm(context_.get());
-    auto* add_func = TestFunctionDef::Create(module_def_.get(), "add", 2);
+    auto* add_func = TestFunctionDef::Create(&module_def_.module_def(), "add", 2);
     add_func->bytecode_table().EmitOpcode(OpcodeType::kVLoad_0);  // 加载参数0
     add_func->bytecode_table().EmitOpcode(OpcodeType::kVLoad_1);  // 加载参数1
     add_func->bytecode_table().EmitOpcode(OpcodeType::kAdd);      // 相加
@@ -685,16 +685,16 @@ protected:
         context_ = std::make_unique<Context>(runtime_.get());
         stack_ = std::make_unique<Stack>(1024);
         stack_frame_ = std::make_unique<StackFrame>(stack_.get());
-        module_def_ = TestModuleDef::CreateShared(runtime_.get(), "test_module");
-        function_def_ = TestFunctionDef::CreateShared(module_def_.get(), "test_function", 0);
+        module_def_ = TestModuleDef::CreateValue(runtime_.get(), "test_module");
+        function_def_ = TestFunctionDef::CreateValue(&module_def_.module_def(), "test_function", 0);
     }
 
     void TearDown() override {
         stack_frame_.reset();
         stack_.reset();
         context_.reset();
-        function_def_.reset();
-        module_def_.reset();
+        function_def_ = Value();
+        module_def_ = Value();
         runtime_.reset();
     }
 
@@ -706,8 +706,8 @@ protected:
     std::unique_ptr<Context> context_;
     std::unique_ptr<Stack> stack_;
     std::unique_ptr<StackFrame> stack_frame_;
-    std::shared_ptr<ModuleDef> module_def_;
-    std::shared_ptr<FunctionDef> function_def_;
+    Value module_def_;
+    Value function_def_;
 };
 
 /**
@@ -716,7 +716,7 @@ protected:
 TEST_F(VMExceptionTest, ThrowException_NoExceptionTable) {
     // Arrange
     VM vm(context_.get());
-    stack_frame_->set_function_def(function_def_.get());
+    stack_frame_->set_function_def(&function_def_.function_def());
     Value error_val = Error::Throw(context_.get(), "Test error");
     std::optional<Value> error_opt = error_val;
 
@@ -739,11 +739,11 @@ TEST_F(VMExceptionTest, ThrowException_WithCatch) {
     entry.catch_start_pc = 5;
     entry.catch_end_pc = 15;
     entry.catch_err_var_idx = 0;  // 设置错误变量的索引
-    function_def_->exception_table().AddEntry(std::move(entry));
+    function_def_.function_def().exception_table().AddEntry(std::move(entry));
 
     stack_frame_->upgrade(1);  // 为错误变量预留空间
     stack_frame_->push(Value());  // 占位符
-    stack_frame_->set_function_def(function_def_.get());
+    stack_frame_->set_function_def(&function_def_.function_def());
     stack_frame_->set_pc(5);  // 位于try块中
 
     Value error_val = Error::Throw(context_.get(), "Test error");
@@ -772,17 +772,17 @@ protected:
         context_ = std::make_unique<Context>(runtime_.get());
         stack_ = std::make_unique<Stack>(1024);
         stack_frame_ = std::make_unique<StackFrame>(stack_.get());
-        module_def_ = TestModuleDef::CreateShared(runtime_.get(), "test_module");
-        function_def_ = TestFunctionDef::CreateShared(module_def_.get(), "test_generator", 0);
-        function_def_->set_is_generator();
+        module_def_ = TestModuleDef::CreateValue(runtime_.get(), "test_module");
+        function_def_ = TestFunctionDef::CreateValue(&module_def_.module_def(), "test_generator", 0);
+        function_def_.function_def().set_is_generator();
     }
 
     void TearDown() override {
         stack_frame_.reset();
         stack_.reset();
         context_.reset();
-        function_def_.reset();
-        module_def_.reset();
+        function_def_ = Value();
+        module_def_ = Value();
         runtime_.reset();
     }
 
@@ -798,8 +798,8 @@ protected:
     std::unique_ptr<Context> context_;
     std::unique_ptr<Stack> stack_;
     std::unique_ptr<StackFrame> stack_frame_;
-    std::shared_ptr<ModuleDef> module_def_;
-    std::shared_ptr<FunctionDef> function_def_;
+    Value module_def_;
+    Value function_def_;
 };
 
 /**
@@ -809,7 +809,7 @@ TEST_F(VMGeneratorTest, GeneratorSaveContext_SaveState) {
     // Arrange
     VM vm(context_.get());
     GCHandleScope<1> scope(context_.get());
-    auto generator = scope.New<GeneratorObject>(Value(function_def_.get()));
+    auto generator = scope.New<GeneratorObject>(Value(&function_def_.function_def()));
     stack_frame_->set_pc(100);
     stack_frame_->push(Value(42));
     generator->stack().resize(1);  // 调整generator的stack大小以匹配stack_frame
@@ -830,7 +830,7 @@ TEST_F(VMGeneratorTest, GeneratorRestoreContext_RestoreState) {
     // Arrange
     VM vm(context_.get());
     GCHandleScope<1> scope(context_.get());
-    auto generator = scope.New<GeneratorObject>(Value(function_def_.get()));
+    auto generator = scope.New<GeneratorObject>(Value(&function_def_.function_def()));
     generator->set_pc(100);
     generator->stack().push(Value(42));
 
@@ -855,12 +855,12 @@ protected:
     void SetUp() override {
         runtime_ = TestRuntime::Create();
         context_ = std::make_unique<Context>(runtime_.get());
-        module_def_ = TestModuleDef::CreateShared(runtime_.get(), "test_module");
+        module_def_ = TestModuleDef::CreateValue(runtime_.get(), "test_module");
     }
 
     void TearDown() override {
         context_.reset();
-        module_def_.reset();
+        module_def_ = Value();
         runtime_.reset();
     }
 
@@ -881,7 +881,7 @@ protected:
 
     std::unique_ptr<Runtime> runtime_;
     std::unique_ptr<Context> context_;
-    std::shared_ptr<ModuleDef> module_def_;
+    Value module_def_;
 };
 
 /**
@@ -889,7 +889,7 @@ protected:
  */
 TEST_F(VMIntegrationTest, SimpleFunctionCall) {
     // Arrange
-    auto* func = TestFunctionDef::Create(module_def_.get(), "test", 0);
+    auto* func = TestFunctionDef::Create(&module_def_.module_def(), "test", 0);
 
     Value const_val(42);
     ConstIndex const_idx = AddConstant(const_val);
@@ -911,7 +911,7 @@ TEST_F(VMIntegrationTest, SimpleFunctionCall) {
  */
 TEST_F(VMIntegrationTest, ArithmeticOperations) {
     // Arrange
-    auto* func = TestFunctionDef::Create(module_def_.get(), "calc", 0);
+    auto* func = TestFunctionDef::Create(&module_def_.module_def(), "calc", 0);
 
     // 计算 (10 + 20) * 2 - 5 = 35
     auto idx10 = AddConstant(Value(10));
@@ -943,7 +943,7 @@ TEST_F(VMIntegrationTest, ArithmeticOperations) {
  */
 TEST_F(VMIntegrationTest, ConditionalJump) {
     // Arrange
-    auto* func = TestFunctionDef::Create(module_def_.get(), "conditional", 0);
+    auto* func = TestFunctionDef::Create(&module_def_.module_def(), "conditional", 0);
 
     // 创建一个新的 runtime 和 context 来确保常量池是干净的
     auto clean_runtime = TestRuntime::Create();
@@ -978,7 +978,7 @@ TEST_F(VMIntegrationTest, ConditionalJump) {
  */
 TEST_F(VMIntegrationTest, ComparisonOperations) {
     // Arrange
-    auto* func = TestFunctionDef::Create(module_def_.get(), "compare", 0);
+    auto* func = TestFunctionDef::Create(&module_def_.module_def(), "compare", 0);
 
     // 测试 10 < 20
     func->bytecode_table().EmitOpcode(OpcodeType::kCLoad_0);  // 10
@@ -1004,7 +1004,7 @@ TEST_F(VMIntegrationTest, ComparisonOperations) {
  */
 TEST_F(VMIntegrationTest, BitwiseOperations) {
     // Arrange
-    auto* func = TestFunctionDef::Create(module_def_.get(), "bitwise", 0);
+    auto* func = TestFunctionDef::Create(&module_def_.module_def(), "bitwise", 0);
 
     // 创建一个新的 runtime 和 context 来确保常量池是干净的
     auto clean_runtime = TestRuntime::Create();
@@ -1037,7 +1037,7 @@ TEST_F(VMIntegrationTest, BitwiseOperations) {
  */
 TEST_F(VMIntegrationTest, IncrementDecrementOperations) {
     // Arrange
-    auto* func = TestFunctionDef::Create(module_def_.get(), "inc", 1);
+    auto* func = TestFunctionDef::Create(&module_def_.module_def(), "inc", 1);
 
     // 测试参数递增
     func->bytecode_table().EmitOpcode(OpcodeType::kVLoad_0);
@@ -1059,7 +1059,7 @@ TEST_F(VMIntegrationTest, IncrementDecrementOperations) {
  */
 TEST_F(VMIntegrationTest, NegationOperation) {
     // Arrange
-    auto* func = TestFunctionDef::Create(module_def_.get(), "neg", 0);
+    auto* func = TestFunctionDef::Create(&module_def_.module_def(), "neg", 0);
 
     // 创建一个新的 runtime 和 context 来确保常量池是干净的
     auto clean_runtime = TestRuntime::Create();
@@ -1087,7 +1087,7 @@ TEST_F(VMIntegrationTest, NegationOperation) {
  */
 TEST_F(VMIntegrationTest, ShiftOperations) {
     // Arrange
-    auto* func = TestFunctionDef::Create(module_def_.get(), "shift", 0);
+    auto* func = TestFunctionDef::Create(&module_def_.module_def(), "shift", 0);
 
     // 创建一个新的 runtime 和 context 来确保常量池是干净的
     auto clean_runtime = TestRuntime::Create();

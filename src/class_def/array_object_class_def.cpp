@@ -51,8 +51,10 @@ ArrayObjectClassDef::ArrayObjectClassDef(Runtime* runtime)
 		}
 
 		for (size_t i = 0; i < arr.GetLength(); ++i) {
+			Value elem;
+			arr.GetComputedProperty(context, Value(static_cast<int64_t>(i)), &elem);
 			std::array<Value, 3> args = {
-				arr.At(context, i),
+				elem,
 				Value(static_cast<int64_t>(i)),
 				stack.this_val()
 			};
@@ -75,12 +77,15 @@ ArrayObjectClassDef::ArrayObjectClassDef(Runtime* runtime)
 		GCHandleScope<1> scope(context);
 		auto result = scope.New<ArrayObject>(arr.GetLength());
 		for (size_t i = 0; i < arr.GetLength(); ++i) {
+			Value elem;
+			arr.GetComputedProperty(context, Value(static_cast<int64_t>(i)), &elem);
 			std::array<Value, 3> args = {
-				arr.At(context, i),
+				elem,
 				Value(static_cast<int64_t>(i)),
 				stack.this_val()
 			};
-			context->CallFunction(&(*result).At(context, i), Value(), args.begin(), args.end());
+			auto mapped_value = context->CallFunction(&callback, Value(), args.begin(), args.end());
+			result->SetComputedProperty(context, Value(static_cast<int64_t>(i)), std::move(mapped_value));
 		}
 		return scope.Close(result);
 	}));
@@ -99,14 +104,16 @@ ArrayObjectClassDef::ArrayObjectClassDef(Runtime* runtime)
 		GCHandleScope<1> scope(context);
 		auto result = scope.New<ArrayObject>();
 		for (size_t i = 0; i < arr.GetLength(); ++i) {
+			Value elem;
+			arr.GetComputedProperty(context, Value(static_cast<int64_t>(i)), &elem);
 			std::array<Value, 3> args = {
-				arr.At(context, i),
+				elem,
 				Value(static_cast<int64_t>(i)),
 				stack.this_val()
 			};
-			auto callback_result = context->CallFunction(&(*result).At(context, i), Value(), args.begin(), args.end());
+			auto callback_result = context->CallFunction(&callback, Value(), args.begin(), args.end());
 			if (callback_result.ToBoolean().boolean()) {
-				result->Push(context, arr.At(context, i));
+				result->Push(context, elem);
 			}
 		}
 		return scope.Close(result);
@@ -134,14 +141,16 @@ ArrayObjectClassDef::ArrayObjectClassDef(Runtime* runtime)
 			if (arr.GetLength() == 0) {
 				return TypeError::Throw(context, "reduce of empty array with no initial value");
 			}
-			accumulator = arr.At(context, 0);
+			arr.GetComputedProperty(context, Value(static_cast<int64_t>(0)), &accumulator);
 			start_index = 1;
 		}
 
 		for (size_t i = start_index; i < arr.GetLength(); ++i) {
+			Value elem;
+			arr.GetComputedProperty(context, Value(static_cast<int64_t>(i)), &elem);
 			std::array<Value, 4> args = {
 				accumulator,
-				arr.At(context, i),
+				elem,
 				Value(static_cast<int64_t>(i)),
 				stack.this_val()
 			};
@@ -188,7 +197,7 @@ Value ArrayObjectClassDef::NewConstructor(Context* context, uint32_t par_count, 
 			// 非数字参数: 创建包含该元素的数组
 			GCHandleScope<1> scope(context);
 			auto arr = scope.New<ArrayObject>(1);
-			arr->At(context, 0) = arg;
+			arr->SetComputedProperty(context, Value(static_cast<int64_t>(0)), std::move(arg));
 			return scope.Close(arr);
 		}
 	} else {

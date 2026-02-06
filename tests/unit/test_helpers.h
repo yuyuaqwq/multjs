@@ -17,6 +17,7 @@
 #include <gtest/gtest.h>
 
 #include <mjs/runtime.h>
+#include <mjs/value/value.h>
 #include <mjs/value/module_def.h>
 #include <mjs/value/function_def.h>
 
@@ -59,21 +60,13 @@ public:
     }
 
     /**
-     * @brief 创建测试用ModuleDef,使用智能指针管理
+     * @brief 创建测试用ModuleDef,使用Value管理
      * @param runtime 运行时环境指针
      * @param name 模块名称(默认为"test_module")
-     * @return ModuleDef对象智能指针
+     * @return ModuleDef的Value包装
      */
-    static std::shared_ptr<ModuleDef> CreateShared(Runtime* runtime, const std::string& name = "test_module") {
-        // 注意:ModuleDef使用引用计数,这里返回shared_ptr只是为了测试方便
-        // 实际使用时ModuleDef会通过引用计数管理生命周期
-        auto* module_def = Create(runtime, name);
-        module_def->Reference();
-        return std::shared_ptr<ModuleDef>(module_def, [](ModuleDef* p) {
-            if (p) {
-                p->Dereference();
-            }
-        });
+    static Value CreateValue(Runtime* runtime, const std::string& name = "test_module") {
+        return Value(Create(runtime, name));
     }
 };
 
@@ -102,22 +95,14 @@ public:
     }
 
     /**
-     * @brief 创建测试用FunctionDef,使用智能指针管理
+     * @brief 创建测试用FunctionDef,使用Value管理
      * @param module_def 所属模块定义指针
      * @param name 函数名称(默认为"test_function")
      * @param param_count 参数数量(默认为0)
-     * @return FunctionDef对象智能指针
+     * @return FunctionDef的Value包装
      */
-    static std::shared_ptr<FunctionDef> CreateShared(ModuleDef* module_def,
-                                                      const std::string& name = "test_function",
-                                                      uint32_t param_count = 0) {
-        auto* function_def = Create(module_def, name, param_count);
-        function_def->Reference();
-        return std::shared_ptr<FunctionDef>(function_def, [](FunctionDef* p) {
-            if (p) {
-                p->Dereference();
-            }
-        });
+    static Value CreateValue(ModuleDef* module_def, const std::string& name = "test_function", uint32_t param_count = 0) {
+        return Value(Create(module_def, name, param_count));
     }
 };
 
@@ -135,8 +120,8 @@ public:
      */
     TestEnvironment()
         : runtime_(TestRuntime::Create())
-        , module_def_(TestModuleDef::CreateShared(runtime_.get(), "test_module"))
-        , function_def_(TestFunctionDef::CreateShared(module_def_.get(), "test_function", 0))
+        , module_def_(TestModuleDef::CreateValue(runtime_.get(), "test_module"))
+        , function_def_(TestFunctionDef::CreateValue(&module_def_.module_def(), "test_function", 0))
     {}
 
     /**
@@ -149,13 +134,13 @@ public:
      * @brief 获取ModuleDef指针
      * @return ModuleDef指针
      */
-    ModuleDef* module_def() { return module_def_.get(); }
+    ModuleDef* module_def() { return &module_def_.module_def(); }
 
     /**
      * @brief 获取FunctionDef指针
      * @return FunctionDef指针
      */
-    FunctionDef* function_def() { return function_def_.get(); }
+    FunctionDef* function_def() { return &function_def_.function_def(); }
 
     /**
      * @brief 创建新的FunctionDef
@@ -164,13 +149,13 @@ public:
      * @return FunctionDef对象指针
      */
     FunctionDef* CreateFunctionDef(const std::string& name, uint32_t param_count = 0) {
-        return TestFunctionDef::Create(module_def_.get(), name, param_count);
+        return TestFunctionDef::Create(module_def(), name, param_count);
     }
 
 private:
     std::unique_ptr<Runtime> runtime_;
-    std::shared_ptr<ModuleDef> module_def_;
-    std::shared_ptr<FunctionDef> function_def_;
+    Value module_def_;
+    Value function_def_;
 };
 
 } // namespace test

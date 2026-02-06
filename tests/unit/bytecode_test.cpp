@@ -222,15 +222,14 @@ TEST_F(BytecodeTableTest, GetConstIndex) {
 TEST_F(BytecodeTableTest, GetPc) {
     // Arrange
     auto& bytecode_table = env_->function_def()->bytecode_table();
-    bytecode_table.EmitOpcode(OpcodeType::kPop);
-    bytecode_table.EmitOpcode(OpcodeType::kUndefined);
+    bytecode_table.EmitU32(1234);
 
     // Act
     Pc pc = 0;
     Pc retrieved_pc = bytecode_table.GetPc(&pc);
 
     // Assert
-    EXPECT_EQ(retrieved_pc, pc);
+    EXPECT_EQ(retrieved_pc, 1234);
 }
 
 /**
@@ -516,19 +515,19 @@ class BytecodeTableIntegrationTest : public ::testing::Test {
 protected:
     void SetUp() override {
         runtime_ = TestRuntime::Create();
-        module_def_ = TestModuleDef::CreateShared(runtime_.get(), "test_module");
-        function_def_ = TestFunctionDef::CreateShared(module_def_.get(), "test_function", 0);
+        module_def_ = TestModuleDef::CreateValue(runtime_.get(), "test_module");
+        function_def_ = TestFunctionDef::CreateValue(&module_def_.module_def(), "test_function", 0);
     }
 
     void TearDown() override {
-        function_def_.reset();
-        module_def_.reset();
+        function_def_ = Value();
+        module_def_ = Value();
         runtime_.reset();
     }
 
     std::unique_ptr<Runtime> runtime_;
-    std::shared_ptr<ModuleDef> module_def_;
-    std::shared_ptr<FunctionDef> function_def_;
+    Value module_def_;
+    Value function_def_;
 };
 
 /**
@@ -537,12 +536,12 @@ protected:
 TEST_F(BytecodeTableIntegrationTest, FunctionDisassembly) {
     // Arrange
     Context context(runtime_.get());
-    auto& bytecode_table = function_def_->bytecode_table();
+    auto& bytecode_table = function_def_.function_def().bytecode_table();
     bytecode_table.EmitOpcode(OpcodeType::kPop);
     bytecode_table.EmitConstLoad(1);
 
     // Act
-    std::string disassembly = function_def_->Disassembly(&context);
+    std::string disassembly = function_def_.function_def().Disassembly(&context);
 
     // Assert
     EXPECT_TRUE(!disassembly.empty());
@@ -553,8 +552,8 @@ TEST_F(BytecodeTableIntegrationTest, FunctionDisassembly) {
  */
 TEST_F(BytecodeTableIntegrationTest, MultipleFunctionsIndependence) {
     // Arrange
-    auto* func1 = TestFunctionDef::Create(module_def_.get(), "func1", 0);
-    auto* func2 = TestFunctionDef::Create(module_def_.get(), "func2", 0);
+    auto* func1 = TestFunctionDef::Create(&module_def_.module_def(), "func1", 0);
+    auto* func2 = TestFunctionDef::Create(&module_def_.module_def(), "func2", 0);
 
     // Act
     func1->bytecode_table().EmitOpcode(OpcodeType::kPop);

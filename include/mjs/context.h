@@ -196,6 +196,12 @@ public:
 	 */
 	GCManager& gc_manager() { return gc_manager_; }
 
+	/**
+	 * @brief 获取虚拟机引用
+	 * @return 虚拟机引用
+	 */
+	VM& vm() { return vm_; }
+
     /**
      * @brief 推入 HandleScope
      * @param scope HandleScope 指针

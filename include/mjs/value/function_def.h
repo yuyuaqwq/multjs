@@ -21,6 +21,12 @@
 #include <mjs/debug.h>
 #include <mjs/value/closure.h>
 #include <mjs/value/exception.h>
+#include <mjs/jit/hotness_counter.h>
+#include <mjs/jit/jit_code.h>
+
+// 前向声明JIT相关类
+namespace mjs::jit {
+}
 
 namespace mjs {
 
@@ -264,6 +270,62 @@ protected:
 	ExceptionTable exception_table_;       ///< 异常处理表
 
 	DebugTable debug_table_;               ///< 调试信息表
+
+	// JIT相关成员（仅在启用JIT时包含）
+#ifdef ENABLE_JIT
+public:
+	/**
+	 * @brief 获取热点计数器
+	 * @return 热点计数器常量引用
+	 */
+	const jit::HotnessCounter& hotness_counter() const {
+		return *hotness_counter_;
+	}
+ 
+	/**
+	 * @brief 获取热点计数器
+	 * @return 热点计数器引用
+	 */
+	jit::HotnessCounter& hotness_counter() {
+		return *hotness_counter_;
+	}
+
+	/**
+	 * @brief 获取Baseline JIT代码
+	 * @return JIT代码指针，如果未编译则返回nullptr
+	 */
+	jit::JitCode* baseline_code() const {
+		return baseline_code_.get();
+	}
+
+	/**
+	 * @brief 设置Baseline JIT代码
+	 * @param code JIT代码智能指针
+	 */
+	void set_baseline_code(std::unique_ptr<jit::JitCode> code) {
+		baseline_code_ = std::move(code);
+	}
+
+	/**
+	 * @brief 增加执行计数
+	 */
+	void IncrementExecutionCount() {
+		execution_count_++;
+	}
+
+	/**
+	 * @brief 获取执行次数
+	 * @return 执行次数
+	 */
+	uint32_t execution_count() const {
+		return execution_count_;
+	}
+
+protected:
+	std::unique_ptr<jit::HotnessCounter> hotness_counter_;  ///< 热点计数器
+	std::unique_ptr<jit::JitCode> baseline_code_;           ///< Baseline JIT代码
+	uint32_t execution_count_ = 0;                          ///< 执行次数
+#endif // ENABLE_JIT
 };
 
 /**

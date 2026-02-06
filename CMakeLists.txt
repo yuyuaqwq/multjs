@@ -72,6 +72,9 @@ file(GLOB_RECURSE SRC
     ./src/*.cpp
     ./src/**/*.cpp)
 
+# 过滤掉 JIT 相关的源文件（JIT 由 ENABLE_JIT 选项单独控制）
+list(FILTER SRC EXCLUDE REGEX ".*src/jit/.*")
+
 foreach(SOURCE ${SRC})
     file(RELATIVE_PATH RELATIVE_SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/src ${SOURCE})
     get_filename_component(SOURCE_DIR ${RELATIVE_SOURCE} DIRECTORY)
@@ -87,35 +90,6 @@ add_library(${MJS_LIB_TARGET} STATIC ${SRC} ${PRIVATE_HEADERS} ${PUBLIC_HEADERS}
 target_include_directories(${MJS_LIB_TARGET} PRIVATE ${MJS_INCLUDE_DIR} .)
 
 # ========== C++代码生成器 ==========
-# C++代码生成器库
-file(GLOB CPP_GEN_SRC
-    ./cpp_gen/*.cpp)
-
-file(GLOB CPP_GEN_HEADERS
-    ./cpp_gen/*.h)
-
-add_library(mjs_cpp_gen STATIC ${CPP_GEN_SRC} ${CPP_GEN_HEADERS})
-target_include_directories(mjs_cpp_gen
-    PUBLIC ${MJS_INCLUDE_DIR}
-    PRIVATE .
-)
-target_link_libraries(mjs_cpp_gen PUBLIC ${MJS_LIB_TARGET})
-
-# 命令行工具
-add_executable(js2cpp ./tools/js2cpp.cpp)
-target_include_directories(js2cpp PRIVATE .)
-target_link_libraries(js2cpp PRIVATE mjs_cpp_gen)
-
-# C++代码生成器测试
-# 已启用测试，包括：类型系统测试、代码发射器测试、名称修饰测试、集成测试
-file(GLOB CPP_GEN_TEST_SRC
-    ./tests/cpp_gen/*.cpp)
-
-add_executable(cpp_gen_tests ${CPP_GEN_TEST_SRC})
-target_include_directories(cpp_gen_tests PRIVATE ${MJS_INCLUDE_DIR} .)
-target_link_libraries(cpp_gen_tests PRIVATE mjs_cpp_gen GTest::gtest_main)
-include(GoogleTest)
-gtest_discover_tests(cpp_gen_tests)
 
 # 集成测试
 file(GLOB INTEGRATION_TEST_SRC
@@ -140,3 +114,68 @@ target_link_libraries(unit_tests PRIVATE ${MJS_LIB_TARGET} GTest::gtest_main)
 include(GoogleTest)
 gtest_discover_tests(integration_tests)
 gtest_discover_tests(unit_tests)
+
+# ========== JIT编译器支持 ==========
+
+#[[
+option(ENABLE_JIT "Enable JIT compilation" OFF)
+
+if(ENABLE_JIT)
+    message(STATUS "JIT compilation enabled")
+
+    # 使用FetchContent获取asmjit
+    include(FetchContent)
+    FetchContent_Declare(
+        asmjit
+        GIT_REPOSITORY https://github.com/asmjit/asmjit.git
+        GIT_TAG master
+    )
+    FetchContent_MakeAvailable(asmjit)
+
+    # 定义JIT编译宏
+    target_compile_definitions(${MJS_LIB_TARGET} PRIVATE ENABLE_JIT)
+
+    # JIT源文件
+    file(GLOB JIT_SRC
+        ./src/jit/*.cpp
+    )
+
+    file(GLOB JIT_HEADERS
+        ./include/mjs/jit/*.h
+    )
+
+    # 创建JIT库
+    add_library(mjs_jit STATIC ${JIT_SRC} ${JIT_HEADERS})
+    target_include_directories(mjs_jit
+        PRIVATE ${MJS_INCLUDE_DIR}
+        PRIVATE .
+        PUBLIC ./include/mjs/jit
+    )
+
+    # 链接依赖
+    target_link_libraries(mjs_jit
+        PUBLIC ${MJS_LIB_TARGET}
+        PUBLIC asmjit::asmjit
+    )
+
+    # 定义JIT编译宏（JIT库也需要）
+    target_compile_definitions(mjs_jit PUBLIC ENABLE_JIT)
+
+    # 将JIT库链接到主库
+    target_link_libraries(${MJS_LIB_TARGET} PRIVATE mjs_jit)
+
+    # JIT单元测试
+    file(GLOB JIT_TEST_SRC ./tests/jit/*.cpp)
+
+    if(JIT_TEST_SRC)
+        add_executable(jit_tests ${JIT_TEST_SRC})
+        target_include_directories(jit_tests PRIVATE ${MJS_INCLUDE_DIR} . ./tests/unit)
+        target_link_libraries(jit_tests PRIVATE mjs_jit GTest::gtest_main)
+        gtest_discover_tests(jit_tests)
+    else()
+        message(STATUS "No JIT tests found, skipping jit_tests target")
+    endif()
+else()
+    message(STATUS "JIT compilation disabled")
+endif()
+]]

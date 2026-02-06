@@ -44,10 +44,14 @@ TEST_F(ArrayObjectTest, CreateArrayWithInitializerList) {
     ASSERT_NE(arr.operator->(), nullptr);
     EXPECT_EQ(arr->GetLength(), 3);
 
-    // 使用新的 operator[] 语法
-    EXPECT_EQ((*arr).At(context.get(), 0).i64(), 1);
-    EXPECT_EQ((*arr).At(context.get(), 1).i64(), 2);
-    EXPECT_EQ((*arr).At(context.get(), 2).i64(), 3);
+    // 验证数组元素
+    Value val;
+    arr->GetComputedProperty(context.get(), Value(static_cast<int64_t>(0)), &val);
+    EXPECT_EQ(val.i64(), 1);
+    arr->GetComputedProperty(context.get(), Value(static_cast<int64_t>(1)), &val);
+    EXPECT_EQ(val.i64(), 2);
+    arr->GetComputedProperty(context.get(), Value(static_cast<int64_t>(2)), &val);
+    EXPECT_EQ(val.i64(), 3);
 }
 
 TEST_F(ArrayObjectTest, CreateArrayWithSize_SparseArray) {
@@ -72,13 +76,18 @@ TEST_F(ArrayObjectTest, ArrayElementAccess) {
     });
 
     // 测试读取元素
-    EXPECT_EQ(arr->At(context.get(), 0).i64(), 10);
-    EXPECT_EQ(arr->At(context.get(), 1).i64(), 20);
-    EXPECT_EQ(arr->At(context.get(), 2).i64(), 30);
+    Value val;
+    arr->GetComputedProperty(context.get(), Value(static_cast<int64_t>(0)), &val);
+    EXPECT_EQ(val.i64(), 10);
+    arr->GetComputedProperty(context.get(), Value(static_cast<int64_t>(1)), &val);
+    EXPECT_EQ(val.i64(), 20);
+    arr->GetComputedProperty(context.get(), Value(static_cast<int64_t>(2)), &val);
+    EXPECT_EQ(val.i64(), 30);
 
     // 测试修改元素
-    arr->At(context.get(), 1) = Value(99);
-    EXPECT_EQ(arr->At(context.get(), 1).i64(), 99);
+    arr->SetComputedProperty(context.get(), Value(static_cast<int64_t>(1)), Value(99));
+    arr->GetComputedProperty(context.get(), Value(static_cast<int64_t>(1)), &val);
+    EXPECT_EQ(val.i64(), 99);
 }
 
 TEST_F(ArrayObjectTest, ArrayElementAccessOutOfBounds) {
@@ -88,11 +97,10 @@ TEST_F(ArrayObjectTest, ArrayElementAccessOutOfBounds) {
         Value(2)
     });
 
-    // 访问越界元素应该返回 undefined
-    // At() 方法会自动创建不存在的元素，所以这里测试读取不存在的索引
-    // 先创建一个元素再访问
-    arr->At(context.get(), 10);
-    EXPECT_TRUE(arr->At(context.get(), 10).IsUndefined());
+    // 访问不存在的索引应该返回 undefined/false
+    Value val;
+    bool result = arr->GetComputedProperty(context.get(), Value(static_cast<int64_t>(10)), &val);
+    EXPECT_FALSE(result);
 }
 
 TEST_F(ArrayObjectTest, ArraySetElementBeyondLength) {
@@ -104,9 +112,11 @@ TEST_F(ArrayObjectTest, ArraySetElementBeyondLength) {
     EXPECT_EQ(arr->GetLength(), 2);
 
     // 设置超出当前 length 的元素应该自动扩展 length
-    arr->At(context.get(), 5) = Value(100);
+    arr->SetComputedProperty(context.get(), Value(static_cast<int64_t>(5)), Value(100));
     EXPECT_EQ(arr->GetLength(), 6);
-    EXPECT_EQ(arr->At(context.get(), 5).i64(), 100);
+    Value val;
+    arr->GetComputedProperty(context.get(), Value(static_cast<int64_t>(5)), &val);
+    EXPECT_EQ(val.i64(), 100);
 }
 
 // ==================== Push/Pop 测试 ====================
@@ -117,15 +127,19 @@ TEST_F(ArrayObjectTest, ArrayPush) {
 
     arr->Push(context.get(), Value(1));
     EXPECT_EQ(arr->GetLength(), 1);
-    EXPECT_EQ(arr->At(context.get(), 0).i64(), 1);
+    Value val;
+    arr->GetComputedProperty(context.get(), Value(static_cast<int64_t>(0)), &val);
+    EXPECT_EQ(val.i64(), 1);
 
     arr->Push(context.get(), Value(2));
     EXPECT_EQ(arr->GetLength(), 2);
-    EXPECT_EQ(arr->At(context.get(), 1).i64(), 2);
+    arr->GetComputedProperty(context.get(), Value(static_cast<int64_t>(1)), &val);
+    EXPECT_EQ(val.i64(), 2);
 
     arr->Push(context.get(), Value(3));
     EXPECT_EQ(arr->GetLength(), 3);
-    EXPECT_EQ(arr->At(context.get(), 2).i64(), 3);
+    arr->GetComputedProperty(context.get(), Value(static_cast<int64_t>(2)), &val);
+    EXPECT_EQ(val.i64(), 3);
 }
 
 TEST_F(ArrayObjectTest, ArrayPop) {
@@ -215,8 +229,11 @@ TEST_F(ArrayObjectTest, ArraySetLengthLarger) {
 
     EXPECT_EQ(arr->GetLength(), 10);
     // 之前存在的元素应该还在
-    EXPECT_EQ(arr->At(context.get(), 0).i64(), 1);
-    EXPECT_EQ(arr->At(context.get(), 1).i64(), 2);
+    Value val;
+    arr->GetComputedProperty(context.get(), Value(static_cast<int64_t>(0)), &val);
+    EXPECT_EQ(val.i64(), 1);
+    arr->GetComputedProperty(context.get(), Value(static_cast<int64_t>(1)), &val);
+    EXPECT_EQ(val.i64(), 2);
 }
 
 TEST_F(ArrayObjectTest, ArrayAutoUpdateLength) {
@@ -228,9 +245,11 @@ TEST_F(ArrayObjectTest, ArrayAutoUpdateLength) {
     EXPECT_EQ(arr->GetLength(), 2);
 
     // 添加超出 length 的元素应该自动更新 length
-    arr->At(context.get(), 10) = Value(100);
+    arr->SetComputedProperty(context.get(), Value(static_cast<int64_t>(10)), Value(100));
     EXPECT_EQ(arr->GetLength(), 11);
-    EXPECT_EQ(arr->At(context.get(), 10).i64(), 100);
+    Value val;
+    arr->GetComputedProperty(context.get(), Value(static_cast<int64_t>(10)), &val);
+    EXPECT_EQ(val.i64(), 100);
 }
 
 // ==================== 计算属性测试 ====================
@@ -260,7 +279,9 @@ TEST_F(ArrayObjectTest, ArraySetComputedProperty) {
 
     // 测试设置计算属性
     arr->SetComputedProperty(context.get(), Value(1), Value(99));
-    EXPECT_EQ(arr->At(context.get(), 1).i64(), 99);
+    Value val;
+    arr->GetComputedProperty(context.get(), Value(1), &val);
+    EXPECT_EQ(val.i64(), 99);
 }
 
 TEST_F(ArrayObjectTest, ArraySetComputedPropertyBeyondLength) {
@@ -274,7 +295,9 @@ TEST_F(ArrayObjectTest, ArraySetComputedPropertyBeyondLength) {
     // 设置超出 length 的元素
     arr->SetComputedProperty(context.get(), Value(5), Value(100));
     EXPECT_EQ(arr->GetLength(), 6); // length 应该自动更新为 6
-    EXPECT_EQ(arr->At(context.get(), 5).i64(), 100);
+    Value val;
+    arr->GetComputedProperty(context.get(), Value(5), &val);
+    EXPECT_EQ(val.i64(), 100);
 }
 
 TEST_F(ArrayObjectTest, ArrayDelComputedProperty) {
@@ -311,10 +334,15 @@ TEST_F(ArrayObjectTest, ArrayMixedTypes) {
     });
 
     EXPECT_EQ(arr->GetLength(), 4);
-    EXPECT_EQ(arr->At(context.get(), 0).i64(), 42);
-    EXPECT_EQ(std::string_view(arr->At(context.get(), 1).string_view()), "hello");
-    EXPECT_EQ(arr->At(context.get(), 2).boolean(), true);
-    EXPECT_TRUE(arr->At(context.get(), 3).IsUndefined());
+    Value val;
+    arr->GetComputedProperty(context.get(), Value(static_cast<int64_t>(0)), &val);
+    EXPECT_EQ(val.i64(), 42);
+    arr->GetComputedProperty(context.get(), Value(static_cast<int64_t>(1)), &val);
+    EXPECT_EQ(std::string_view(val.string_view()), "hello");
+    arr->GetComputedProperty(context.get(), Value(static_cast<int64_t>(2)), &val);
+    EXPECT_EQ(val.boolean(), true);
+    arr->GetComputedProperty(context.get(), Value(static_cast<int64_t>(3)), &val);
+    EXPECT_TRUE(val.IsUndefined());
 }
 
 // ==================== 稀疏数组测试 ====================
@@ -326,17 +354,23 @@ TEST_F(ArrayObjectTest, SparseArray) {
     EXPECT_EQ(arr->GetLength(), 100);
 
     // 只设置几个元素
-    arr->At(context.get(), 0) = Value(1);
-    arr->At(context.get(), 50) = Value(2);
-    arr->At(context.get(), 99) = Value(3);
+    arr->SetComputedProperty(context.get(), Value(static_cast<int64_t>(0)), Value(1));
+    arr->SetComputedProperty(context.get(), Value(static_cast<int64_t>(50)), Value(2));
+    arr->SetComputedProperty(context.get(), Value(static_cast<int64_t>(99)), Value(3));
 
-    EXPECT_EQ(arr->At(context.get(), 0).i64(), 1);
-    EXPECT_EQ(arr->At(context.get(), 50).i64(), 2);
-    EXPECT_EQ(arr->At(context.get(), 99).i64(), 3);
+    Value val;
+    arr->GetComputedProperty(context.get(), Value(static_cast<int64_t>(0)), &val);
+    EXPECT_EQ(val.i64(), 1);
+    arr->GetComputedProperty(context.get(), Value(static_cast<int64_t>(50)), &val);
+    EXPECT_EQ(val.i64(), 2);
+    arr->GetComputedProperty(context.get(), Value(static_cast<int64_t>(99)), &val);
+    EXPECT_EQ(val.i64(), 3);
 
     // 未设置的元素应该是 undefined
-    EXPECT_TRUE(arr->At(context.get(), 1).IsUndefined());
-    EXPECT_TRUE(arr->At(context.get(), 98).IsUndefined());
+    arr->GetComputedProperty(context.get(), Value(static_cast<int64_t>(1)), &val);
+    EXPECT_TRUE(val.IsUndefined());
+    arr->GetComputedProperty(context.get(), Value(static_cast<int64_t>(98)), &val);
+    EXPECT_TRUE(val.IsUndefined());
 }
 
 TEST_F(ArrayObjectTest, VerySparseArray) {
@@ -346,8 +380,10 @@ TEST_F(ArrayObjectTest, VerySparseArray) {
     EXPECT_EQ(arr->GetLength(), 10000);
 
     // 只在最后设置一个元素
-    arr->At(context.get(), 9999) = Value(42);
-    EXPECT_EQ(arr->At(context.get(), 9999).i64(), 42);
+    arr->SetComputedProperty(context.get(), Value(static_cast<int64_t>(9999)), Value(42));
+    Value val;
+    arr->GetComputedProperty(context.get(), Value(static_cast<int64_t>(9999)), &val);
+    EXPECT_EQ(val.i64(), 42);
 
     // length 应该保持为 10000
     EXPECT_EQ(arr->GetLength(), 10000);
@@ -363,13 +399,17 @@ TEST_F(ArrayObjectTest, LargeArray) {
     EXPECT_EQ(arr->GetLength(), size);
 
     // 修改几个元素
-    arr->At(context.get(), 0) = Value(100);
-    arr->At(context.get(), 500) = Value(200);
-    arr->At(context.get(), 999) = Value(300);
+    arr->SetComputedProperty(context.get(), Value(static_cast<int64_t>(0)), Value(100));
+    arr->SetComputedProperty(context.get(), Value(static_cast<int64_t>(500)), Value(200));
+    arr->SetComputedProperty(context.get(), Value(static_cast<int64_t>(999)), Value(300));
 
-    EXPECT_EQ(arr->At(context.get(), 0).i64(), 100);
-    EXPECT_EQ(arr->At(context.get(), 500).i64(), 200);
-    EXPECT_EQ(arr->At(context.get(), 999).i64(), 300);
+    Value val;
+    arr->GetComputedProperty(context.get(), Value(static_cast<int64_t>(0)), &val);
+    EXPECT_EQ(val.i64(), 100);
+    arr->GetComputedProperty(context.get(), Value(static_cast<int64_t>(500)), &val);
+    EXPECT_EQ(val.i64(), 200);
+    arr->GetComputedProperty(context.get(), Value(static_cast<int64_t>(999)), &val);
+    EXPECT_EQ(val.i64(), 300);
 }
 
 TEST_F(ArrayObjectTest, ArrayIndexLimit) {
@@ -378,10 +418,10 @@ TEST_F(ArrayObjectTest, ArrayIndexLimit) {
 
     // 测试接近 2^32-1 的索引（不实际创建，只测试边界）
     // 正常范围内的索引
-    arr->At(context.get(), 0) = Value(1);
+    arr->SetComputedProperty(context.get(), Value(static_cast<int64_t>(0)), Value(1));
     EXPECT_EQ(arr->GetLength(), 1);
 
-    arr->At(context.get(), 1000) = Value(2);
+    arr->SetComputedProperty(context.get(), Value(static_cast<int64_t>(1000)), Value(2));
     EXPECT_EQ(arr->GetLength(), 1001);
 }
 

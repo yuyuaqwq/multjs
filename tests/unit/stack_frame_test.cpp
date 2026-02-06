@@ -387,13 +387,13 @@ protected:
         runtime_ = TestRuntime::Create();
         stack_ = std::make_unique<Stack>(1024);
         stack_frame_ = std::make_unique<StackFrame>(stack_.get());
-        module_def_ = TestModuleDef::CreateShared(runtime_.get(), "test_module");
-        function_def_ = TestFunctionDef::CreateShared(module_def_.get(), "test_function", 2);
+        module_def_ = TestModuleDef::CreateValue(runtime_.get(), "test_module");
+        function_def_ = TestFunctionDef::CreateValue(&module_def_.module_def(), "test_function", 2);
     }
 
     void TearDown() override {
-        function_def_.reset();
-        module_def_.reset();
+        function_def_ = Value();
+        module_def_ = Value();
         stack_frame_.reset();
         stack_.reset();
         runtime_.reset();
@@ -402,8 +402,8 @@ protected:
     std::unique_ptr<Runtime> runtime_;
     std::unique_ptr<Stack> stack_;
     std::unique_ptr<StackFrame> stack_frame_;
-    std::shared_ptr<ModuleDef> module_def_;
-    std::shared_ptr<FunctionDef> function_def_;
+    Value module_def_;
+    Value function_def_;
 };
 
 /**
@@ -413,7 +413,7 @@ TEST_F(StackFrameFunctionTest, SetFunctionVal) {
     // Arrange - 创建一个FunctionObject并包装为Value
     Context context(runtime_.get());
     GCHandleScope<1> scope(&context);
-    auto func_obj = scope.New<FunctionObject>(function_def_.get());
+    auto func_obj = scope.New<FunctionObject>(&function_def_.function_def());
     Value func_val = func_obj.ToValue();
 
     // Act
@@ -428,10 +428,10 @@ TEST_F(StackFrameFunctionTest, SetFunctionVal) {
  */
 TEST_F(StackFrameFunctionTest, SetFunctionDef) {
     // Act
-    stack_frame_->set_function_def(function_def_.get());
+    stack_frame_->set_function_def(&function_def_.function_def());
 
     // Assert
-    EXPECT_EQ(stack_frame_->function_def(), function_def_.get());
+    EXPECT_EQ(stack_frame_->function_def(), &function_def_.function_def());
 }
 
 /**
@@ -474,18 +474,18 @@ protected:
     void SetUp() override {
         runtime_ = TestRuntime::Create();
         stack_ = std::make_unique<Stack>(1024);
-        module_def_ = TestModuleDef::CreateShared(runtime_.get(), "test_module");
+        module_def_ = TestModuleDef::CreateValue(runtime_.get(), "test_module");
     }
 
     void TearDown() override {
-        module_def_.reset();
+        module_def_ = Value();
         stack_.reset();
         runtime_.reset();
     }
 
     std::unique_ptr<Runtime> runtime_;
     std::unique_ptr<Stack> stack_;
-    std::shared_ptr<ModuleDef> module_def_;
+    Value module_def_;
 };
 
 /**
@@ -516,14 +516,14 @@ TEST_F(StackFrameIntegrationTest, NestedStackFrames) {
 TEST_F(StackFrameIntegrationTest, FunctionCallSimulation) {
     // Arrange - 主函数栈帧
     StackFrame main_frame(stack_.get());
-    auto* main_func = TestFunctionDef::Create(module_def_.get(), "main", 0);
+    auto* main_func = TestFunctionDef::Create(&module_def_.module_def(), "main", 0);
     main_frame.set_function_def(main_func);
     main_frame.push(Value(10));
     main_frame.push(Value(20));
 
     // Act - 调用子函数
     StackFrame sub_frame(&main_frame);
-    auto* sub_func = TestFunctionDef::Create(module_def_.get(), "sub", 2);
+    auto* sub_func = TestFunctionDef::Create(&module_def_.module_def(), "sub", 2);
     sub_frame.set_function_def(sub_func);
 
     // Assert
