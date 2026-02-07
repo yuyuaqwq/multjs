@@ -14,9 +14,8 @@ private:
 
     ArrayObject(Context* context, std::initializer_list<Value> values);
 
-    // 数组元素在 properties_ 中的偏移量
-    // 前4个位置预留给额外属性（如 __proto__ 等）
-    static constexpr size_t kArrayElementOffset = 4;
+    // 初始哈希表容量（用于非数组索引属性）
+    static constexpr size_t kInitialHashTableCapacity = 4;
 
     // 检查是否是有效的数组索引（符合 JS 规范：32位无符号整数）
     static bool IsValidArrayIndex(uint64_t index) {
@@ -27,22 +26,16 @@ private:
     // 返回 true 表示成功转换为有效索引，false 表示不是有效的数组索引字符串
     static bool TryStringToArrayIndex(std::string_view str, uint64_t* out_index);
 
-    uint32_t length_ = 0;             // 数组长度
-    struct {
-        uint32_t is_fast_array_ : 1;
-
-    };
+    uint32_t length_ = 0;                // 数组长度（快速数组元素数量）
+    uint32_t slow_property_count_ = 0;   // 哈希表属性数量
 
     // 检查索引是否在连续数组范围内
     bool IsInArrayRange(size_t index) const {
         return index < length_;
     }
 
-    // 退化到哈希表模式（当额外属性超过限制时）
-    void TransitionToSlowMode(Context* context);
-
-    // 确保数组有足够的额外属性空间
-    bool EnsureExtraPropertySpace(Context* context);
+    // 确保哈希表有足够空间
+    void EnsureHashTableCapacity(Context* context);
 
 public:
     bool GetProperty(Context* context, ConstIndex key, Value* value) override;

@@ -12,48 +12,48 @@
 namespace mjs {
 
 // 设计：
-// 快速路径场景：
-// 2 个额外属性 + count 个数组元素
-// 访问数组元素，索引会加上4来访问properties_
-// 前2个则是保存属性，比如__proto__
-// 如果属性超过了2，则退化成基于哈希表的数组
+// 混合模式结构：[哈希表元素0...N-1] [快速数组元素0...M-1]
+// - slow_property_count_：哈希表元素数量（N）
+// - length_：快速数组元素数量（M）
+// 哈希表元素从4开始，需要时翻倍增长
+// 快速数组元素直接通过索引访问
 
 ArrayObject::ArrayObject(Context* context)
     : Object(context, ClassId::kArrayObject)
 {
-    // 预留前4个位置给额外属性
-    properties_.resize(kArrayElementOffset);
+    // 预留初始哈希表空间
+    properties_.reserve(kInitialHashTableCapacity);
     length_ = 0;
-    is_fast_array_ = true;
+    slow_property_count_ = 0;
 }
 
 ArrayObject::ArrayObject(Context* context, size_t count)
     : Object(context, ClassId::kArrayObject)
 {
-    // 预留空间：前4个给额外属性，后面给数组元素
-    properties_.reserve(count + kArrayElementOffset);
-    properties_.resize(kArrayElementOffset);
-
-    is_fast_array_ = true;
+    // 预留空间：哈希表 + 数组元素
+    properties_.reserve(kInitialHashTableCapacity + count);
 
     length_ = count;
-    if (count > 0) {
-        properties_.resize(count + kArrayElementOffset);
+    slow_property_count_ = 0;
+
+    // 初始化数组元素为 undefined
+    for (size_t i = 0; i < count; ++i) {
+        properties_.emplace_back(PropertySlot(Value()));
     }
 }
 
 ArrayObject::ArrayObject(Context* context, std::initializer_list<Value> values)
     : Object(context, ClassId::kArrayObject)
 {
-    // 预留空间：前4个给额外属性，后面给数组元素
-    properties_.reserve(values.size() + kArrayElementOffset);
-    properties_.resize(kArrayElementOffset);
-
-    is_fast_array_ = true;
+    // 预留空间：哈希表 + 数组元素
+    properties_.reserve(kInitialHashTableCapacity + values.size());
 
     length_ = values.size();
+    slow_property_count_ = 0;
+
+    // 初始化数组元素
     for (auto& value : values) {
-        properties_.emplace_back(Value(value));
+        properties_.emplace_back(PropertySlot(Value(value)));
     }
 }
 
@@ -63,41 +63,6 @@ bool ArrayObject::GetProperty(Context* context, ConstIndex key, Value* value) {
         *value = Value(static_cast<int64_t>(length_));
         return true;
     }
-
-    // 检查是否是数组元素的字符串索引（如 "0", "1" 等）
-    // 根据 ConstIndex 的正负判断使用哪个常量池
-    const Value* key_value_ptr = nullptr;
-    if (key >= 0) {
-        // 全局常量池
-        key_value_ptr = &context->runtime().global_const_pool()[key];
-    } else {
-        // 本地常量池
-        key_value_ptr = &context->local_const_pool()[key];
-    }
-
-    if (key_value_ptr->IsString()) {
-        uint64_t array_index = 0;
-        if (TryStringToArrayIndex(key_value_ptr->string_view(), &array_index)) {
-            size_t idx = static_cast<size_t>(array_index);
-            if (idx < length_) {
-                if (is_fast_array_) {
-                    if (idx + kArrayElementOffset < properties_.size()) {
-                        *value = properties_[idx + kArrayElementOffset].value;
-                    } else {
-                        *value = Value();
-                    }
-                    return true;
-                } else {
-                    return GetComputedProperty(context, Value(static_cast<int64_t>(idx)), value);
-                }
-            } else {
-                // 索引超出 length，返回 undefined
-                *value = Value();
-                return true;
-            }
-        }
-    }
-
     // 不存在 a.1 这种语法，所以通过.是访问不到数组元素的
     return Object::GetProperty(context, key, value);
 }
@@ -109,19 +74,14 @@ bool ArrayObject::GetComputedProperty(Context* context, const Value& key, Value*
         if (i64_val >= 0) {
             size_t idx = static_cast<size_t>(i64_val);
             if (IsValidArrayIndex(static_cast<uint64_t>(idx))) {
-                if (is_fast_array_) {
-                    // 快速路径：检查索引是否在有效范围内
-                    if (idx < length_ && idx + kArrayElementOffset < properties_.size()) {
-                        *value = properties_[idx + kArrayElementOffset].value;
-                        // 如果元素是 undefined，返回 false（表示"空洞"）
-                        return !value->IsUndefined();
-                    }
-                    // 索引超出范围，返回 false（属性不存在）
-                    return false;
-                } else {
-                    // 慢速路径：从哈希表获取
-                    return Object::GetComputedProperty(context, key, value);
+                // 访问快速数组部分
+                if (idx < length_) {
+                    *value = properties_[slow_property_count_ + idx].value;
+                    // 如果元素是 undefined，返回 false（表示"空洞"）
+                    return !value->IsUndefined();
                 }
+                // 索引超出范围，返回 false（属性不存在）
+                return false;
             }
         }
     }
@@ -131,23 +91,16 @@ bool ArrayObject::GetComputedProperty(Context* context, const Value& key, Value*
         uint64_t array_index = 0;
         if (TryStringToArrayIndex(key.string_view(), &array_index)) {
             size_t idx = static_cast<size_t>(array_index);
-            if (is_fast_array_) {
-                // 快速路径：检查索引是否在有效范围内
-                if (idx < length_ && idx + kArrayElementOffset < properties_.size()) {
-                    *value = properties_[idx + kArrayElementOffset].value;
-                    // 如果元素是 undefined，返回 false（表示"空洞"）
-                    return !value->IsUndefined();
-                }
-                // 索引超出范围，返回 false（属性不存在）
-                return false;
-            } else {
-                // 慢速路径：从哈希表获取
-                return Object::GetComputedProperty(context, key, value);
+            // 访问快速数组部分
+            if (idx < length_) {
+                *value = properties_[slow_property_count_ + idx].value;
+                return !value->IsUndefined();
             }
+            return false;
         }
     }
 
-    // 其他情况（如非数字字符串）调用父类方法
+    // 其他情况（如非数字字符串）从哈希表获取
     return Object::GetComputedProperty(context, key, value);
 }
 
@@ -157,20 +110,12 @@ bool ArrayObject::HasProperty(Context* context, ConstIndex key) {
         return true;
     }
 
-    // 检查是否是数组元素的字符串索引（如 "0", "1" 等）
-    // 根据 ConstIndex 的正负判断使用哪个常量池
-    const Value* key_value_ptr = nullptr;
-    if (key >= 0) {
-        // 全局常量池
-        key_value_ptr = &context->runtime().global_const_pool()[key];
-    } else {
-        // 本地常量池
-        key_value_ptr = &context->local_const_pool()[key];
-    }
-
-    if (key_value_ptr->IsString()) {
+    // 检查是否是数组索引
+    const Value& key_value = context->GetConstValue(key);
+    if (key_value.IsString()) {
         uint64_t array_index = 0;
-        if (TryStringToArrayIndex(key_value_ptr->string_view(), &array_index)) {
+        if (TryStringToArrayIndex(key_value.string_view(), &array_index)) {
+            // 是有效的数组索引
             size_t idx = static_cast<size_t>(array_index);
             return idx < length_;
         }
@@ -190,14 +135,10 @@ void ArrayObject::SetProperty(Context* context, ConstIndex key, Value&& value) {
         }
 
         size_t new_length = static_cast<size_t>(value.i64());
-        size_t current_length = GetLength();
 
-        if (new_length < current_length) {
-            // 如果是快速路径，直接缩短连续数组
-            if (is_fast_array_ && new_length < length_) {
-                properties_.resize(new_length + kArrayElementOffset);
-            }
-            // 稀疏场景则只能从哈希表删除
+        if (new_length < length_) {
+            // 缩短快速数组
+            properties_.resize(slow_property_count_ + new_length);
         }
 
         // 更新 length 值
@@ -205,13 +146,11 @@ void ArrayObject::SetProperty(Context* context, ConstIndex key, Value&& value) {
         return;
     }
 
-    // 检查是否需要退化到慢速模式
-    if (is_fast_array_ && !EnsureExtraPropertySpace(context)) {
-        TransitionToSlowMode(context);
-    }
+    // 确保哈希表有足够空间
+    EnsureHashTableCapacity(context);
 
-    // 其他属性通过父类处理
-    return Object::SetProperty(context, key, std::move(value));
+    // 其他属性通过父类处理（存储在哈希表中）
+    Object::SetProperty(context, key, std::move(value));
 }
 
 void ArrayObject::SetComputedProperty(Context* context, const Value& key, Value&& value) {
@@ -228,16 +167,13 @@ void ArrayObject::SetComputedProperty(Context* context, const Value& key, Value&
                     length_ = idx + 1;
                 }
 
-                // 检查是否应该在连续数组中存储
-                if (is_fast_array_ && idx < length_ * 2 + 1024) {
-                    // 在连续数组中存储
-                    size_t required_size = idx + kArrayElementOffset + 1;
-                    if (properties_.size() < required_size) {
-                        properties_.resize(required_size);
-                    }
-                    properties_[idx + kArrayElementOffset].value = std::move(value);
-                    return;
+                // 在快速数组中存储
+                size_t required_size = slow_property_count_ + length_;
+                if (properties_.size() < required_size) {
+                    properties_.resize(required_size);
                 }
+                properties_[slow_property_count_ + idx].value = std::move(value);
+                return;
             }
         }
     }
@@ -253,20 +189,17 @@ void ArrayObject::SetComputedProperty(Context* context, const Value& key, Value&
                 length_ = idx + 1;
             }
 
-            // 检查是否应该在连续数组中存储
-            if (is_fast_array_ && idx < length_ * 2 + 1024) {
-                // 在连续数组中存储
-                size_t required_size = idx + kArrayElementOffset + 1;
-                if (properties_.size() < required_size) {
-                    properties_.resize(required_size);
-                }
-                properties_[idx + kArrayElementOffset].value = std::move(value);
-                return;
+            // 在快速数组中存储
+            size_t required_size = slow_property_count_ + length_;
+            if (properties_.size() < required_size) {
+                properties_.resize(required_size);
             }
+            properties_[slow_property_count_ + idx].value = std::move(value);
+            return;
         }
     }
 
-    // 其他情况调用父类方法
+    // 其他情况调用父类方法（哈希表存储）
     Object::SetComputedProperty(context, key, std::move(value));
 }
 
@@ -277,21 +210,16 @@ bool ArrayObject::DelComputedProperty(Context* context, const Value& key, Value*
         if (i64_val >= 0) {
             size_t idx = static_cast<size_t>(i64_val);
             if (IsValidArrayIndex(static_cast<uint64_t>(idx))) {
-                if (is_fast_array_) {
-                    // 快速路径：检查索引是否在有效范围内
-                    if (idx < length_ && idx + kArrayElementOffset < properties_.size()) {
-                        *value = std::move(properties_[idx + kArrayElementOffset].value);
-                        // 设置为 undefined
-                        properties_[idx + kArrayElementOffset].value = Value();
-                        return true;
-                    }
-                    // 索引超出范围，返回 false
-                    *value = Value();
-                    return false;
-                } else {
-                    // 慢速路径：从哈希表删除
-                    return Object::DelComputedProperty(context, key, value);
+                // 从快速数组中删除
+                if (idx < length_) {
+                    *value = std::move(properties_[slow_property_count_ + idx].value);
+                    // 设置为 undefined
+                    properties_[slow_property_count_ + idx].value = Value();
+                    return true;
                 }
+                // 索引超出范围，返回 false
+                *value = Value();
+                return false;
             }
         }
     }
@@ -301,38 +229,27 @@ bool ArrayObject::DelComputedProperty(Context* context, const Value& key, Value*
         uint64_t array_index = 0;
         if (TryStringToArrayIndex(key.string_view(), &array_index)) {
             size_t idx = static_cast<size_t>(array_index);
-            if (is_fast_array_) {
-                // 快速路径：检查索引是否在有效范围内
-                if (idx < length_ && idx + kArrayElementOffset < properties_.size()) {
-                    *value = std::move(properties_[idx + kArrayElementOffset].value);
-                    // 设置为 undefined
-                    properties_[idx + kArrayElementOffset].value = Value();
-                    return true;
-                }
-                // 索引超出范围，返回 false
-                *value = Value();
-                return false;
-            } else {
-                // 慢速路径：从哈希表删除
-                return Object::DelComputedProperty(context, key, value);
+            // 从快速数组中删除
+            if (idx < length_) {
+                *value = std::move(properties_[slow_property_count_ + idx].value);
+                // 设置为 undefined
+                properties_[slow_property_count_ + idx].value = Value();
+                return true;
             }
+            // 索引超出范围，返回 false
+            *value = Value();
+            return false;
         }
     }
 
-    // 其他情况调用父类方法
+    // 其他情况调用父类方法（从哈希表删除）
     return Object::DelComputedProperty(context, key, value);
 }
 
 void ArrayObject::Push(Context* context, Value val) {
-    // 如果是快速路径
-    if (is_fast_array_) {
-        properties_.emplace_back(std::move(val));
-        ++length_;
-    } else {
-        // 插入到哈希表
-        SetComputedProperty(context, Value(static_cast<int64_t>(length_)), std::move(val));
-        ++length_;
-    }
+    // 直接添加到快速数组末尾
+    properties_.emplace_back(PropertySlot(std::move(val)));
+    ++length_;
 }
 
 Value ArrayObject::Pop(Context* context) {
@@ -342,35 +259,16 @@ Value ArrayObject::Pop(Context* context) {
     }
 
     size_t last_index = len - 1;
-    Value result;
-
-    // 如果是快速路径
-    if (is_fast_array_) {
-        result = std::move(properties_[last_index + kArrayElementOffset].value);
-        properties_.pop_back();
-    } else {
-        // 从哈希表中获取并删除
-        GetComputedProperty(context, Value(static_cast<int64_t>(last_index)), &result);
-        DelComputedProperty(context, Value(static_cast<int64_t>(last_index)), &result);
-    }
-
-    length_ = last_index;
+    Value result = std::move(properties_[slow_property_count_ + last_index].value);
+    properties_.pop_back();
+    --length_;
     return result;
 }
 
 void ArrayObject::ForEach(Context* context, Value callback) {
     // 遍历数组元素，调用回调函数
     for (size_t i = 0; i < length_; ++i) {
-        Value element_value;
-        if (is_fast_array_) {
-            if (i + kArrayElementOffset < properties_.size()) {
-                element_value = properties_[i + kArrayElementOffset].value;
-            } else {
-                element_value = Value(); // undefined
-            }
-        } else {
-            GetComputedProperty(context, Value(static_cast<int64_t>(i)), &element_value);
-        }
+        Value element_value = properties_[slow_property_count_ + i].value;
 
         // 调用回调函数：callback(element, index, array)
         Value argv[] = { element_value, Value(static_cast<int64_t>(i)), Value(this) };
@@ -383,71 +281,66 @@ bool ArrayObject::TryStringToArrayIndex(std::string_view str, uint64_t* out_inde
         return false;
     }
 
-    // 尝试解析为无符号整数
-    try {
-        size_t pos = 0;
-        uint64_t index = std::stoull(std::string(str), &pos, 10);
+    // 手动解析为无符号整数，避免异常开销
+    uint64_t index = 0;
 
-        // 确保整个字符串都被解析，且是有效的数组索引
-        if (pos == str.length() && IsValidArrayIndex(index)) {
-            *out_index = index;
-            return true;
+    for (char c : str) {
+        if (c < '0' || c > '9') {
+            return false; // 非数字字符
         }
-    } catch (...) {
-        // 解析失败，不是有效的数字字符串
+
+        // 检查乘法溢出
+        if (index > UINT64_MAX / 10) {
+            return false; // 溢出
+        }
+        index *= 10;
+
+        uint64_t digit = static_cast<uint64_t>(c - '0');
+        // 检查加法溢出
+        if (index > UINT64_MAX - digit) {
+            return false; // 溢出
+        }
+        index += digit;
+    }
+
+    // 确保是有效的数组索引
+    if (IsValidArrayIndex(index)) {
+        *out_index = index;
+        return true;
     }
 
     return false;
 }
 
-void ArrayObject::TransitionToSlowMode(Context* context) {
-    if (!is_fast_array_) {
-        return; // 已经是慢速模式
+void ArrayObject::EnsureHashTableCapacity(Context* context) {
+    size_t current_capacity = properties_.size() - length_;
+    if (slow_property_count_ < current_capacity) {
+        return; // 还有空间
     }
 
-    // 将所有数组元素迁移到哈希表
-    std::vector<Value> array_elements;
-    array_elements.reserve(length_);
+    // 计算新容量：从4开始翻倍增长
+    size_t new_capacity = (current_capacity == 0) ? kInitialHashTableCapacity : current_capacity * 2;
 
+    // 需要复制整个数组，因为快速数组元素在后面
+    std::vector<PropertySlot> new_properties;
+    new_properties.reserve(new_capacity + length_);
+
+    // 复制哈希表元素
+    for (size_t i = 0; i < slow_property_count_; ++i) {
+        new_properties.push_back(std::move(properties_[i]));
+    }
+
+    // 填充剩余哈希表空间为空
+    for (size_t i = slow_property_count_; i < new_capacity; ++i) {
+        new_properties.emplace_back(PropertySlot(Value()));
+    }
+
+    // 复制快速数组元素
     for (size_t i = 0; i < length_; ++i) {
-        if (i + kArrayElementOffset < properties_.size()) {
-            array_elements.push_back(properties_[i + kArrayElementOffset].value);
-        } else {
-            array_elements.push_back(Value());
-        }
+        new_properties.push_back(std::move(properties_[slow_property_count_ + i]));
     }
 
-    // 清空数组元素，保留前kArrayElementOffset个额外属性
-    properties_.resize(kArrayElementOffset);
-
-    // 将数组元素作为哈希表属性存储
-    for (size_t i = 0; i < array_elements.size(); ++i) {
-        if (!array_elements[i].IsUndefined()) {
-            SetComputedProperty(context, Value(static_cast<int64_t>(i)), std::move(array_elements[i]));
-        }
-    }
-
-    // 标记为慢速模式
-    is_fast_array_ = false;
-}
-
-bool ArrayObject::EnsureExtraPropertySpace(Context* context) {
-    // 检查额外属性数量是否超过限制
-    size_t extra_property_count = 0;
-
-    // 计算当前额外属性数量（除了数组元素之外的属性）
-    // 简单的判断方式：检查是否数组元素起始位置前有过多属性
-    for (size_t i = 0; i < kArrayElementOffset && i < properties_.size(); ++i) {
-        // 检查这个位置是否有有效属性
-        // 这里简化处理，实际需要通过shape来判断
-        if (i < kArrayElementOffset) {
-            extra_property_count++;
-        }
-    }
-
-    // 如果额外属性超过限制，需要退化
-    // 这里简化判断：如果有额外的非数组元素属性
-    return extra_property_count <= kArrayElementOffset;
+    properties_ = std::move(new_properties);
 }
 
 size_t ArrayObject::GetLength() const {
