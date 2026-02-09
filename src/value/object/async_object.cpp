@@ -19,10 +19,10 @@ Value AsyncObject::ToString(Context* context) {
 }
 
 void AsyncObject::GCTraverse(Context* context, GCTraverseCallback callback) {
-    // ÏÈµ÷ÓÃ¸¸Àà·½·¨±éÀúÊôĞÔ
+    // å…ˆè°ƒç”¨çˆ¶ç±»æ–¹æ³•éå†å±æ€§
     GeneratorObject::GCTraverse(context, callback);
 
-    // ±éÀú½á¹ûpromise
+    // éå†ç»“æœpromise
     callback(context, &res_promise_);
 }
 

@@ -41,9 +41,12 @@ public:
 		kConfigurable = 1 << 3, ///< 可配置
 		kWritable = 1 << 4,     ///< 可写（仅数据属性）
 
+		// 数组属性标志
+		kExists = 1 << 5,       ///< 属性是否存在（用于区分空洞和undefined）
+
 		// 便捷组合标志
-		kDefault = kEnumerable | kConfigurable | kWritable,  ///< 默认属性特性
-		kReadOnly = kEnumerable | kConfigurable,            ///< 只读属性特性
+		kDefault = kEnumerable | kConfigurable | kWritable | kExists,  ///< 默认属性特性（包含存在标志）
+		kReadOnly = kEnumerable | kConfigurable | kExists,            ///< 只读属性特性
 	};
 
 	ShapeProperty() = default;

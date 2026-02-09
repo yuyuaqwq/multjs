@@ -8,13 +8,14 @@
 #include <mjs/runtime.h>
 #include <mjs/error.h>
 #include <mjs/const_index_embedded.h>
+#include <mjs/value/string.h>
 
 namespace mjs {
 
 // 设计：
 // 混合模式结构：[哈希表元素0...N-1] [快速数组元素0...M-1]
 // - slow_property_count_：哈希表元素数量（N）
-// - length_：快速数组元素数量（M）
+// - length_：数组元素数量（M）
 // 哈希表元素从4开始，需要时翻倍增长
 // 快速数组元素直接通过索引访问
 
@@ -25,6 +26,7 @@ ArrayObject::ArrayObject(Context* context)
     properties_.reserve(kInitialHashTableCapacity);
     length_ = 0;
     slow_property_count_ = 0;
+    is_sparse_ = false;
 }
 
 ArrayObject::ArrayObject(Context* context, size_t count)
@@ -35,10 +37,12 @@ ArrayObject::ArrayObject(Context* context, size_t count)
 
     length_ = count;
     slow_property_count_ = 0;
+    is_sparse_ = false;
 
-    // 初始化数组元素为 undefined
+    // 初始化数组元素为 undefined，且都不存在（空洞）
     for (size_t i = 0; i < count; ++i) {
-        properties_.emplace_back(PropertySlot(Value()));
+        // 空洞元素：不设置kExists标志
+        properties_.emplace_back(PropertySlot(Value(), ShapeProperty::kNone));
     }
 }
 
@@ -53,7 +57,8 @@ ArrayObject::ArrayObject(Context* context, std::initializer_list<Value> values)
 
     // 初始化数组元素
     for (auto& value : values) {
-        properties_.emplace_back(PropertySlot(Value(value)));
+        // 显式设置的元素：设置kExists标志
+        properties_.emplace_back(PropertySlot(Value(value), ShapeProperty::kDefault));
     }
 }
 
@@ -68,6 +73,11 @@ bool ArrayObject::GetProperty(Context* context, ConstIndex key, Value* value) {
 }
 
 bool ArrayObject::GetComputedProperty(Context* context, const Value& key, Value* value) {
+    // 稀疏数组模式：所有元素都在哈希表中
+    if (is_sparse_) {
+        return Object::GetComputedProperty(context, key, value);
+    }
+
     // 优化：直接处理数字索引
     if (key.IsInt64()) {
         int64_t i64_val = key.i64();
@@ -77,8 +87,8 @@ bool ArrayObject::GetComputedProperty(Context* context, const Value& key, Value*
                 // 访问快速数组部分
                 if (idx < length_) {
                     *value = properties_[slow_property_count_ + idx].value;
-                    // 如果元素是 undefined，返回 false（表示"空洞"）
-                    return !value->IsUndefined();
+                    // JS标准：检查元素是否存在（通过kExists标志）
+                    return (properties_[slow_property_count_ + idx].flags & ShapeProperty::kExists) != 0;
                 }
                 // 索引超出范围，返回 false（属性不存在）
                 return false;
@@ -94,7 +104,8 @@ bool ArrayObject::GetComputedProperty(Context* context, const Value& key, Value*
             // 访问快速数组部分
             if (idx < length_) {
                 *value = properties_[slow_property_count_ + idx].value;
-                return !value->IsUndefined();
+                // JS标准：检查元素是否存在（通过kExists标志）
+                return (properties_[slow_property_count_ + idx].flags & ShapeProperty::kExists) != 0;
             }
             return false;
         }
@@ -129,16 +140,42 @@ void ArrayObject::SetProperty(Context* context, ConstIndex key, Value&& value) {
     // 特殊处理 length 属性的设置
     if (key == ConstIndexEmbedded::kLength) {
         // 设置 length 的特殊行为
-        if (!value.IsInt64() || value.i64() < 0) {
-            // 无效的 length 值，忽略或抛出错误
-            return;
+        int64_t new_length_i64 = 0;
+        if (value.IsInt64()) {
+            new_length_i64 = value.i64();
+        } else if (value.IsFloat()) {
+            // JS规范：浮点数需要先转换为整数
+            double fval = value.f64();
+            if (fval < 0 || !std::isfinite(fval) || fval > static_cast<double>(kMaxArrayIndex)) {
+                return; // 无效值，忽略
+            }
+            new_length_i64 = static_cast<int64_t>(fval);
+        } else {
+            return; // 无效类型，忽略
         }
 
-        size_t new_length = static_cast<size_t>(value.i64());
+        if (new_length_i64 < 0) {
+            return; // 负数无效
+        }
+
+        size_t new_length = static_cast<size_t>(new_length_i64);
 
         if (new_length < length_) {
             // 缩短快速数组
-            properties_.resize(slow_property_count_ + new_length);
+            if (!is_sparse_) {
+                properties_.resize(slow_property_count_ + new_length);
+            }
+            // 稀疏模式：length缩短不影响已存储的元素
+        } else if (new_length > length_) {
+            // 扩容：填充空洞（不设置kExists标志）
+            if (!is_sparse_) {
+                size_t required_size = slow_property_count_ + new_length;
+                if (properties_.size() < required_size) {
+                    properties_.resize(required_size);
+                }
+                // 新增的位置默认kNone标志（空洞），无需额外处理
+            }
+            // 稀疏模式：只需要更新length，不需要实际填充元素
         }
 
         // 更新 length 值
@@ -154,6 +191,21 @@ void ArrayObject::SetProperty(Context* context, ConstIndex key, Value&& value) {
 }
 
 void ArrayObject::SetComputedProperty(Context* context, const Value& key, Value&& value) {
+    // 稀疏数组模式：所有元素都通过哈希表存储
+    if (is_sparse_) {
+        // 更新length（如果是数组索引）
+        uint64_t array_index = 0;
+        if ((key.IsInt64() && key.i64() >= 0) ||
+            (key.IsString() && TryStringToArrayIndex(key.string_view(), &array_index))) {
+            size_t idx = key.IsInt64() ? static_cast<size_t>(key.i64()) : static_cast<size_t>(array_index);
+            if (IsValidArrayIndex(static_cast<uint64_t>(idx)) && idx >= length_) {
+                length_ = idx + 1;
+            }
+        }
+        Object::SetComputedProperty(context, key, std::move(value));
+        return;
+    }
+
     // 优化：直接处理数字索引
     if (key.IsInt64()) {
         int64_t i64_val = key.i64();
@@ -173,6 +225,7 @@ void ArrayObject::SetComputedProperty(Context* context, const Value& key, Value&
                     properties_.resize(required_size);
                 }
                 properties_[slow_property_count_ + idx].value = std::move(value);
+                properties_[slow_property_count_ + idx].flags |= ShapeProperty::kExists;  // 标记元素存在
                 return;
             }
         }
@@ -195,6 +248,7 @@ void ArrayObject::SetComputedProperty(Context* context, const Value& key, Value&
                 properties_.resize(required_size);
             }
             properties_[slow_property_count_ + idx].value = std::move(value);
+            properties_[slow_property_count_ + idx].flags |= ShapeProperty::kExists;  // 标记元素存在
             return;
         }
     }
@@ -204,6 +258,11 @@ void ArrayObject::SetComputedProperty(Context* context, const Value& key, Value&
 }
 
 bool ArrayObject::DelComputedProperty(Context* context, const Value& key, Value* value) {
+    // 稀疏数组模式：所有元素都在哈希表中
+    if (is_sparse_) {
+        return Object::DelComputedProperty(context, key, value);
+    }
+
     // 优化：直接处理数字索引
     if (key.IsInt64()) {
         int64_t i64_val = key.i64();
@@ -213,8 +272,14 @@ bool ArrayObject::DelComputedProperty(Context* context, const Value& key, Value*
                 // 从快速数组中删除
                 if (idx < length_) {
                     *value = std::move(properties_[slow_property_count_ + idx].value);
-                    // 设置为 undefined
+                    // 创建空洞：设置为undefined，并清除kExists标志
                     properties_[slow_property_count_ + idx].value = Value();
+                    properties_[slow_property_count_ + idx].flags &= ~ShapeProperty::kExists;  // 清除存在标志
+
+                    // 检查是否应该转换为稀疏模式
+                    if (ShouldConvertToSparse(idx)) {
+                        ConvertToSparseMode(context);
+                    }
                     return true;
                 }
                 // 索引超出范围，返回 false
@@ -232,8 +297,14 @@ bool ArrayObject::DelComputedProperty(Context* context, const Value& key, Value*
             // 从快速数组中删除
             if (idx < length_) {
                 *value = std::move(properties_[slow_property_count_ + idx].value);
-                // 设置为 undefined
+                // 创建空洞：设置为undefined，并清除kExists标志
                 properties_[slow_property_count_ + idx].value = Value();
+                properties_[slow_property_count_ + idx].flags &= ~ShapeProperty::kExists;  // 清除存在标志
+
+                // 检查是否应该转换为稀疏模式
+                if (ShouldConvertToSparse(idx)) {
+                    ConvertToSparseMode(context);
+                }
                 return true;
             }
             // 索引超出范围，返回 false
@@ -247,8 +318,18 @@ bool ArrayObject::DelComputedProperty(Context* context, const Value& key, Value*
 }
 
 void ArrayObject::Push(Context* context, Value val) {
-    // 直接添加到快速数组末尾
-    properties_.emplace_back(PropertySlot(std::move(val)));
+    if (is_sparse_) {
+        // 稀疏模式：使用字符串索引存储到哈希表
+        size_t new_index = length_;
+        ++length_;
+        std::string key_str = std::to_string(new_index);
+        Value key_value = Value(String::New(key_str));
+        Object::SetComputedProperty(context, key_value, std::move(val));
+        return;
+    }
+
+    // 快速数组模式：直接添加到末尾
+    properties_.emplace_back(PropertySlot(std::move(val), ShapeProperty::kDefault));
     ++length_;
 }
 
@@ -259,6 +340,18 @@ Value ArrayObject::Pop(Context* context) {
     }
 
     size_t last_index = len - 1;
+
+    if (is_sparse_) {
+        // 稀疏模式：从哈希表删除
+        --length_;
+        std::string key_str = std::to_string(last_index);
+        Value key_value = Value(String::New(key_str));
+        Value result;
+        Object::DelComputedProperty(context, key_value, &result);
+        return result;
+    }
+
+    // 快速数组模式：从末尾移除
     Value result = std::move(properties_[slow_property_count_ + last_index].value);
     properties_.pop_back();
     --length_;
@@ -341,10 +434,55 @@ void ArrayObject::EnsureHashTableCapacity(Context* context) {
     }
 
     properties_ = std::move(new_properties);
+    // element_exists_不受影响，因为只扩容哈希表部分
 }
 
 size_t ArrayObject::GetLength() const {
     return length_;
+}
+
+bool ArrayObject::ShouldConvertToSparse(size_t deleted_index) const {
+    // 已经是稀疏模式，无需转换
+    if (is_sparse_) {
+        return false;
+    }
+
+    // 小数组不转换（阈值小于16）
+    if (length_ < 16) {
+        return false;
+    }
+
+    // 计算空洞元素数量（使用kExists标志）
+    size_t hole_count = 0;
+    for (size_t i = 0; i < length_; ++i) {
+        if ((properties_[slow_property_count_ + i].flags & ShapeProperty::kExists) == 0) {
+            ++hole_count;
+        }
+    }
+
+    // 空洞占比超过阈值，转换为稀疏模式
+    return (static_cast<double>(hole_count) / static_cast<double>(length_)) >= kSparseThreshold;
+}
+
+void ArrayObject::ConvertToSparseMode(Context* context) {
+    if (is_sparse_) {
+        return; // 已经是稀疏模式
+    }
+
+    // 将快速数组中存在的元素移到哈希表（使用字符串索引键）
+    for (size_t i = 0; i < length_; ++i) {
+        if ((properties_[slow_property_count_ + i].flags & ShapeProperty::kExists) != 0) {  // 只迁移存在的元素
+            Value elem_value = std::move(properties_[slow_property_count_ + i].value);
+            // 使用字符串索引作为键存储到哈希表
+            std::string key_str = std::to_string(i);
+            Value key_value = Value(String::New(key_str));
+            Object::SetComputedProperty(context, key_value, std::move(elem_value));
+        }
+    }
+
+    // 移除快速数组部分
+    properties_.resize(slow_property_count_);
+    is_sparse_ = true;
 }
 
 } // namespace mjs

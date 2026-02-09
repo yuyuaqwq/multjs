@@ -17,17 +17,32 @@ private:
     // 初始哈希表容量（用于非数组索引属性）
     static constexpr size_t kInitialHashTableCapacity = 4;
 
-    // 检查是否是有效的数组索引（符合 JS 规范：32位无符号整数）
+    // JS规范：最大数组索引是 2^32 - 1
+    static constexpr uint64_t kMaxArrayIndex = 4294967295ULL;
+
+    // 稀疏数组阈值：空洞元素占比超过此值时转换为稀疏模式
+    static constexpr double kSparseThreshold = 0.5;
+
+    // 检查是否是有效的数组索引（符合 JS 规范：[0, 2^32-1]）
     static bool IsValidArrayIndex(uint64_t index) {
-        return index < 4294967296ULL; // 2^32
+        return index <= kMaxArrayIndex;
     }
 
     // 尝试将字符串转换为数组索引
     // 返回 true 表示成功转换为有效索引，false 表示不是有效的数组索引字符串
     static bool TryStringToArrayIndex(std::string_view str, uint64_t* out_index);
 
-    uint32_t length_ = 0;                // 数组长度（快速数组元素数量）
-    uint32_t slow_property_count_ = 0;   // 哈希表属性数量
+    uint32_t length_ = 0;                // 数组长度
+    struct {
+        uint32_t slow_property_count_ : 31;   // 哈希表属性数量
+        uint32_t is_sparse_ : 1;             // 是否为稀疏数组模式
+    };
+
+    // 检查是否应该转换为稀疏模式
+    bool ShouldConvertToSparse(size_t deleted_index) const;
+
+    // 转换为稀疏数组模式
+    void ConvertToSparseMode(Context* context);
 
     // 检查索引是否在连续数组范围内
     bool IsInArrayRange(size_t index) const {

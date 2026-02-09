@@ -52,7 +52,11 @@ ArrayObjectClassDef::ArrayObjectClassDef(Runtime* runtime)
 
 		for (size_t i = 0; i < arr.GetLength(); ++i) {
 			Value elem;
-			arr.GetComputedProperty(context, Value(static_cast<int64_t>(i)), &elem);
+			bool exists = arr.GetComputedProperty(context, Value(static_cast<int64_t>(i)), &elem);
+			// JS标准：跳过空洞元素（不存在的属性）
+			if (!exists) {
+				continue;
+			}
 			std::array<Value, 3> args = {
 				elem,
 				Value(static_cast<int64_t>(i)),
@@ -71,14 +75,18 @@ ArrayObjectClassDef::ArrayObjectClassDef(Runtime* runtime)
 		auto& arr = stack.this_val().array();
 		auto callback = stack.get(0);
 		if (!callback.IsFunctionObject() && !callback.IsFunctionDef()) {
-			return TypeError::Throw(context, "forEach callback must be a function");
+			return TypeError::Throw(context, "map callback must be a function");
 		}
 
 		GCHandleScope<1> scope(context);
 		auto result = scope.New<ArrayObject>(arr.GetLength());
 		for (size_t i = 0; i < arr.GetLength(); ++i) {
 			Value elem;
-			arr.GetComputedProperty(context, Value(static_cast<int64_t>(i)), &elem);
+			bool exists = arr.GetComputedProperty(context, Value(static_cast<int64_t>(i)), &elem);
+			// JS标准：跳过空洞元素，但保持索引位置（创建稀疏数组）
+			if (!exists) {
+				continue;
+			}
 			std::array<Value, 3> args = {
 				elem,
 				Value(static_cast<int64_t>(i)),
@@ -105,7 +113,11 @@ ArrayObjectClassDef::ArrayObjectClassDef(Runtime* runtime)
 		auto result = scope.New<ArrayObject>();
 		for (size_t i = 0; i < arr.GetLength(); ++i) {
 			Value elem;
-			arr.GetComputedProperty(context, Value(static_cast<int64_t>(i)), &elem);
+			bool exists = arr.GetComputedProperty(context, Value(static_cast<int64_t>(i)), &elem);
+			// JS标准：跳过空洞元素
+			if (!exists) {
+				continue;
+			}
 			std::array<Value, 3> args = {
 				elem,
 				Value(static_cast<int64_t>(i)),
@@ -137,17 +149,29 @@ ArrayObjectClassDef::ArrayObjectClassDef(Runtime* runtime)
 			// 提供了初始值
 			accumulator = stack.get(1);
 		} else {
-			// 没有提供初始值，使用数组第一个元素作为初始值
-			if (arr.GetLength() == 0) {
+			// 没有提供初始值，使用数组第一个非空洞元素作为初始值
+			bool found = false;
+			for (size_t i = 0; i < arr.GetLength(); ++i) {
+				Value elem;
+				if (arr.GetComputedProperty(context, Value(static_cast<int64_t>(i)), &elem)) {
+					accumulator = elem;
+					start_index = i + 1;
+					found = true;
+					break;
+				}
+			}
+			if (!found) {
 				return TypeError::Throw(context, "reduce of empty array with no initial value");
 			}
-			arr.GetComputedProperty(context, Value(static_cast<int64_t>(0)), &accumulator);
-			start_index = 1;
 		}
 
 		for (size_t i = start_index; i < arr.GetLength(); ++i) {
 			Value elem;
-			arr.GetComputedProperty(context, Value(static_cast<int64_t>(i)), &elem);
+			bool exists = arr.GetComputedProperty(context, Value(static_cast<int64_t>(i)), &elem);
+			// JS标准：跳过空洞元素
+			if (!exists) {
+				continue;
+			}
 			std::array<Value, 4> args = {
 				accumulator,
 				elem,
