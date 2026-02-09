@@ -54,6 +54,7 @@ ArrayObject::ArrayObject(Context* context, std::initializer_list<Value> values)
 
     length_ = values.size();
     slow_property_count_ = 0;
+    is_sparse_ = false;
 
     // 初始化数组元素
     for (auto& value : values) {
