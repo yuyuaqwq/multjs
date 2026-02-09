@@ -15,13 +15,13 @@ private:
     ArrayObject(Context* context, std::initializer_list<Value> values);
 
     // 初始哈希表容量（用于非数组索引属性）
-    static constexpr size_t kInitialHashTableCapacity = 4;
+    static constexpr size_t kInitialHashTableCapacity = 2;
 
     // JS规范：最大数组索引是 2^32 - 1
     static constexpr uint64_t kMaxArrayIndex = 4294967295ULL;
 
-    // 稀疏数组阈值：空洞元素占比超过此值时转换为稀疏模式
-    static constexpr double kSparseThreshold = 0.5;
+    // 稀疏数组阈值：空洞元素占比超过此值时转换为稀疏模式，百分比
+    static constexpr uint32_t kSparseThreshold = 50;
 
     // 检查是否是有效的数组索引（符合 JS 规范：[0, 2^32-1]）
     static bool IsValidArrayIndex(uint64_t index) {

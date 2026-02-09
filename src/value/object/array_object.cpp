@@ -461,7 +461,7 @@ bool ArrayObject::ShouldConvertToSparse(size_t deleted_index) const {
     }
 
     // 空洞占比超过阈值，转换为稀疏模式
-    return (static_cast<double>(hole_count) / static_cast<double>(length_)) >= kSparseThreshold;
+    return (100 * hole_count / length_) >= kSparseThreshold;
 }
 
 void ArrayObject::ConvertToSparseMode(Context* context) {
