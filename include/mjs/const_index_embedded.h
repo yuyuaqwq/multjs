@@ -45,6 +45,14 @@ public:
         kFilter,        // filter
         kReduce,        // reduce
 
+        kTest,          // test (RegExp method)
+        kExec,          // exec (RegExp method)
+        kToString,      // toString (common method)
+
+        kIndex,         // index (RegExp exec result property)
+        kInput,         // input (RegExp exec result property)
+        kIndices,       // indices (RegExp exec result property with /d flag)
+
         kEnd,
     };
 };

@@ -8,6 +8,7 @@
 #include <mjs/class_def/function_object_class_def.h>
 #include <mjs/class_def/generator_object_class_def.h>
 #include <mjs/class_def/promise_object_class_def.h>
+#include <mjs/class_def/regexp_object_class_def.h>
 
 namespace mjs {
 
@@ -20,6 +21,7 @@ void ClassDefTable::Initialize(Runtime* runtime) {
 	Register(std::make_unique<ClassDef>(runtime, ClassId::kNumberObject, "Number"));
 	Register(std::make_unique<StringObjectClassDef>(runtime));
 	Register(std::make_unique<ArrayObjectClassDef>(runtime));
+	Register(std::make_unique<RegExpObjectClassDef>(runtime));
 	Register(std::make_unique<GeneratorObjectClassDef>(runtime));
 	Register(std::make_unique<PromiseObjectClassDef>(runtime));
 	Register(std::make_unique<ClassDef>(runtime, ClassId::kAsyncObject, "Async"));

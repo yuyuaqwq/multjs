@@ -14,6 +14,7 @@
 #include "src/compiler/expression_impl/integer_literal.h"
 #include "src/compiler/expression_impl/float_literal.h"
 #include "src/compiler/expression_impl/string_literal.h"
+#include "src/compiler/expression_impl/regexp_literal.h"
 #include "src/compiler/expression_impl/this_expression.h"
 #include "src/compiler/expression_impl/super_expression.h"
 #include "src/compiler/expression_impl/array_expression.h"
@@ -130,6 +131,12 @@ std::unique_ptr<Expression> PrimaryExpression::ParsePrimaryExpression(Lexer* lex
 		lexer->NextToken();
 		return std::make_unique<StringLiteral>(start, lexer->GetRawSourcePosition(),
 										  std::string(token.value()));
+	}
+	case TokenType::kRegExp: {
+		lexer->NextToken();
+		return std::make_unique<RegExpLiteral>(start, lexer->GetRawSourcePosition(),
+										  std::string(token.value()),
+										  std::string(token.regex_flags()));
 	}
 	case TokenType::kIdentifier: {
 		return Identifier::ParseIdentifier(lexer);

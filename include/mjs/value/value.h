@@ -56,6 +56,8 @@ enum class ValueType : uint32_t {
 	kStringObject,
 	/** @brief 数组对象类型 */
 	kArrayObject,
+	/** @brief 正则表达式对象类型 */
+	kRegExpObject,
 	/** @brief 函数对象类型 */
 	kFunctionObject,
 	/** @brief 生成器对象类型 */
@@ -107,6 +109,7 @@ class StackFrame;
 
 class Object;
 class ArrayObject;
+class RegExpObject;
 class FunctionObject;
 class GeneratorObject;
 class PromiseObject;
@@ -167,6 +170,9 @@ public:
 
 	/** @brief 数组对象构造函数 */
 	explicit Value(ArrayObject* array);
+
+	/** @brief 正则表达式对象构造函数 */
+	explicit Value(RegExpObject* regexp);
 
 	/** @brief 函数对象构造函数 */
 	explicit Value(FunctionObject* function);
@@ -388,6 +394,9 @@ public:
 	/** @brief 获取数组对象引用 */
 	ArrayObject& array() const;
 
+	/** @brief 获取正则表达式对象引用 */
+	RegExpObject& regexp() const;
+
 	/** @brief 获取函数对象引用 */
 	FunctionObject& function() const;
 
@@ -474,6 +483,9 @@ public:
 
 	/** @brief 检查是否为数组对象类型 */
 	bool IsArrayObject() const;
+
+	/** @brief 检查是否为正则表达式对象类型 */
+	bool IsRegExpObject() const;
 
 	/** @brief 检查是否为函数对象类型 */
 	bool IsFunctionObject() const;
@@ -604,6 +616,8 @@ public:
 			return "string_object";
 		case ValueType::kArrayObject:
 			return "array_object";
+		case ValueType::kRegExpObject:
+			return "regexp_object";
 		case ValueType::kFunctionObject:
 			return "function_object";
 		case ValueType::kGeneratorObject:

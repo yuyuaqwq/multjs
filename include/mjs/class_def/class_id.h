@@ -25,6 +25,7 @@ enum class ClassId : uint16_t {
 	kNumberObject,         ///< 数字对象类
 	kStringObject,         ///< 字符串对象类
 	kArrayObject,          ///< 数组对象类
+	kRegExpObject,         ///< 正则表达式对象类
 	kGeneratorObject,      ///< 生成器对象类
 	kPromiseObject,        ///< Promise 对象类
 	kAsyncObject,          ///< 异步对象类

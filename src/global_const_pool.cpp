@@ -30,7 +30,7 @@ void GlobalConstPool::Initialize() {
 	assert(index == ConstIndexEmbedded::kSplit);
 	index = FindOrInsert(Value("substring"));
 	assert(index == ConstIndexEmbedded::kSubString);
-	index = FindOrInsert(Value("indexoOf"));
+	index = FindOrInsert(Value("indexOf"));
 	assert(index == ConstIndexEmbedded::kIndexOf);
 	index = FindOrInsert(Value("toLowerCase"));
 	assert(index == ConstIndexEmbedded::kToLowerCase);
@@ -68,6 +68,18 @@ void GlobalConstPool::Initialize() {
 	assert(index == ConstIndexEmbedded::kFilter);
 	index = FindOrInsert(Value("reduce"));
 	assert(index == ConstIndexEmbedded::kReduce);
+	index = FindOrInsert(Value("test"));
+	assert(index == ConstIndexEmbedded::kTest);
+	index = FindOrInsert(Value("exec"));
+	assert(index == ConstIndexEmbedded::kExec);
+	index = FindOrInsert(Value("toString"));
+	assert(index == ConstIndexEmbedded::kToString);
+	index = FindOrInsert(Value("index"));
+	assert(index == ConstIndexEmbedded::kIndex);
+	index = FindOrInsert(Value("input"));
+	assert(index == ConstIndexEmbedded::kInput);
+	index = FindOrInsert(Value("indices"));
+	assert(index == ConstIndexEmbedded::kIndices);
 
 	assert(size() == ConstIndexEmbedded::kEnd);
 }

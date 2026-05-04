@@ -72,6 +72,11 @@ Value::Value(ArrayObject* array) {
 	value_.object_ = reinterpret_cast<Object*>(array);
 }
 
+Value::Value(RegExpObject* regexp) {
+	tag_.type_ = ValueType::kRegExpObject;
+	value_.object_ = reinterpret_cast<Object*>(regexp);
+}
+
 Value::Value(FunctionObject* function) {
 	tag_.type_ = ValueType::kFunctionObject;
 	value_.object_ = reinterpret_cast<Object*>(function);
@@ -975,6 +980,11 @@ ArrayObject& Value::array() const {
 	return *reinterpret_cast<ArrayObject*>(value_.object_);
 }
 
+RegExpObject& Value::regexp() const {
+	assert(IsRegExpObject());
+	return *reinterpret_cast<RegExpObject*>(value_.object_);
+}
+
 FunctionObject& Value::function() const {
 	assert(IsFunctionObject());
 	return *reinterpret_cast<FunctionObject*>(value_.object_);
@@ -1134,6 +1144,7 @@ bool Value::IsObject() const {
 	case ValueType::kFloatObject:
 	case ValueType::kStringObject:
 	case ValueType::kArrayObject:
+	case ValueType::kRegExpObject:
 	case ValueType::kFunctionObject:
 	case ValueType::kGeneratorObject:
 	case ValueType::kPromiseObject:
@@ -1153,6 +1164,10 @@ bool Value::IsObject() const {
 
 bool Value::IsArrayObject() const {
 	return type() == ValueType::kArrayObject;
+}
+
+bool Value::IsRegExpObject() const {
+	return type() == ValueType::kRegExpObject;
 }
 
 bool Value::IsFunctionObject() const {

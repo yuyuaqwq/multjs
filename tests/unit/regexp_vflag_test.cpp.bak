@@ -1,0 +1,249 @@
+/**
+ * @file regexp_vflag_test.cpp
+ * @brief 正则表达式 /v 标志（Unicode Sets模式）测试
+ *
+ * 测试 ECMAScript 2024 的 /v 标志功能
+ *
+ * @copyright Copyright (c) 2025
+ * @license MIT License
+ */
+
+#include <gtest/gtest.h>
+#include <memory>
+#include <string>
+
+#include "mjs/regexp/regexp_parser.h"
+#include "mjs/regexp/regexp_nfa.h"
+
+namespace mjs {
+namespace test {
+
+/**
+ * @class RegExpVFlagTest
+ * @brief /v 标志测试类
+ */
+class RegExpVFlagTest : public ::testing::Test {
+protected:
+    void SetUp() override {}
+    void TearDown() override {}
+
+    /**
+     * @brief 辅助方法：构建NFA并测试匹配
+     */
+    bool Match(const std::string& pattern, const std::string& str, bool unicode_sets = true) {
+        RegExpParser parser(pattern, unicode_sets);
+        auto ast = parser.Parse();
+        if (!ast) {
+            return false;
+        }
+        NFA nfa = NFABuilder::Build(ast.get(), false, false, false, false, unicode_sets);
+        return nfa.Match(str);
+    }
+
+    /**
+     * @brief 辅助方法：检查解析是否失败
+     */
+    bool ParseFailed(const std::string& pattern, bool unicode_sets = true) {
+        RegExpParser parser(pattern, unicode_sets);
+        auto result = parser.Parse();
+        return result == nullptr;
+    }
+};
+
+// ============================================================================
+// 字符类集合交集测试 (&&)
+// ============================================================================
+
+TEST_F(RegExpVFlagTest, CharacterClassSetIntersection) {
+    // 交集：[\w&&[a-g]] 匹配单词字符且在a-g范围内
+    EXPECT_TRUE(Match(R"([\w&&[a-g]])", "a"));
+    EXPECT_TRUE(Match(R"([\w&&[a-g]])", "g"));
+    EXPECT_FALSE(Match(R"([\w&&[a-g]])", "h"));
+    EXPECT_FALSE(Match(R"([\w&&[a-g]])", "z"));
+
+    // 交集：[\p{L}&&\p{Lu}] 只匹配大写字母
+    EXPECT_TRUE(Match(R"([\p{L}&&\p{Lu}])", "A"));
+    EXPECT_TRUE(Match(R"([\p{L}&&\p{Lu}])", "Z"));
+    EXPECT_FALSE(Match(R"([\p{L}&&\p{Lu}])", "a"));
+    EXPECT_FALSE(Match(R"([\p{L}&&\p{Lu}])", "0"));
+}
+
+TEST_F(RegExpVFlagTest, CharacterClassSetIntersectionMultiple) {
+    // 多重交集：[\w&&[a-g]&&[^aeiou]]
+    EXPECT_TRUE(Match(R"([\w&&[a-g]&&[^aeiou]])", "b"));
+    EXPECT_TRUE(Match(R"([\w&&[a-g]&&[^aeiou]])", "f"));
+    EXPECT_FALSE(Match(R"([\w&&[a-g]&&[^aeiou]])", "a"));
+    EXPECT_FALSE(Match(R"([\w&&[a-g]&&[^aeiou]])", "e"));
+}
+
+// ============================================================================
+// 字符类集合差集测试 (--)
+// ============================================================================
+
+TEST_F(RegExpVFlagTest, CharacterClassSetSubtraction) {
+    // 差集：[\w--[a-g]] 匹配单词字符但排除a-g
+    EXPECT_FALSE(Match(R"([\w--[a-g]])", "a"));
+    EXPECT_FALSE(Match(R"([\w--[a-g]])", "g"));
+    EXPECT_TRUE(Match(R"([\w--[a-g]])", "h"));
+    EXPECT_TRUE(Match(R"([\w--[a-g]])", "z"));
+    EXPECT_TRUE(Match(R"([\w--[a-g]])", "0"));
+    EXPECT_TRUE(Match(R"([\w--[a-g]])", "_"));
+
+    // 差集：[\p{L}--\p{Lu}] 排除大写字母
+    EXPECT_TRUE(Match(R"([\p{L}--\p{Lu}])", "a"));
+    EXPECT_TRUE(Match(R"([\p{L}--\p{Lu}])", "z"));
+    EXPECT_FALSE(Match(R"([\p{L}--\p{Lu}])", "A"));
+    EXPECT_FALSE(Match(R"([\p{L}--\p{Lu}])", "Z"));
+}
+
+TEST_F(RegExpVFlagTest, CharacterClassSetSubtractionMultiple) {
+    // 连续差集：[\w--[a-g]--[0-9]]
+    EXPECT_TRUE(Match(R"([\w--[a-g]--[0-9]])", "h"));
+    EXPECT_TRUE(Match(R"([\w--[a-g]--[0-9]])", "_"));
+    EXPECT_FALSE(Match(R"([\w--[a-g]--[0-9]])", "a"));
+    EXPECT_FALSE(Match(R"([\w--[a-g]--[0-9]])", "5"));
+}
+
+// ============================================================================
+// 字符类集合并集测试 (||)
+// ============================================================================
+
+TEST_F(RegExpVFlagTest, CharacterClassSetUnion) {
+    // 并集：[\w||\p{P}] 匹配单词字符或标点符号
+    EXPECT_TRUE(Match(R"([\w||\p{P}])", "a"));
+    EXPECT_TRUE(Match(R"([\w||\p{P}])", "!"));
+    EXPECT_TRUE(Match(R"([\w||\p{P}])", "_"));
+    EXPECT_FALSE(Match(R"([\w||\p{P}])", " "));
+
+    // 并集：[[a-g]||[0-9]]
+    EXPECT_TRUE(Match(R"([[a-g]||[0-9]])", "a"));
+    EXPECT_TRUE(Match(R"([[a-g]||[0-9]])", "5"));
+    EXPECT_FALSE(Match(R"([[a-g]||[0-9]])", "z"));
+}
+
+// ============================================================================
+// 复杂集合操作测试
+// ============================================================================
+
+TEST_F(RegExpVFlagTest, ComplexSetOperations) {
+    // 复杂表达式：[\w&&[^aeiou]--[0-9]]
+    EXPECT_TRUE(Match(R"([\w&&[^aeiou]--[0-9]])", "b"));
+    EXPECT_TRUE(Match(R"([\w&&[^aeiou]--[0-9]])", "z"));
+    EXPECT_FALSE(Match(R"([\w&&[^aeiou]--[0-9]])", "a"));
+    EXPECT_FALSE(Match(R"([\w&&[^aeiou]--[0-9]])", "5"));
+
+    // 嵌套集合操作：[[\w&&[a-z]]--[aeiou]]
+    EXPECT_TRUE(Match(R"([[\w&&[a-z]]--[aeiou]])", "b"));
+    EXPECT_TRUE(Match(R"([[\w&&[a-z]]--[aeiou]])", "z"));
+    EXPECT_FALSE(Match(R"([[\w&&[a-z]]--[aeiou]])", "a"));
+}
+
+// ============================================================================
+// 字符串字面量测试 (\q{...})
+// ============================================================================
+
+TEST_F(RegExpVFlagTest, StringLiteralBasic) {
+    // 字符串字面量：[\q{a|b|c}] 匹配 "a", "b", 或 "c"
+    EXPECT_TRUE(Match(R"([\q{a|b|c}])", "a"));
+    EXPECT_TRUE(Match(R"([\q{a|b|c}])", "b"));
+    EXPECT_TRUE(Match(R"([\q{a|b|c}])", "c"));
+    EXPECT_FALSE(Match(R"([\q{a|b|c}])", "d"));
+}
+
+TEST_F(RegExpVFlagTest, StringLiteralMultiChar) {
+    // 多字符字符串字面量：[\q{ab|cd|ef}]
+    EXPECT_TRUE(Match(R"([\q{ab|cd|ef}])", "ab"));
+    EXPECT_TRUE(Match(R"([\q{ab|cd|ef}])", "cd"));
+    EXPECT_TRUE(Match(R"([\q{ab|cd|ef}])", "ef"));
+    EXPECT_FALSE(Match(R"([\q{ab|cd|ef}])", "gh"));
+}
+
+TEST_F(RegExpVFlagTest, StringLiteralWithSpecialChars) {
+    // 特殊字符：[\q{\r\n|NEWLINE}]
+    EXPECT_TRUE(Match(R"([\q{\r\n|NEWLINE}])", "\r\n"));
+    EXPECT_TRUE(Match(R"([\q{\r\n|NEWLINE}])", "NEWLINE"));
+    EXPECT_FALSE(Match(R"([\q{\r\n|NEWLINE}])", "\n"));
+}
+
+TEST_F(RegExpVFlagTest, StringLiteralInSetOperations) {
+    // 字符串字面量与集合操作结合
+    EXPECT_TRUE(Match(R"([\q{cat|dog}&&[a-z]{3}])", "cat"));
+    EXPECT_TRUE(Match(R"([\q{cat|dog}&&[a-z]{3}])", "dog"));
+    EXPECT_FALSE(Match(R"([\q{cat|dog}&&[a-z]{3}])", "catdog"));
+}
+
+// ============================================================================
+// Unicode 属性组合测试
+// ============================================================================
+
+TEST_F(RegExpVFlagTest, UnicodePropertiesWithSets) {
+    // Unicode 属性交集
+    EXPECT_TRUE(Match(R"([\p{L}&&\p{Script=Greek}])", "α"));
+    EXPECT_TRUE(Match(R"([\p{L}&&\p{Script=Greek}])", "Ω"));
+    EXPECT_FALSE(Match(R"([\p{L}&&\p{Script=Greek}])", "a"));
+
+    // Unicode 属性差集
+    EXPECT_TRUE(Match(R"([\p{L}--\p{Latin}])", "α"));
+    EXPECT_FALSE(Match(R"([\p{L}--\p{Latin}])", "a"));
+}
+
+// ============================================================================
+// /v 标志边界情况测试
+// ============================================================================
+
+TEST_F(RegExpVFlagTest, VFlagEmptySet) {
+    // 空集操作
+    EXPECT_TRUE(ParseFailed(R"([\w&&[0-9]--[0-9]])"));  // 结果为空集
+}
+
+TEST_F(RegExpVFlagTest, VFlagInvalidSyntax) {
+    // 无效的集合操作符
+    EXPECT_TRUE(ParseFailed(R"([\w^^[a-z]])"));  // 无效操作符
+    EXPECT_TRUE(ParseFailed(R"([\w&&])"));       // 不完整的集合操作
+}
+
+TEST_F(RegExpVFlagTest, VFlagWithQuantifiers) {
+    // 集合操作与量词结合
+    EXPECT_TRUE(Match(R"([\w&&[a-g]]+) ", "abcdef"));
+    EXPECT_TRUE(Match(R"([\w&&[a-g]]{3})", "abc"));
+    EXPECT_FALSE(Match(R"([\w&&[a-g]]{3})", "abz"));
+}
+
+// ============================================================================
+// /v 标志与其他标志组合测试
+// ============================================================================
+
+TEST_F(RegExpVFlagTest, VFlagWithIgnoreCase) {
+    // /v + /i 组合
+    EXPECT_TRUE(Match(R"([\w&&[a-g]])", "A", true));
+    EXPECT_TRUE(Match(R"([\w&&[a-g]])", "G", true));
+}
+
+TEST_F(RegExpVFlagTest, VFlagWithMultiline) {
+    // /v + /m 组合
+    EXPECT_TRUE(Match(R"(^[a-z]$)", "abc", true));
+}
+
+// ============================================================================
+// 实际应用场景测试
+// ============================================================================
+
+TEST_F(RegExpVFlagTest, PracticalUseCases) {
+    // 匹配非元音字母的单词字符
+    EXPECT_TRUE(Match(R"([\w&&[^aeiouAEIOU]])", "b"));
+    EXPECT_TRUE(Match(R"([\w&&[^aeiouAEIOU]])", "Z"));
+    EXPECT_FALSE(Match(R"([\w&&[^aeiouAEIOU]])", "a"));
+
+    // 匹配不在特定范围内的数字
+    EXPECT_TRUE(Match(R"([\d--[0-5]])", "7"));
+    EXPECT_TRUE(Match(R"([\d--[0-5]])", "9"));
+    EXPECT_FALSE(Match(R"([\d--[0-5]])", "3"));
+
+    // 匹配特定语言的字母
+    EXPECT_TRUE(Match(R"([\p{L}&&\p{Script=Cyrillic}])", "б"));
+    EXPECT_TRUE(Match(R"([\p{L}&&\p{Script=Cyrillic}])", "Б"));
+    EXPECT_FALSE(Match(R"([\p{L}&&\p{Script=Cyrillic}])", "a"));
+}
+
+} // namespace test
+} // namespace mjs

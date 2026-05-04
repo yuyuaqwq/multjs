@@ -1,0 +1,388 @@
+/**
+ * @file regexp_dflag_test.cpp
+ * @brief 正则表达式 /d 标志（hasIndices）测试
+ *
+ * 测试 ECMAScript 2022 的 /d 标志功能
+ *
+ * @copyright Copyright (c) 2025
+ * @license MIT License
+ */
+
+#include <gtest/gtest.h>
+#include <memory>
+#include <string>
+
+#include <mjs/context.h>
+#include <mjs/runtime.h>
+#include <mjs/gc/handle.h>
+#include <mjs/value/value.h>
+#include <mjs/regexp/regexp_object.h>
+#include <mjs/const_index_embedded.h>
+#include "tests/unit/test_helpers.h"
+
+namespace mjs::test {
+
+/**
+ * @class RegExpDFlagTest
+ * @brief /d 标志测试类
+ */
+class RegExpDFlagTest : public ::testing::Test {
+protected:
+    void SetUp() override {
+        test_env = std::make_unique<TestEnvironment>();
+        context = std::make_unique<Context>(test_env->runtime());
+    }
+
+    void TearDown() override {
+        context.reset();
+        test_env.reset();
+    }
+
+    std::unique_ptr<TestEnvironment> test_env;
+    std::unique_ptr<Context> context;
+
+    /**
+     * @brief 辅助方法：检查匹配结果的indices属性
+     */
+    bool HasIndicesArray(const Value& result) {
+        if (!result.IsObject()) {
+            return false;
+        }
+
+        auto& obj = result.object();
+        Value indices_val;
+        obj.GetProperty(context.get(), ConstIndexEmbedded::kIndices, &indices_val);
+
+        return indices_val.IsObject();
+    }
+
+    /**
+     * @brief 辅助方法：获取indices数组中的特定索引范围
+     */
+    std::pair<int64_t, int64_t> GetIndicesRange(const Value& result, size_t index) {
+        auto& obj = result.object();
+        Value indices_val;
+        obj.GetProperty(context.get(), ConstIndexEmbedded::kIndices, &indices_val);
+
+        if (!indices_val.IsObject()) {
+            return {-1, -1};
+        }
+
+        auto& indices_obj = indices_val.object();
+        Value index_val;
+        indices_obj.GetPropertyByIndex(context.get(), index, &index_val);
+
+        if (!index_val.IsObject()) {
+            return {-1, -1};
+        }
+
+        auto& range_obj = index_val.object();
+        Value start_val, end_val;
+
+        range_obj.GetPropertyByIndex(context.get(), 0, &start_val);
+        range_obj.GetPropertyByIndex(context.get(), 1, &end_val);
+
+        if (!start_val.IsInt64() || !end_val.IsInt64()) {
+            return {-1, -1};
+        }
+
+        return {start_val.i64(), end_val.i64()};
+    }
+};
+
+// ============================================================================
+// hasIndices 属性测试
+// ============================================================================
+
+TEST_F(RegExpDFlagTest, HasIndicesProperty) {
+    GCHandleScope<2> scope(context.get());
+
+    // 带/d标志的正则表达式
+    auto regex_with_d = scope.New<RegExpObject>("(a)(b)", "d");
+    EXPECT_TRUE(regex_with_d->has_indices());
+
+    // 不带/d标志的正则表达式
+    auto regex_without_d = scope.New<RegExpObject>("(a)(b)", "");
+    EXPECT_FALSE(regex_without_d->has_indices());
+}
+
+TEST_F(RegExpDFlagTest, HasIndicesWithOtherFlags) {
+    GCHandleScope<1> scope(context.get());
+
+    // /d 与其他标志组合
+    auto regex = scope.New<RegExpObject>("(a)(b)", "gid");
+    EXPECT_TRUE(regex->global());
+    EXPECT_TRUE(regex->ignore_case());
+    EXPECT_TRUE(regex->has_indices());
+}
+
+// ============================================================================
+// indices 数组基本测试
+// ============================================================================
+
+TEST_F(RegExpDFlagTest, IndicesArrayBasic) {
+    GCHandleScope<1> scope(context.get());
+    auto regex = scope.New<RegExpObject>("(a)(b)", "d");
+
+    auto result = regex->Exec(context.get(), "ab");
+    ASSERT_TRUE(result.IsObject());
+    EXPECT_TRUE(HasIndicesArray(result));
+}
+
+TEST_F(RegExpDFlagTest, IndicesArrayStructure) {
+    GCHandleScope<1> scope(context.get());
+    auto regex = scope.New<RegExpObject>("(a)(b)", "d");
+
+    auto result = regex->Exec(context.get(), "ab");
+    ASSERT_TRUE(result.IsObject());
+
+    // 检查整体匹配的索引 (indices[0])
+    auto [start0, end0] = GetIndicesRange(result, 0);
+    EXPECT_EQ(start0, 0);
+    EXPECT_EQ(end0, 2);
+
+    // 检查第一个捕获组的索引 (indices[1])
+    auto [start1, end1] = GetIndicesRange(result, 1);
+    EXPECT_EQ(start1, 0);
+    EXPECT_EQ(end1, 1);
+
+    // 检查第二个捕获组的索引 (indices[2])
+    auto [start2, end2] = GetIndicesRange(result, 2);
+    EXPECT_EQ(start2, 1);
+    EXPECT_EQ(end2, 2);
+}
+
+// ============================================================================
+// indices 数组与嵌套捕获组测试
+// ============================================================================
+
+TEST_F(RegExpDFlagTest, IndicesArrayWithNestedGroups) {
+    GCHandleScope<1> scope(context.get());
+    auto regex = scope.New<RegExpObject>("((a)b)", "d");
+
+    auto result = regex->Exec(context.get(), "ab");
+    ASSERT_TRUE(result.IsObject());
+
+    // 检查整体匹配
+    auto [start0, end0] = GetIndicesRange(result, 0);
+    EXPECT_EQ(start0, 0);
+    EXPECT_EQ(end0, 2);
+
+    // 检查外层捕获组 ((a)b)
+    auto [start1, end1] = GetIndicesRange(result, 1);
+    EXPECT_EQ(start1, 0);
+    EXPECT_EQ(end1, 2);
+
+    // 检查内层捕获组 (a)
+    auto [start2, end2] = GetIndicesRange(result, 2);
+    EXPECT_EQ(start2, 0);
+    EXPECT_EQ(end2, 1);
+}
+
+// ============================================================================
+// indices 数组与命名捕获组测试
+// ============================================================================
+
+TEST_F(RegExpDFlagTest, IndicesArrayWithNamedGroups) {
+    GCHandleScope<1> scope(context.get());
+    auto regex = scope.New<RegExpObject>(R"((?<first>a)(?<second>b))", "d");
+
+    auto result = regex->Exec(context.get(), "ab");
+    ASSERT_TRUE(result.IsObject());
+
+    // 检查命名捕获组的indices
+    // 注意：命名捕获组在indices对象中应该有对应的属性
+    auto& indices = result.object().Get(context.get(), ConstIndexEmbedded::kIndices).object();
+    ASSERT_TRUE(indices.IsObject());
+
+    // 检查是否包含命名捕获组的indices
+    Value first_indices, second_indices;
+    indices.GetProperty(context.get(), "first", &first_indices);
+    indices.GetProperty(context.get(), "second", &second_indices);
+
+    EXPECT_TRUE(first_indices.IsObject());
+    EXPECT_TRUE(second_indices.IsObject());
+}
+
+// ============================================================================
+// indices 数组与不匹配的捕获组测试
+// ============================================================================
+
+TEST_F(RegExpDFlagTest, IndicesArrayWithUnmatchedGroups) {
+    GCHandleScope<1> scope(context.get());
+    auto regex = scope.New<RegExpObject>("(a+)?(b)", "d");
+
+    auto result = regex->Exec(context.get(), "b");
+    ASSERT_TRUE(result.IsObject());
+
+    // 第一个捕获组未匹配，indices应该为undefined
+    auto [start1, end1] = GetIndicesRange(result, 1);
+    EXPECT_EQ(start1, -1);
+    EXPECT_EQ(end1, -1);
+
+    // 第二个捕获组匹配
+    auto [start2, end2] = GetIndicesRange(result, 2);
+    EXPECT_EQ(start2, 0);
+    EXPECT_EQ(end2, 1);
+}
+
+// ============================================================================
+// indices 数组与全局匹配测试
+// ============================================================================
+
+TEST_F(RegExpDFlagTest, IndicesArrayWithGlobalMatch) {
+    GCHandleScope<1> scope(context.get());
+    auto regex = scope.New<RegExpObject>("(\\d)(\\d)", "gd");
+
+    std::string str = "12 34 56";
+
+    // 第一次匹配
+    regex->set_last_index(0);
+    auto result1 = regex->Exec(context.get(), str);
+    ASSERT_TRUE(result1.IsObject());
+
+    auto [start1_0, end1_0] = GetIndicesRange(result1, 0);
+    EXPECT_EQ(start1_0, 0);
+    EXPECT_EQ(end1_0, 2);
+
+    // 第二次匹配
+    auto result2 = regex->Exec(context.get(), str);
+    ASSERT_TRUE(result2.IsObject());
+
+    auto [start2_0, end2_0] = GetIndicesRange(result2, 0);
+    EXPECT_EQ(start2_0, 3);
+    EXPECT_EQ(end2_0, 5);
+}
+
+// ============================================================================
+// indices 数组与复杂模式测试
+// ============================================================================
+
+TEST_F(RegExpDFlagTest, IndicesArrayWithComplexPattern) {
+    GCHandleScope<1> scope(context.get());
+    auto regex = scope.New<RegExpObject>("\\b(\\w+)\\s+(\\w+)\\b", "d");
+
+    auto result = regex->Exec(context.get(), "hello world");
+    ASSERT_TRUE(result.IsObject());
+
+    // 检查整体匹配
+    auto [start0, end0] = GetIndicesRange(result, 0);
+    EXPECT_EQ(start0, 0);
+    EXPECT_EQ(end0, 11);
+
+    // 检查第一个单词
+    auto [start1, end1] = GetIndicesRange(result, 1);
+    EXPECT_EQ(start1, 0);
+    EXPECT_EQ(end1, 5);
+
+    // 检查第二个单词
+    auto [start2, end2] = GetIndicesRange(result, 2);
+    EXPECT_EQ(start2, 6);
+    EXPECT_EQ(end2, 11);
+}
+
+// ============================================================================
+// indices 数组边界情况测试
+// ============================================================================
+
+TEST_F(RegExpDFlagTest, IndicesArrayEmptyMatch) {
+    GCHandleScope<1> scope(context.get());
+    auto regex = scope.New<RegExpObject>("()", "d");
+
+    auto result = regex->Exec(context.get(), "");
+    ASSERT_TRUE(result.IsObject());
+
+    // 空匹配也应该有indices
+    auto [start0, end0] = GetIndicesRange(result, 0);
+    EXPECT_EQ(start0, 0);
+    EXPECT_EQ(end0, 0);
+}
+
+TEST_F(RegExpDFlagTest, IndicesArrayNoMatch) {
+    GCHandleScope<1> scope(context.get());
+    auto regex = scope.New<RegExpObject>("(a)", "d");
+
+    auto result = regex->Exec(context.get(), "b");
+    EXPECT_TRUE(result.IsNull());
+}
+
+// ============================================================================
+// /d 标志与toString测试
+// ============================================================================
+
+TEST_F(RegExpDFlagTest, DFlagInToString) {
+    GCHandleScope<1> scope(context.get());
+    auto regex = scope.New<RegExpObject>("abc", "d");
+
+    EXPECT_EQ(regex->ToString(), "/abc/d");
+}
+
+TEST_F(RegExpDFlagTest, DFlagWithOtherFlagsInToString) {
+    GCHandleScope<1> scope(context.get());
+    auto regex = scope.New<RegExpObject>("abc", "gimd");
+
+    EXPECT_EQ(regex->ToString(), "/abc/gimd");
+}
+
+// ============================================================================
+// 实际应用场景测试
+// ============================================================================
+
+TEST_F(RegExpDFlagTest, PracticalUseCaseTokenization) {
+    GCHandleScope<1> scope(context.get());
+    // 使用/d标志进行词法分析，获取每个token的确切位置
+    auto regex = scope.New<RegExpObject>(R"(\b(\w+)\b)", "gd");
+
+    std::string str = "hello world test";
+    std::vector<std::string> tokens;
+    std::vector<std::pair<size_t, size_t>> positions;
+
+    while (true) {
+        auto result = regex->Exec(context.get(), str);
+        if (!result.IsObject()) {
+            break;
+        }
+
+        auto [start, end] = GetIndicesRange(result, 0);
+        positions.push_back({static_cast<size_t>(start), static_cast<size_t>(end)});
+
+        auto& obj = result.object();
+        Value token_val;
+        obj.GetPropertyByIndex(context.get(), 1, &token_val);
+        tokens.push_back(token_val.ToString(context.get()));
+    }
+
+    EXPECT_EQ(tokens.size(), 3);
+    EXPECT_EQ(tokens[0], "hello");
+    EXPECT_EQ(tokens[1], "world");
+    EXPECT_EQ(tokens[2], "test");
+
+    EXPECT_EQ(positions[0].first, 0);
+    EXPECT_EQ(positions[0].second, 5);
+    EXPECT_EQ(positions[1].first, 6);
+    EXPECT_EQ(positions[1].second, 11);
+}
+
+TEST_F(RegExpDFlagTest, PracticalUseCaseValidationWithPositions) {
+    GCHandleScope<1> scope(context.get());
+    // 验证并获取每个部分的精确位置
+    auto regex = scope.New<RegExpObject>(R"((\d{4})-(\d{2})-(\d{2}))", "d");
+
+    auto result = regex->Exec(context.get(), "2025-02-20");
+    ASSERT_TRUE(result.IsObject());
+
+    // 验证年月日的位置
+    auto [year_start, year_end] = GetIndicesRange(result, 1);
+    auto [month_start, month_end] = GetIndicesRange(result, 2);
+    auto [day_start, day_end] = GetIndicesRange(result, 3);
+
+    EXPECT_EQ(year_start, 0);
+    EXPECT_EQ(year_end, 4);
+    EXPECT_EQ(month_start, 5);
+    EXPECT_EQ(month_end, 7);
+    EXPECT_EQ(day_start, 8);
+    EXPECT_EQ(day_end, 10);
+}
+
+} // namespace test
+} // namespace mjs
