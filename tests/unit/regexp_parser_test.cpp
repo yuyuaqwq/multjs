@@ -4,7 +4,7 @@
  *
  * 测试正则表达式解析器的各种功能，包括:
  * - 基本字符匹配
- * - 字符�?[abc], [^abc]
+ * - 字符 [abc], [^abc]
  * - 特殊字符 .
  * - 转义序列 \d, \D, \w, \W, \s, \S
  * - 量词 *, +, ?
@@ -27,7 +27,7 @@ namespace test {
 
 /**
  * @class RegExpParserTest
- * @brief 正则表达式解析器测试�?
+ * @brief 正则表达式解析器测试�?
  */
 class RegExpParserTest : public ::testing::Test {
 protected:
@@ -35,7 +35,7 @@ protected:
     void TearDown() override {}
 
     /**
-     * @brief 辅助方法：解析正则表达式并检查是否成�?
+     * @brief 辅助方法：解析正则表达式并检查是否成�?
      */
     std::unique_ptr<RegExpASTNode> Parse(const std::string& pattern, bool unicode_mode = false) {
         RegExpParser parser(pattern, unicode_mode);
@@ -43,7 +43,7 @@ protected:
     }
 
     /**
-     * @brief 辅助方法：解析正则表达式并检查是否失�?
+     * @brief 辅助方法：解析正则表达式并检查是否失�?
      */
     bool ParseFailed(const std::string& pattern, bool unicode_mode = false) {
         RegExpParser parser(pattern, unicode_mode);
@@ -114,11 +114,11 @@ TEST_F(RegExpParserTest, EscapedSpecialCharacters) {
 }
 
 // ============================================================================
-// 字符类测�?
+// 字符类测�?
 // ============================================================================
 
 /**
- * @test 测试基本字符�?
+ * @test 测试基本字符�?
  */
 TEST_F(RegExpParserTest, BasicCharacterClass) {
     auto root = Parse("[abc]");
@@ -135,7 +135,7 @@ TEST_F(RegExpParserTest, BasicCharacterClass) {
 }
 
 /**
- * @test 测试否定字符�?
+ * @test 测试否定字符�?
  */
 TEST_F(RegExpParserTest, NegatedCharacterClass) {
     auto root = Parse("[^abc]");
@@ -150,7 +150,7 @@ TEST_F(RegExpParserTest, NegatedCharacterClass) {
 }
 
 /**
- * @test 测试字符类范�?
+ * @test 测试字符类范�?
  */
 TEST_F(RegExpParserTest, CharacterClassRange) {
     auto root = Parse("[a-z]");
@@ -170,7 +170,7 @@ TEST_F(RegExpParserTest, CharacterClassRange) {
 }
 
 /**
- * @test 测试数字字符�?
+ * @test 测试数字字符�?
  */
 TEST_F(RegExpParserTest, DigitCharacterClass) {
     auto root = Parse("[0-9]");
@@ -258,7 +258,7 @@ TEST_F(RegExpParserTest, DigitEscapeSequence) {
 }
 
 /**
- * @test 测试\D转义序列（非数字�?
+ * @test 测试\D转义序列（非数字�?
  */
 TEST_F(RegExpParserTest, NotDigitEscapeSequence) {
     auto root = Parse("\\D");
@@ -288,7 +288,7 @@ TEST_F(RegExpParserTest, WordEscapeSequence) {
 }
 
 /**
- * @test 测试\W转义序列（非单词字符�?
+ * @test 测试\W转义序列（非单词字符�?
  */
 TEST_F(RegExpParserTest, NotWordEscapeSequence) {
     auto root = Parse("\\W");
@@ -318,7 +318,7 @@ TEST_F(RegExpParserTest, SpaceEscapeSequence) {
 }
 
 /**
- * @test 测试\S转义序列（非空白字符�?
+ * @test 测试\S转义序列（非空白字符�?
  */
 TEST_F(RegExpParserTest, NotSpaceEscapeSequence) {
     auto root = Parse("\\S");
@@ -337,7 +337,7 @@ TEST_F(RegExpParserTest, NotSpaceEscapeSequence) {
 // ============================================================================
 
 /**
- * @test 测试*量词�?次或多次�?
+ * @test 测试*量词�?次或多次�?
  */
 TEST_F(RegExpParserTest, StarQuantifier) {
     auto root = Parse("a*");
@@ -356,7 +356,7 @@ TEST_F(RegExpParserTest, StarQuantifier) {
 }
 
 /**
- * @test 测试+量词�?次或多次�?
+ * @test 测试+量词�?次或多次�?
  */
 TEST_F(RegExpParserTest, PlusQuantifier) {
     auto root = Parse("a+");
@@ -375,7 +375,7 @@ TEST_F(RegExpParserTest, PlusQuantifier) {
 }
 
 /**
- * @test 测试?量词�?次或1次）
+ * @test 测试?量词�?次或1次）
  */
 TEST_F(RegExpParserTest, QuestionQuantifier) {
     auto root = Parse("a?");
@@ -394,7 +394,7 @@ TEST_F(RegExpParserTest, QuestionQuantifier) {
 }
 
 /**
- * @test 测试非贪婪量�?
+ * @test 测试非贪婪量�?
  */
 TEST_F(RegExpParserTest, NonGreedyQuantifiers) {
     auto root1 = Parse("a*?");
@@ -543,19 +543,19 @@ TEST_F(RegExpParserTest, UnclosedGroup) {
 }
 
 /**
- * @test 测试未闭合的字符�?
+ * @test 测试未闭合的字符�?
  */
 TEST_F(RegExpParserTest, UnclosedCharacterClass) {
     EXPECT_TRUE(ParseFailed("[abc"));
 }
 
 /**
- * @test 测试无效的转义序�?
+ * @test 测试无效的转义序�?
  */
 TEST_F(RegExpParserTest, InvalidEscapeSequence) {
     // 目前所有转义序列都被视为字符转义，所以这个测试可能会改变
     auto root = Parse("\\x");
-    // ���ܳɹ���ʧ�ܣ�ȡ����ʵ��
+    // ���ܳɹ���ʧ�ܣ�ȡ����ʵ��
 }
 
 TEST_F(RegExpParserTest, BareBracesAreLiteralsWithoutUnicodeMode) {
@@ -605,7 +605,7 @@ TEST_F(RegExpParserTest, HexEscapeSequenceLowercase) {
 }
 
 /**
- * @test 测试无效的十六进制转义序�?
+ * @test 测试无效的十六进制转义序�?
  */
 TEST_F(RegExpParserTest, InvalidHexEscapeSequence) {
     EXPECT_TRUE(ParseFailed("\\x"));  // 缺少十六进制数字
@@ -634,10 +634,10 @@ TEST_F(RegExpParserTest, InvalidUnicodeEscapeSequence) {
 }
 
 /**
- * @test 测试八进制转义序�?\0
+ * @test 测试八进制转义序�?\0
  */
 TEST_F(RegExpParserTest, OctalEscapeSequence) {
-    auto root = Parse("\\0101");  // 八进�?01 = 十进�?5 = 'A'
+    auto root = Parse("\\0101");  // 八进�?01 = 十进�?5 = 'A'
     EXPECT_NE(root, nullptr);
 
     auto* concat = dynamic_cast<ConcatNode*>(root.get());
@@ -650,10 +650,10 @@ TEST_F(RegExpParserTest, OctalEscapeSequence) {
 }
 
 /**
- * @test 测试八进制转义序�?\0 单个数字
+ * @test 测试八进制转义序�?\0 单个数字
  */
 TEST_F(RegExpParserTest, OctalEscapeSequenceSingleDigit) {
-    auto root = Parse("\\01");  // 八进�?
+    auto root = Parse("\\01");  // 八进�?
     EXPECT_NE(root, nullptr);
 
     auto* concat = dynamic_cast<ConcatNode*>(root.get());
@@ -678,7 +678,7 @@ TEST_F(RegExpParserTest, PositiveLookbehind) {
 
     auto* concat = dynamic_cast<ConcatNode*>(root.get());
     ASSERT_NE(concat, nullptr);
-    EXPECT_GE(concat->children().size(), 2);  // 至少包含后瞻和后续字�?
+    EXPECT_GE(concat->children().size(), 2);  // 至少包含后瞻和后续字�?
 
     EXPECT_EQ(concat->children()[0]->type(), RegExpASTNodeType::kLookbehind);
     auto* lookbehind = dynamic_cast<LookbehindNode*>(concat->children()[0].get());
@@ -695,7 +695,7 @@ TEST_F(RegExpParserTest, NegativeLookbehind) {
 
     auto* concat = dynamic_cast<ConcatNode*>(root.get());
     ASSERT_NE(concat, nullptr);
-    EXPECT_GE(concat->children().size(), 2);  // 至少包含后瞻和后续字�?
+    EXPECT_GE(concat->children().size(), 2);  // 至少包含后瞻和后续字�?
 
     EXPECT_EQ(concat->children()[0]->type(), RegExpASTNodeType::kLookbehind);
     auto* lookbehind = dynamic_cast<LookbehindNode*>(concat->children()[0].get());
@@ -711,11 +711,11 @@ TEST_F(RegExpParserTest, UnclosedLookbehind) {
 }
 
 // ============================================================================
-// 命名捕获组测�?
+// 命名捕获组测�?
 // ============================================================================
 
 /**
- * @test 测试命名捕获�?
+ * @test 测试命名捕获�?
  */
 TEST_F(RegExpParserTest, NamedCaptureGroup) {
     auto root = Parse("(?<name>abc)");
@@ -750,7 +750,7 @@ TEST_F(RegExpParserTest, NamedCaptureGroupWithUnderscore) {
 }
 
 /**
- * @test 测试未闭合的命名捕获�?
+ * @test 测试未闭合的命名捕获�?
  */
 TEST_F(RegExpParserTest, UnclosedNamedCaptureGroup) {
     EXPECT_TRUE(ParseFailed("(?<name"));
@@ -758,7 +758,7 @@ TEST_F(RegExpParserTest, UnclosedNamedCaptureGroup) {
 }
 
 /**
- * @test 测试命名捕获组无效字�?
+ * @test 测试命名捕获组无效字�?
  */
 TEST_F(RegExpParserTest, NamedCaptureGroupInvalidChar) {
     EXPECT_TRUE(ParseFailed("(?<name-abc>"));  // 无效字符 '-'
@@ -798,7 +798,7 @@ TEST_F(RegExpParserTest, ForwardNamedBackreference) {
  * @test 测试未定义的命名反向引用
  */
 TEST_F(RegExpParserTest, UndefinedNamedBackreference) {
-    EXPECT_TRUE(ParseFailed("\\k<undefined>"));  // 未定义的命名捕获�?
+    EXPECT_TRUE(ParseFailed("\\k<undefined>"));  // 未定义的命名捕获�?
 }
 
 /**
@@ -846,29 +846,29 @@ TEST_F(RegExpParserTest, UnicodeCodePointEscapeMultipleDigits) {
  * @test 测试未闭合的 Unicode 码点转义
  */
 TEST_F(RegExpParserTest, UnclosedUnicodeCodePointEscape) {
-    EXPECT_TRUE(ParseFailed("\\u{41", true));  // ȱ�� '}'
+    EXPECT_TRUE(ParseFailed("\\u{41", true));  // ȱ�� '}'
 }
 
 /**
- * @test 测试无效�?Unicode 码点（超出范围）
+ * @test 测试无效�?Unicode 码点（超出范围）
  */
 TEST_F(RegExpParserTest, InvalidUnicodeCodePointOutOfRange) {
-    EXPECT_TRUE(ParseFailed("\\u{110000}", true));  // �������Χ 0x10FFFF
+    EXPECT_TRUE(ParseFailed("\\u{110000}", true));  // �������Χ 0x10FFFF
 }
 
 /**
  * @test 测试空的 Unicode 码点转义
  */
 TEST_F(RegExpParserTest, EmptyUnicodeCodePointEscape) {
-    EXPECT_TRUE(ParseFailed("\\u{}", true));  // ������Ҫ1λʮ����������
+    EXPECT_TRUE(ParseFailed("\\u{}", true));  // ������Ҫ1λʮ����������
 }
 
 // ============================================================================
-// Unicode 属性转义测�?
+// Unicode 属性转义测�?
 // ============================================================================
 
 /**
- * @test 测试 Unicode 属性转�?\p{L}
+ * @test 测试 Unicode 属性转�?\p{L}
  */
 TEST_F(RegExpParserTest, UnicodePropertyEscapeLetter) {
     auto root = Parse("\\p{L}", true);
@@ -883,7 +883,7 @@ TEST_F(RegExpParserTest, UnicodePropertyEscapeLetter) {
 }
 
 /**
- * @test 测试 Unicode 属性转�?\P{L}（否定）
+ * @test 测试 Unicode 属性转�?\P{L}（否定）
  */
 TEST_F(RegExpParserTest, UnicodePropertyEscapeNotLetter) {
     auto root = Parse("\\P{L}", true);
@@ -898,7 +898,7 @@ TEST_F(RegExpParserTest, UnicodePropertyEscapeNotLetter) {
 }
 
 /**
- * @test 测试 Unicode 属性转�?\p{Number}
+ * @test 测试 Unicode 属性转�?\p{Number}
  */
 TEST_F(RegExpParserTest, UnicodePropertyEscapeNumber) {
     auto root = Parse("\\p{Number}", true);
@@ -913,17 +913,17 @@ TEST_F(RegExpParserTest, UnicodePropertyEscapeNumber) {
 }
 
 /**
- * @test 测试未闭合的 Unicode 属性转�?
+ * @test 测试未闭合的 Unicode 属性转�?
  */
 TEST_F(RegExpParserTest, UnclosedUnicodePropertyEscape) {
-    EXPECT_TRUE(ParseFailed("\\p{L", true));  // ȱ�� '}'
+    EXPECT_TRUE(ParseFailed("\\p{L", true));  // ȱ�� '}'
 }
 
 /**
- * @test 测试 Unicode 属性转义缺少左花括�?
+ * @test 测试 Unicode 属性转义缺少左花括�?
  */
 TEST_F(RegExpParserTest, UnicodePropertyEscapeMissingLeftBrace) {
-    EXPECT_TRUE(ParseFailed("\\pL", true));  // ȱ�� '{'
+    EXPECT_TRUE(ParseFailed("\\pL", true));  // ȱ�� '{'
 }
 
 TEST_F(RegExpParserTest, UnicodePropertyEscapeRequiresUnicodeMode) {
