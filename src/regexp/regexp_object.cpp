@@ -1,6 +1,6 @@
 /**
  * @file regexp_object.cpp
- * @brief 婵繐绲介崹顖滄偘閵娿劍褰х€殿喖绻愰顔炬寬閳ュ磭鏉介柣?
+ * @brief 正则表达式对象实现
  *
  * @copyright Copyright (c) 2025
  * @license MIT License
@@ -62,7 +62,7 @@ RegExpObject::RegExpObject(Context* context, const std::string& pattern, const s
       has_indices_(false),
       last_index_(0) {
 
-    // 閻熸瑱绲鹃悗浠嬪冀閸パ呯
+    // 解析正则表达式标志
     for (char flag : flags) {
         switch (flag) {
             case 'g':
@@ -90,12 +90,12 @@ RegExpObject::RegExpObject(Context* context, const std::string& pattern, const s
                 has_indices_ = true;
                 break;
             default:
-                // 闊洨鏅弳鎰板籍閻樿櫕娅忛柡宥呮搐缁?
+                // 未知标志，忽略
                 break;
         }
     }
 
-    // 缂傚倹鐗為惁褍顫㈤敐鍛仧閻炴稏鍔忛幓顏勵嚕?
+    // 编译正则表达式
     Compile();
 }
 
@@ -151,20 +151,20 @@ bool RegExpObject::Test(Context* context, const std::string& str) {
         return false;
     }
 
-    // 濞寸姴绐卆st_index鐎殿喒鍋撳┑顔碱儏鐏忣噣鏌?
+    // 根据 last_index 确定搜索起始位置
     size_t start_pos = (global_ || sticky_) ? last_index_ : 0;
 
     auto result = nfa_->MatchDetail(str, start_pos);
 
     if (result.has_value()) {
-        // 闁革腹鏆瀟icky婵☆垪鈧磭纭€濞戞挸顑戠槐婵婄疀閸涙番鈧繑绂掑姊゛rt_pos鐎殿喒鍋撳┑顔碱儏鐏忣噣鏌?
+        // sticky 模式下匹配必须从 last_index 位置开始
         if (sticky_ && result->start_pos != start_pos) {
             // Sticky mode requires the match to start at exactly start_pos
             last_index_ = 0;
             return false;
         }
 
-        // 闁哄洤鐡ㄩ弻濡塧stIndex
+        // 更新 lastIndex
         if (global_ || sticky_) {
             size_t next_index = result->end_pos;
             if (next_index == start_pos) {
@@ -175,7 +175,7 @@ bool RegExpObject::Test(Context* context, const std::string& str) {
         return true;
     }
 
-    // 闂佹彃绉堕悿鍞媋stIndex
+    // 匹配失败，重置 lastIndex
     if (global_ || sticky_) {
         last_index_ = 0;
     }
@@ -188,30 +188,30 @@ Value RegExpObject::Exec(Context* context, const std::string& str) {
         return Value(nullptr);
     }
 
-    // 濞寸姴绐卆st_index鐎殿喒鍋撳┑顔碱儏鐏忣噣鏌?
+    // 根据 last_index 确定搜索起始位置
     size_t start_pos = (global_ || sticky_) ? last_index_ : 0;
 
     auto result = nfa_->MatchDetail(str, start_pos);
 
     if (!result.has_value()) {
-        // 闁告牕缍婇崢銈嗗緞鏉堫偉袝闁挎稑鐭傞崳鍝ョ磾閻㈢禈stIndex
+        // 没有匹配结果，重置 lastIndex 并返回 null
         if (global_ || sticky_) {
             last_index_ = 0;
         }
         return Value(nullptr);
     }
 
-    // 闁革腹鏆瀟icky婵☆垪鈧磭纭€濞戞挸顑戠槐婵婄疀閸涙番鈧繑绂掑姊゛rt_pos鐎殿喒鍋撳┑顔碱儏鐏忣噣鏌?
+    // sticky 模式下匹配必须从 last_index 位置开始
     if (sticky_ && result->start_pos != start_pos) {
         last_index_ = 0;
         return Value(nullptr);
     }
 
-    // 闁告帗绋戠紓鎾剁磼閹惧浜柡浣瑰缁?
-    // GCHandleScope闂傚洠鍋撻悷鏇氭祰閸愮粯寰勯悢鏋海濞寸姰鍎遍鎰棯閾忣偄顣查柡鍫濐槷婢跺秹寮粔鍢簄dle
-    // result_array + indices_array (闁告瑯鍨堕埀? + 濞戞挸鐡ㄥ淇絘nge objects
+    // 构建 exec 返回的数组结果
+    // GCHandleScope 管理多个临时对象的生命周期
+    // result_array + indices_array（匹配结果 + indices 数组）
     size_t scope_size = has_indices_ ? (3 + result->capture_indices.size() + 1) : 2;
-    // 闂傚嫭鍔曢崺妤呭嫉閳ь剚寰勯—绛﹐pe濠㈠爢鍐瘓濞寸姰鍎垫导鈺呭礂瀹ュ棛鍨芥繝褋鍨归崵?
+    // 如果 scope 数量超过上限，限制为最大值
     if (scope_size > 20) scope_size = 20;
 
     if (has_indices_) {
@@ -219,10 +219,10 @@ Value RegExpObject::Exec(Context* context, const std::string& str) {
         auto result_array_handle = scope.New<ArrayObject>(static_cast<uint32_t>(0));
         auto& result_array = *result_array_handle;
 
-        // index 0: 閻庣懓鏈弳锝夊礌瑜版帒甯抽柣銊ュ閺嬪啴寮?
+        // index 0: 完整匹配的字符串
         result_array.Push(context, Value(String::New(result->matched_text)));
 
-        // 婵烇綀顕ф慨鐐哄箲閺団€崇缂?
+        // 填充捕获组字符串
         for (size_t i = 0; i < result->captures.size(); ++i) {
             if (i < result->capture_indices.size() && result->capture_indices[i].second == SIZE_MAX) {
                 result_array.Push(context, Value());
@@ -231,15 +231,15 @@ Value RegExpObject::Exec(Context* context, const std::string& str) {
             result_array.Push(context, Value(String::New(result->captures[i])));
         }
 
-        // 閻犱礁澧介悿鍡涘极閹殿喚鐭嬮柣銊ュ閻﹢骞€?
+        // 设置 index 和 input 属性
         result_array.SetProperty(context, ConstIndexEmbedded::kIndex, Value(static_cast<int64_t>(result->start_pos)));
         result_array.SetProperty(context, ConstIndexEmbedded::kInput, Value(String::New(str)));
 
-        // 濠碘€冲€归悘澶愬触椤栨粍鏆忓ù婊冩敡asIndices (/d闁哄秴娲ょ换?闁挎稑鏈崸濠囧礉閻栧埖dices闁轰焦澹嗙划?
+        // 构建 indices 数组（/d hasIndices 标志）
         auto indices_array_handle = scope.New<ArrayObject>(static_cast<uint32_t>(0));
         auto& indices_array = *indices_array_handle;
 
-        // indices[0] 闁哄嫷鍨遍弳锝嗘媴閹惧啿鐖遍梺鏉跨Ф濞堟垿鎳犻崘銊︾函
+        // indices[0] 为完整匹配的起止位置范围
         {
             auto range_handle = scope.New<ArrayObject>(static_cast<uint32_t>(2));
             auto& range = *range_handle;
@@ -248,11 +248,11 @@ Value RegExpObject::Exec(Context* context, const std::string& str) {
             indices_array.Push(context, scope.Close(range_handle));
         }
 
-        // 濞戞挾鍎ら惁鈩冪▔椤忓懎绀嬮柤楣冾棑缁秴菐鐠囨彃顫ｇ紒渚垮灩缁扁晠鎳犻崘銊︾函
+        // 为每个捕获组创建 indices 范围
         for (const auto& indices : result->capture_indices) {
-            // 濠碘€冲€归悘澶愬箲閺団€崇缂備礁瀚﹢顓㈠礌瑜版帒甯抽柨娑樼暥nd濞村吋纰嶅Σ绐糏ZE_MAX闁挎稑鏈婵嬪籍閺堥潧鈻忛柣鈶╂殸ndefined
+            // 处理未匹配的捕获组（end == SIZE_MAX），设置为 undefined
             if (indices.second == SIZE_MAX) {
-                // 闁哄牜浜濆畷鐔兼嚔閸戙倗绀夊ù锝堟硶閺侇槢ndefined (JavaScript闁哄秴娲ら崳顖滄偘鐏炶壈绀?
+                // 未匹配的捕获组设置为 undefined（JavaScript 规范）
                 indices_array.Push(context, Value());
                 continue;
             }
@@ -266,7 +266,7 @@ Value RegExpObject::Exec(Context* context, const std::string& str) {
 
         result_array.SetProperty(context, ConstIndexEmbedded::kIndices, scope.Close(indices_array_handle));
 
-        // 闁哄洤鐡ㄩ弻濡塧stIndex
+        // 更新 lastIndex
         if (global_ || sticky_) {
             size_t next_index = result->end_pos;
             if (next_index == start_pos) {
@@ -281,10 +281,10 @@ Value RegExpObject::Exec(Context* context, const std::string& str) {
         auto result_array_handle = scope.New<ArrayObject>(static_cast<uint32_t>(0));
         auto& result_array = *result_array_handle;
 
-        // index 0: 閻庣懓鏈弳锝夊礌瑜版帒甯抽柣銊ュ閺嬪啴寮?
+        // index 0: 完整匹配的字符串
         result_array.Push(context, Value(String::New(result->matched_text)));
 
-        // 婵烇綀顕ф慨鐐哄箲閺団€崇缂?
+        // 填充捕获组字符串
         for (size_t i = 0; i < result->captures.size(); ++i) {
             if (i < result->capture_indices.size() && result->capture_indices[i].second == SIZE_MAX) {
                 result_array.Push(context, Value());
@@ -293,11 +293,11 @@ Value RegExpObject::Exec(Context* context, const std::string& str) {
             result_array.Push(context, Value(String::New(result->captures[i])));
         }
 
-        // 閻犱礁澧介悿鍡涘极閹殿喚鐭嬮柣銊ュ閻﹢骞€?
+        // 设置 index 和 input 属性
         result_array.SetProperty(context, ConstIndexEmbedded::kIndex, Value(static_cast<int64_t>(result->start_pos)));
         result_array.SetProperty(context, ConstIndexEmbedded::kInput, Value(String::New(str)));
 
-        // 闁哄洤鐡ㄩ弻濡塧stIndex
+        // 更新 lastIndex
         if (global_ || sticky_) {
             size_t next_index = result->end_pos;
             if (next_index == start_pos) {
@@ -320,7 +320,7 @@ std::string RegExpObject::ToString() const {
 
 void RegExpObject::GCTraverse(Context* context, GCTraverseCallback callback) {
     Object::GCTraverse(context, callback);
-    // RegExpObject闁烩晩鍠栨晶鐘测柦閳╁啯绠扸alue闁瑰瓨鍔曢幉鎶芥閳ь剛鎲版笟鈧禍鍫曞储?
+    // RegExpObject 没有直接的 Value 成员需要 GC 追踪
 }
 
 } // namespace mjs
